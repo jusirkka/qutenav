@@ -1,0 +1,12 @@
+<RCC>
+    <qresource prefix="/">
+        <file>shaders/globe.tesc</file>
+        <file>shaders/globe.tese</file>
+        <file>shaders/globe.frag</file>
+        <file>shaders/outliner.tesc</file>
+        <file>shaders/simple.vert</file>
+        <file>shaders/outliner.tese</file>
+        <file>shaders/outliner.frag</file>
+        <file>shaders/globe.geom</file>
+    </qresource>
+</RCC>
