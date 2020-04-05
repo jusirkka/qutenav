@@ -41,7 +41,7 @@ set_target_properties(qopencpn
 target_sources(qopencpn
   PRIVATE
     shaders.qrc
-    src/mainwindow.ui
+    files.qrc
     src/orthocam.cpp
     src/globe.cpp
     src/mainwindow.cpp
@@ -56,9 +56,9 @@ target_sources(qopencpn
     src/s57chart.cpp
 )
 
-kconfig_add_kcfg_files(qopencpn
-  src/conf_mainwindow.kcfgc
-)
+#kconfig_add_kcfg_files(qopencpn
+#  src/conf_mainwindow.kcfgc
+#)
 
 
 target_include_directories(qopencpn
@@ -81,11 +81,17 @@ target_link_libraries(qopencpn
     GDAL::GDAL
 )
 
+
+install(TARGETS qopencpn)
+
 #
 # .. wait, there's more!
 #
 
 #add_subdirectory(util)
+
+
+
 
 feature_summary(WHAT ALL INCLUDE_QUIET_PACKAGES FATAL_ON_MISSING_REQUIRED_PACKAGES)
 

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gui name="freeciv-kde"
+     version="7"
+     xmlns="http://www.kde.org/standards/kxmlgui/1.0"
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:schemaLocation="http://www.kde.org/standards/kxmlgui/1.0
+                         http://www.kde.org/standards/kxmlgui/1.0/kxmlgui.xsd" >
+
+  <MenuBar>
+    <Menu name="file">
+      <text>File</text>
+      <Separator/>
+      <Action name="quit"/>
+    </Menu>
+    <Menu name="view">
+      <text>View</text>
+      <Action name="fullScreen"/>
+      <Separator/>
+    </Menu>
+    <Menu name="camera">
+      <text>Camera</text>
+      <Action name="northUp"/>
+      <Separator/>
+      <Action name="zoomIn"/>
+      <Action name="zoomOut"/>
+      <Separator/>
+      <Action name="panNorth"/>
+      <Action name="panEast"/>
+      <Action name="panSouth"/>
+      <Action name="panWest"/>
+    </Menu>
+
+    <Menu name="settings">
+    </Menu>
+
+</MenuBar>
+
+  <ToolBar name="mainToolBar" >
+    <text>Main Toolbar</text>
+    <Action name="zoomIn"/>
+    <Action name="zoomOut"/>
+  </ToolBar>
+
+</gui>

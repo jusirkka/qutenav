@@ -1,20 +1,18 @@
 #pragma once
 
-#include <QMainWindow>
+#include <KXmlGuiWindow>
 #include <QObject>
 #include "drawable.h"
 
-namespace Ui {class MainWindow;}
 
 class GLWidget;
 
-class MainWindow: public QMainWindow
-{
+class MainWindow: public KXmlGuiWindow {
   Q_OBJECT
 
 public:
 
-  explicit MainWindow(QWidget* parent = nullptr);
+  explicit MainWindow();
   ~MainWindow() override;
 
 protected:
@@ -23,17 +21,24 @@ protected:
 
 private slots:
 
-  void on_actionQuit_triggered();
-  void on_actionNorthUp_triggered();
+  void on_quit_triggered();
+  void on_northUp_triggered();
+  void on_fullScreen_toggled(bool on);
+  void on_panNorth_triggered();
+  void on_panEast_triggered();
+  void on_panSouth_triggered();
+  void on_panWest_triggered();
 
 private:
 
   void readSettings();
+  void writeSettings();
+  void addActions();
 
 private:
 
-  Ui::MainWindow* m_UI;
   GLWidget* m_GLWidget;
+  QRect m_fallbackGeom;
 
 };
 
