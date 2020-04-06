@@ -1,0 +1,6 @@
+# Code generation options for kconfig_compiler
+File=conf_cityview.kcfg
+NameSpace=Conf
+ClassName=CityView
+Singleton=true
+Mutators=true

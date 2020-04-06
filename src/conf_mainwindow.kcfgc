@@ -1,0 +1,6 @@
+# Code generation options for kconfig_compiler
+File=conf_mainwindow.kcfg
+NameSpace=Conf
+ClassName=MainWindow
+Singleton=true
+Mutators=true
