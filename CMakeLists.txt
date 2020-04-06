@@ -56,14 +56,16 @@ target_sources(qopencpn
     src/s57chart.cpp
 )
 
-#kconfig_add_kcfg_files(qopencpn
-#  src/conf_mainwindow.kcfgc
-#)
+kconfig_add_kcfg_files(qopencpn
+  src/conf_mainwindow.kcfgc
+  src/conf_detailmode.kcfgc
+)
 
 
 target_include_directories(qopencpn
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_BINARY_DIR}
 )
 
 target_compile_features(qopencpn

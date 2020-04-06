@@ -9,6 +9,9 @@
 #include "outliner.h"
 
 #include <QSurfaceFormat>
+#include <KAboutData>
+#include <KLocalizedString>
+
 
 int main(int argc, char *argv[])
 {
@@ -16,15 +19,40 @@ int main(int argc, char *argv[])
 
   app.setOrganizationName("Kvanttiapina");
   app.setApplicationName("qopencpn");
-  app.setApplicationVersion("0.026");
+
+  KAboutData aboutData(
+        // The program name used internally. (componentName)
+        qAppName(),
+        // A displayable program name string. (displayName)
+        qAppName(),
+        // The program version string. (version)
+        QStringLiteral("0.030"),
+        // Short description of what the app does. (shortDescription)
+        i18n("Chart navigator / plotter"),
+        // The license this code is released under
+        KAboutLicense::GPL,
+        // Copyright Statement (copyrightStatement = QString())
+        "Jukka Sirkka (c) 2020",
+        // Optional text shown in the About box.
+        // Can contain any information desired. (otherText)
+        i18n("Chart plotter / navigator based on OpenCPN for Sailfish OS"),
+        // The program homepage string. (homePageAddress = QString())
+        QStringLiteral("https://github.com/jusirkka/qopencpn"),
+        // The bug report email address
+        // (bugsEmailAddress = QLatin1String("submit@bugs.kde.org")
+        QStringLiteral("https://github.com/jusirkka/qopencpn/issues"));
+
+  aboutData.addAuthor(i18n("Jukka Sirkka"),
+                      i18n("Codemonkey"),
+                      QStringLiteral("jukka.sirkka@iki.fi"),
+                      QStringLiteral("https://github.com/jusirkka"));
+
+  KAboutData::setApplicationData(aboutData);
 
   QCommandLineParser parser;
-  parser.setApplicationDescription("Chart plotter / navigator based on OpenCPN for Sailfish OS");
-  parser.addHelpOption();
-  parser.addVersionOption();
-
-
+  aboutData.setupCommandLine(&parser);
   parser.process(app);
+  aboutData.processCommandLine(&parser);
 
   GDALAllRegister();
 
@@ -34,9 +62,8 @@ int main(int argc, char *argv[])
   format.setOption(QSurfaceFormat::DebugContext);
   QSurfaceFormat::setDefaultFormat(format);
 
-  MainWindow mw;
-  mw.show();
+  auto mw = new MainWindow();
+  mw->show();
 
   return app.exec();
-
 }

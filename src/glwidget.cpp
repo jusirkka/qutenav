@@ -142,9 +142,17 @@ void GLWidget::wheelEvent(QWheelEvent *event) {
 
 void GLWidget::pan() {
   if (m_diff.isNull()) return;
-  QVector2D start(2 * m_lastPos.x() / float(width()) - 1, 1 - 2 * m_lastPos.y() / float(height()));
-  QVector2D amount(2 * m_diff.x() / float(width()), - 2 * m_diff.y() / float(height()));
+  const QVector2D start(2 * m_lastPos.x() / float(width()) - 1, 1 - 2 * m_lastPos.y() / float(height()));
+  const QVector2D amount(2 * m_diff.x() / float(width()), - 2 * m_diff.y() / float(height()));
   m_mode->camera()->pan(start, amount);
+  update();
+}
+
+void GLWidget::compassPan(Angle bearing, float pixels) {
+  if (pixels <= 0.) return;
+  const Angle a = Angle::fromDegrees(90) - bearing;
+  const QVector2D amount(2 * pixels * a.cos() / float(width()), 2 * pixels * a.sin() / float(height()));
+  m_mode->camera()->pan(QVector2D(0,0), amount);
   update();
 }
 

@@ -18,6 +18,9 @@ public:
   ~GLWidget();
   void saveState();
   void northUp();
+  void zoomIn();
+  void zoomOut();
+  void compassPan(Angle bearing, float pixels = 1.);
 
 protected:
 
@@ -33,8 +36,6 @@ protected:
 
 private slots:
 
-  void zoomIn();
-  void zoomOut();
   void pan();
 
 private:

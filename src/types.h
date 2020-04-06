@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QString>
+#include <cmath>
 
 class Angle {
 public:
@@ -16,6 +17,8 @@ public:
   static Angle ATan2(double, double);
 
   bool valid() const {return m_valid;}
+  double cos() const {return std::cos(radians);}
+  double sin() const {return std::sin(radians);}
 
   Angle(const Angle& a): radians(a.radians), m_valid(a.m_valid) {}
   Angle& operator=(const Angle& a) {radians = a.radians; m_valid = a.m_valid; return *this;}

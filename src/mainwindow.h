@@ -12,8 +12,7 @@ class MainWindow: public KXmlGuiWindow {
 
 public:
 
-  explicit MainWindow();
-  ~MainWindow() override;
+  MainWindow();
 
 protected:
 

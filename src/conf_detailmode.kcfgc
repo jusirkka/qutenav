@@ -1,6 +1,6 @@
 # Code generation options for kconfig_compiler
-File=conf_cityview.kcfg
+File=conf_detailmode.kcfg
 NameSpace=Conf
-ClassName=CityView
+ClassName=DetailMode
 Singleton=true
 Mutators=true

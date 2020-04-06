@@ -5,6 +5,8 @@
 #include <KHelpMenu>
 #include <KAboutData>
 #include <QApplication>
+#include "conf_mainwindow.h"
+#include <QCloseEvent>
 
 MainWindow::MainWindow()
   : KXmlGuiWindow()
@@ -52,15 +54,29 @@ void MainWindow::on_panWest_triggered() {
   // TODO
 }
 
-MainWindow::~MainWindow() {
-}
 
 void MainWindow::readSettings() {
-  // TODO
+  m_fallbackGeom = QRect();
+  if (Conf::MainWindow::fullScreen()) {
+    // go fullscreen when MainWindow::show() is called
+    setWindowState(Qt::WindowFullScreen);
+    // block toggle() so that we won't go fullscreen in on_fullScreen_toggled
+    const bool blocked = action("fullScreen")->blockSignals(true);
+    action("fullScreen")->setChecked(true);
+    action("fullScreen")->blockSignals(blocked);
+    m_fallbackGeom = Conf::MainWindow::lastGeom();
+    if (m_fallbackGeom.isValid()) {
+      setGeometry(m_fallbackGeom);
+    }
+  }
 }
 
 void MainWindow::writeSettings() {
-  // TODO
+  if (m_fallbackGeom.isValid()) {
+    Conf::MainWindow::setLastGeom(m_fallbackGeom);
+  }
+  Conf::MainWindow::setFullScreen(action("fullScreen")->isChecked());
+  Conf::MainWindow::self()->save();
 }
 
 void MainWindow::addActions() {
@@ -127,9 +143,9 @@ void MainWindow::addActions() {
 
 }
 
-void MainWindow::closeEvent(QCloseEvent *event) {
+void MainWindow::closeEvent(QCloseEvent* event) {
   writeSettings();
   m_GLWidget->saveState();
-  QMainWindow::closeEvent(event);
+  event->accept();
 }
 
