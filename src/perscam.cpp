@@ -47,7 +47,7 @@ void PersCam::reset(WGS84Point e, Angle a) {
   QVector3D z(cx * cy,
               sx * cy,
                    sy);
-  if (1 - abs(z[2]) < EPSILON) {
+  if (1 - std::abs(z[2]) < EPSILON) {
     const float sy1 = 1 - EPSILON;
     const float cy1 = sqrt(1 - sy1 * sy1);
     if (e.northern()) {
@@ -164,7 +164,10 @@ void PersCam::pan(QVector2D dragStart, QVector2D dragAmount) {
   const QVector2D p = sqrt(D * D - 1) / c * QVector2D(a * dragStart.x(), dragStart.y());
   const QVector2D d = sqrt(D * D - 1) / c * QVector2D(a * dragAmount.x(), dragAmount.y());
   const QVector2D x(1, 0);
-  const QVector2D p0 = p.normalized();
+  QVector2D p0 = x;
+  if (p.length() > 0) {
+    p0 = p.normalized();
+  }
   const QVector2D d0 = d.normalized();
 
   QMatrix4x4 r1;
@@ -191,7 +194,7 @@ void PersCam::pan(QVector2D dragStart, QVector2D dragAmount) {
 
   const QVector3D axis = r3 * r2 * r1 * QVector3D(0, 1, 0);
 
-  const float phi = 90 * clamp(d.length()) * (1 - clamp(p.length()) * (1 - abs(c1)));
+  const float phi = 90 * clamp(d.length()) * (1 - clamp(p.length()) * (1 - std::abs(c1)));
 
   QMatrix4x4 r;
   r.setToIdentity();

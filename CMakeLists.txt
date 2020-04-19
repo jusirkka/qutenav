@@ -90,7 +90,7 @@ install(TARGETS qopencpn)
 # .. wait, there's more!
 #
 
-#add_subdirectory(util)
+add_subdirectory(triglobe)
 
 
 

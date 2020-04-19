@@ -106,8 +106,8 @@ QString WGS84Point::toISO6709() {
   // +27.5916+086.5640CRSWGS_84/
   QChar z('0');
   QString s("%1%2%3%4CRSWGS_84/"); // sign lat, abs lat, sign lng, abs lng
-  return s.arg(m_Latitude < 0 ? '-' : '+').arg(fabs(m_Latitude), 0, 'f', 2, z)
-      .arg(m_Longitude < 0 ? '-' : '+').arg(fabs(m_Longitude), 0, 'f', 3, z);
+  return s.arg(m_Latitude < 0 ? '-' : '+').arg(std::abs(m_Latitude), 0, 'f', 2, z)
+      .arg(m_Longitude < 0 ? '-' : '+').arg(std::abs(m_Longitude), 0, 'f', 3, z);
 }
 
 double WGS84Point::radiansLng() const {
@@ -119,16 +119,16 @@ double WGS84Point::radiansLat() const {
 }
 
 static double sexas(double r) {
-    r = fabs(r);
+    r = std::abs(r);
     return  60 * (r - int(r));
 }
 
 ushort WGS84Point::degreesLat() const {
-  return fabs(m_Latitude);
+  return std::abs(m_Latitude);
 }
 
 ushort WGS84Point::degreesLng() const {
-  return fabs(m_Longitude);
+  return std::abs(m_Longitude);
 }
 
 ushort WGS84Point::minutesLat() const {

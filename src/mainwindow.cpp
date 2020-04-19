@@ -39,19 +39,27 @@ void MainWindow::on_fullScreen_toggled(bool on) {
 }
 
 void MainWindow::on_panNorth_triggered() {
-  // TODO
+  m_GLWidget->compassPan(Angle::fromDegrees(0));
 }
 
 void MainWindow::on_panEast_triggered() {
-  // TODO
+  m_GLWidget->compassPan(Angle::fromDegrees(90));
 }
 
 void MainWindow::on_panSouth_triggered() {
-  // TODO
+  m_GLWidget->compassPan(Angle::fromDegrees(180));
 }
 
 void MainWindow::on_panWest_triggered() {
-  // TODO
+  m_GLWidget->compassPan(Angle::fromDegrees(270));
+}
+
+void MainWindow::on_zoomIn_triggered() {
+  m_GLWidget->zoomIn();
+}
+
+void MainWindow::on_zoomOut_triggered() {
+  m_GLWidget->zoomOut();
 }
 
 
@@ -100,7 +108,7 @@ void MainWindow::addActions() {
     {"panEast", "Pan East", "Right", "", "", true, false, false},
     {"panSouth", "Pan South", "Down", "", "", true, false, false},
     {"panWest", "Pan West", "Left", "", "", true, false, false},
-    {"northUp", "North Up", "N", "", "Rotate north to upwards direction", true, false, false},
+    {"northUp", "North Up", "N", "", "Rotate North to upwards direction", true, false, false},
   };
 
   for (auto d: actionData) {

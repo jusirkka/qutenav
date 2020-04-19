@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
         "Jukka Sirkka (c) 2020",
         // Optional text shown in the About box.
         // Can contain any information desired. (otherText)
-        i18n("Chart plotter / navigator based on OpenCPN for Sailfish OS"),
+        i18n("Chart plotter / navigator for Sailfish OS based on OpenCPN."),
         // The program homepage string. (homePageAddress = QString())
         QStringLiteral("https://github.com/jusirkka/qopencpn"),
         // The bug report email address

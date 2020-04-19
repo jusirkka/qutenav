@@ -86,8 +86,8 @@ static float gravity(int dx) {
   const float k = 1.0;
   const float cutoff = 50;
 
-  if (abs(dx) >= cutoff) return dx / abs(dx) * k * cutoff ;
-  if (abs(dx) >= threshold) return k * dx;
+  if (std::abs(dx) >= cutoff) return dx / std::abs(dx) * k * cutoff ;
+  if (std::abs(dx) >= threshold) return k * dx;
 
   return 0;
 }
@@ -151,7 +151,7 @@ void GLWidget::pan() {
 void GLWidget::compassPan(Angle bearing, float pixels) {
   if (pixels <= 0.) return;
   const Angle a = Angle::fromDegrees(90) - bearing;
-  const QVector2D amount(2 * pixels * a.cos() / float(width()), 2 * pixels * a.sin() / float(height()));
+  const QVector2D amount(-2 * pixels * a.cos() / float(width()), -2 * pixels * a.sin() / float(height()));
   m_mode->camera()->pan(QVector2D(0,0), amount);
   update();
 }
