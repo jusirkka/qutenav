@@ -347,7 +347,7 @@ mat2 Box::hessian(const vec2 &p) const {
   vec2 g = gradient(p);
   if (std::abs(h[0].x * g.x +  h[0].y * g.y) > 1.e-7 || std::abs(h[1].x * g.x +  h[1].y * g.y) > 1.e-7) {
     qDebug() << h[0].x * g.x +  h[0].y * g.y << h[1].x * g.x +  h[1].y * g.y;
-    qFatal("Circle::hessian: not correct");
+    qFatal("Box::hessian: not correct");
   }
   return h;
 }
