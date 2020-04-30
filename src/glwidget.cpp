@@ -28,7 +28,7 @@ void GLWidget::initializeGL() {
   }
 
   auto gl = QOpenGLContext::currentContext()->functions();
-  gl->glClearColor(.0, .0, .4, 1.);
+  gl->glClearColor(.0, .0, .2, 1.);
   gl->glEnable(GL_DEPTH_TEST);
   gl->glEnable(GL_STENCIL_TEST);
   gl->glEnable(GL_CULL_FACE);
@@ -67,11 +67,8 @@ void GLWidget::paintGL() {
   auto gl = QOpenGLContext::currentContext()->functions();
   gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-  gl->glStencilFuncSeparate(GL_FRONT_AND_BACK, GL_EQUAL, 0, 0xff);
-  gl->glStencilOpSeparate(GL_FRONT_AND_BACK, GL_KEEP, GL_KEEP, GL_INCR);
-
-//  gl->glStencilFuncSeparate(GL_BACK, GL_EQUAL, 1, 0xff);
-//  gl->glStencilOpSeparate(GL_BACK, GL_KEEP, GL_KEEP, GL_KEEP);
+  gl->glStencilFuncSeparate(GL_FRONT, GL_EQUAL, 0, 0xff);
+  gl->glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_KEEP, GL_INCR);
 
   for (Drawable* chart: m_mode->drawables()) {
     chart->paintGL(m_mode->camera());

@@ -6,6 +6,10 @@
 #include <QDir>
 #include <gdal/ogrsf_frmts.h>
 #include <QDebug>
+#include <QRegularExpression>
+#include <QStandardPaths>
+
+static int indexFromChartName(const QString &name);
 
 int main(int argc, char *argv[]) {
   QCoreApplication app(argc, argv);
@@ -33,6 +37,11 @@ int main(int argc, char *argv[]) {
                             "int");
   parser.addOption(splitOpt);
 
+  QCommandLineOption cOpt(QStringList() << "c" << "coarseness",
+                            "Coarseness subdirectory",
+                            "string");
+  parser.addOption(cOpt);
+
   parser.process(app);
 
   bool ok;
@@ -53,9 +62,16 @@ int main(int argc, char *argv[]) {
     j = -1;
   }
 
+  QString c = parser.value(cOpt);
+  if (c.isEmpty()) {
+    c = "c";
+  }
+
+
   GDALAllRegister();
 
-  QDir chartDir("/home/jusirkka/share/gshhg/GSHHS_shp/c");
+  // FIXME: search standard paths
+  QDir chartDir(QString("/home/jusirkka/share/gshhg/GSHHS_shp/%1").arg(c));
   QStringList charts = chartDir.entryList(QStringList() << "*_L?.shp",
                                           QDir::Files | QDir::Readable, QDir::Name);
 
@@ -64,36 +80,71 @@ int main(int argc, char *argv[]) {
   }
   qDebug() << charts;
 
+  // output path
+  QString opath = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
+  opath = QString("%1/qopencpn/GSHHS/%2").arg(opath).arg(c);
+  if (!QDir(opath).exists()) {
+    QDir().mkpath(opath);
+  }
+
   auto globe = new SD::Sphere;
+
   Triangulator t(globe, err, n, s, j);
+  t.seedAndTriangulate();
+  QFile f(QString("%1/globe_l0.obj").arg(opath));
+  f.open(QIODevice::WriteOnly);
+  t.write(f);
+  f.close();
 
   for (const QString& chart: charts) {
     auto path = chartDir.absoluteFilePath(chart);
     auto world = static_cast<GDALDataset*>(GDALOpenEx(path.toUtf8(), GDAL_OF_VECTOR, nullptr, nullptr, nullptr));
     if (world == nullptr) continue;
 
+    Triangulator t(globe, err, n, s, j);
+    Triangulator t0(globe, err, n, s, j);
+
     OGRLayer* layer = world->GetLayer(0);
     auto feature = layer->GetNextFeature();
-    auto poly = dynamic_cast<const OGRPolygon*>(feature->GetGeomFieldRef(0));
-    Triangulator::Mesh front;
-    for (OGRPoint p: poly->getExteriorRing()) {
-      scalar lng = p.getX() * SD::Function::RADS_PER_DEG;
-      scalar lat = p.getY() * SD::Function::RADS_PER_DEG;
-      front.append(vec3(cos(lng) * cos(lat),
-                      sin(lng) * cos(lat),
-                      sin(lat)));
+    while (feature != nullptr) {
+      for (int i = 0; i < feature->GetGeomFieldCount(); i++) {
+        auto poly = dynamic_cast<const OGRPolygon*>(feature->GetGeomFieldRef(i));
+        Triangulator::Mesh front;
+        for (OGRPoint p: poly->getExteriorRing()) {
+          scalar lng = p.getX() * SD::Function::RADS_PER_DEG;
+          scalar lat = p.getY() * SD::Function::RADS_PER_DEG;
+          front.append(vec3(cos(lng) * cos(lat),
+                            sin(lng) * cos(lat),
+                            sin(lat)));
+        }
+        t.addFront(front);
+        t.triangulate();
+        t0.addFront(front);
+      }
+      feature = layer->GetNextFeature();
     }
 
-    t.addFront(front);
-    t.triangulate();
-    break;
+    QFile f(QString("%1/globe_l%2.obj").arg(opath).arg(indexFromChartName(chart)));
+    f.open(QIODevice::WriteOnly);
+    t.write(f);
+    f.close();
+
+    QFile f0(QString("%1/globe_shape_l%2.obj").arg(opath).arg(indexFromChartName(chart)));
+    f0.open(QIODevice::WriteOnly);
+    t0.write(f0);
+    f0.close();
   }
 
-  QFile f("globe.obj");
-  f.open(QIODevice::WriteOnly);
-  t.write(f);
-  f.close();
   delete globe;
-
   return 0;
 }
+
+static int indexFromChartName(const QString &name) {
+  static const QRegularExpression re(".*_L(\\d)\\.shp$");
+  QRegularExpressionMatch match = re.match(name);
+  if (!match.hasMatch()) {
+    qFatal("Error parsing chart name %s", name.toUtf8().data());
+  }
+  return match.captured(1).toInt();
+}
+

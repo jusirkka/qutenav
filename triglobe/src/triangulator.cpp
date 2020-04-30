@@ -12,7 +12,6 @@ Triangulator::Triangulator(const SD::Function* scene, scalar err)
   , m_splitCount(-1)
   , m_joinCount(-1) {
   m_mesh.append(vec3(0.)); // first mesh point is dummy
-  m_fronts.push(seedHexagon());
 }
 
 Triangulator::Triangulator(const SD::Function* scene, scalar err, int ec, int sc, int jc)
@@ -36,29 +35,53 @@ Triangulator::Triangulator(const SD::Function* scene, scalar err, const Mesh& fr
 
 void Triangulator::addFront(const Mesh &points) {
   auto f = new Front(m_mesh);
-  int np = points.size();
-  for (int ip = 0; ip < points.size(); ip++) {
+  const int np = points.size();
+  for (int ip = 0; ip < np; ip++) {
     // skip points that are too close
-    int ipp = (ip - 1 + points.size()) % points.size();
-    if (std::abs(glm::length(points[ip] - points[ipp])) < SD::Function::eps) {
+    int ipp = (ip - 1 + np) % np;
+    const scalar el = glm::length(points[ip] - points[ipp]);
+    if (el < SD::Function::eps) {
       qDebug() << "skipping" << ip;
       continue;
     }
-    // just to be sure, points are already assumed to lie on the surface
     const vec3 sp = m_scene->projectToSurface(points[ip]);
-    m_mesh.append(sp);
-    Front::Data d;
-    d.meshIndex = m_mesh.size() - 1;
-    d.angleValid = false;
-    d.n = m_scene->gradient(sp);
-    TangentSpace(d.n, d.t, d.b);
-    d.roc = m_scene->minimalROC(sp);
+    const scalar roc = m_scene->minimalROC(sp);
+    const scalar elmax = rocToEdgeLen(roc);
+    // split lines that are too long
+    scalar e = el - elmax;
+    while (e > 0.) {
+      const scalar t = 1. - e / el;
+      qDebug() << "splitting at " << t;
+      const vec3 p = m_scene->projectToSurface(points[ip] * t + points[ipp] * (1 - t));
+      m_mesh.append(p);
+      Front::Data d;
+      d.meshIndex = m_mesh.size() - 1;
+      d.angleValid = false;
+      d.n = m_scene->gradient(p);
+      TangentSpace(d.n, d.t, d.b);
+      d.roc = m_scene->minimalROC(p);
+      f->append(d);
+      e -= elmax;
+    }
 
-    f->append(d);
+    m_mesh.append(sp);
+    Front::Data sd;
+    sd.meshIndex = m_mesh.size() - 1;
+    sd.angleValid = false;
+    sd.n = m_scene->gradient(sp);
+    TangentSpace(sd.n, sd.t, sd.b);
+    sd.roc = roc;
+
+    f->append(sd);
   }
 
   f->finalize();
   m_fronts.push(f);
+}
+
+void Triangulator::seedAndTriangulate() {
+  m_fronts.push(seedHexagon());
+  triangulate();
 }
 
 void Triangulator::triangulate() {
@@ -403,19 +426,18 @@ void Triangulator::write(QFile& f) {
   for (const vec3& v: m_mesh) {
     out << "v " << v.x << " " << v.y << " " << v.z << "\n";
   }
-  out << "\n# Normals\n";
-  for (const vec3& v: m_mesh) {
-    const vec3 n = m_scene->gradient(v);
-    out << "vn " << n.x << " " << n.y << " " << n.z << "\n";
-  }
+  //  out << "\n# Normals\n";
+  //  for (const vec3& v: m_mesh) {
+  //    const vec3 n = m_scene->gradient(v);
+  //    out << "vn " << n.x << " " << n.y << " " << n.z << "\n";
+  //  }
   out << "\n# Faces";
   int cnt = 0;
   for (quint32 index: m_triangles) {
-    // vertices and normals are in 1-to-1 order
     if (cnt % 3 == 0) {
-      out << "\nf " << index << "//" << index;
+      out << "\nf " << index << "//";
     } else {
-      out << " " << index << "//" << index;
+      out << " " << index << "//";
     }
     cnt += 1;
   }

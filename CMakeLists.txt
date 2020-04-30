@@ -25,6 +25,12 @@ find_package(KF5 ${KF5_MIN_VERSION} REQUIRED COMPONENTS
 set(GDAL_MIN_VERSION "3.0.0")
 find_package(GDAL ${GDAL_MIN_VERSION} REQUIRED)
 
+set(BISON_MIN_VERSION "3.1")
+find_package(BISON ${BISON_MIN_VERSION} REQUIRED)
+
+set(FLEX_MIN_VERSION "2.6.1")
+find_package(FLEX ${FLEX_MIN_VERSION} REQUIRED)
+
 #
 # targets
 #
@@ -54,7 +60,17 @@ target_sources(qopencpn
     src/types.cpp
     src/perscam.cpp
     src/s57chart.cpp
+    src/wfreader.cpp
+    src/triangleoptimizer.cpp
+    ${CMAKE_BINARY_DIR}/wavefront_parser.cpp
+    ${CMAKE_BINARY_DIR}/wavefront_scanner.cpp
 )
+
+FLEX_TARGET(WFScanner src/wavefront_scanner.l ${CMAKE_BINARY_DIR}/wavefront_scanner.cpp
+            DEFINES_FILE ${CMAKE_BINARY_DIR}/wavefront_scanner.h)
+
+BISON_TARGET(WFParser src/wavefront_parser.y ${CMAKE_BINARY_DIR}/wavefront_parser.cpp
+             DEFINES_FILE ${CMAKE_BINARY_DIR}/wavefront_parser.h)
 
 kconfig_add_kcfg_files(qopencpn
   src/conf_mainwindow.kcfgc

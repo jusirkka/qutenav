@@ -17,21 +17,24 @@ private:
 
   QOpenGLBuffer m_coordBuffer;
 
-  using OutlineVector = QVector<GLfloat>;
+  using DataVector = QVector<GLfloat>;
 
-  OutlineVector m_outlines;
+  struct Rectangle {
+    Rectangle(const DataVector& d, size_t offset);
+    QVector3D center;
+    DataVector outline;
+    QColor color;
+    size_t offset;
+  };
+
+  QVector<Rectangle> m_outlines;
 
   struct _locations {
-    int point;
     int base_color;
     int m_pv;
-    int eye;
+    int center;
+    int angle;
   } m_locations;
-
-  struct _params {
-    QColor color;
-    GLsizei length;
-  } m_Params;
 
 
 };

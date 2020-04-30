@@ -1,11 +1,11 @@
-#version 320 es
+#version 450 core
 
 
-uniform highp vec4 base_color;
+uniform vec4 base_color;
 
-in highp float diffuse;
+in float diffuse;
 
-out highp vec4 color;
+out vec4 color;
 
 void main() {
   color = diffuse * base_color;

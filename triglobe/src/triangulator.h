@@ -31,6 +31,7 @@ public:
   Triangulator(const SD::Function* scene, scalar err, const Mesh& front);
   Triangulator(const SD::Function* scene, scalar err);
   void triangulate();
+  void seedAndTriangulate();
   void addFront(const Mesh& front);
   void write(QFile& f);
 

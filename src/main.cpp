@@ -3,7 +3,6 @@
 #include <QStringList>
 #include <QDebug>
 
-#include <gdal/ogrsf_frmts.h>
 #include "mainwindow.h"
 #include "globe.h"
 #include "outliner.h"
@@ -54,10 +53,8 @@ int main(int argc, char *argv[])
   parser.process(app);
   aboutData.processCommandLine(&parser);
 
-  GDALAllRegister();
-
   QSurfaceFormat format;
-  format.setVersion(4, 5);
+  format.setVersion(4, 6);
   format.setProfile(QSurfaceFormat::CoreProfile);
   format.setOption(QSurfaceFormat::DebugContext);
   QSurfaceFormat::setDefaultFormat(format);

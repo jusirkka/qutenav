@@ -1,8 +1,8 @@
-#version 320 es
+#version 450 core
 
-uniform highp vec4 base_color;
+uniform vec4 base_color;
 
-out highp vec4 color;
+out vec4 color;
 
 void main() {
   color = base_color;

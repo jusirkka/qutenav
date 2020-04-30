@@ -2,10 +2,7 @@
 
 #include "drawable.h"
 #include <QOpenGLBuffer>
-#include <QVector4D>
 
-class OGRGeometry;
-class OGRSpatialReference;
 
 class Globe: public Drawable
 {
@@ -20,38 +17,38 @@ private:
 
   void initLayers();
   int indexFromChartName(const QString& name);
-  void triangulate(const OGRGeometry* geom);
-  QString rectToText(const QRectF& clip);
-  OGRGeometry* createGeometry(const QString& txt) const;
-  void triangulateSphere();
-  using Mesh = QVector<QVector2D>;
-  using IndexVector = QVector<quint32>;
-
-  Mesh m_coords;
-  IndexVector m_triangles;
 
   QOpenGLBuffer m_coordBuffer;
   QOpenGLBuffer m_indexBuffer;
-  GLsizei m_indexCount;
 
   struct _locations {
-    int point;
     int base_color;
     int m_pv;
     int lp;
-    int eye;
-    int layer_index;
   } m_locations;
 
   static const int LAYERS = 7;
 
+  using Mesh = QVector<GLfloat>;
+  using Indices = QVector<GLuint>;
+  using Offsets = QVector<uintptr_t>;
+  using Sizes = QVector<GLsizei>;
+
+  struct StripData {
+    uintptr_t offset;
+    size_t size;
+  };
+
+  using Strips = QVector<StripData>;
+
   struct _layer_data {
     QColor color;
-    GLuint offset;
-    GLsizei length;
+    Strips strips;
+    size_t offset;
   } m_layerData[LAYERS];
 
 
-
+  Mesh m_coords;
+  Indices m_strips;
 };
 

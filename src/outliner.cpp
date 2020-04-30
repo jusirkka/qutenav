@@ -21,6 +21,7 @@ Outliner::Outliner()
   }
   qDebug() << files;
 
+  size_t offset = 0;
   for (const QString& file: files) {
     auto path = chartDir.absoluteFilePath(file);
     S57Chart chart(path);
@@ -29,13 +30,11 @@ Outliner::Outliner()
       qWarning() << "Chart file error:" << e.msg() << ", skipping";
       continue;
     }
-    m_outlines.append(chart.extent().eightFloater());
+    m_outlines.append(Rectangle(chart.extent().eightFloater(), offset));
+    offset += m_outlines.last().outline.size() * sizeof(GLfloat);
   }
 
-  qDebug() << "number of rectangles =" << m_outlines.size() / 8;
-
-  m_Params.color = QColor("#ff0000");
-  m_Params.length = m_outlines.size() / 2;
+  qDebug() << "number of rectangles =" << m_outlines.size();
 }
 
 void Outliner::initializeGL(QOpenGLWidget *context) {
@@ -46,20 +45,13 @@ void Outliner::initializeGL(QOpenGLWidget *context) {
     QString fname;
   };
   const QVector<Source> sources{
-    {QOpenGLShader::Vertex, ":/shaders/simple.vert"},
-    {QOpenGLShader::TessellationControl, ":/shaders/outliner.tesc"},
-    {QOpenGLShader::TessellationEvaluation, ":/shaders/outliner.tese"},
+    {QOpenGLShader::Vertex, ":/shaders/outliner.vert"},
+    {QOpenGLShader::Geometry, ":/shaders/outliner.geom"},
     {QOpenGLShader::Fragment, ":/shaders/outliner.frag"},
   };
 
   for (const Source& s: sources) {
-    QFile file(s.fname);
-    if (!file.open(QIODevice::ReadOnly)) {
-      qFatal("Failed to open %s for reading", s.fname.toUtf8().data());
-    }
-    QString src = file.readAll();
-    src = src.replace("#version 320 es", "#version 450 core");
-    if (!m_program->addCacheableShaderFromSourceCode(s.stype, src)) {
+    if (!m_program->addCacheableShaderFromSourceFile(s.stype, s.fname)) {
       qFatal("Failed to compile %s: %s", s.fname.toUtf8().data(), m_program->log().toUtf8().data());
     }
   }
@@ -71,19 +63,20 @@ void Outliner::initializeGL(QOpenGLWidget *context) {
   m_coordBuffer.create();
   m_coordBuffer.bind();
   m_coordBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
-  GLsizei dataLen = m_outlines.size() * sizeof(GLfloat);
+  DataVector outlines;
+  for (const Rectangle& r: m_outlines) {
+    outlines.append(r.outline);
+  }
+  GLsizei dataLen = outlines.size() * sizeof(GLfloat);
   m_coordBuffer.allocate(dataLen);
-  m_coordBuffer.write(0, m_outlines.constData(), dataLen);
-  // not needed anymore
-  m_outlines.clear();
+  m_coordBuffer.write(0, outlines.constData(), dataLen);
 
   // locations
   m_program->bind();
-  m_locations.point = m_program->attributeLocation("point");
   m_locations.base_color = m_program->uniformLocation("base_color");
   m_locations.m_pv = m_program->uniformLocation("m_pv");
-  m_locations.eye = m_program->uniformLocation("eye");
-
+  m_locations.center = m_program->uniformLocation("center");
+  m_locations.angle = m_program->uniformLocation("angle");
 }
 
 void Outliner::paintGL(const Camera* cam) {
@@ -92,18 +85,40 @@ void Outliner::paintGL(const Camera* cam) {
   m_program->bind();
 
   // data buffers
-  m_program->enableAttributeArray(m_locations.point);
+  m_program->enableAttributeArray(0);
   m_coordBuffer.bind();
-  m_program->setAttributeBuffer(m_locations.point, GL_FLOAT, 0, 2, 0);
 
   // uniforms
-  const QVector3D eye = cam->view().inverted().column(3).toVector3D();
-  m_program->setUniformValue(m_locations.eye, eye);
   m_program->setUniformValue(m_locations.m_pv, cam->projection() * cam->view());
-  m_program->setUniformValue(m_locations.base_color, m_Params.color);
+  GLfloat angle = qMax(1.e-6, GLfloat(cam->scale()) / cam->maxScale() * 0.005);
+  m_program->setUniformValue(m_locations.angle, angle);
 
-  gl->glPatchParameteri(GL_PATCH_VERTICES, 4);
+  for (const Rectangle& outline: m_outlines) {
+    m_program->setUniformValue(m_locations.base_color, outline.color);
+    m_program->setUniformValue(m_locations.center, outline.center);
+    m_program->setAttributeBuffer(0, GL_FLOAT, outline.offset, 3, 0);
+    gl->glDrawArrays(GL_LINE_LOOP, 0, 4);
+  }
+}
 
-  gl->glDrawArrays(GL_PATCHES, 0, m_Params.length);
+Outliner::Rectangle::Rectangle(const DataVector &d, size_t bytes)
+  : color("#ff0000"),
+    offset(bytes)
+{
+  QVector3D sum(0., 0., 0.);
+  QVector<QVector3D> ps;
+  for (int i = 0; i < 4; i++) {
+    const float lng = d[2 * i] * M_PI / 180;
+    const float lat = d[2 * i + 1] * M_PI / 180;
+    QVector3D p(cos(lng) * cos(lat),
+                sin(lng) * cos(lat),
+                sin(lat));
+    sum += p;
+    outline.append(p.x());
+    outline.append(p.y());
+    outline.append(p.z());
+    ps.append(p);
+  }
+  center = sum.normalized();
 }
 
