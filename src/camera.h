@@ -1,6 +1,7 @@
 #pragma once
 
 #include "types.h"
+#include "geoprojection.h"
 
 #include <QMatrix4x4>
 #include <QVector2D>
@@ -33,8 +34,19 @@ public:
   const QMatrix4x4& projection() const {return m_projection;}
   const QMatrix4x4& view() const {return m_view;}
   quint32 scale() const {return m_scale;}
+  const GeoProjection* geoprojection() const {return m_geoprojection;}
+  float heightMM() const {return m_mmHeight;}
+  float aspect() const {
+    return m_projection(1, 1) / m_projection(0, 0);
+  }
+
+  virtual ~Camera() {delete m_geoprojection;}
 
 protected:
+
+  Camera(GeoProjection* proj, float hmm)
+    : m_geoprojection(proj)
+    , m_mmHeight(hmm) {}
 
   const int IX = 0;
   const int IY = 1;
@@ -43,5 +55,6 @@ protected:
   QMatrix4x4 m_projection;
   QMatrix4x4 m_view;
   quint32 m_scale;
-
+  GeoProjection* m_geoprojection;
+  float m_mmHeight;
 };

@@ -5,9 +5,9 @@
 class OutlineMode: public DetailMode
 {
 public:
-  OutlineMode(float wmm, float hmm);
-  DetailMode* largerScaleMode(float wmm, float hmm) const override;
-  DetailMode* smallerScaleMode(float wmm, float hmm) const override;
+  OutlineMode(float wmm, float hmm, GeoProjection* p);
+  DetailMode* largerScaleMode() const override;
+  DetailMode* smallerScaleMode() const override;
 
 protected:
 

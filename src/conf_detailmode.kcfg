@@ -17,6 +17,10 @@
       <label>The detail mode class name.</label>
       <default>OutlineMode</default>
     </entry>
+    <entry name="Projection" key="projection" type="String">
+      <label>The geo projection class name.</label>
+      <default>SimpleMercator</default>
+    </entry>
     <entry name="Scale" key="scale" type="UInt">
       <label>The scale of the chart display.</label>
       <default>30000000</default>

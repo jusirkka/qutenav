@@ -5,9 +5,9 @@
 class ChartMode: public DetailMode
 {
 public:
-  ChartMode(float wmm, float hmm);
-  DetailMode* largerScaleMode(float wmm, float hmm) const override;
-  DetailMode* smallerScaleMode(float wmm, float hmm) const override;
+  ChartMode(float wmm, float hmm, GeoProjection* p);
+  DetailMode* largerScaleMode() const override;
+  DetailMode* smallerScaleMode() const override;
 protected:
 
   QString className() const override {return "ChartMode";}

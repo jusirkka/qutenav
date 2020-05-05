@@ -2,8 +2,8 @@
 #include <cmath>
 #include <QVector2D>
 
-PersCam::PersCam(float wmm, float hmm)
-  : m_mmHeight(hmm)
+PersCam::PersCam(float wmm, float hmm, GeoProjection* p)
+  : Camera(p, hmm)
 {
   // set scale half-way between min & max in log scale
   m_scale = pow(10, .5 * (log10(minScale()) + log10(maxScale())));
@@ -210,52 +210,3 @@ void PersCam::pan(QVector2D dragStart, QVector2D dragAmount) {
 }
 
 
-
-/*
-
-
-
-void PersCam::rotate(float phi, float theta) {
-
-  QMatrix4x4 r;
-  r.setToIdentity();
-  r.rotate(theta * DEGS_PER_RAD * (distFromCenter(m_t) - 1), sin(phi), cos(phi));
-  m_rot = r * m_rot;
-
-  m_eye = distFromCenter(m_t) * m_rot.row(IZ).toVector3D();
-
-  m_tot.setToIdentity();
-  m_tot.translate(- m_eye);
-  m_tot = m_rot * m_tot;
-}
-
-
-void PersCam::rotate2(float dlng, float dlat) {
-
-  QVector3D z = m_rot.row(IZ).toVector3D();
-  float lng = atan2f(z[1], z[0]) + dlng * (distFromCenter(m_t) - 1);
-  float lat = asinf(z[2]) + dlat * (distFromCenter(m_t) - 1);
-
-  z[0] = cos(lng) * cos(lat);
-  z[1] = sin(lng) * cos(lat);
-  z[2] = sin(lat);
-
-  QVector3D up(0, 0, 1);
-  QVector3D y = (up - QVector3D::dotProduct(z, up) * z).normalized();
-
-  m_rot.setToIdentity();
-  m_rot.setRow(IX, QVector3D::crossProduct(y, z));
-  m_rot.setRow(IY, y);
-  m_rot.setRow(IZ, z);
-
-
-  m_eye = distFromCenter(m_t) * z;
-
-  m_tot.setToIdentity();
-  m_tot.translate(- m_eye);
-  m_tot = m_rot * m_tot;
-}
-
-
-
-*/

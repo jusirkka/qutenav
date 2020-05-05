@@ -7,7 +7,7 @@ class OrthoCam: public Camera {
 
 public:
 
-  OrthoCam(float wmm, float hmm);
+  OrthoCam(float wmm, float hmm, GeoProjection* proj);
   void pan(QVector2D dragStart, QVector2D dragAmount) override;
   void rotateEye(Angle a) override;
   void setScale(quint32 scale) override;
@@ -23,5 +23,13 @@ public:
 
 private:
 
+  void updateProjection();
+  void doReset();
 
+  const quint32 MAX_SCALE = 5000616;
+  const quint32 MIN_SCALE = 500;
+
+  WGS84Point m_reference_0;
+  Angle m_northAngle;
+  Angle m_northAngle_0;
 };

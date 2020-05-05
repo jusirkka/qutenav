@@ -45,9 +45,19 @@ Angle operator- (const Angle& a, const Angle& b);
 Angle operator- (const Angle& a);
 
 
+class WGS84Bearing;
 
 class WGS84Point {
 public:
+
+  static constexpr double semimajor_axis = 6378137.0;
+  static constexpr double invf = 298.257223563;
+  static constexpr double f = 1.0 / invf; // ellipsoid flattening
+  static constexpr double e2 = 2 * f - f * f;  // eccentricity^2
+  static constexpr double e = sqrt(e2);
+
+  friend WGS84Point operator+ (const WGS84Point& a, const WGS84Bearing& b);
+
   static WGS84Point fromLL(double lng, double lat);
   static WGS84Point fromLLRadians(double lng, double lat);
   static WGS84Point parseISO6709(const QString& loc);
@@ -89,3 +99,41 @@ private:
   bool m_Valid;
 
 };
+
+
+class WGS84Bearing {
+public:
+
+  friend WGS84Bearing operator- (const WGS84Point& a, const WGS84Point& b);
+  friend WGS84Bearing operator- (const WGS84Bearing& a);
+
+  static WGS84Bearing fromMeters(double m, const Angle& a);
+  static WGS84Bearing fromNM(double nm, const Angle& a);
+
+  WGS84Bearing(const WGS84Bearing& a): m_meters(a.m_meters), m_radians(a.m_radians), m_valid(a.m_valid) {}
+  WGS84Bearing& operator=(const WGS84Bearing& a) {m_meters = a.m_meters; m_radians = a.m_radians; m_valid = a.m_valid; return *this;}
+  WGS84Bearing(): m_meters(0), m_radians(0), m_valid(false) {}
+
+  double meters() const {return m_meters;}
+  double radians() const {return m_radians;}
+  double degrees() const {return m_radians * DEGS_PER_RAD;}
+
+  bool valid() const {return m_valid;}
+
+private:
+
+  constexpr static double DEGS_PER_RAD = 57.29577951308232087680;
+
+  WGS84Bearing(double m, const Angle& a);
+
+  double m_meters;
+  double m_radians;
+  bool m_valid;
+
+};
+
+WGS84Point operator+ (const WGS84Point& a, const WGS84Bearing& b);
+WGS84Point operator- (const WGS84Point& a, const WGS84Bearing& b);
+WGS84Bearing operator- (const WGS84Point& a, const WGS84Point& b);
+WGS84Bearing operator- (const WGS84Bearing& a);
+

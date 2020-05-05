@@ -18,7 +18,7 @@ GLWidget::GLWidget(QWidget* parent)
 
 
 void GLWidget::saveState() {
-  m_mode->saveState(widthMM(), heightMM());
+  m_mode->saveState();
 }
 
 void GLWidget::initializeGL() {
@@ -161,7 +161,7 @@ void GLWidget::zoomIn() {
   const float div = 10;
   const qint32 i = qint32((log10(s/s_min)) * div + .5) - 1;
   if (i < 0) {
-    DetailMode* mode = m_mode->smallerScaleMode(widthMM(), heightMM());
+    DetailMode* mode = m_mode->smallerScaleMode();
     if (mode == nullptr) return;
     delete m_mode;
     m_mode = mode;
@@ -176,7 +176,7 @@ void GLWidget::zoomOut() {
   const quint32 i = quint32((log10(m_mode->camera()->scale()/s_min)) * div + .5) + 1;
   const float s = s_min * exp10(i / div);
   if (s > m_mode->camera()->maxScale()) {
-    DetailMode* mode = m_mode->largerScaleMode(widthMM(), heightMM());
+    DetailMode* mode = m_mode->largerScaleMode();
     if (mode == nullptr) return;
     delete m_mode;
     m_mode = mode;

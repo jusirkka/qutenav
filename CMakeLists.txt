@@ -62,6 +62,10 @@ target_sources(qopencpn
     src/s57chart.cpp
     src/wfreader.cpp
     src/triangleoptimizer.cpp
+    src/geoprojection.cpp
+    src/GeographicLib/Geodesic.cpp
+    src/GeographicLib/GeodesicLine.cpp
+    src/GeographicLib/Math.cpp
     ${CMAKE_BINARY_DIR}/wavefront_parser.cpp
     ${CMAKE_BINARY_DIR}/wavefront_scanner.cpp
 )

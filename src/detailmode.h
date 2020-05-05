@@ -10,11 +10,11 @@ public:
   Camera* camera() {return m_camera;}
   const Camera* camera() const {return m_camera;}
   DrawableVector& drawables() {return m_drawables;}
-  virtual DetailMode* largerScaleMode(float wmm, float hmm) const = 0;
-  virtual DetailMode* smallerScaleMode(float wmm, float hmm) const = 0;
+  virtual DetailMode* largerScaleMode() const = 0;
+  virtual DetailMode* smallerScaleMode() const = 0;
   virtual ~DetailMode() = default;
 
-  void saveState(float wmm, float hmm) const;
+  void saveState() const;
 
 protected:
 

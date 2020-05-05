@@ -1,6 +1,8 @@
 #include "types.h"
 #include <cmath>
 #include <QRegularExpression>
+#include "GeographicLib/Geodesic.hpp"
+
 
 double Angle::degrees() const {
   return radians * DEGS_PER_RAD;
@@ -169,4 +171,46 @@ WGS84Point::WGS84Point(double lng, double lat): m_Valid(true) {
   m_Longitude = lng;
   m_Latitude = lat;
 }
+
+
+WGS84Bearing WGS84Bearing::fromMeters(double m, const Angle& a) {
+  return WGS84Bearing(m, a);
+}
+
+WGS84Bearing WGS84Bearing::fromNM(double nm, const Angle& a) {
+  return WGS84Bearing(nm * 1852., a);
+}
+
+WGS84Bearing::WGS84Bearing(double m, const Angle& a)
+  : m_meters(m)
+  , m_radians(a.radians)
+  , m_valid(a.valid() && m > 0.)
+{}
+
+
+WGS84Bearing operator- (const WGS84Bearing& b) {
+  return WGS84Bearing(b.meters(), Angle::fromRadians(b.radians() + M_PI));
+}
+
+WGS84Point operator- (const WGS84Point& a, const WGS84Bearing& b) {
+  return a + (-b);
+}
+
+WGS84Point operator+ (const WGS84Point& a, const WGS84Bearing& b) {
+  double lng2;
+  double lat2;
+  GeographicLib::Geodesic::WGS84().Direct(a.lat(), a.lng(), b.degrees(), b.meters(),
+                                          lat2, lng2);
+  return WGS84Point::fromLL(lng2, lat2);
+}
+
+WGS84Bearing operator- (const WGS84Point& p2, const WGS84Point& p1) {
+  double s12;
+  double azi1;
+  double azi2;
+  GeographicLib::Geodesic::WGS84().Inverse(p1.lat(), p1.lng(), p2.lat(), p1.lng(),
+                                           s12, azi1, azi2);
+  return WGS84Bearing::fromMeters(s12, Angle::fromDegrees(azi1));
+}
+
 
