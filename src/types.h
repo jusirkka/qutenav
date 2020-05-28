@@ -3,6 +3,15 @@
 #include <QString>
 #include <cmath>
 
+class NotImplementedError {
+public:
+  NotImplementedError(QString msg): m_detail(std::move(msg)) {}
+  const QString msg() const {return m_detail;}
+private:
+  QString m_detail;
+};
+
+
 class Angle {
 public:
 
@@ -136,4 +145,10 @@ WGS84Point operator+ (const WGS84Point& a, const WGS84Bearing& b);
 WGS84Point operator- (const WGS84Point& a, const WGS84Bearing& b);
 WGS84Bearing operator- (const WGS84Point& a, const WGS84Point& b);
 WGS84Bearing operator- (const WGS84Bearing& a);
+
+
+template <typename Enumeration>
+auto as_numeric(Enumeration const value) {
+  return static_cast<typename std::underlying_type<Enumeration>::type>(value);
+}
 

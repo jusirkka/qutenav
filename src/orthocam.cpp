@@ -83,8 +83,8 @@ Angle OrthoCam::northAngle() const {return m_northAngle;}
 
 
 void OrthoCam::pan(QVector2D /*dragStart*/, QVector2D dragAmount) {
-  auto c = m_geoprojection->toWGS84(QVector2D(dragAmount.x() / m_projection(0, 0),
-                                              dragAmount.y() / m_projection(1, 1)));
+  auto c = m_geoprojection->toWGS84(QVector2D(-dragAmount.x() / m_projection(0, 0),
+                                              -dragAmount.y() / m_projection(1, 1)));
   m_geoprojection->setReference(c);
   doReset();
 }

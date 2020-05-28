@@ -48,10 +48,12 @@ target_sources(qopencpn
   PRIVATE
     shaders.qrc
     files.qrc
+    src/drawable.cpp
     src/orthocam.cpp
     src/globe.cpp
     src/mainwindow.cpp
     src/outliner.cpp
+    src/chartpainter.cpp
     src/detailmode.cpp
     src/chartmode.cpp
     src/outlinemode.cpp
@@ -60,6 +62,10 @@ target_sources(qopencpn
     src/types.cpp
     src/perscam.cpp
     src/s57chart.cpp
+    src/s57object.cpp
+    src/s52presentation.cpp
+    src/s52presentation_p.cpp
+    src/s52functions.cpp
     src/wfreader.cpp
     src/triangleoptimizer.cpp
     src/geoprojection.cpp
@@ -68,17 +74,34 @@ target_sources(qopencpn
     src/GeographicLib/Math.cpp
     ${CMAKE_BINARY_DIR}/wavefront_parser.cpp
     ${CMAKE_BINARY_DIR}/wavefront_scanner.cpp
+    ${CMAKE_BINARY_DIR}/s52instr_parser.cpp
+    ${CMAKE_BINARY_DIR}/s52instr_scanner.cpp
+    ${CMAKE_BINARY_DIR}/s52hpgl_parser.cpp
+    ${CMAKE_BINARY_DIR}/s52hpgl_scanner.cpp
 )
 
 FLEX_TARGET(WFScanner src/wavefront_scanner.l ${CMAKE_BINARY_DIR}/wavefront_scanner.cpp
-            DEFINES_FILE ${CMAKE_BINARY_DIR}/wavefront_scanner.h)
+  DEFINES_FILE ${CMAKE_BINARY_DIR}/wavefront_scanner.h)
 
 BISON_TARGET(WFParser src/wavefront_parser.y ${CMAKE_BINARY_DIR}/wavefront_parser.cpp
-             DEFINES_FILE ${CMAKE_BINARY_DIR}/wavefront_parser.h)
+  DEFINES_FILE ${CMAKE_BINARY_DIR}/wavefront_parser.h)
+
+FLEX_TARGET(S52IScanner src/s52instr_scanner.l ${CMAKE_BINARY_DIR}/s52instr_scanner.cpp
+  DEFINES_FILE ${CMAKE_BINARY_DIR}/s52instr_scanner.h)
+
+BISON_TARGET(S52IParser src/s52instr_parser.y ${CMAKE_BINARY_DIR}/s52instr_parser.cpp
+  DEFINES_FILE ${CMAKE_BINARY_DIR}/s52instr_parser.h)
+
+FLEX_TARGET(S52HScanner src/s52hpgl_scanner.l ${CMAKE_BINARY_DIR}/s52hpgl_scanner.cpp
+  DEFINES_FILE ${CMAKE_BINARY_DIR}/s52hpgl_scanner.h)
+
+BISON_TARGET(S52HParser src/s52hpgl_parser.y ${CMAKE_BINARY_DIR}/s52hpgl_parser.cpp
+  DEFINES_FILE ${CMAKE_BINARY_DIR}/s52hpgl_parser.h)
 
 kconfig_add_kcfg_files(qopencpn
   src/conf_mainwindow.kcfgc
   src/conf_detailmode.kcfgc
+  src/conf_marinerparams.kcfgc
 )
 
 

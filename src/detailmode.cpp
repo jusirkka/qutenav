@@ -3,6 +3,8 @@
 #include "outlinemode.h"
 #include "conf_detailmode.h"
 
+DetailMode::DetailMode(QObject *parent): QObject(parent) {}
+
 DetailMode* DetailMode::RestoreState() {
 
   const float wmm = Conf::DetailMode::widthMM();

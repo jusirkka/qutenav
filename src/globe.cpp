@@ -9,8 +9,9 @@
 #include <QStandardPaths>
 #include "wfreader.h"
 
-Globe::Globe()
-  : m_coordBuffer(QOpenGLBuffer::VertexBuffer)
+Globe::Globe(QObject *parent)
+  : Drawable(parent)
+  , m_coordBuffer(QOpenGLBuffer::VertexBuffer)
   , m_indexBuffer(QOpenGLBuffer::IndexBuffer)
 {
 
@@ -67,8 +68,8 @@ Globe::Globe()
   }
 }
 
-void Globe::initializeGL(QOpenGLWidget *context) {
-  m_program = new QOpenGLShaderProgram(context);
+void Globe::initializeGL() {
+  m_program = new QOpenGLShaderProgram(this);
 
   struct Source {
     QOpenGLShader::ShaderTypeBit stype;
@@ -116,10 +117,20 @@ void Globe::initializeGL(QOpenGLWidget *context) {
   m_locations.base_color = m_program->uniformLocation("base_color");
   m_locations.m_pv = m_program->uniformLocation("m_pv");
   m_locations.lp = m_program->uniformLocation("lp");
+
+  auto gl = QOpenGLContext::currentContext()->functions();
+  gl->glEnable(GL_DEPTH_TEST);
+  gl->glEnable(GL_STENCIL_TEST);
+  gl->glEnable(GL_CULL_FACE);
+  gl->glFrontFace(GL_CCW);
+  gl->glCullFace(GL_BACK);
+  gl->glStencilFuncSeparate(GL_FRONT, GL_EQUAL, 0, 0xff);
+  gl->glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_KEEP, GL_INCR);
 }
 
 void Globe::paintGL(const Camera *cam) {
   auto gl = QOpenGLContext::currentContext()->extraFunctions();
+
   m_program->bind();
 
   m_program->enableAttributeArray(0);
@@ -142,6 +153,7 @@ void Globe::paintGL(const Camera *cam) {
     }
   }
 }
+
 
 void Globe::initLayers() {
   // sea

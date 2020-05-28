@@ -22,28 +22,25 @@ void GLWidget::saveState() {
 }
 
 void GLWidget::initializeGL() {
-  m_logger = new QOpenGLDebugLogger(this);
-  if (!m_logger->initialize()) {
-    qWarning() << "OpenGL logging not available";
+  if (!m_logger) {
+    m_logger = new QOpenGLDebugLogger(this);
+    if (!m_logger->initialize()) {
+      qWarning() << "OpenGL logging not available";
+    }
   }
 
   auto gl = QOpenGLContext::currentContext()->functions();
-  gl->glClearColor(.0, .0, .2, 1.);
-  gl->glEnable(GL_DEPTH_TEST);
-  gl->glEnable(GL_STENCIL_TEST);
-  gl->glEnable(GL_CULL_FACE);
-  gl->glFrontFace(GL_CCW);
-  gl->glCullFace(GL_BACK);
+  gl->glClearColor(.4, .4, .4, 1.);
 
-
-
-  if (!m_vao.create()) {
-    qFatal("Doh!");
+  if (!m_vao.isCreated()) {
+    if (!m_vao.create()) {
+      qFatal("Doh!");
+    }
   }
   m_vao.bind();
 
   for (Drawable* chart: m_mode->drawables()) {
-    chart->initializeGL(this);
+    chart->initializeGL();
   }
 
   for (const QOpenGLDebugMessage& message: m_logger->loggedMessages()) {
@@ -67,9 +64,6 @@ void GLWidget::paintGL() {
   auto gl = QOpenGLContext::currentContext()->functions();
   gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-  gl->glStencilFuncSeparate(GL_FRONT, GL_EQUAL, 0, 0xff);
-  gl->glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_KEEP, GL_INCR);
-
   for (Drawable* chart: m_mode->drawables()) {
     chart->paintGL(m_mode->camera());
   }
@@ -79,8 +73,8 @@ void GLWidget::paintGL() {
 }
 
 static float gravity(int dx) {
-  const float threshold = 2;
-  const float k = 1.0;
+  const float threshold = 10;
+  const float k = 0.5;
   const float cutoff = 50;
 
   if (std::abs(dx) >= cutoff) return dx / std::abs(dx) * k * cutoff ;
@@ -165,6 +159,9 @@ void GLWidget::zoomIn() {
     if (mode == nullptr) return;
     delete m_mode;
     m_mode = mode;
+    makeCurrent();
+    initializeGL();
+    doneCurrent();
   }
   m_mode->camera()->setScale(s_min * exp10(i / div));
   update();
@@ -180,6 +177,9 @@ void GLWidget::zoomOut() {
     if (mode == nullptr) return;
     delete m_mode;
     m_mode = mode;
+    makeCurrent();
+    initializeGL();
+    doneCurrent();
   }
   m_mode->camera()->setScale(s);
   update();

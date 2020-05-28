@@ -32,3 +32,11 @@ WGS84Point SimpleMercator::toWGS84(const QVector2D &p) const {
   return WGS84Point::fromLLRadians(m_ref.radiansLng() + p.x() / z,
                                    2.0 * atan(exp((m_y30 + p.y()) / z)) - M_PI_2);
 }
+
+bool operator!= (const GeoProjection& p1, const GeoProjection& p2) {
+  return p1.className() != p2.className();
+}
+
+bool operator== (const GeoProjection& p1, const GeoProjection& p2) {
+  return !(p1 != p2);
+}

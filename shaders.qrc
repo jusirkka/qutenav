@@ -5,5 +5,7 @@
         <file>shaders/globe.vert</file>
         <file>shaders/outliner.vert</file>
         <file>shaders/outliner.geom</file>
+        <file>shaders/chartpainter.vert</file>
+        <file>shaders/chartpainter.frag</file>
     </qresource>
 </RCC>

@@ -1,9 +1,13 @@
 #include "chartmode.h"
 #include "orthocam.h"
 #include "outlinemode.h"
+#include "chartpainter.h"
 
-ChartMode::ChartMode(float wmm, float hmm, GeoProjection* p) {
+ChartMode::ChartMode(float wmm, float hmm, GeoProjection* p)
+  : DetailMode()
+{
   m_camera = new OrthoCam(wmm, hmm, p);
+  m_drawables << new ChartPainter(p, this);
 }
 
 

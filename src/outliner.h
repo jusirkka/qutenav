@@ -4,14 +4,17 @@
 #include <QOpenGLBuffer>
 #include <QVector4D>
 
-class Outliner: public Drawable
-{
+class Outliner: public Drawable {
+
+  Q_OBJECT
+
 public:
 
-  Outliner();
+  Outliner(QObject* parent);
 
   void paintGL(const Camera* cam) override;
-  void initializeGL(QOpenGLWidget* context) override;
+  void initializeGL() override;
+  ~Outliner() = default;
 
 private:
 

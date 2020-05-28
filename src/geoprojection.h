@@ -35,3 +35,6 @@ private:
   double m_y30;
 
 };
+
+bool operator!= (const GeoProjection& p1, const GeoProjection& p2);
+bool operator== (const GeoProjection& p1, const GeoProjection& p2);

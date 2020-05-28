@@ -8,7 +8,8 @@
 #include <QTextStream>
 #include "s57chart.h"
 
-Outliner::Outliner()
+Outliner::Outliner(QObject* parent)
+  : Drawable(parent)
 {
 
   // TODO: osenc charts from known locations
@@ -23,22 +24,21 @@ Outliner::Outliner()
 
   size_t offset = 0;
   for (const QString& file: files) {
-    auto path = chartDir.absoluteFilePath(file);
-    S57Chart chart(path);
     try {
+      auto path = chartDir.absoluteFilePath(file);
+      S57ChartOutline chart(path);
+      m_outlines.append(Rectangle(chart.extent().eightFloater(), offset));
+      offset += m_outlines.last().outline.size() * sizeof(GLfloat);
     } catch (ChartFileError& e) {
       qWarning() << "Chart file error:" << e.msg() << ", skipping";
-      continue;
     }
-    m_outlines.append(Rectangle(chart.extent().eightFloater(), offset));
-    offset += m_outlines.last().outline.size() * sizeof(GLfloat);
   }
 
   qDebug() << "number of rectangles =" << m_outlines.size();
 }
 
-void Outliner::initializeGL(QOpenGLWidget *context) {
-  m_program = new QOpenGLShaderProgram(context);
+void Outliner::initializeGL() {
+  m_program = new QOpenGLShaderProgram(this);
 
   struct Source {
     QOpenGLShader::ShaderTypeBit stype;
@@ -59,7 +59,6 @@ void Outliner::initializeGL(QOpenGLWidget *context) {
   if (!m_program->link()) {
     qFatal("Failed to link the outliner program: %s", m_program->log().toUtf8().data());
   }
-
   m_coordBuffer.create();
   m_coordBuffer.bind();
   m_coordBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
@@ -77,6 +76,16 @@ void Outliner::initializeGL(QOpenGLWidget *context) {
   m_locations.m_pv = m_program->uniformLocation("m_pv");
   m_locations.center = m_program->uniformLocation("center");
   m_locations.angle = m_program->uniformLocation("angle");
+
+  auto gl = QOpenGLContext::currentContext()->functions();
+  gl->glEnable(GL_DEPTH_TEST);
+  gl->glEnable(GL_STENCIL_TEST);
+  gl->glEnable(GL_CULL_FACE);
+  gl->glFrontFace(GL_CCW);
+  gl->glCullFace(GL_BACK);
+  gl->glStencilFuncSeparate(GL_FRONT, GL_EQUAL, 0, 0xff);
+  gl->glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_KEEP, GL_INCR);
+
 }
 
 void Outliner::paintGL(const Camera* cam) {
@@ -101,12 +110,12 @@ void Outliner::paintGL(const Camera* cam) {
   }
 }
 
+
 Outliner::Rectangle::Rectangle(const DataVector &d, size_t bytes)
   : color("#ff0000"),
     offset(bytes)
 {
   QVector3D sum(0., 0., 0.);
-  QVector<QVector3D> ps;
   for (int i = 0; i < 4; i++) {
     const float lng = d[2 * i] * M_PI / 180;
     const float lat = d[2 * i + 1] * M_PI / 180;
@@ -117,7 +126,6 @@ Outliner::Rectangle::Rectangle(const DataVector &d, size_t bytes)
     outline.append(p.x());
     outline.append(p.y());
     outline.append(p.z());
-    ps.append(p);
   }
   center = sum.normalized();
 }

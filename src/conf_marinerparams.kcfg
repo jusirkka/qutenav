@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0
+      http://www.kde.org/standards/kcfg/1.0/kcfg.xsd" >
+  <kcfgfile name="qopencpnrc"/>
+  <group name="MarinerParams">
+    <entry name="TwoShades" key="two_shades" type="Bool">
+      <label>Flag indicating selection of two depth shades.</label>
+      <default>true</default>
+    </entry>
+    <entry name="SafetyContour" key="safety_contour" type="Double">
+      <label>Selected safety contour (meters) [IMO PS 3.6]</label>
+      <default>8.</default>
+    </entry>
+    <entry name="SafetyDepth" key="safety_depth" type="Double">
+      <label>Selected safety depth (meters) [IMO PS 3.7]</label>
+      <default>5.</default>
+    </entry>
+    <entry name="ShallowContour" key="shallow_contour" type="Double">
+      <label>Selected shallow water contour (meters, optional)</label>
+      <default>3.</default>
+    </entry>
+    <entry name="DeepContour" key="deep_contour" type="Double">
+      <label>Selected deep water contour (meters, optional)</label>
+      <default>10.</default>
+    </entry>
+    <entry name="ShallowPattern" key="shallow_pattern" type="Bool">
+      <label>Flag indicating selection of shallow water highlight (optional)</label>
+      <default>true</default>
+    </entry>
+  </group>
+</kcfg>

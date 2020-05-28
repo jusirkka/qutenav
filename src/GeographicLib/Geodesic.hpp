@@ -1,5 +1,3 @@
-#pragma once
-
 /**
  * \file Geodesic.hpp
  * \brief Header for GeographicLib::Geodesic class
@@ -9,7 +7,10 @@
  * https://geographiclib.sourceforge.io/
  **********************************************************************/
 
-#include "Constants.hpp"
+#if !defined(GEOGRAPHICLIB_GEODESIC_HPP)
+#define GEOGRAPHICLIB_GEODESIC_HPP 1
+
+#include <GeographicLib/Constants.hpp>
 
 #if !defined(GEOGRAPHICLIB_GEODESIC_ORDER)
 /**
@@ -973,3 +974,4 @@ namespace GeographicLib {
 
 } // namespace GeographicLib
 
+#endif  // GEOGRAPHICLIB_GEODESIC_HPP

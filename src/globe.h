@@ -6,12 +6,16 @@
 
 class Globe: public Drawable
 {
+
+  Q_OBJECT
+
 public:
 
-  Globe();
+  Globe(QObject* parent);
 
   void paintGL(const Camera* cam) override;
-  void initializeGL(QOpenGLWidget* context) override;
+  void initializeGL() override;
+  ~Globe() = default;
 
 private:
 

@@ -2,7 +2,6 @@
 
 #include <KXmlGuiWindow>
 #include <QObject>
-#include "drawable.h"
 
 
 class GLWidget;

@@ -3,8 +3,13 @@
 #include "camera.h"
 #include "drawable.h"
 
-class DetailMode {
+class DetailMode: public QObject {
+
+  Q_OBJECT
+
 public:
+
+  DetailMode(QObject* parent = nullptr);
 
   static DetailMode* RestoreState();
   Camera* camera() {return m_camera;}

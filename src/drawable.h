@@ -8,14 +8,17 @@
 
 #include "camera.h"
 
-class Drawable
-{
+class Drawable: public QObject {
+
+  Q_OBJECT
+
 public:
 
-  Drawable() = default;
+  Drawable(QObject* parent);
+
   virtual void paintGL(const Camera* camera) = 0;
   // OpenGL related stuff to be initialized after we have a GL context.
-  virtual void initializeGL(QOpenGLWidget* context) = 0;
+  virtual void initializeGL() = 0;
   virtual ~Drawable() = default;
 
 protected:

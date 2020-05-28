@@ -4,9 +4,11 @@
 #include "outliner.h"
 #include "chartmode.h"
 
-OutlineMode::OutlineMode(float wmm, float hmm, GeoProjection* p) {
+OutlineMode::OutlineMode(float wmm, float hmm, GeoProjection* p)
+  : DetailMode()
+{
   m_camera = new PersCam(wmm, hmm, p);
-  m_drawables << new Outliner << new Globe;
+  m_drawables << new Outliner(this) << new Globe(this);
 }
 
 DetailMode* OutlineMode::largerScaleMode() const {
