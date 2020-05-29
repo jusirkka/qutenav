@@ -124,12 +124,15 @@ public:
     , m_source(s)
   {}
 
+  LineStyle() = default;
+
   quint32 rcid() const {return m_rcid;}
   const ModelData& modelData() const {return m_modelData;}
   const QString& description() const {return m_description;}
   const ColorRef& colorRef() const {return m_colorRef;}
   const QString& source() const {return m_source;}
 
+  virtual ~LineStyle() = default;
 
 private:
 
@@ -147,6 +150,8 @@ public:
     : LineStyle(id, d, c, ref, s)
     , m_isRaster(r) {}
 
+  Symbol() = default;
+
   bool isRaster() const {return m_isRaster;}
 
 private:
@@ -160,6 +165,8 @@ public:
           const QString& src, bool r, bool s, bool v)
     : Symbol(id, d, c, ref, src, r)
     , m_isStaggered(s), m_isVariableSpacing(v) {}
+
+  Pattern() = default;
 
   bool isStaggered() const {return m_isStaggered;}
   bool isVariableSpacing() const {return m_isVariableSpacing;}
@@ -178,6 +185,5 @@ QColor GetColor(quint32 index);
 QColor GetColor(const QString& name);
 QVariant GetAttribute(const QString& name, const S57::Object* obj);
 quint32 FindIndex(const QString& name);
-quint32 PatternIndex(const QString& name);
 
 } // namespace S52

@@ -20,9 +20,47 @@ S57::PaintDataMap S52::AreaColor::execute(const QVector<QVariant>& vals,
   return S57::PaintDataMap{{p.type, p}};
 }
 
+S57::PaintDataMap S52::AreaPattern::execute(const QVector<QVariant>& /*vals*/,
+                                            const S57::Object* /*obj*/) {
+  qWarning() << "AP: not implemented";
+  return S57::PaintDataMap(); // invalid paint data
+}
+
+S57::PaintDataMap S52::LineSimple::execute(const QVector<QVariant>& /*vals*/,
+                                           const S57::Object* /*obj*/) {
+  qWarning() << "LS: not implemented";
+  return S57::PaintDataMap(); // invalid paint data
+}
+
+
+S57::PaintDataMap S52::LineComplex::execute(const QVector<QVariant>& /*vals*/,
+                                            const S57::Object* /*obj*/) {
+  qWarning() << "LC: not implemented";
+  return S57::PaintDataMap(); // invalid paint data
+}
+
+
+S57::PaintDataMap S52::PointSymbol::execute(const QVector<QVariant>& /*vals*/,
+                                            const S57::Object* /*obj*/) {
+  qWarning() << "SY: not implemented";
+  return S57::PaintDataMap(); // invalid paint data
+}
+
+S57::PaintDataMap S52::Text::execute(const QVector<QVariant>& /*vals*/,
+                                            const S57::Object* /*obj*/) {
+  qWarning() << "TX: not implemented";
+  return S57::PaintDataMap(); // invalid paint data
+}
+
+S57::PaintDataMap S52::TextExtended::execute(const QVector<QVariant>& /*vals*/,
+                                            const S57::Object* /*obj*/) {
+  qWarning() << "TE: not implemented";
+  return S57::PaintDataMap(); // invalid paint data
+}
+
 
 S57::PaintDataMap S52::CSDepthArea01::execute(const QVector<QVariant>&,
-                                           const S57::Object* obj) {
+                                              const S57::Object* obj) {
   auto geom = dynamic_cast<const S57::Geometry::Area*>(obj->geometry());
   if (!geom) return S57::PaintDataMap(); // invalid paint data
 
@@ -46,6 +84,7 @@ S57::PaintDataMap S52::CSDepthArea01::execute(const QVector<QVariant>&,
   p.elements = geom->triangleElements();
   p.vertexOffset = geom->vertexOffset();
 
+  // FIXME: mariner params from a config class, not from config files
   if (Conf::MarinerParams::twoShades() && depth >= Conf::MarinerParams::safetyContour()) {
     p.color = S52::GetColor("DEPDW");
   } else if (depth >= Conf::MarinerParams::deepContour()) {
@@ -70,10 +109,10 @@ S57::PaintDataMap S52::CSDepthArea01::execute(const QVector<QVariant>&,
 
   S57::PaintDataMap ps{{p.type, p}};
 
-  // execute AP(DRGARE01);LS(DASH,1,CHGRF)
+  // run AP(DRGARE01);LS(DASH,1,CHGRF)
 
   QVector<QVariant> vals;
-  vals.append(QVariant::fromValue(S52::PatternIndex("DRGARE01")));
+  vals.append(QVariant::fromValue(S52::FindIndex("DRGARE01")));
   auto ps1 = S52::FindFunction("AP")->execute(vals, obj);
 
   for (auto it = ps1.constBegin(); it != ps1.constEnd(); ++it) {

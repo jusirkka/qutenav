@@ -23,7 +23,8 @@ ChartPainter::ChartPainter(GeoProjection* p, QObject* parent)
     throw ChartFileError(QString("%1 is not a valid chart directory").arg(chartDir.absolutePath()));
   }
   qDebug() << files;
-  for (const QString& file: files) {
+  QString file = files.first();
+  //for (const QString& file: files) {
     try {
       auto path = chartDir.absoluteFilePath(file);
       auto chart = new S57Chart(path, p, this);
@@ -31,7 +32,7 @@ ChartPainter::ChartPainter(GeoProjection* p, QObject* parent)
     } catch (ChartFileError& e) {
       qWarning() << "Chart file error:" << e.msg() << ", skipping";
     }
-  }
+  //}
 }
 
 void ChartPainter::initializeGL() {

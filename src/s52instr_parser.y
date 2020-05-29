@@ -59,7 +59,7 @@ commands: command | commands ';' command;
 command: TX '(' varstring ',' INT ',' INT ',' INT ',' CHARSPEC ','
          INT ',' INT ',' COLOR ',' INT ')' {
   auto fun = S52::FindFunction("TX");
-  bool ok = $3 && fun != nullptr && reader->names.contains($17);
+  bool ok = $3 && reader->names.contains($17);
   if (ok) {
     S52::ByteCoder bc;
 
@@ -99,7 +99,7 @@ command: TX '(' varstring ',' INT ',' INT ',' INT ',' CHARSPEC ','
 command: TE '(' string ',' string ',' INT ',' INT ',' INT ',' CHARSPEC ','
          INT ',' INT ',' COLOR ',' INT ')' {
   auto fun = S52::FindFunction("TE");
-  bool ok = fun != nullptr && reader->names.contains($19);
+  bool ok = reader->names.contains($19);
   QVector<quint32> refs;
   if (ok) {
     QStringList attrs = $5.split(",");
@@ -190,7 +190,7 @@ chars: chars CHAR {
 
 command: SY '(' SYMBOL optrotation ')' {
   auto fun = S52::FindFunction("SY");
-  bool ok = reader->names.contains($3) && fun != nullptr;
+  bool ok = reader->names.contains($3);
   if (ok) {
     S52::ByteCoder bc;
 
@@ -221,7 +221,7 @@ optrotation: ',' FLOAT {
 
 command: LS '(' pstyle ',' INT ',' COLOR ')' {
   auto fun = S52::FindFunction("LS");
-  bool ok = reader->names.contains($7) && fun != nullptr;
+  bool ok = reader->names.contains($7);
   if (ok) {
     S52::ByteCoder bc;
 
@@ -255,7 +255,7 @@ pstyle: DOTTED {
 
 command: LC '(' SYMBOL ')' {
   auto fun = S52::FindFunction("LC");
-  bool ok = reader->names.contains($3) && fun != nullptr;
+  bool ok = reader->names.contains($3);
   if (ok) {
     S52::ByteCoder bc;
 
@@ -271,7 +271,7 @@ command: LC '(' SYMBOL ')' {
 
 command: AC '(' COLOR opttransparency ')' {
   auto fun = S52::FindFunction("AC");
-  bool ok = reader->names.contains($3) && fun != nullptr;
+  bool ok = reader->names.contains($3);
   if (ok) {
     S52::ByteCoder bc;
 
@@ -298,7 +298,7 @@ opttransparency: ',' INT {
 
 command: AP '(' SYMBOL optrotation ')' {
   auto fun = S52::FindFunction("AP");
-  bool ok = reader->names.contains($3) && fun != nullptr;
+  bool ok = reader->names.contains($3);
   if (ok) {
     S52::ByteCoder bc;
 

@@ -62,6 +62,8 @@ private:
 
   S52::ColorRef parseColorRef(QXmlStreamReader &reader);
 
+  quint32 m_nextSymbolIndex;
+
 public:
 
   S52::Lookup::Type typeFilter(const S57::Object* obj) const;
@@ -117,14 +119,14 @@ public:
   LookupVector lookups;
   LookupTable lookupTable;
 
-  using LineStyleVector = QVector<S52::LineStyle>;
-  LineStyleVector lineStyles;
+  using LineStyleMap = QMap<quint32, S52::LineStyle>;
+  LineStyleMap lineStyles;
 
-  using PatternVector = QVector<S52::Pattern>;
-  PatternVector patterns;
+  using PatternMap = QMap<quint32, S52::Pattern>;
+  PatternMap patterns;
 
-  using SymbolVector = QVector<S52::Symbol>;
-  SymbolVector symbols;
+  using SymbolMap = QMap<quint32, S52::Symbol>;
+  SymbolMap symbols;
 
   S52::Functions functions;
 };

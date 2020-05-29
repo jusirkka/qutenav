@@ -28,6 +28,7 @@ Private::Presentation::Presentation()
   : simplifiedSymbols(true)
   , plainBoundaries(true)
   , currentColorTable(0)
+  , m_nextSymbolIndex(0)
   , functions() {
   readAttributes();
   readObjectClasses();
@@ -282,7 +283,7 @@ void Private::Presentation::readLookups(QXmlStreamReader& reader) {
     const QString className = reader.attributes().value("name").toString();
 
     if (!names.contains(className)) {
-      qWarning() << "Unknown class name" << className << ", skipping";
+      qWarning() << "Unknown class name" << className << ", skipping lookup" << id;
       reader.skipCurrentElement();
       continue;
     }
@@ -425,7 +426,7 @@ void Private::Presentation::readLineStyles(QXmlStreamReader& reader) {
     while (reader.readNextStartElement()) {
       if (reader.name() == "name") {
         styleName = reader.readElementText();
-        if (names.contains(styleName)) {
+        if (names.contains(styleName) && lineStyles.contains(names[styleName])) {
           qWarning() << styleName << "already parsed, skipping";
           ok = false;
           break;
@@ -447,9 +448,10 @@ void Private::Presentation::readLineStyles(QXmlStreamReader& reader) {
       reader.skipCurrentElement();
       continue;
     }
-    names[styleName] = lineStyles.size();
-    S52::LineStyle style(id, d, description, ref, instruction);
-    lineStyles.append(style);
+    if (!names.contains(styleName)) {
+      names[styleName] = m_nextSymbolIndex++;
+    }
+    lineStyles[names[styleName]] = S52::LineStyle(id, d, description, ref, instruction);
   }
 }
 
@@ -469,15 +471,9 @@ void Private::Presentation::readPatterns(QXmlStreamReader& reader) {
     bool raster;
     bool variable;
 
-    bool ok = true;
     while (reader.readNextStartElement()) {
       if (reader.name() == "name") {
         patternName = reader.readElementText();
-        if (names.contains(patternName)) {
-          qWarning() << patternName << "already parsed, skipping";
-          ok = false;
-          break;
-        }
       } else if (reader.name() == "definition") {
         raster = reader.readElementText() == "R";
       } else if (reader.name() == "filltype") {
@@ -499,18 +495,21 @@ void Private::Presentation::readPatterns(QXmlStreamReader& reader) {
         reader.skipCurrentElement();
       }
     }
-    if (!ok) {
-      reader.skipCurrentElement();
-      continue;
+    if (names.contains(patternName) && patterns.contains(names[patternName])) {
+      if (!patterns[names[patternName]].isRaster() || raster) {
+        qWarning() << patternName << "already parsed, skipping";
+        continue;
+      }
     }
-    names[patternName] = patterns.size();
+
+    if (!names.contains(patternName)) {
+      names[patternName] = m_nextSymbolIndex++;
+    }
     if (raster) {
       QString src = QString("%1 %2").arg(gref.x()).arg(gref.y());
-      S52::Pattern patt(id, dr, description, ref, src, raster, staggered, variable);
-      patterns.append(patt);
+      patterns[names[patternName]] = S52::Pattern(id, dr, description, ref, src, raster, staggered, variable);
     } else {
-      S52::Pattern patt(id, dv, description, ref, instruction, raster, staggered, variable);
-      patterns.append(patt);
+      patterns[names[patternName]] = S52::Pattern(id, dv, description, ref, instruction, raster, staggered, variable);
     }
   }
 }
@@ -529,15 +528,9 @@ void Private::Presentation::readSymbols(QXmlStreamReader& reader) {
     QPoint gref;
     bool raster;
 
-    bool ok = true;
     while (reader.readNextStartElement()) {
       if (reader.name() == "name") {
         symbolName = reader.readElementText();
-        if (names.contains(symbolName)) {
-          qWarning() << symbolName << "already parsed, skipping";
-          ok = false;
-          break;
-        }
       } else if (reader.name() == "definition") {
         raster = reader.readElementText() == "R";
       } else if (reader.name() == "vector") {
@@ -555,18 +548,21 @@ void Private::Presentation::readSymbols(QXmlStreamReader& reader) {
         reader.skipCurrentElement();
       }
     }
-    if (!ok) {
-      reader.skipCurrentElement();
-      continue;
+    if (names.contains(symbolName) && symbols.contains(names[symbolName])) {
+      if (!symbols[names[symbolName]].isRaster() || raster) {
+        qWarning() << symbolName << "already parsed, skipping";
+        continue;
+      }
     }
-    names[symbolName] = symbols.size();
+
+    if (!names.contains(symbolName)) {
+      names[symbolName] = m_nextSymbolIndex++;
+    }
     if (raster) {
       QString src = QString("%1 %2").arg(gref.x()).arg(gref.y());
-      S52::Symbol sym(id, dr, description, ref, src, raster);
-      symbols.append(sym);
+      symbols[names[symbolName]] = S52::Symbol(id, dr, description, ref, src, raster);
     } else {
-      S52::Symbol sym(id, dv, description, ref, instruction, raster);
-      symbols.append(sym);
+      symbols[names[symbolName]] = S52::Symbol(id, dv, description, ref, instruction, raster);
     }
   }
 }
