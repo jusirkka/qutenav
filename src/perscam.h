@@ -35,7 +35,7 @@ private:
   const float R0 = 6371008.8;
   const float PI = 3.14159265358979323846;
   const float FOV2 = PI / 8;
-  const quint32 MIN_SCALE = 5000616; // 5M + nip
+  const quint32 MIN_SCALE = 20000;
 
   QMatrix4x4 m_rot, m_rot0;
   QVector3D m_eye, m_eye0;

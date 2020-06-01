@@ -48,27 +48,28 @@ target_sources(qopencpn
   PRIVATE
     shaders.qrc
     files.qrc
-    src/drawable.cpp
-    src/orthocam.cpp
-    src/globe.cpp
-    src/mainwindow.cpp
-    src/outliner.cpp
+    src/chartmanager.cpp
+    src/chartmode.cpp
     src/chartpainter.cpp
     src/detailmode.cpp
-    src/chartmode.cpp
-    src/outlinemode.cpp
+    src/drawable.cpp
+    src/geoprojection.cpp
+    src/globe.cpp
     src/glwidget.cpp
     src/main.cpp
-    src/types.cpp
+    src/mainwindow.cpp
+    src/orthocam.cpp
+    src/outlinemode.cpp
+    src/outliner.cpp
     src/perscam.cpp
-    src/s57chart.cpp
-    src/s57object.cpp
+    src/s52functions.cpp
     src/s52presentation.cpp
     src/s52presentation_p.cpp
-    src/s52functions.cpp
-    src/wfreader.cpp
+    src/s57chart.cpp
+    src/s57object.cpp
     src/triangleoptimizer.cpp
-    src/geoprojection.cpp
+    src/types.cpp
+    src/wfreader.cpp
     src/GeographicLib/Geodesic.cpp
     src/GeographicLib/GeodesicLine.cpp
     src/GeographicLib/Math.cpp

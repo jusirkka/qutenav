@@ -5,17 +5,20 @@
 #include <s57object.h>
 
 class S57Chart;
-
 class GeoProjection;
+class ChartManager;
 
 class ChartPainter: public Drawable {
   Q_OBJECT
 
 public:
-  ChartPainter(GeoProjection* p, QObject* parent);
+  ChartPainter(QObject* parent);
 
   void paintGL(const Camera* cam) override;
   void initializeGL() override;
+  void updateBuffers() override;
+  void updateObjects() override;
+
   ~ChartPainter() = default;
 
 private:
@@ -35,11 +38,9 @@ private:
     S57::PaintDataVector triangleData;
   };
 
-
   using ChartDataVector = QVector<QVector<ChartData>>;
-  using ChartVector = QVector<S57Chart*>;
-
-  ChartVector m_charts;
   ChartDataVector m_chartData;
+
+  ChartManager* m_manager;
 };
 

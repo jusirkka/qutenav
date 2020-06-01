@@ -15,6 +15,8 @@ public:
 
   void paintGL(const Camera* cam) override;
   void initializeGL() override;
+  void updateBuffers() override {} // noop
+  void updateObjects() override {} // noop
   ~Globe() = default;
 
 private:

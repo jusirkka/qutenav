@@ -11,6 +11,15 @@ private:
   QString m_detail;
 };
 
+class ChartFileError {
+public:
+  ChartFileError(QString msg): m_detail(std::move(msg)) {}
+  const QString msg() const {return m_detail;}
+private:
+  QString m_detail;
+};
+
+
 
 class Angle {
 public:

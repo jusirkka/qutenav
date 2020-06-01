@@ -19,6 +19,13 @@ public:
   virtual void paintGL(const Camera* camera) = 0;
   // OpenGL related stuff to be initialized after we have a GL context.
   virtual void initializeGL() = 0;
+  // called when the set of active charts changes.
+  void updateCharts();
+  // updates vertex and element buffers if present
+  virtual void updateBuffers() = 0;
+  // called when the set of visible objects in the set of active charts changes
+  virtual void updateObjects() = 0;
+
   virtual ~Drawable() = default;
 
 protected:
@@ -28,11 +35,3 @@ protected:
 };
 
 using DrawableVector = QVector<Drawable*>;
-
-class ChartFileError {
-public:
-  ChartFileError(QString msg): m_detail(std::move(msg)) {}
-  const QString msg() const {return m_detail;}
-private:
-  QString m_detail;
-};

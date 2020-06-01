@@ -6,6 +6,7 @@
 #include "detailmode.h"
 
 class QOpenGLDebugLogger;
+class ChartManager;
 
 class GLWidget: public QOpenGLWidget
 {
@@ -34,9 +35,19 @@ protected:
   void mouseDoubleClickEvent(QMouseEvent *event) override;
   void wheelEvent(QWheelEvent *event) override;
 
+signals:
+
+  void updateViewport(const Camera* cam);
+
 private slots:
 
   void pan();
+
+  void initializeChartMode();
+  void finalizeChartMode();
+
+  void updateCharts();
+  void updateObjects();
 
 private:
 
@@ -44,6 +55,7 @@ private:
   QOpenGLVertexArrayObject m_vao;
   DetailMode* m_mode;
   QOpenGLDebugLogger* m_logger;
+  ChartManager* m_manager;
 
   QPoint m_diff;
   QPoint m_lastPos;

@@ -8,6 +8,7 @@
 #include <QTextStream>
 #include <QStandardPaths>
 #include "wfreader.h"
+#include "types.h"
 
 Globe::Globe(QObject *parent)
   : Drawable(parent)

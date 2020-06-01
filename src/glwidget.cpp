@@ -5,15 +5,23 @@
 #include <QTimer>
 #include <cmath>
 #include <QPainter>
+#include "chartmanager.h"
 
 GLWidget::GLWidget(QWidget* parent)
   : QOpenGLWidget(parent)
   , m_mode(DetailMode::RestoreState())
   , m_logger(nullptr)
+  , m_manager(ChartManager::instance())
 {
   m_timer = new QTimer(this);
   m_timer->setInterval(1000/25);
   connect(m_timer, &QTimer::timeout, this, &GLWidget::pan);
+
+  connect(this, &GLWidget::updateViewport, m_manager, &ChartManager::updateCharts);
+  connect(m_manager, &ChartManager::idle, this, &GLWidget::finalizeChartMode);
+  connect(m_manager, &ChartManager::active, this, &GLWidget::initializeChartMode);
+  connect(m_manager, &ChartManager::chartsUpdated, this, &GLWidget::updateCharts);
+  connect(m_manager, &ChartManager::objectsUpdated, this, &GLWidget::updateObjects);
 }
 
 
@@ -57,6 +65,7 @@ void GLWidget::resizeGL(int w, int h) {
     m_mode->camera()->setScale(e.suggestedScale());
     m_mode->camera()->resize(widthMM(), heightMM());
   }
+  emit updateViewport(m_mode->camera());
 }
 
 void GLWidget::paintGL() {
@@ -94,6 +103,7 @@ void GLWidget::mousePressEvent(QMouseEvent* event) {
 void GLWidget::mouseDoubleClickEvent(QMouseEvent*) {
   m_timer->stop();
   m_mode->camera()->reset();
+  emit updateViewport(m_mode->camera());
   update();
 }
 
@@ -119,7 +129,6 @@ void GLWidget::mouseMoveEvent(QMouseEvent* event) {
     }
   }
 
-
   m_moveCounter = (m_moveCounter + 1) % 100000;
 }
 
@@ -136,6 +145,7 @@ void GLWidget::pan() {
   const QVector2D start(2 * m_lastPos.x() / float(width()) - 1, 1 - 2 * m_lastPos.y() / float(height()));
   const QVector2D amount(2 * m_diff.x() / float(width()), - 2 * m_diff.y() / float(height()));
   m_mode->camera()->pan(start, amount);
+  emit updateViewport(m_mode->camera());
   update();
 }
 
@@ -144,6 +154,7 @@ void GLWidget::compassPan(Angle bearing, float pixels) {
   const Angle a = Angle::fromDegrees(90) - bearing;
   const QVector2D amount(-2 * pixels * a.cos() / float(width()), -2 * pixels * a.sin() / float(height()));
   m_mode->camera()->pan(QVector2D(0,0), amount);
+  emit updateViewport(m_mode->camera());
   update();
 }
 
@@ -152,43 +163,82 @@ void GLWidget::zoomIn() {
   // evenly distributed steps in log scale, div steps per decade
   const float s = m_mode->camera()->scale();
   const float s_min = m_mode->camera()->minScale();
-  const float div = 10;
+  const float div = 10.;
   const qint32 i = qint32((log10(s/s_min)) * div + .5) - 1;
+  const quint32 scale = s_min * exp10(i / div);
+
   if (i < 0) {
-    DetailMode* mode = m_mode->smallerScaleMode();
-    if (mode == nullptr) return;
-    delete m_mode;
-    m_mode = mode;
-    makeCurrent();
-    initializeGL();
-    doneCurrent();
+    initializeChartMode();
   }
-  m_mode->camera()->setScale(s_min * exp10(i / div));
+
+  if (m_manager->isValidScale(scale)) {
+    m_mode->camera()->setScale(scale);
+    emit updateViewport(m_mode->camera());
+  }
+
   update();
 }
 
 void GLWidget::zoomOut() {
   const float s_min = m_mode->camera()->minScale();
   const float div = 10;
-  const quint32 i = quint32((log10(m_mode->camera()->scale()/s_min)) * div + .5) + 1;
-  const float s = s_min * exp10(i / div);
-  if (s > m_mode->camera()->maxScale()) {
-    DetailMode* mode = m_mode->largerScaleMode();
-    if (mode == nullptr) return;
-    delete m_mode;
-    m_mode = mode;
-    makeCurrent();
-    initializeGL();
-    doneCurrent();
+  const quint32 i = quint32((log10(m_mode->camera()->scale() / s_min)) * div + .5) + 1;
+  const float scale = s_min * exp10(i / div);
+
+  if (scale > m_mode->camera()->maxScale()) {
+    finalizeChartMode();
   }
-  m_mode->camera()->setScale(s);
+
+  if (scale < m_mode->camera()->maxScale()) {
+    m_mode->camera()->setScale(scale);
+    emit updateViewport(m_mode->camera());
+  }
+
   update();
 }
 
+void GLWidget::initializeChartMode() {
+  DetailMode* mode = m_mode->smallerScaleMode();
+  if (mode == nullptr) return;
+  delete m_mode;
+  m_mode = mode;
+  makeCurrent();
+  initializeGL();
+  doneCurrent();
+}
+
+void GLWidget::finalizeChartMode() {
+  DetailMode* mode = m_mode->largerScaleMode();
+  if (mode == nullptr) return;
+  delete m_mode;
+  m_mode = mode;
+  makeCurrent();
+  initializeGL();
+  doneCurrent();
+}
 
 void GLWidget::northUp() {
   Angle a = m_mode->camera()->northAngle();
   m_mode->camera()->rotateEye(- a);
+  emit updateViewport(m_mode->camera());
+  update();
+}
+
+void GLWidget::updateCharts() {
+  makeCurrent();
+  for (Drawable* d: m_mode->drawables()) {
+    d->updateCharts();
+  }
+  doneCurrent();
+  update();
+}
+
+void GLWidget::updateObjects() {
+  makeCurrent();
+  for (Drawable* d: m_mode->drawables()) {
+    d->updateObjects();
+  }
+  doneCurrent();
   update();
 }
 

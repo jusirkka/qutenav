@@ -6,36 +6,13 @@
 #include <QDir>
 #include <QRegularExpression>
 #include <QTextStream>
+#include "chartmanager.h"
 #include "s57chart.h"
 
 Outliner::Outliner(QObject* parent)
   : Drawable(parent)
-{
-
-  // TODO: osenc charts from known locations
-  QDir chartDir("/home/jusirkka/.opencpn/SENC");
-  QStringList files = chartDir.entryList(QStringList() << "*.S57",
-                                         QDir::Files | QDir::Readable, QDir::Name);
-
-  if (files.isEmpty()) {
-    throw ChartFileError(QString("%1 is not a valid chart directory").arg(chartDir.absolutePath()));
-  }
-  qDebug() << files;
-
-  size_t offset = 0;
-  for (const QString& file: files) {
-    try {
-      auto path = chartDir.absoluteFilePath(file);
-      S57ChartOutline chart(path);
-      m_outlines.append(Rectangle(chart.extent().eightFloater(), offset));
-      offset += m_outlines.last().outline.size() * sizeof(GLfloat);
-    } catch (ChartFileError& e) {
-      qWarning() << "Chart file error:" << e.msg() << ", skipping";
-    }
-  }
-
-  qDebug() << "number of rectangles =" << m_outlines.size();
-}
+  , m_manager(ChartManager::instance())
+{}
 
 void Outliner::initializeGL() {
   m_program = new QOpenGLShaderProgram(this);
@@ -59,16 +36,8 @@ void Outliner::initializeGL() {
   if (!m_program->link()) {
     qFatal("Failed to link the outliner program: %s", m_program->log().toUtf8().data());
   }
-  m_coordBuffer.create();
-  m_coordBuffer.bind();
-  m_coordBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
-  DataVector outlines;
-  for (const Rectangle& r: m_outlines) {
-    outlines.append(r.outline);
-  }
-  GLsizei dataLen = outlines.size() * sizeof(GLfloat);
-  m_coordBuffer.allocate(dataLen);
-  m_coordBuffer.write(0, outlines.constData(), dataLen);
+
+  updateCharts();
 
   // locations
   m_program->bind();
@@ -111,6 +80,28 @@ void Outliner::paintGL(const Camera* cam) {
 }
 
 
+void Outliner::updateBuffers() {
+  if (!m_coordBuffer.isCreated()) {
+    m_coordBuffer.create();
+    m_coordBuffer.setUsagePattern(QOpenGLBuffer::DynamicDraw);
+  }
+  m_coordBuffer.bind();
+
+  size_t offset = 0;
+  DataVector outlines;
+  for (const S57ChartOutline* chart: m_manager->outlines()) {
+    m_outlines.append(Rectangle(chart->extent().eightFloater(), offset));
+    outlines.append(chart->extent().eightFloater());
+    offset += 8 * sizeof(GLfloat);
+  }
+
+  GLsizei dataLen = outlines.size() * sizeof(GLfloat);
+  m_coordBuffer.allocate(dataLen);
+  m_coordBuffer.write(0, outlines.constData(), dataLen);
+
+  qDebug() << "number of rectangles =" << m_outlines.size();
+}
+
 Outliner::Rectangle::Rectangle(const DataVector &d, size_t bytes)
   : color("#ff0000"),
     offset(bytes)
@@ -123,9 +114,6 @@ Outliner::Rectangle::Rectangle(const DataVector &d, size_t bytes)
                 sin(lng) * cos(lat),
                 sin(lat));
     sum += p;
-    outline.append(p.x());
-    outline.append(p.y());
-    outline.append(p.z());
   }
   center = sum.normalized();
 }

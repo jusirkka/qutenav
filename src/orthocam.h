@@ -27,7 +27,7 @@ private:
   void doReset();
 
   const quint32 MAX_SCALE = 5000616;
-  const quint32 MIN_SCALE = 500;
+  const quint32 MIN_SCALE = 800;
 
   WGS84Point m_reference_0;
   Angle m_northAngle;

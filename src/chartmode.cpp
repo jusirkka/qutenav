@@ -7,7 +7,7 @@ ChartMode::ChartMode(float wmm, float hmm, GeoProjection* p)
   : DetailMode()
 {
   m_camera = new OrthoCam(wmm, hmm, p);
-  m_drawables << new ChartPainter(p, this);
+  m_drawables << new ChartPainter(this);
 }
 
 

@@ -4,6 +4,8 @@
 #include <QOpenGLBuffer>
 #include <QVector4D>
 
+class ChartManager;
+
 class Outliner: public Drawable {
 
   Q_OBJECT
@@ -14,6 +16,9 @@ public:
 
   void paintGL(const Camera* cam) override;
   void initializeGL() override;
+  void updateBuffers() override;
+  void updateObjects() override {} // noop
+
   ~Outliner() = default;
 
 private:
@@ -25,7 +30,6 @@ private:
   struct Rectangle {
     Rectangle(const DataVector& d, size_t offset);
     QVector3D center;
-    DataVector outline;
     QColor color;
     size_t offset;
   };
@@ -39,6 +43,7 @@ private:
     int angle;
   } m_locations;
 
+  ChartManager* m_manager;
 
 };
 
