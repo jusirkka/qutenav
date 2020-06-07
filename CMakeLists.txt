@@ -6,9 +6,11 @@ project(qopencpn LANGUAGES CXX)
 #
 
 set(QT_MIN_VERSION "5.9.7")
-find_package(Qt5 ${QT_MIN_VERSION} REQUIRED CONFIG COMPONENTS
+find_package(Qt5 ${QT_MIN_VERSION} REQUIRED COMPONENTS
+  Sql
   Widgets
   Gui
+  Xml
 )
 
 set(KF5_MIN_VERSION "5.56.0")
@@ -48,6 +50,7 @@ target_sources(qopencpn
   PRIVATE
     shaders.qrc
     files.qrc
+    src/camera.cpp
     src/chartmanager.cpp
     src/chartmode.cpp
     src/chartpainter.cpp
@@ -67,6 +70,7 @@ target_sources(qopencpn
     src/s52presentation_p.cpp
     src/s57chart.cpp
     src/s57object.cpp
+    src/settings.cpp
     src/triangleoptimizer.cpp
     src/types.cpp
     src/wfreader.cpp
@@ -125,6 +129,7 @@ target_link_libraries(qopencpn
     KF5::I18n
     KF5::XmlGui
     GDAL::GDAL
+    Qt5::Sql
 )
 
 

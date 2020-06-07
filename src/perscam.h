@@ -8,7 +8,7 @@ class PersCam: public Camera {
 public:
 
   PersCam(float wmm, float hmm, GeoProjection* p);
-  void pan(QVector2D dragStart, QVector2D dragAmount) override;
+  void pan(QPointF dragStart, QPointF dragAmount) override;
   void rotateEye(Angle a) override;
   void setScale(quint32 scale) override;
   void resize(float wmm, float hmm) override;

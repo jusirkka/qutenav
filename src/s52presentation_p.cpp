@@ -3,6 +3,7 @@
 #include <QDir>
 #include <QTextStream>
 #include <QDebug>
+#include "conf_marinerparams.h"
 #include "s52instr_parser.h"
 #define YYLTYPE Private::LocationType
 #define YYSTYPE Private::Instr_ValueType
@@ -25,14 +26,43 @@ void s52instr_error(Private::LocationType* loc,
 }
 
 Private::Presentation::Presentation()
-  : simplifiedSymbols(true)
-  , plainBoundaries(true)
-  , currentColorTable(0)
+  : QObject()
   , m_nextSymbolIndex(0)
-  , functions() {
+  , functions()
+  , settings(Settings::instance()) {
+
   readAttributes();
   readObjectClasses();
   readChartSymbols();
+
+  connect(settings, &Settings::colorTable, this, &Presentation::setColorTable);
+  connect(settings, &Settings::plainBoundaries, this, &Presentation::setPlainBoundaries);
+  connect(settings, &Settings::simplifiedSymbols, this, &Presentation::setSimplifiedSymbols);
+
+  setColorTable(Conf::MarinerParams::colorTable());
+  setPlainBoundaries(Conf::MarinerParams::plainBoundaries());
+  setSimplifiedSymbols(Conf::MarinerParams::simplifiedSymbols());
+
+}
+
+
+void Private::Presentation::setColorTable(Settings::ColorTable t) {
+  const QMap<Settings::ColorTable, QString> tables{
+    {Settings::DayBright, "DAY_BRIGHT"},
+    {Settings::DayBlackBack, "DAY_BLACKBACK"},
+    {Settings::DayWhiteBack, "DAY_WHITEBACK"},
+    {Settings::Dusk, "DUSK"},
+    {Settings::Night, "NIGHT"},
+  };
+  currentColorTable = names[tables[t]];
+}
+
+void Private::Presentation::setPlainBoundaries(bool v) {
+  plainBoundaries = v;
+}
+
+void Private::Presentation::setSimplifiedSymbols(bool v) {
+  simplifiedSymbols = v;
 }
 
 Private::Presentation* Private::Presentation::instance() {

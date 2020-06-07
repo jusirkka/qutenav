@@ -4,3 +4,4 @@ NameSpace=Conf
 ClassName=MarinerParams
 Singleton=true
 Mutators=true
+UseEnumTypes=true

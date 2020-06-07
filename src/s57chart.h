@@ -5,6 +5,7 @@
 #include <QObject>
 #include "s57object.h"
 #include "s52presentation.h"
+#include <QDate>
 
 //  OSENC V2 record definitions
 enum class SencRecordType: quint16 {
@@ -109,13 +110,20 @@ public:
 
   Extent() = default;
   Extent(EightFloater points)
-    : m_points(std::move(points)) {}
+    : m_points(std::move(points)) {
+    for (int i = 0; i < 4; i++) {
+      auto p = WGS84Point::fromLL(m_points[2 * i], m_points[2 * i + 1]);
+      m_wgs84Points.append(p);
+    }
+  }
 
   const EightFloater& eightFloater() const {return m_points;}
+  const WGS84PointVector& corners() const {return m_wgs84Points;}
 
 private:
 
   EightFloater m_points;
+  WGS84PointVector m_wgs84Points;
 };
 
 class S57ChartOutline {
@@ -124,18 +132,25 @@ public:
 
   S57ChartOutline(const QString& path);
 
-  const Extent& extent() const;
-  const WGS84Point& reference() const;
+  const Extent& extent() const {return m_extent;}
+  const WGS84Point& reference() const {return m_ref;}
+  quint32 scale() const {return m_scale;}
+  const QDate& published() const {return m_pub;}
+  const QDate& modified() const {return m_mod;}
 
 private:
 
   Extent m_extent;
   WGS84Point m_ref;
+  quint32 m_scale;
+  QDate m_pub;
+  QDate m_mod;
 
 };
 
 
 class GeoProjection;
+class Settings;
 
 class S57Chart: public QObject {
 
@@ -146,9 +161,7 @@ public:
   using VertexVector = QVector<GLfloat>;
   using IndexVector = QVector<GLuint>;
 
-  S57Chart(const QString& path,
-           const GeoProjection* proj,
-           QObject *parent);
+  S57Chart(quint32 id, const QString& path, const GeoProjection* proj);
 
   const VertexVector& vertices() const {return m_vertices;}
   const IndexVector& indices() const {return m_indices;}
@@ -162,6 +175,10 @@ public:
   }
 
   const GeoProjection* geoProjection() const {return m_nativeProj;}
+
+  quint32 id() const {return m_id;}
+
+  void updatePaintData(const QRectF& viewArea, quint32 scale);
 
 signals:
 
@@ -189,8 +206,8 @@ private:
 
   GLsizei addIndices(GLuint first, GLuint lower, GLuint upper, bool reversed);
   void triangulate(const S57::ElementDataVector& lelems, S57::ElementDataVector& telems);
-  void updatePaintData();
-
+  QRectF computeBBox(const S57::ElementDataVector& elems);
+  QRectF computeBBox(const S57::ElementData& elem);
 
   Extent m_extent;
   GeoProjection* m_nativeProj;
@@ -200,5 +217,7 @@ private:
   VertexVector m_vertices;
   IndexVector m_indices;
   PaintPriorityVector m_paintData;
+  quint32 m_id;
+  Settings* m_settings;
 };
 

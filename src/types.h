@@ -2,6 +2,7 @@
 
 #include <QString>
 #include <cmath>
+#include <QVector2D>
 
 class NotImplementedError {
 public:
@@ -69,10 +70,6 @@ class WGS84Point {
 public:
 
   static constexpr double semimajor_axis = 6378137.0;
-  static constexpr double invf = 298.257223563;
-  static constexpr double f = 1.0 / invf; // ellipsoid flattening
-  static constexpr double e2 = 2 * f - f * f;  // eccentricity^2
-  static constexpr double e = sqrt(e2);
 
   friend WGS84Point operator+ (const WGS84Point& a, const WGS84Bearing& b);
 
@@ -118,6 +115,8 @@ private:
 
 };
 
+using WGS84PointVector = QVector<WGS84Point>;
+
 
 class WGS84Bearing {
 public:
@@ -160,4 +159,3 @@ template <typename Enumeration>
 auto as_numeric(Enumeration const value) {
   return static_cast<typename std::underlying_type<Enumeration>::type>(value);
 }
-

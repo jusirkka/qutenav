@@ -1,6 +1,7 @@
 #include "s52functions.h"
 #include "s52presentation.h"
 #include "conf_marinerparams.h"
+#include "settings.h"
 
 
 S57::PaintDataMap S52::AreaColor::execute(const QVector<QVariant>& vals,
@@ -84,14 +85,15 @@ S57::PaintDataMap S52::CSDepthArea01::execute(const QVector<QVariant>&,
   p.elements = geom->triangleElements();
   p.vertexOffset = geom->vertexOffset();
 
-  // FIXME: mariner params from a config class, not from config files
-  if (Conf::MarinerParams::twoShades() && depth >= Conf::MarinerParams::safetyContour()) {
+  const Settings* cfg = Settings::instance();
+
+  if (cfg->twoShades() && depth >= cfg->safetyContour()) {
     p.color = S52::GetColor("DEPDW");
-  } else if (depth >= Conf::MarinerParams::deepContour()) {
+  } else if (depth >= cfg->deepContour()) {
     p.color = S52::GetColor("DEPDW");
-  } else if (depth >= Conf::MarinerParams::safetyContour()) {
+  } else if (depth >= cfg->safetyContour()) {
     p.color = S52::GetColor("DEPMD");
-  } else if (depth >= Conf::MarinerParams::shallowContour()) {
+  } else if (depth >= cfg->shallowContour()) {
     p.color = S52::GetColor("DEPMS");
   } else if (depth >= 0) {
     p.color = S52::GetColor("DEPVS");

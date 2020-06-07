@@ -4,6 +4,7 @@
 #include <QVector2D>
 #include <QOpenGLFunctions>
 #include <QColor>
+#include <QRectF>
 
 namespace S57 {
 
@@ -97,7 +98,7 @@ using PointVector = QVector<double>;
 
 class Point: public Base {
 public:
-  Point(const QVector2D& p)
+  Point(const QPointF& p)
     : Base(Type::Point) {
     m_points.append(p.x());
     m_points.append(p.y());
@@ -156,6 +157,7 @@ private:
 struct PaintData {
   enum class Type {
     Invalid,
+    CategoryOverride, // For a CS procedure to change the display category
     Lines,
     Triangles,
   };
@@ -178,7 +180,6 @@ class Object {
 
 public:
 
-
   Object(quint32 fid, quint32 ftype)
     : m_feature_id(fid)
     , m_feature_type_code(ftype)
@@ -188,13 +189,25 @@ public:
   quint32 identifier() const {return m_feature_id;}
   const Geometry::Base* geometry() const {return m_geometry;}
   const AttributeMap& attributes() const {return m_attributes;}
+  const QRectF& boundingBox() const {return m_bbox;}
+
+  bool canPaint(const QRectF& viewArea, quint32 scale, const QDate& today) const;
 
 private:
+
+  // shortcuts to find SCAMIN and date attribute values. From s57attributes.csv.
+  static const int scaminIndex = 133;
+  static const int datstaIndex = 86;
+  static const int datendIndex = 85;
+  static const int perstaIndex = 119;
+  static const int perendIndex = 118;
 
   const quint32 m_feature_id;
   const quint32 m_feature_type_code;
   AttributeMap m_attributes;
   Geometry::Base* m_geometry;
+  QRectF m_bbox;
+
 };
 
 

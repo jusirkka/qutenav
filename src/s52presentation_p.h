@@ -2,6 +2,7 @@
 #include <QXmlStreamReader>
 #include <QHash>
 #include "s52presentation.h"
+#include "settings.h"
 
 #define S52INSTR_LTYPE Private::LocationType
 #define S52INSTR_STYPE Private::Instr_ValueType
@@ -41,7 +42,10 @@ struct HPGL_ValueType {
   int v_int;
 };
 
-class Presentation {
+class Presentation: public QObject {
+
+  Q_OBJECT
+
 public:
 
   static Presentation* instance();
@@ -64,13 +68,16 @@ private:
 
   quint32 m_nextSymbolIndex;
 
+private slots:
+
+  void setSimplifiedSymbols(bool);
+  void setPlainBoundaries(bool);
+  void setColorTable(Settings::ColorTable t);
+
 public:
 
   S52::Lookup::Type typeFilter(const S57::Object* obj) const;
   int parseInstruction(quint32 lupIndex);
-
-  bool simplifiedSymbols;
-  bool plainBoundaries;
 
   using IdentifierHash = QHash<QString, quint32>;
   using StringHash = QHash<quint32, QString>;
@@ -129,6 +136,9 @@ public:
   SymbolMap symbols;
 
   S52::Functions functions;
+  Settings* settings;
+  bool simplifiedSymbols;
+  bool plainBoundaries;
 };
 
 } // namespace Private

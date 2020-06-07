@@ -63,7 +63,7 @@ void ChartPainter::paintGL(const Camera* cam) {
 
   QVector<QMatrix4x4> modelTransforms;
   for (const S57Chart* chart: m_manager->charts()) {
-    QVector2D p = cam->geoprojection()->fromWGS84(chart->geoProjection()->reference());
+    QPointF p = cam->geoprojection()->fromWGS84(chart->geoProjection()->reference());
     QMatrix4x4 tr;
     tr.translate(p.x(), p.y());
     modelTransforms.append(tr);

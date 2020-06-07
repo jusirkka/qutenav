@@ -39,6 +39,8 @@ void PersCam::setEyeDist() {
 
 void PersCam::reset(WGS84Point e, Angle a) {
 
+  m_geoprojection->setReference(e);
+
   const float cx = cos(e.radiansLng());
   const float sx = sin(e.radiansLng());
   const float cy = cos(e.radiansLat());
@@ -73,8 +75,8 @@ void PersCam::reset(WGS84Point e, Angle a) {
   r.setToIdentity();
   const float ca = cos(a.radians);
   const float sa = sin(a.radians);
-  r.setRow(IX, QVector2D(ca, sa));
-  r.setRow(IY, QVector2D(-sa, ca));
+  r.setRow(IX, QVector2D(ca, -sa));
+  r.setRow(IY, QVector2D(sa, ca));
 
   m_rot = r * m_rot;
   m_rot0 = m_rot;
@@ -90,6 +92,8 @@ void PersCam::reset(WGS84Point e, Angle a) {
 void PersCam::reset() {
   m_rot = m_rot0;
   m_eye = m_eye0;
+
+  m_geoprojection->setReference(eye());
 
   setScaleFromEyeDist();
 
@@ -116,8 +120,8 @@ void PersCam::rotateEye(Angle a) {
   r.setToIdentity();
   const float ca = cos(a.radians);
   const float sa = sin(a.radians);
-  r.setRow(IX, QVector2D(ca, sa));
-  r.setRow(IY, QVector2D(-sa, ca));
+  r.setRow(IX, QVector2D(ca, -sa));
+  r.setRow(IY, QVector2D(sa, ca));
 
   m_rot = r * m_rot;
 
@@ -154,10 +158,10 @@ Angle PersCam::northAngle() const {
 
   QMatrix4x4 eyeRot = m_rot * baseRot.transposed();
 
-  return Angle::ATan2(eyeRot.row(IX)[1], eyeRot.row(IX)[0]);
+  return Angle::ATan2(eyeRot.row(IY)[0], eyeRot.row(IY)[1]);
 }
 
-void PersCam::pan(QVector2D dragStart, QVector2D dragAmount) {
+void PersCam::pan(QPointF dragStart, QPointF dragAmount) {
   const float a = m_projection(IY, IY) / m_projection(IX, IX);
   const float D = m_eye.length();
   const float c = m_projection(IY, IY);
@@ -203,6 +207,8 @@ void PersCam::pan(QVector2D dragStart, QVector2D dragAmount) {
   m_rot = r * m_rot;
 
   m_eye = eyeDistFromScale() * m_rot.row(IZ).toVector3D();
+
+  m_geoprojection->setReference(eye());
 
   m_view.setToIdentity();
   m_view.translate(- m_eye);

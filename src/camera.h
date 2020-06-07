@@ -4,7 +4,8 @@
 #include "geoprojection.h"
 
 #include <QMatrix4x4>
-#include <QVector2D>
+#include <QPointF>
+#include <QRectF>
 
 class ScaleOutOfBounds {
 public:
@@ -20,7 +21,7 @@ class Camera {
 public:
 
   // drag start & end in normalized device coordinates
-  virtual void pan(QVector2D dragStart, QVector2D dragAmount) = 0;
+  virtual void pan(QPointF dragStart, QPointF dragAmount) = 0;
   virtual void rotateEye(Angle angle) = 0;
   virtual void setScale(quint32 scale) = 0;
   virtual void resize(float wmm, float hmm) = 0;
@@ -39,6 +40,8 @@ public:
   float aspect() const {
     return m_projection(1, 1) / m_projection(0, 0);
   }
+
+  QRectF boundingBox() const;
 
   virtual ~Camera() {delete m_geoprojection;}
 

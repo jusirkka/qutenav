@@ -17,10 +17,10 @@ void OrthoCam::setScale(quint32 scale) {
 }
 
 void OrthoCam::updateProjection() {
-  // distance in meters from center to north edge of the display
+  // distance in meters from center to the top edge of the display
   const float d = m_scale * m_mmHeight / 2000.;
   auto b = WGS84Bearing::fromMeters(d, northAngle());
-  const QVector2D p1 = m_geoprojection->fromWGS84(m_geoprojection->reference() + b);
+  const QPointF p1 = m_geoprojection->fromWGS84(m_geoprojection->reference() + b);
   const float y1 = p1.y();
   const float x1 = y1 * aspect();
   m_projection.setToIdentity();
@@ -34,7 +34,7 @@ void OrthoCam::resize(float wmm, float hmm) {
   m_mmHeight = hmm;
   const float d = m_scale * m_mmHeight / 2000.;
   auto b = WGS84Bearing::fromMeters(d, northAngle());
-  const QVector2D p1 = m_geoprojection->fromWGS84(m_geoprojection->reference() + b);
+  const QPointF p1 = m_geoprojection->fromWGS84(m_geoprojection->reference() + b);
   const float y1 = p1.y();
   const float x1 = y1 * wmm / hmm;
   m_projection.setToIdentity();
@@ -60,10 +60,10 @@ void OrthoCam::doReset() {
   m_view.setToIdentity();
   const float ca = m_northAngle.cos();
   const float sa = m_northAngle.sin();
-  m_view.setRow(IX, QVector2D(ca, sa));
-  m_view.setRow(IY, QVector2D(-sa, ca));
+  m_view.setRow(IX, QVector2D(ca, -sa));
+  m_view.setRow(IY, QVector2D(sa, ca));
 
-  // apparent horizontal scale changes with the reference point
+  // apparent horizontal scale changes with orientation
   // FIXME/optimization: call only when needed, criterion based on derivatives of
   // geoprojection
   updateProjection();
@@ -74,7 +74,9 @@ void OrthoCam::rotateEye(Angle a) {
   const float ca = a.cos();
   const float sa = a.sin();
   m_view.setRow(IX, QVector2D(ca, sa));
-  m_view.setRow(IY, QVector2D(-sa, ca));
+  m_view.setRow(IY, QVector2D(sa, ca));
+
+  updateProjection();
 }
 
 WGS84Point OrthoCam::eye() const {return m_geoprojection->reference();}
@@ -82,9 +84,9 @@ WGS84Point OrthoCam::eye() const {return m_geoprojection->reference();}
 Angle OrthoCam::northAngle() const {return m_northAngle;}
 
 
-void OrthoCam::pan(QVector2D /*dragStart*/, QVector2D dragAmount) {
-  auto c = m_geoprojection->toWGS84(QVector2D(-dragAmount.x() / m_projection(0, 0),
-                                              -dragAmount.y() / m_projection(1, 1)));
+void OrthoCam::pan(QPointF /*dragStart*/, QPointF dragAmount) {
+  auto c = m_geoprojection->toWGS84(QPointF(-dragAmount.x() / m_projection(0, 0),
+                                            -dragAmount.y() / m_projection(1, 1)));
   m_geoprojection->setReference(c);
   doReset();
 }

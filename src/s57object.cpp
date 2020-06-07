@@ -1,4 +1,5 @@
 #include "s57object.h"
+#include <QDate>
 
 
 
@@ -30,3 +31,61 @@ bool S57::Attribute::matches(const Attribute &constraint) const {
 
   return m_value == constraint.value();
 }
+
+static QDate stringToDate(const QString& s, const QDate& today, bool start) {
+  if (s.length() == 8) return QDate::fromString(s, "yyyyMMdd");
+
+  if (s.length() == 4) {
+    auto d = QDate::fromString(s, "MMdd");
+    d.setDate(today.year(), d.month(), d.day());
+    return d;
+  }
+
+  if (s.length() == 2) {
+    auto d = QDate::fromString(s, "MM");
+    if (start) {
+      d.setDate(today.year(), d.month(), 1);
+    } else {
+      int day = 31;
+      const int month = d.month();
+      while (!d.setDate(today.year(), month, day) && day >= 28) {
+        day -= 1;
+      }
+    }
+    return d;
+  }
+
+  return QDate();
+}
+
+bool S57::Object::canPaint(const QRectF& viewArea, quint32 scale, const QDate& today) const {
+  if (m_bbox.isValid() && !m_bbox.intersects(viewArea)) return false;
+
+  if (m_attributes.contains(scaminIndex)) {
+    const quint32 mx = m_attributes[scaminIndex].value().toUInt();
+    if (scale > mx) return false;
+  }
+
+  if (m_attributes.contains(datstaIndex)) {
+    auto d = stringToDate(m_attributes[datstaIndex].value().toString(), today, true);
+    if (today < d) return false;
+  }
+
+  if (m_attributes.contains(datendIndex)) {
+    auto d = stringToDate(m_attributes[datendIndex].value().toString(), today, false);
+    if (today > d) return false;
+  }
+
+  if (m_attributes.contains(perstaIndex)) {
+    auto d = stringToDate(m_attributes[perstaIndex].value().toString(), today, true);
+    if (today < d) return false;
+  }
+
+  if (m_attributes.contains(perendIndex)) {
+    auto d = stringToDate(m_attributes[perendIndex].value().toString(), today, false);
+    if (today > d) return false;
+  }
+
+  return true;
+}
+

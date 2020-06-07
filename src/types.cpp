@@ -208,7 +208,7 @@ WGS84Bearing operator- (const WGS84Point& p2, const WGS84Point& p1) {
   double s12;
   double azi1;
   double azi2;
-  GeographicLib::Geodesic::WGS84().Inverse(p1.lat(), p1.lng(), p2.lat(), p1.lng(),
+  GeographicLib::Geodesic::WGS84().Inverse(p1.lat(), p1.lng(), p2.lat(), p2.lng(),
                                            s12, azi1, azi2);
   return WGS84Bearing::fromMeters(s12, Angle::fromDegrees(azi1));
 }

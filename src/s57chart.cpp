@@ -9,6 +9,8 @@
 #include "drawable.h"
 #include "earcut.hpp"
 #include "triangleoptimizer.h"
+#include <QDate>
+#include "settings.h"
 
 using Buffer = QVector<char>;
 using HandlerFunc = std::function<bool (const Buffer&)>;
@@ -57,13 +59,17 @@ S57ChartOutline::S57ChartOutline(const QString& path) {
         return true;
       })
     },
-    {SencRecordType::HEADER_CELL_PUBLISHDATE, new Handler([] (const Buffer& b) {
-        // qDebug() << "cell publishdate" << QString::fromUtf8(b.constData());
+    {SencRecordType::HEADER_CELL_PUBLISHDATE, new Handler([this] (const Buffer& b) {
+        auto s = QString::fromUtf8(b.constData());
+        qDebug() << "cell publishdate" << s;
+        m_pub = QDate::fromString(s, "yyyyMMdd");
         return true;
       })
     },
-    {SencRecordType::HEADER_CELL_UPDATEDATE, new Handler([] (const Buffer& b) {
-        // qDebug() << "cell updatedate" << QString::fromUtf8(b.constData());
+    {SencRecordType::HEADER_CELL_UPDATEDATE, new Handler([this] (const Buffer& b) {
+        auto s = QString::fromUtf8(b.constData());
+        qDebug() << "cell modified date" << s;
+        m_mod = QDate::fromString(s, "yyyyMMdd");
         return true;
       })
     },
@@ -79,9 +85,10 @@ S57ChartOutline::S57ChartOutline(const QString& path) {
         return true;
       })
     },
-    {SencRecordType::HEADER_CELL_NATIVESCALE, new Handler([] (const Buffer& b) {
+    {SencRecordType::HEADER_CELL_NATIVESCALE, new Handler([this] (const Buffer& b) {
         const quint32* p32 = reinterpret_cast<const quint32*>(b.constData());
-        qDebug() << "cell nativescale" << *p32;
+        // qDebug() << "cell nativescale" << *p32;
+        m_scale = *p32;
         return true;
       })
     },
@@ -141,14 +148,6 @@ S57ChartOutline::S57ChartOutline(const QString& path) {
   qDeleteAll(handlers);
 }
 
-const Extent& S57ChartOutline::extent() const {
-  return m_extent;
-}
-
-const WGS84Point& S57ChartOutline::reference() const {
-  return m_ref;
-}
-
 
 //
 // S57Chart
@@ -162,21 +161,24 @@ public:
   void addAttribute(S57::Object* obj, quint16 acode, const Attribute& a) const {
     obj->m_attributes[acode] = a;
   }
-  bool setGeometry(S57::Object* obj, S57::Geometry::Base* g) const {
+  bool setGeometry(S57::Object* obj, S57::Geometry::Base* g, const QRectF& bb) const {
     if (obj->m_geometry != nullptr) {
       return false;
     }
     obj->m_geometry = g;
+    obj->m_bbox = bb;
     return true;
   }
 };
 
 }
 
-S57Chart::S57Chart(const QString& path, const GeoProjection* proj, QObject* parent)
-  : QObject(parent)
+S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
+  : QObject(nullptr)
   , m_nativeProj(new SimpleMercator)
   , m_paintData(S52::Lookup::PriorityCount)
+  , m_id(id)
+  , m_settings(Settings::instance())
 {
   S57ChartOutline outline(path);
   m_extent = outline.extent();
@@ -279,7 +281,8 @@ S57Chart::S57Chart(const QString& path, const GeoProjection* proj, QObject* pare
         auto p = reinterpret_cast<const OSENC_PointGeometry_Record_Payload*>(b.constData());
         auto p0 = m_nativeProj->fromWGS84(WGS84Point::fromLL(p->lon, p->lat));
         objects.last().type = S57::Geometry::Type::Point;
-        return helper.setGeometry(current, new S57::Geometry::Point(p0));
+        QRectF bb(p0 - QPointF(10, 10), QSizeF(20, 20));
+        return helper.setGeometry(current, new S57::Geometry::Point(p0), bb);
       })
     },
 
@@ -322,7 +325,17 @@ S57Chart::S57Chart(const QString& path, const GeoProjection* proj, QObject* pare
         S57::Geometry::PointVector ps(p->point_count * 3);
         memcpy(ps.data(), &p->point_data, p->point_count * 3 * sizeof(double));
         objects.last().type = S57::Geometry::Type::Point;
-        return helper.setGeometry(current, new S57::Geometry::Point(ps));
+        // compute bounding box
+        QPointF ur(-1.e15, -1.e15);
+        QPointF ll(1.e15, 1.e15);
+        for (int i = 0; i < p->point_count; i++) {
+          const QPointF q(ps[3 * i], ps[3 * i + 1]);
+          ur.setX(qMax(ur.x(), q.x()));
+          ur.setY(qMax(ur.y(), q.y()));
+          ll.setX(qMin(ll.x(), q.x()));
+          ll.setY(qMin(ll.y(), q.y()));
+        }
+        return helper.setGeometry(current, new S57::Geometry::Point(ps), QRectF(ll, ur));
       })
     },
 
@@ -483,12 +496,14 @@ S57Chart::S57Chart(const QString& path, const GeoProjection* proj, QObject* pare
 
     // setup meta, line and area geometries
     if (d.type == S57::Geometry::Type::Meta) {
-      helper.setGeometry(d.object, new S57::Geometry::Meta());
+      helper.setGeometry(d.object, new S57::Geometry::Meta(), QRectF());
     } else if (d.type == S57::Geometry::Type::Line) {
 
       S57::ElementDataVector elems;
       lineGeometry(d.geometry, elems);
-      helper.setGeometry(d.object, new S57::Geometry::Line(elems, 0));
+      helper.setGeometry(d.object,
+                         new S57::Geometry::Line(elems, 0),
+                         computeBBox(elems));
 
     } else if (d.type == S57::Geometry::Type::Area) {
 
@@ -499,15 +514,15 @@ S57Chart::S57Chart(const QString& path, const GeoProjection* proj, QObject* pare
       S57::ElementDataVector telems;
       triangulate(lelems, telems);
 
-      helper.setGeometry(d.object, new S57::Geometry::Area(lelems, telems, 0));
+      helper.setGeometry(d.object,
+                         new S57::Geometry::Area(lelems, telems, 0),
+                         computeBBox(lelems.first()));
     }
 
     // bind objects to lookup records
     S52::Lookup* lp = S52::FindLookup(d.object);
     m_lookups.append(ObjectLookup(d.object, lp));
   }
-  // create & sort paintdata by priority
-  updatePaintData();
 }
 
 
@@ -587,13 +602,62 @@ GLsizei S57Chart::addIndices(GLuint first, GLuint mid1, GLuint mid2, bool revers
   return 1 + mid2 - mid1 + 1;
 }
 
-void S57Chart::updatePaintData() {
+void S57Chart::updatePaintData(const QRectF &viewArea, quint32 scale) {
   for (auto& d: m_paintData) d.clear();
 
+  auto maxcat = as_numeric(m_settings->maxCategory());
+  auto today = QDate::currentDate();
+
   for (ObjectLookup& d: m_lookups) {
-    const S57::PaintDataMap pd = d.lookup->execute(d.object);
+    // check bbox & scale
+    if (!d.object->canPaint(viewArea, scale, today)) continue;
+
+    S57::PaintDataMap pd = d.lookup->execute(d.object);
+
+    // check category
+    if (pd.contains(S57::PaintData::Type::CategoryOverride)) {
+      pd.remove(S57::PaintData::Type::CategoryOverride);
+    } else if (as_numeric(d.lookup->category()) > maxcat) {
+      continue;
+    }
+
     for (auto it = pd.constBegin(); it != pd.constEnd(); ++it) {
       m_paintData[d.lookup->priority()][it.key()].append(it.value());
     }
   }
+}
+
+
+QRectF S57Chart::computeBBox(const S57::ElementData &elem) {
+  QPointF ur(-1.e15, -1.e15);
+  QPointF ll(1.e15, 1.e15);
+
+  const int first = elem.elementOffset / sizeof(GLuint);
+  for (int i = 0; i < elem.elementCount; i++) {
+    const int index = m_indices[first + i];
+    QPointF q(m_vertices[2 * index], m_vertices[2 * index + 1]);
+    ur.setX(qMax(ur.x(), q.x()));
+    ur.setY(qMax(ur.y(), q.y()));
+    ll.setX(qMin(ll.x(), q.x()));
+    ll.setY(qMin(ll.y(), q.y()));
+  }
+  return QRectF(ll, ur); // inverted y-axis
+}
+
+QRectF S57Chart::computeBBox(const S57::ElementDataVector &elems) {
+  QPointF ur(-1.e15, -1.e15);
+  QPointF ll(1.e15, 1.e15);
+
+  for (const S57::ElementData& elem: elems) {
+    const int first = elem.elementOffset / sizeof(GLuint);
+    for (int i = 0; i < elem.elementCount; i++) {
+      const int index = m_indices[first + i];
+      QPointF q(m_vertices[2 * index], m_vertices[2 * index + 1]);
+      ur.setX(qMax(ur.x(), q.x()));
+      ur.setY(qMax(ur.y(), q.y()));
+      ll.setX(qMin(ll.x(), q.x()));
+      ll.setY(qMin(ll.y(), q.y()));
+    }
+  }
+  return QRectF(ll, ur); // inverted y-axis
 }
