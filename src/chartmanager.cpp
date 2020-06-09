@@ -84,9 +84,9 @@ ChartManager::ChartManager(QObject *parent)
   , m_db() {
 
   // check & fill database
-  const QString sql = "select id, scale, geoproj, reference, width height, path from charts";
+  const QString sql = "select id, scale, geoproj, reference, width, height, path from charts";
   QSqlQuery r = m_db.exec(sql);
-  if (r.size() == 0) {
+  if (!r.first()) {
     // empty table, fill it
     updateDB();
     r = m_db.exec(sql);
@@ -96,6 +96,8 @@ ChartManager::ChartManager(QObject *parent)
   m_proj = new SimpleMercator;
   m_proj->setReference(WGS84Point::fromLL(0, 0));
 
+  r.seek(-1);
+  SimpleMercator p;
   // read all chart rows & create location areas
   while (r.next()) {
     if (r.value(2).toString() != "SimpleMercator") {
@@ -108,6 +110,7 @@ ChartManager::ChartManager(QObject *parent)
     const float h = r.value(5).toFloat();
     info.ref = WGS84Point::parseISO6709(r.value(3).toString());
     info.bbox = QRectF(- QPointF(w / 2, h / 2), QSizeF(w, h));
+    createOutline(&p, info);
     auto it = m_locationAreas.begin();
     for (; it != m_locationAreas.end(); ++it) {
       const float d = (info.ref - it->charts.first().ref).meters();
@@ -134,6 +137,23 @@ ChartManager::ChartManager(QObject *parent)
   }
 }
 
+void ChartManager::createOutline(GeoProjection* proj, const ChartInfo& info) {
+  proj->setReference(info.ref);
+  // Note: inverted y-axis
+  QVector<QPointF> ps{
+    info.bbox.topLeft(),
+    info.bbox.topRight(),
+    info.bbox.bottomRight(),
+    info.bbox.bottomLeft()
+  };
+
+  for (const QPointF& p: ps) {
+    const WGS84Point q = proj->toWGS84(p);
+    m_outlines.append(q.lng());
+    m_outlines.append(q.lat());
+  }
+}
+
 void ChartManager::updateCharts(const Camera *cam) {
 
   if (!m_threads.isEmpty()) return;
@@ -143,7 +163,8 @@ void ChartManager::updateCharts(const Camera *cam) {
 
   const QRectF vp = cam->boundingBox();
 
-  bool vpok = m_viewport.contains(vp);
+  const auto margin = QMarginsF(vp.width(), vp.height(), vp.width(), vp.height());
+  bool vpok = m_viewport.contains(vp) && !m_viewport.contains(vp + margin);
   if (vpok && cam->scale() == m_scale) return;
 
   m_scale = cam->scale();
@@ -227,6 +248,9 @@ void ChartManager::updateCharts(const Camera *cam) {
 }
 
 bool ChartManager::isValidScale(const Camera* cam, quint32 scale) const {
+
+  if (m_charts.isEmpty()) return true;
+
   const QRectF vp = cam->boundingBox().translated(m_proj->fromWGS84(cam->geoprojection()->reference()));
 
   for (const LocationArea& a: m_locationAreas) {
@@ -274,7 +298,7 @@ void ChartManager::updateDB() {
         QSqlQuery r = m_db.prepare("select id, published, modified from charts where path=?");
         r.bindValue(0, QVariant::fromValue(path));
         m_db.exec(r);
-        if (r.size() == 0) {
+        if (!r.first()) {
           // insert
           QSqlQuery s = m_db.prepare("insert into charts"
                                      "(scale, geoproj, reference, width, height, published, modified, path)"
@@ -297,7 +321,6 @@ void ChartManager::updateDB() {
           m_db.exec(s);
         } else {
           oldCharts.removeOne(r.value(0).toInt());
-          r.next();
           if (ch.published().toJulianDay() == r.value(1).toInt() &&
               ch.modified().toJulianDay() == r.value(2).toInt()) {
             continue;
@@ -347,6 +370,7 @@ void ChartManager::updateDB() {
 }
 
 void ChartManager::manageThreads() {
+  qDebug() << "chartmanager: manageThreads";
   auto thread = qobject_cast<ChartUpdater*>(sender());
   quint32 id = thread->chart()->id();
 
@@ -394,5 +418,6 @@ void ChartUpdater::run() {
     m_chart = new S57Chart(m_id, m_path, m_proj);
     m_area.translate(m_chart->geoProjection()->fromWGS84(m_proj->reference()));
   }
+  qDebug() << "run: update paintdata";
   m_chart->updatePaintData(m_area, m_scale);
 }

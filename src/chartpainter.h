@@ -41,6 +41,8 @@ private:
   using ChartDataVector = QVector<QVector<ChartData>>;
   ChartDataVector m_chartData;
 
+  WGS84PointVector m_transforms;
+
   ChartManager* m_manager;
 };
 

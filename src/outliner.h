@@ -28,7 +28,8 @@ private:
   using DataVector = QVector<GLfloat>;
 
   struct Rectangle {
-    Rectangle(const DataVector& d, size_t offset);
+    Rectangle(const DataVector& d, int i);
+    DataVector outline;
     QVector3D center;
     QColor color;
     size_t offset;

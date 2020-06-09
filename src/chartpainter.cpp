@@ -62,8 +62,8 @@ void ChartPainter::paintGL(const Camera* cam) {
   m_indexBuffer.bind();
 
   QVector<QMatrix4x4> modelTransforms;
-  for (const S57Chart* chart: m_manager->charts()) {
-    QPointF p = cam->geoprojection()->fromWGS84(chart->geoProjection()->reference());
+  for (const WGS84Point& q: m_transforms) {
+    QPointF p = cam->geoprojection()->fromWGS84(q);
     QMatrix4x4 tr;
     tr.translate(p.x(), p.y());
     modelTransforms.append(tr);
@@ -99,9 +99,13 @@ void ChartPainter::updateBuffers() {
   QVector<GLfloat> vertices;
   QVector<GLuint> indices;
 
+  qDebug() << "updateBuffers" << m_manager->charts().size();
+
+  m_transforms.clear();
   for (S57Chart* chart: m_manager->charts()) {
     vertices.append(chart->vertices());
     indices.append(chart->indices());
+    m_transforms.append(chart->geoProjection()->reference());
   }
 
   if (!m_coordBuffer.isCreated()) {
@@ -127,6 +131,10 @@ void ChartPainter::updateBuffers() {
 void ChartPainter::updateObjects() {
   uintptr_t elementOffset = 0;
   uintptr_t vertexOffset = 0;
+
+  qDebug() << "updateObjects" << m_manager->charts().size();
+  for (QVector<ChartData>& d: m_chartData) d.clear();
+
   for (S57Chart* chart: m_manager->charts()) {
     for (int i = 0; i < S52::Lookup::PriorityCount; i++) {
       ChartData d;

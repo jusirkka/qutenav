@@ -4,8 +4,7 @@
 #include <QDebug>
 
 #include "mainwindow.h"
-#include "globe.h"
-#include "outliner.h"
+#include "s52presentation.h"
 
 #include <QSurfaceFormat>
 #include <KAboutData>
@@ -58,6 +57,8 @@ int main(int argc, char *argv[])
   format.setProfile(QSurfaceFormat::CoreProfile);
   format.setOption(QSurfaceFormat::DebugContext);
   QSurfaceFormat::setDefaultFormat(format);
+
+  S52::InitPresentation();
 
   auto mw = new MainWindow();
   mw->show();

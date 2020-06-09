@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QtSql/QSqlDatabase>
 #include <QtSql/QSqlQuery>
+#include <GL/gl.h>
 #include "types.h"
 #include "geoprojection.h"
 #include <QRectF>
@@ -42,7 +43,7 @@ class ChartManager: public QObject {
 public:
 
   using ChartVector = QVector<S57Chart*>;
-  using ChartOutlineVector = QVector<S57ChartOutline*>;
+  using OutlineVector = QVector<GLfloat>;
 
   static ChartManager* instance();
 
@@ -51,7 +52,7 @@ public:
 
 
   const ChartVector& charts() const {return m_charts;}
-  const ChartOutlineVector& outlines() const {return m_outlines;}
+  const OutlineVector& outlines() const {return m_outlines;}
 
 signals:
 
@@ -98,6 +99,8 @@ private:
     WGS84Point ref;
   };
 
+  void createOutline(GeoProjection* p, const ChartInfo& info);
+
   using ChartInfoVector = QVector<ChartInfo>;
   using IDVector = QVector<quint32>;
   using IDMap = QMap<quint32, quint32>;
@@ -120,7 +123,7 @@ private:
   ChartManager(QObject *parent = nullptr);
 
   ChartVector m_charts;
-  ChartOutlineVector m_outlines;
+  OutlineVector m_outlines;
   Database m_db;
   LocationAreaVector m_locationAreas;
   GeoProjection* m_proj;

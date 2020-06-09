@@ -87,32 +87,36 @@ void Outliner::updateBuffers() {
   }
   m_coordBuffer.bind();
 
-  size_t offset = 0;
+  const int cnt = m_manager->outlines().size() / 8;
   DataVector outlines;
-  for (const S57ChartOutline* chart: m_manager->outlines()) {
-    m_outlines.append(Rectangle(chart->extent().eightFloater(), offset));
-    outlines.append(chart->extent().eightFloater());
-    offset += 8 * sizeof(GLfloat);
+  for (int i = 0; i < cnt; ++i) {
+    m_outlines.append(Rectangle(m_manager->outlines(), i));
+    outlines.append(m_outlines.last().outline);
   }
 
   GLsizei dataLen = outlines.size() * sizeof(GLfloat);
   m_coordBuffer.allocate(dataLen);
   m_coordBuffer.write(0, outlines.constData(), dataLen);
 
-  qDebug() << "number of rectangles =" << m_outlines.size();
+  qDebug() << "number of rectangles =" << cnt;
 }
 
-Outliner::Rectangle::Rectangle(const DataVector &d, size_t bytes)
+Outliner::Rectangle::Rectangle(const DataVector &d, int rectIndex)
   : color("#ff0000"),
-    offset(bytes)
+    offset(rectIndex * 12 * sizeof(GLfloat))
 {
+
+  int first = rectIndex * 8;
   QVector3D sum(0., 0., 0.);
   for (int i = 0; i < 4; i++) {
-    const float lng = d[2 * i] * M_PI / 180;
-    const float lat = d[2 * i + 1] * M_PI / 180;
+    const float lng = d[first + 2 * i] * M_PI / 180;
+    const float lat = d[first + 2 * i + 1] * M_PI / 180;
     QVector3D p(cos(lng) * cos(lat),
                 sin(lng) * cos(lat),
                 sin(lat));
+    outline.append(p.x());
+    outline.append(p.y());
+    outline.append(p.z());
     sum += p;
   }
   center = sum.normalized();

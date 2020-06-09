@@ -199,7 +199,10 @@ void GLWidget::zoomOut() {
 
 void GLWidget::initializeChartMode() {
   DetailMode* mode = m_mode->smallerScaleMode();
-  if (mode == nullptr) return;
+  if (mode == nullptr) {
+    updateCharts();
+    return;
+  }
   delete m_mode;
   m_mode = mode;
   makeCurrent();
@@ -209,7 +212,10 @@ void GLWidget::initializeChartMode() {
 
 void GLWidget::finalizeChartMode() {
   DetailMode* mode = m_mode->largerScaleMode();
-  if (mode == nullptr) return;
+  if (mode == nullptr) {
+    updateCharts();
+    return;
+  }
   delete m_mode;
   m_mode = mode;
   makeCurrent();

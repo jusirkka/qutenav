@@ -1,11 +1,14 @@
 #include "s52presentation_p.h"
 #include <QDebug>
 
-S57::PaintDataMap S52::Lookup::execute(const S57::Object *obj) {
+S57::PaintDataMap S52::Lookup::execute(const S57::Object *obj) const {
 
   int stackPos = 0;
   int immedPos = 0;
   int refPos = 0;
+
+  ValueStack stack(20);
+
 
   S57::PaintDataMap paintData;
 
@@ -14,14 +17,14 @@ S57::PaintDataMap S52::Lookup::execute(const S57::Object *obj) {
     switch (code) {
 
     case Code::Immed:
-      m_stack[stackPos++] = m_immed[immedPos++];
+      stack[stackPos++] = m_immed[immedPos++];
       break;
 
     case Code::Fun: {
       auto fun = S52::FindFunction(m_references[refPos++]);
       // qDebug() << "function" << fun->name();
       stackPos = 0;
-      const S57::PaintDataMap ps = fun->execute(m_stack, obj);
+      const S57::PaintDataMap ps = fun->execute(stack, obj);
       for (auto it = ps.constBegin(); it != ps.constEnd(); ++it) {
         if (paintData.contains(it.key())) {
           qWarning() << "Overwriting paint data" << quint8(it.key());
@@ -32,7 +35,7 @@ S57::PaintDataMap S52::Lookup::execute(const S57::Object *obj) {
     }
 
     case Code::Var:
-      m_stack[stackPos++] = obj->attributes()[m_references[refPos++]].value();
+      stack[stackPos++] = obj->attributes()[m_references[refPos++]].value();
       break;
 
     default:
@@ -45,7 +48,7 @@ S57::PaintDataMap S52::Lookup::execute(const S57::Object *obj) {
 
 S52::Lookup* S52::FindLookup(const S57::Object* obj) {
   const quint32 code = obj->classCode();
-  Private::Presentation* p = Private::Presentation::instance();
+  const Private::Presentation* p = Private::Presentation::instance();
   const S52::Lookup::Type t = p->typeFilter(obj);
   auto i = p->lookupTable[t].find(code);
 
@@ -76,11 +79,6 @@ S52::Lookup* S52::FindLookup(const S57::Object* obj) {
       index = i.value();
       break;
     }
-  }
-  // parse the instruction
-  int err = p->parseInstruction(index);
-  if (err != 0) {
-    qWarning() << "Error parsing" << p->lookups[index]->source();
   }
   return p->lookups[index];
 }
@@ -122,3 +120,7 @@ quint32 S52::FindIndex(const QString &name) {
   return p->names[name];
 }
 
+void S52::InitPresentation() {
+  Private::Presentation* p = Private::Presentation::instance();
+  p->init();
+}

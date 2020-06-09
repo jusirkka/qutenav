@@ -47,8 +47,7 @@ public:
     , m_category(cat)
     , m_attributes(attrs)
     , m_description(comment)
-    , m_source(source)
-    , m_stack(20) {}
+    , m_source(source) {}
 
   Type type() const {return m_type;}
   int rcid() const {return m_rcid;}
@@ -60,7 +59,7 @@ public:
   const QString& source() const {return m_source;}
   bool byteCodeReady() const {return !m_code.isEmpty();}
 
-  S57::PaintDataMap execute(const S57::Object* obj);
+  S57::PaintDataMap execute(const S57::Object* obj) const;
 
   // bytecode interface
   enum class Code: quint8 {Immed, Var, Fun};
@@ -83,7 +82,6 @@ private:
   using ReferenceStack = QVector<quint32>;
 
   CodeStack m_code;
-  ValueStack m_stack;
   ValueStack m_immed;
   ReferenceStack m_references;
 
@@ -185,5 +183,6 @@ QColor GetColor(quint32 index);
 QColor GetColor(const QString& name);
 QVariant GetAttribute(const QString& name, const S57::Object* obj);
 quint32 FindIndex(const QString& name);
+void InitPresentation();
 
 } // namespace S52

@@ -23,39 +23,39 @@ S57::PaintDataMap S52::AreaColor::execute(const QVector<QVariant>& vals,
 
 S57::PaintDataMap S52::AreaPattern::execute(const QVector<QVariant>& /*vals*/,
                                             const S57::Object* /*obj*/) {
-  qWarning() << "AP: not implemented";
+  // qWarning() << "AP: not implemented";
   return S57::PaintDataMap(); // invalid paint data
 }
 
 S57::PaintDataMap S52::LineSimple::execute(const QVector<QVariant>& /*vals*/,
                                            const S57::Object* /*obj*/) {
-  qWarning() << "LS: not implemented";
+  // qWarning() << "LS: not implemented";
   return S57::PaintDataMap(); // invalid paint data
 }
 
 
 S57::PaintDataMap S52::LineComplex::execute(const QVector<QVariant>& /*vals*/,
                                             const S57::Object* /*obj*/) {
-  qWarning() << "LC: not implemented";
+  // qWarning() << "LC: not implemented";
   return S57::PaintDataMap(); // invalid paint data
 }
 
 
 S57::PaintDataMap S52::PointSymbol::execute(const QVector<QVariant>& /*vals*/,
                                             const S57::Object* /*obj*/) {
-  qWarning() << "SY: not implemented";
+  // qWarning() << "SY: not implemented";
   return S57::PaintDataMap(); // invalid paint data
 }
 
 S57::PaintDataMap S52::Text::execute(const QVector<QVariant>& /*vals*/,
                                             const S57::Object* /*obj*/) {
-  qWarning() << "TX: not implemented";
+  // qWarning() << "TX: not implemented";
   return S57::PaintDataMap(); // invalid paint data
 }
 
 S57::PaintDataMap S52::TextExtended::execute(const QVector<QVariant>& /*vals*/,
                                             const S57::Object* /*obj*/) {
-  qWarning() << "TE: not implemented";
+  // qWarning() << "TE: not implemented";
   return S57::PaintDataMap(); // invalid paint data
 }
 

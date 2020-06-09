@@ -185,6 +185,8 @@ public:
     , m_feature_type_code(ftype)
     , m_geometry(nullptr) {}
 
+  QString name() const;
+
   quint32 classCode() const {return m_feature_type_code;}
   quint32 identifier() const {return m_feature_id;}
   const Geometry::Base* geometry() const {return m_geometry;}

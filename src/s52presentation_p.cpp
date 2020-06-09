@@ -42,7 +42,6 @@ Private::Presentation::Presentation()
   setColorTable(Conf::MarinerParams::colorTable());
   setPlainBoundaries(Conf::MarinerParams::plainBoundaries());
   setSimplifiedSymbols(Conf::MarinerParams::simplifiedSymbols());
-
 }
 
 
@@ -70,8 +69,7 @@ Private::Presentation* Private::Presentation::instance() {
   return p;
 }
 
-int Private::Presentation::parseInstruction(quint32 lupIndex) {
-  S52::Lookup* lup = lookups[lupIndex];
+int Private::Presentation::parseInstruction(S52::Lookup* lup) {
   if (lup->byteCodeReady()) return 0;
 
   const QString src = lup->source();
@@ -593,6 +591,15 @@ void Private::Presentation::readSymbols(QXmlStreamReader& reader) {
       symbols[names[symbolName]] = S52::Symbol(id, dr, description, ref, src, raster);
     } else {
       symbols[names[symbolName]] = S52::Symbol(id, dv, description, ref, instruction, raster);
+    }
+  }
+}
+
+void Private::Presentation::init() {
+  for (S52::Lookup* lup: lookups) {
+    int err = parseInstruction(lup);
+    if (err != 0) {
+      qWarning() << "Error parsing" << lup->source();
     }
   }
 }

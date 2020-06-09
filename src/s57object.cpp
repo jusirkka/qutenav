@@ -1,5 +1,6 @@
 #include "s57object.h"
 #include <QDate>
+#include <QDebug>
 
 
 
@@ -58,12 +59,23 @@ static QDate stringToDate(const QString& s, const QDate& today, bool start) {
   return QDate();
 }
 
+QString S57::Object::name() const {
+  auto s = QString("%1-%2-%3").arg(identifier()).arg(classCode()).arg(char(geometry()->type()));
+  return s;
+}
+
 bool S57::Object::canPaint(const QRectF& viewArea, quint32 scale, const QDate& today) const {
-  if (m_bbox.isValid() && !m_bbox.intersects(viewArea)) return false;
+  if (m_bbox.isValid() && !m_bbox.intersects(viewArea)) {
+    // qDebug() << "no intersect" << m_bbox << viewArea << name();
+    return false;
+  }
 
   if (m_attributes.contains(scaminIndex)) {
     const quint32 mx = m_attributes[scaminIndex].value().toUInt();
-    if (scale > mx) return false;
+    if (scale > mx) {
+      // qDebug() << "scale too big" << scale << mx;
+      return false;
+    }
   }
 
   if (m_attributes.contains(datstaIndex)) {

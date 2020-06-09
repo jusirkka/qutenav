@@ -66,6 +66,8 @@ private:
 
   S52::ColorRef parseColorRef(QXmlStreamReader &reader);
 
+  int parseInstruction(S52::Lookup* lup);
+
   quint32 m_nextSymbolIndex;
 
 private slots:
@@ -76,8 +78,9 @@ private slots:
 
 public:
 
+  void init();
+
   S52::Lookup::Type typeFilter(const S57::Object* obj) const;
-  int parseInstruction(quint32 lupIndex);
 
   using IdentifierHash = QHash<QString, quint32>;
   using StringHash = QHash<quint32, QString>;
