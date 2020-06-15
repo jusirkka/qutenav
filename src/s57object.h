@@ -56,8 +56,6 @@ using AttributeMap = QMap<quint32, Attribute>;
 using AttributeIterator = QMap<quint32, Attribute>::const_iterator;
 
 struct ElementData {
-  // lines, lineloop, linestrip, triangles, trianglefan, trianglestrip
-  GLenum mode;
   uintptr_t elementOffset;
   size_t elementCount;
 };
@@ -154,6 +152,12 @@ private:
 } // namespace Geometry
 
 
+
+struct LineData {
+  quint32 lineWidth;
+  quint32 pattern;
+};
+
 struct PaintData {
   enum class Type {
     Invalid,
@@ -161,6 +165,10 @@ struct PaintData {
     Lines,
     Triangles,
   };
+
+  union {
+    LineData line;
+  } params;
 
   Type type;
   QColor color;

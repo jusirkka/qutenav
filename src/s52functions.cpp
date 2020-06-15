@@ -27,10 +27,26 @@ S57::PaintDataMap S52::AreaPattern::execute(const QVector<QVariant>& /*vals*/,
   return S57::PaintDataMap(); // invalid paint data
 }
 
-S57::PaintDataMap S52::LineSimple::execute(const QVector<QVariant>& /*vals*/,
-                                           const S57::Object* /*obj*/) {
-  // qWarning() << "LS: not implemented";
-  return S57::PaintDataMap(); // invalid paint data
+S57::PaintDataMap S52::LineSimple::execute(const QVector<QVariant>& vals,
+                                           const S57::Object* obj) {
+  S57::PaintData p;
+  p.type = S57::PaintData::Type::Lines;
+
+  auto line = dynamic_cast<const S57::Geometry::Line*>(obj->geometry());
+  if (line) {
+    p.elements = line->lineElements();
+    p.vertexOffset = line->vertexOffset();
+  } else {
+    qWarning() << "LS: not a line!?";
+    return S57::PaintDataMap();
+  }
+
+  p.params.line.pattern = vals[0].toInt();
+  p.params.line.lineWidth = vals[1].toInt();
+  p.color = S52::GetColor(vals[2].toUInt());
+
+
+  return S57::PaintDataMap{{p.type, p}};
 }
 
 

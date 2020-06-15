@@ -452,9 +452,9 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
     // qDebug() << geom;
     for (int i = 0; i < cnt;) {
       S57::ElementData e;
-      e.mode = GL_LINE_STRIP;
       e.elementOffset = m_indices.size() * sizeof(GLuint);
-      e.elementCount = 0;
+      m_indices.append(0); // dummy index to account adjacency
+      e.elementCount = 1;
       int np = 3 * i;
       while (i < cnt && geom[3 * i] == geom[np]) {
         const int c1 = connMap[geom[3 * i]];
@@ -472,24 +472,36 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
       }
       if (i < cnt) {
         const GLuint last = connMap[geom[3 * i - 1]];
-        const GLuint first = m_indices[e.elementOffset / sizeof(GLuint)];
+        // account adjacency
+        const int adj = e.elementOffset / sizeof(GLuint);
+        const GLuint first = m_indices[adj + 1];
         if (last == first) {
-          e.mode = GL_LINE_LOOP;
+          m_indices[adj] = last;
+          m_indices.append(last); // last real index
+          m_indices.append(m_indices[adj + 2]); // adjacent = next of first
         } else {
+          m_indices[adj] = first; // adjacent = same as first
           m_indices.append(last);
-          e.elementCount += 1;
+          m_indices.append(last); // adjacent = same as last
         }
+        e.elementCount += 2;
       }
       elems.append(e);
     }
     const GLuint last = connMap[geom[geom.size() - 1]];
-    const GLuint first = m_indices[elems.last().elementOffset / sizeof(GLuint)];
+    // account adjacency
+    const int adj = elems.last().elementOffset / sizeof(GLuint);
+    const GLuint first = m_indices[adj + 1];
     if (last == first) {
-      elems.last().mode = GL_LINE_LOOP;
+      m_indices[adj] = last;
+      m_indices.append(last); // last real index
+      m_indices.append(m_indices[adj + 2]); // adjacent = next of first
     } else {
+      m_indices[adj] = first; // adjacent = same as first
       m_indices.append(last);
-      elems.last().elementCount += 1;
+      m_indices.append(last); // adjacent = same as last
     }
+    elems.last().elementCount += 2;
   };
 
   for (OData& d: objects) {
@@ -542,11 +554,11 @@ void S57Chart::triangulate(const S57::ElementDataVector& lelems, S57::ElementDat
   // Fill polygon structure with actual data. Any winding order works.
   // The first polyline defines the main polygon.
 
-  int last = m_indices.size() - 1;
+  // adjacency: extra initial index, two extras at the end
+  int last = m_indices.size() - 3;
   int first;
   for (int k = lelems.size() - 1; k >= 0; k--) {
-    Q_ASSERT(lelems[k].mode == GL_LINE_LOOP);
-    first = last - lelems[k].elementCount + 1;
+    first = last - lelems[k].elementCount + 4;
     std::vector<Point> ring;
     for (int i = first; i <= last; i++) {
       const int index = m_indices[i];
@@ -581,7 +593,6 @@ void S57Chart::triangulate(const S57::ElementDataVector& lelems, S57::ElementDat
     S57::ElementData d;
     d.elementCount = strip.size();
     d.elementOffset = m_indices.size() * sizeof(GLuint);
-    d.mode = GL_TRIANGLE_STRIP;
     m_indices.append(strip);
     telems.append(d);
   }

@@ -44,7 +44,7 @@ public:
 
 %type <v_int> opttransparency varstring
 %type <v_float> optrotation
-%type <v_char> pstyle
+%type <v_int> pstyle
 %type <v_string> string chars
 
 // Grammar follows
@@ -242,15 +242,15 @@ command: LS '(' pstyle ',' INT ',' COLOR ')' {
 };
 
 pstyle: SOLID {
-  $$ = char(S52::Lookup::Line::Solid);
+  $$ = int(S52::Lookup::Line::Solid);
 };
 
 pstyle: DASHED {
-  $$ = char(S52::Lookup::Line::Dashed);
+  $$ = int(S52::Lookup::Line::Dashed);
 };
 
 pstyle: DOTTED {
-  $$ = char(S52::Lookup::Line::Dotted);
+  $$ = int(S52::Lookup::Line::Dotted);
 };
 
 command: LC '(' SYMBOL ')' {

@@ -7,5 +7,7 @@
         <file>shaders/outliner.geom</file>
         <file>shaders/chartpainter.vert</file>
         <file>shaders/chartpainter.frag</file>
+        <file>shaders/chartpainter-lines.geom</file>
+        <file>shaders/chartpainter-lines.frag</file>
     </qresource>
 </RCC>

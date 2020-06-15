@@ -63,7 +63,7 @@ public:
 
   // bytecode interface
   enum class Code: quint8 {Immed, Var, Fun};
-  enum class Line: char {Solid = 'l', Dashed = 'h', Dotted = 't'};
+  enum class Line: int {Solid = 0x3ffff, Dashed = 0x3ffc0, Dotted = 0x30c30};
 
 private:
 
