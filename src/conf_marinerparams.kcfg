@@ -12,19 +12,19 @@
     </entry>
     <entry name="SafetyContour" key="safety_contour" type="Double">
       <label>Selected safety contour (meters) [IMO PS 3.6]</label>
-      <default>8.</default>
+      <default>3.</default>
     </entry>
     <entry name="SafetyDepth" key="safety_depth" type="Double">
       <label>Selected safety depth (meters) [IMO PS 3.7]</label>
-      <default>5.</default>
+      <default>3.</default>
     </entry>
     <entry name="ShallowContour" key="shallow_contour" type="Double">
       <label>Selected shallow water contour (meters, optional)</label>
-      <default>3.</default>
+      <default>2.</default>
     </entry>
     <entry name="DeepContour" key="deep_contour" type="Double">
       <label>Selected deep water contour (meters, optional)</label>
-      <default>10.</default>
+      <default>6.</default>
     </entry>
     <entry name="ShallowPattern" key="shallow_pattern" type="Bool">
       <label>Flag indicating selection of shallow water highlight (optional)</label>
@@ -37,11 +37,11 @@
     </entry>
     <entry name="PlainBoundaries" key="plain_boundaries" type="Bool">
       <label>Draw plain area boundaries instead of symbolized ones.</label>
-      <default>false</default>
+      <default>true</default>
     </entry>
     <entry name="SimplifiedSymbols" key="simplified_symbols" type="Bool">
       <label>Draw simplified symbols.</label>
-      <default>false</default>
+      <default>true</default>
     </entry>
     <entry name="MaxCategory" key="max_category" type="Enum">
       <label>Draw only objects included within this category.</label>

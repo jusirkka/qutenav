@@ -207,7 +207,6 @@ private:
   GLsizei addIndices(GLuint first, GLuint lower, GLuint upper, bool reversed);
   void triangulate(const S57::ElementDataVector& lelems, S57::ElementDataVector& telems);
   QRectF computeBBox(const S57::ElementDataVector& elems);
-  QRectF computeBBox(const S57::ElementData& elem);
 
   Extent m_extent;
   GeoProjection* m_nativeProj;

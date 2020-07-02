@@ -113,9 +113,9 @@ private:
 
   static constexpr float locationRadius = 1000000; // 1000 km
   static constexpr float maxRadius = 15000000; // 15000 km
-  static constexpr float viewportFactor = 1.5;
-  static constexpr float marginFactor = 1.05;
-  static constexpr float maxScaleRatio = 8.;
+  static constexpr float viewportFactor = 1.6;
+  static constexpr float marginFactor = 1.1;
+  static constexpr float maxScaleRatio = 32.;
 
   using LocationAreaVector = QVector<LocationArea>;
   using UpdaterMap = QMap<quint32, ChartUpdater*>;

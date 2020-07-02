@@ -43,9 +43,8 @@ public:
 %token <v_string> SYMBOL VARIABLE COLOR CHARSPEC
 
 %type <v_int> opttransparency varstring
-%type <v_float> optrotation
 %type <v_int> pstyle
-%type <v_string> string chars
+%type <v_string> string chars optrotation
 
 // Grammar follows
 
@@ -191,14 +190,23 @@ chars: chars CHAR {
 command: SY '(' SYMBOL optrotation ')' {
   auto fun = S52::FindFunction("SY");
   bool ok = reader->names.contains($3);
+  bool notvar;
+  float rot = $4.toFloat(&notvar);
+  if (!notvar) ok &= reader->names.contains($4);
+
   if (ok) {
     S52::ByteCoder bc;
 
     bc.setCode(lookup, S52::Lookup::Code::Immed);
     bc.setImmed(lookup, QVariant::fromValue(reader->names[$3]));
 
-    bc.setCode(lookup, S52::Lookup::Code::Immed);
-    bc.setImmed(lookup, QVariant::fromValue($4));
+    if (notvar) {
+      bc.setCode(lookup, S52::Lookup::Code::Immed);
+      bc.setImmed(lookup, QVariant::fromValue(rot));
+    } else {
+      bc.setCode(lookup, S52::Lookup::Code::Var);
+      bc.setRef(lookup, reader->names[$4]);
+    }
 
     bc.setCode(lookup, S52::Lookup::Code::Fun);
     bc.setRef(lookup, fun->index());
@@ -208,14 +216,18 @@ command: SY '(' SYMBOL optrotation ')' {
 };
 
 optrotation: %empty {
-  $$ = 0.;
+  $$ = "0.";
 }
 
 optrotation: ',' INT {
-  $$ = $2;
+  $$ = QString::number($2);
 };
 
 optrotation: ',' FLOAT {
+  $$ = QString::number($2);
+};
+
+optrotation: ',' VARIABLE {
   $$ = $2;
 };
 

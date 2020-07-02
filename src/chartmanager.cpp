@@ -370,7 +370,7 @@ void ChartManager::updateDB() {
 }
 
 void ChartManager::manageThreads() {
-  qDebug() << "chartmanager: manageThreads";
+  // qDebug() << "chartmanager: manageThreads";
   auto thread = qobject_cast<ChartUpdater*>(sender());
   quint32 id = thread->chart()->id();
 
@@ -418,6 +418,6 @@ void ChartUpdater::run() {
     m_chart = new S57Chart(m_id, m_path, m_proj);
     m_area.translate(m_chart->geoProjection()->fromWGS84(m_proj->reference()));
   }
-  qDebug() << "run: update paintdata";
+  // qDebug() << "run: update paintdata";
   m_chart->updatePaintData(m_area, m_scale);
 }

@@ -40,16 +40,15 @@ float           {float_1}|{float_2}|{float_3}
 singlechar      [\(\);,]
 
 classname      [A-Za-z$][A-Za-z$_0-9]{5}
-symbolname     {classname}[0-9]{2}
+symbolname     {classname}[A-Za-z$_0-9][0-9]
 colorname      [A-Za-z$][A-Za-z$_0-9]{4}
-charspec       \'1[4-6][1-2][0-9][0-9]+\'
+charspec       \'[1-2][4-6][0-2][0-9]+\'
 
 %x INSTRING
 
 %%
 
 {symbolname}        yylval->v_string = yytext; return SYMBOL;
-"QUESMRK1"          yylval->v_string = yytext; return SYMBOL;
 {classname}         yylval->v_string = yytext; return VARIABLE;
 {colorname}         yylval->v_string = yytext; return COLOR;
 

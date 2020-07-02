@@ -199,6 +199,7 @@ public:
   quint32 identifier() const {return m_feature_id;}
   const Geometry::Base* geometry() const {return m_geometry;}
   const AttributeMap& attributes() const {return m_attributes;}
+  QVariant attributeValue(quint32 attr) const;
   const QRectF& boundingBox() const {return m_bbox;}
 
   bool canPaint(const QRectF& viewArea, quint32 scale, const QDate& today) const;

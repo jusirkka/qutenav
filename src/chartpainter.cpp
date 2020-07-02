@@ -51,7 +51,7 @@ void ChartPainter::initializeGL() {
       }
     }
     if (!p.prog->link()) {
-      qFatal("Failed to link the chartpainter program: %s", m_program->log().toUtf8().data());
+      qFatal("Failed to link the chartpainter program: %s", p.prog->log().toUtf8().data());
     }
   }
 
@@ -150,7 +150,7 @@ void ChartPainter::paintGL(const Camera* cam) {
       for (const S57::PaintData& item: d.lineData) {
 
         m_lineProg->setUniformValue(m_line_locations.base_color, item.color);
-        m_lineProg->setUniformValue(m_line_locations.lineWidth, (GLfloat) item.params.line.lineWidth);
+        m_lineProg->setUniformValue(m_line_locations.lineWidth, (GLfloat) 1.2 * item.params.line.lineWidth);
         m_lineProg->setUniformValue(m_line_locations.pattern, item.params.line.pattern);
 
         m_lineProg->setAttributeBuffer(0, GL_FLOAT, d.vertexOffset + item.vertexOffset, 2, 0);
@@ -170,7 +170,7 @@ void ChartPainter::updateBuffers() {
   QVector<GLfloat> vertices;
   QVector<GLuint> indices;
 
-  qDebug() << "updateBuffers" << m_manager->charts().size();
+  // qDebug() << "updateBuffers" << m_manager->charts().size();
 
   m_transforms.clear();
   for (S57Chart* chart: m_manager->charts()) {
@@ -203,7 +203,7 @@ void ChartPainter::updateObjects() {
   uintptr_t elementOffset = 0;
   uintptr_t vertexOffset = 0;
 
-  qDebug() << "updateObjects" << m_manager->charts().size();
+  // qDebug() << "updateObjects" << m_manager->charts().size();
   for (QVector<ChartData>& d: m_chartData) d.clear();
 
   for (S57Chart* chart: m_manager->charts()) {

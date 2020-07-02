@@ -28,7 +28,7 @@ void s52instr_error(Private::LocationType* loc,
 Private::Presentation::Presentation()
   : QObject()
   , m_nextSymbolIndex(0)
-  , functions()
+  , functions(nullptr)
   , settings(Settings::instance()) {
 
   readAttributes();
@@ -596,6 +596,9 @@ void Private::Presentation::readSymbols(QXmlStreamReader& reader) {
 }
 
 void Private::Presentation::init() {
+
+  functions = new S52::Functions();
+
   for (S52::Lookup* lup: lookups) {
     int err = parseInstruction(lup);
     if (err != 0) {

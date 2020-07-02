@@ -138,7 +138,7 @@ public:
   using SymbolMap = QMap<quint32, S52::Symbol>;
   SymbolMap symbols;
 
-  S52::Functions functions;
+  S52::Functions* functions;
   Settings* settings;
   bool simplifiedSymbols;
   bool plainBoundaries;

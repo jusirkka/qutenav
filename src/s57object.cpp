@@ -64,6 +64,11 @@ QString S57::Object::name() const {
   return s;
 }
 
+QVariant S57::Object::attributeValue(quint32 attr) const {
+  if (!m_attributes.contains(attr)) return QVariant();
+  return m_attributes[attr].value();
+}
+
 bool S57::Object::canPaint(const QRectF& viewArea, quint32 scale, const QDate& today) const {
   if (m_bbox.isValid() && !m_bbox.intersects(viewArea)) {
     // qDebug() << "no intersect" << m_bbox << viewArea << name();

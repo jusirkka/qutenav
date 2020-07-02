@@ -85,13 +85,13 @@ S52::Lookup* S52::FindLookup(const S57::Object* obj) {
 
 S52::Function* S52::FindFunction(quint32 index) {
   const Private::Presentation* p = Private::Presentation::instance();
-  return p->functions.contents[index];
+  return p->functions->contents[index];
 }
 
 S52::Function* S52::FindFunction(const QString& name) {
   const Private::Presentation* p = Private::Presentation::instance();
-  if (!p->functions.names.contains(name)) return nullptr;
-  return p->functions.contents[p->functions.names[name]];
+  if (!p->functions->names.contains(name)) return nullptr;
+  return p->functions->contents[p->functions->names[name]];
 }
 
 QColor S52::GetColor(quint32 index) {
@@ -108,10 +108,7 @@ QColor S52::GetColor(const QString& name) {
 QVariant S52::GetAttribute(const QString &name, const S57::Object *obj) {
   const Private::Presentation* p = Private::Presentation::instance();
   Q_ASSERT(p->names.contains(name));
-
-  if (!obj->attributes().contains(p->names[name])) return QVariant();
-
-  return obj->attributes()[p->names[name]].value();
+  return obj->attributeValue(p->names[name]);
 }
 
 quint32 S52::FindIndex(const QString &name) {

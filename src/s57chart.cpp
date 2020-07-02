@@ -50,25 +50,25 @@ S57ChartOutline::S57ChartOutline(const QString& path) {
     throw ChartFileError(QString("Error reading %1 bytes from %2").arg(buffer.size()).arg(path));
   }
   auto p16 = reinterpret_cast<quint16*>(buffer.data());
-  qDebug() << "senc version =" << *p16;
+  // qDebug() << "senc version =" << *p16;
 
 
   const QMap<SencRecordType, Handler*> handlers {
     {SencRecordType::HEADER_CELL_NAME, new Handler([] (const Buffer& b) {
-        qDebug() << "cell name" << QString::fromUtf8(b.constData());
+        // qDebug() << "cell name" << QString::fromUtf8(b.constData());
         return true;
       })
     },
     {SencRecordType::HEADER_CELL_PUBLISHDATE, new Handler([this] (const Buffer& b) {
         auto s = QString::fromUtf8(b.constData());
-        qDebug() << "cell publishdate" << s;
+        // qDebug() << "cell publishdate" << s;
         m_pub = QDate::fromString(s, "yyyyMMdd");
         return true;
       })
     },
     {SencRecordType::HEADER_CELL_UPDATEDATE, new Handler([this] (const Buffer& b) {
         auto s = QString::fromUtf8(b.constData());
-        qDebug() << "cell modified date" << s;
+        // qDebug() << "cell modified date" << s;
         m_mod = QDate::fromString(s, "yyyyMMdd");
         return true;
       })
@@ -340,7 +340,7 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
     },
 
     {SencRecordType::VECTOR_EDGE_NODE_TABLE_RECORD, new Handler([this, &edgeMap] (const Buffer& b) {
-        qDebug() << "vector edge node table record";
+        // qDebug() << "vector edge node table record";
         const char* ptr = b.constData();
 
         // The Feature(Object) count
@@ -396,7 +396,7 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
     },
 
     {SencRecordType::CELL_COVR_RECORD, new Handler([this] (const Buffer& b) {
-        qDebug() << "cell coverage record";
+        // qDebug() << "cell coverage record";
         auto p = reinterpret_cast<const OSENC_POINT_ARRAY_Record_Payload*>(b.constData());
         Polygon poly(p->count * 2);
         memcpy(poly.data(), &p->array, p->count * 2 * sizeof(float));
@@ -425,6 +425,7 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
     buffer.resize(sizeof(OSENC_Record_Base));
     if (stream.readRawData(buffer.data(), buffer.size()) == -1) {
       done = true;
+      qWarning() << "Cannot read base record";
       continue;
     }
 
@@ -436,6 +437,7 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
     buffer.resize(record->record_length - sizeof(OSENC_Record_Base));
     if (stream.readRawData(buffer.data(), buffer.size()) == -1) {
       done = true;
+      qWarning() << "Cannot read base record data";
       continue;
     }
     if (!handlers.contains(rec_type)) {
@@ -443,6 +445,9 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
     }
 
     done = !(handlers[rec_type])->func(buffer);
+    if (done) {
+      qWarning() << "Handler failed for type" << as_numeric(rec_type);
+    }
 
   }
   qDeleteAll(handlers);
@@ -476,7 +481,7 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
         const int adj = e.elementOffset / sizeof(GLuint);
         const GLuint first = m_indices[adj + 1];
         if (last == first) {
-          m_indices[adj] = last;
+          m_indices[adj] = m_indices.last(); // prev
           m_indices.append(last); // last real index
           m_indices.append(m_indices[adj + 2]); // adjacent = next of first
         } else {
@@ -493,7 +498,7 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
     const int adj = elems.last().elementOffset / sizeof(GLuint);
     const GLuint first = m_indices[adj + 1];
     if (last == first) {
-      m_indices[adj] = last;
+      m_indices[adj] = m_indices.last(); // prev
       m_indices.append(last); // last real index
       m_indices.append(m_indices[adj + 2]); // adjacent = next of first
     } else {
@@ -528,7 +533,7 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
 
       helper.setGeometry(d.object,
                          new S57::Geometry::Area(lelems, telems, 0),
-                         computeBBox(lelems.first()));
+                         computeBBox(lelems));
     }
 
     // bind objects to lookup records
@@ -549,7 +554,8 @@ void S57Chart::triangulate(const S57::ElementDataVector& lelems, S57::ElementDat
 
   // Create array
   using Point = std::array<Coord, 2>;
-  std::vector<std::vector<Point>> polygon(lelems.size());
+
+
 
   // Fill polygon structure with actual data. Any winding order works.
   // The first polyline defines the main polygon.
@@ -565,37 +571,41 @@ void S57Chart::triangulate(const S57::ElementDataVector& lelems, S57::ElementDat
       const Point p{m_vertices[2 * index], m_vertices[2 * index + 1]};
       ring.push_back(p);
     }
-    polygon[k] = std::move(ring);
+    std::vector<std::vector<Point>> polygon;
+    polygon.push_back(ring);
+    // qDebug() << "number of vertices" << ring.size();
+
+    // Run tessellation
+    // Returns array of indices that refer to the vertices of the input polygon.
+    // Three subsequent indices form a triangle. Output triangles are clockwise.
+    std::vector<N> indices = mapbox::earcut<N>(polygon);
+
+    QVector<N> triangles;
+    const GLsizei triCount = indices.size() / 3;
+    // add triangle indices in ccw order
+    for (int i = 0; i < triCount; i++)  {
+      const N i0 = m_indices[first + indices[3 * i]];
+      const N i1 = m_indices[first + indices[3 * i + 1]];
+      const N i2 = m_indices[first + indices[3 * i + 2]];
+      triangles.append(i0);
+      triangles.append(i2);
+      triangles.append(i1);
+    }
+    // qDebug() << "number of triangles" << triangles.size() / 3;
+
+    AC::TriangleOptimizer stripper(triangles);
+
+    for (const QVector<N>& strip: stripper.strips()) {
+      S57::ElementData d;
+      d.elementCount = strip.size();
+      d.elementOffset = m_indices.size() * sizeof(GLuint);
+      m_indices.append(strip);
+      telems.append(d);
+    }
+
     last -= lelems[k].elementCount;
   }
 
-  // Run tessellation
-  // Returns array of indices that refer to the vertices of the input polygon.
-  // Three subsequent indices form a triangle. Output triangles are clockwise.
-  std::vector<N> indices = mapbox::earcut<N>(polygon);
-
-
-  QVector<N> triangles;
-  const GLsizei triCount = indices.size() / 3;
-  // add triangle indices in ccw order
-  for (int i = 0; i < triCount; i++)  {
-    const N i0 = m_indices[first + indices[3 * i]];
-    const N i1 = m_indices[first + indices[3 * i + 1]];
-    const N i2 = m_indices[first + indices[3 * i + 2]];
-    triangles.append(i0);
-    triangles.append(i2);
-    triangles.append(i1);
-  }
-
-  AC::TriangleOptimizer stripper(triangles);
-
-  for (const QVector<N>& strip: stripper.strips()) {
-    S57::ElementData d;
-    d.elementCount = strip.size();
-    d.elementOffset = m_indices.size() * sizeof(GLuint);
-    m_indices.append(strip);
-    telems.append(d);
-  }
 }
 
 
@@ -638,22 +648,6 @@ void S57Chart::updatePaintData(const QRectF &viewArea, quint32 scale) {
   }
 }
 
-
-QRectF S57Chart::computeBBox(const S57::ElementData &elem) {
-  QPointF ur(-1.e15, -1.e15);
-  QPointF ll(1.e15, 1.e15);
-
-  const int first = elem.elementOffset / sizeof(GLuint);
-  for (int i = 0; i < elem.elementCount; i++) {
-    const int index = m_indices[first + i];
-    QPointF q(m_vertices[2 * index], m_vertices[2 * index + 1]);
-    ur.setX(qMax(ur.x(), q.x()));
-    ur.setY(qMax(ur.y(), q.y()));
-    ll.setX(qMin(ll.x(), q.x()));
-    ll.setY(qMin(ll.y(), q.y()));
-  }
-  return QRectF(ll, ur); // inverted y-axis
-}
 
 QRectF S57Chart::computeBBox(const S57::ElementDataVector &elems) {
   QPointF ur(-1.e15, -1.e15);
