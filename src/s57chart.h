@@ -205,6 +205,7 @@ private:
   using PaintPriorityVector = QVector<S57::PaintDataVectorMap>;
 
   GLsizei addIndices(GLuint first, GLuint lower, GLuint upper, bool reversed);
+  GLuint addAdjacent(GLuint base, GLuint nextprev);
   void triangulate(const S57::ElementDataVector& lelems, S57::ElementDataVector& telems);
   QRectF computeBBox(const S57::ElementDataVector& elems);
 

@@ -195,11 +195,19 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
   S57::Object* current = nullptr;
   S57::ObjectBuilder helper;
 
-  using GeomHandle = QVector<int>;
+  struct TrianglePatch {
+    GLenum mode;
+    QVector<float> vertices;
+  };
+
+  using LineHandle = QVector<int>;
+  using TriangleHandle = QVector<TrianglePatch>;
+
   struct OData {
-    OData(S57::Object* obj): object(obj), geometry(), type(S57::Geometry::Type::Meta) {}
+    OData(S57::Object* obj): object(obj), lines(), triangles(), type(S57::Geometry::Type::Meta) {}
     S57::Object* object;
-    GeomHandle geometry;
+    LineHandle lines;
+    TriangleHandle triangles;
     S57::Geometry::Type type;
   };
 
@@ -289,9 +297,9 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
     {SencRecordType::FEATURE_GEOMETRY_RECORD_LINE, new Handler([&objects] (const Buffer& b) {
         // qDebug() << "feature geometry/line record";
         auto p = reinterpret_cast<const OSENC_LineGeometry_Record_Payload*>(b.constData());
-        GeomHandle es(p->edgeVector_count * 3);
+        LineHandle es(p->edgeVector_count * 3);
         memcpy(es.data(), &p->edge_data, p->edgeVector_count * 3 * sizeof(int));
-        objects.last().geometry.append(es);
+        objects.last().lines.append(es);
         objects.last().type = S57::Geometry::Type::Line;
         return true;
       })
@@ -300,19 +308,24 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
     {SencRecordType::FEATURE_GEOMETRY_RECORD_AREA, new Handler([&objects] (const Buffer& b) {
         // qDebug() << "feature geometry/area record";
         auto p = reinterpret_cast<const OSENC_AreaGeometry_Record_Payload*>(b.constData());
-        GeomHandle es(p->edgeVector_count * 3);
+        LineHandle es(p->edgeVector_count * 3);
         const uint8_t* ptr = &p->edge_data;
         // skip contour counts
         ptr += p->contour_count * sizeof(int);
-        for (int i = 0; i < p->triprim_count; i++){
-          ptr++; // skip triangle mode
+        TriangleHandle ts(p->triprim_count);
+        for (int i = 0; i < p->triprim_count; i++) {
+          ts[i].mode = (GLenum) *ptr; // Note: relies on GL_TRIANGLE* to be less than 128
+          ptr++;
           auto nvert = *(uint32_t *) ptr;
           ptr += sizeof(uint32_t);
           ptr += 4 * sizeof(double); // skip bbox
-          ptr += nvert * 2 * sizeof(float); // skip vertices
+          ts[i].vertices.resize(nvert * 2);
+          memcpy(ts[i].vertices.data(), ptr, nvert * 2 * sizeof(float));
+          ptr += nvert * 2 * sizeof(float);
         }
         memcpy(es.data(), ptr, p->edgeVector_count * 3 * sizeof(int));
-        objects.last().geometry.append(es);
+        objects.last().lines.append(es);
+        objects.last().triangles.append(ts);
         objects.last().type = S57::Geometry::Type::Area;
         return true;
       })
@@ -452,7 +465,7 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
   }
   qDeleteAll(handlers);
 
-  auto lineGeometry = [this, edgeMap, connMap] (const GeomHandle& geom, S57::ElementDataVector& elems) {
+  auto lineGeometry = [this, edgeMap, connMap] (const LineHandle& geom, S57::ElementDataVector& elems) {
     const int cnt = geom.size() / 3;
     // qDebug() << geom;
     for (int i = 0; i < cnt;) {
@@ -485,9 +498,9 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
           m_indices.append(last); // last real index
           m_indices.append(m_indices[adj + 2]); // adjacent = next of first
         } else {
-          m_indices[adj] = first; // adjacent = same as first
+          m_indices[adj] = addAdjacent(first, m_indices[adj + 2]);
           m_indices.append(last);
-          m_indices.append(last); // adjacent = same as last
+          m_indices.append(addAdjacent(last, m_indices.last()));
         }
         e.elementCount += 2;
       }
@@ -502,11 +515,22 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
       m_indices.append(last); // last real index
       m_indices.append(m_indices[adj + 2]); // adjacent = next of first
     } else {
-      m_indices[adj] = first; // adjacent = same as first
-      m_indices.append(last);
       m_indices.append(last); // adjacent = same as last
+      m_indices[adj] = addAdjacent(first, m_indices[adj + 2]);
+      m_indices.append(last);
+      m_indices.append(addAdjacent(last, m_indices.last()));
     }
     elems.last().elementCount += 2;
+  };
+
+  auto triangleGeometry = [this] (const TriangleHandle& geom, S57::ElementDataVector& elems) {
+    for (const TrianglePatch& p: geom) {
+      S57::ElementData d;
+      d.mode = p.mode;
+      d.elementCount = p.vertices.size() / 2;
+      m_vertices.append(p.vertices);
+      elems.append(d);
+    }
   };
 
   for (OData& d: objects) {
@@ -517,7 +541,7 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
     } else if (d.type == S57::Geometry::Type::Line) {
 
       S57::ElementDataVector elems;
-      lineGeometry(d.geometry, elems);
+      lineGeometry(d.lines, elems);
       helper.setGeometry(d.object,
                          new S57::Geometry::Line(elems, 0),
                          computeBBox(elems));
@@ -525,14 +549,14 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
     } else if (d.type == S57::Geometry::Type::Area) {
 
       S57::ElementDataVector lelems;
-      lineGeometry(d.geometry, lelems);
+      lineGeometry(d.lines, lelems);
 
-      // triangulate & add triangle indices
+      GLsizei offset = m_vertices.size() * sizeof(GLfloat);
       S57::ElementDataVector telems;
-      triangulate(lelems, telems);
+      triangleGeometry(d.triangles, telems);
 
       helper.setGeometry(d.object,
-                         new S57::Geometry::Area(lelems, telems, 0),
+                         new S57::Geometry::Area(lelems, telems, offset),
                          computeBBox(lelems));
     }
 
@@ -542,6 +566,15 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
   }
 }
 
+GLuint S57Chart::addAdjacent(GLuint base, GLuint next) {
+  const float x1 = m_vertices[2 * base];
+  const float y1 = m_vertices[2 * base + 1];
+  const float x2 = m_vertices[2 * next];
+  const float y2 = m_vertices[2 * next + 1];
+  m_vertices.append(2 * x1 - x2);
+  m_vertices.append(2 * y1 - y2);
+  return (m_vertices.size() - 1) / 2;
+}
 
 void S57Chart::triangulate(const S57::ElementDataVector& lelems, S57::ElementDataVector& telems) {
 

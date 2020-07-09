@@ -36,7 +36,8 @@ S57::PaintDataMap S52::LineSimple::execute(const QVector<QVariant>& vals,
   Q_ASSERT(line != nullptr);
 
   p.elements = line->lineElements();
-  p.vertexOffset = line->vertexOffset();
+  // p.vertexOffset = line->vertexOffset();
+  p.vertexOffset = 0;
 
   p.params.line.pattern = vals[0].toInt();
   p.params.line.lineWidth = vals[1].toInt();

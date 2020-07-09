@@ -56,6 +56,7 @@ using AttributeMap = QMap<quint32, Attribute>;
 using AttributeIterator = QMap<quint32, Attribute>::const_iterator;
 
 struct ElementData {
+  GLenum mode;
   uintptr_t elementOffset;
   size_t elementCount;
 };

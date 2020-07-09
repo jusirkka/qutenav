@@ -114,9 +114,10 @@ void ChartPainter::paintGL(const Camera* cam) {
 
         m_program->setUniformValue(m_tri_locations.base_color, item.color);
         m_program->setAttributeBuffer(0, GL_FLOAT, d.vertexOffset + item.vertexOffset, 2, 0);
+        GLint first = 0;
         for (const S57::ElementData& e: item.elements) {
-          gl->glDrawElements(GL_TRIANGLE_STRIP, e.elementCount, GL_UNSIGNED_INT,
-                             (const void*) (d.elementOffset + e.elementOffset));
+          gl->glDrawArrays(e.mode, first, e.elementCount);
+          first += e.elementCount;
         }
       }
     }
@@ -150,7 +151,8 @@ void ChartPainter::paintGL(const Camera* cam) {
       for (const S57::PaintData& item: d.lineData) {
 
         m_lineProg->setUniformValue(m_line_locations.base_color, item.color);
-        m_lineProg->setUniformValue(m_line_locations.lineWidth, (GLfloat) 1.2 * item.params.line.lineWidth);
+        m_lineProg->setUniformValue(m_line_locations.lineWidth, (GLfloat) item.params.line.lineWidth);
+        // m_lineProg->setUniformValue(m_line_locations.lineWidth, (GLfloat) 1.);
         m_lineProg->setUniformValue(m_line_locations.pattern, item.params.line.pattern);
 
         m_lineProg->setAttributeBuffer(0, GL_FLOAT, d.vertexOffset + item.vertexOffset, 2, 0);
