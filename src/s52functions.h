@@ -2,6 +2,7 @@
 
 #include <QVector>
 #include <QVariant>
+#include <QSet>
 
 #include "s57object.h"
 
@@ -184,10 +185,24 @@ private:
 
 class CSRestrEntry01: public Function {
 public:
-  CSRestrEntry01(quint32 index)
-    : Function("RESTRN01", index) {}
-
+  CSRestrEntry01(quint32 index);
   S57::PaintDataMap execute(const QVector<QVariant>&, const S57::Object* obj) override;
+private:
+  const quint32 m_restrn;
+  const quint32 m_entres51;
+  const quint32 m_entres61;
+  const quint32 m_entres71;
+  const quint32 m_achres51;
+  const quint32 m_achres61;
+  const quint32 m_achres71;
+  const quint32 m_fshres51;
+  const quint32 m_fshres71;
+  const quint32 m_infare51;
+  const quint32 m_rsrdef51;
+  const QSet<int> m_set1;
+  const QSet<int> m_set2;
+  const QSet<int> m_set3;
+  const QSet<int> m_set4;
 };
 
 class CSShorelineQualOfPos03: public Function {

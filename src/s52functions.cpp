@@ -284,10 +284,67 @@ S57::PaintDataMap S52::CSQualOfPos01::execute(const QVector<QVariant>&,
   }
 }
 
+S52::CSRestrEntry01::CSRestrEntry01(quint32 index)
+  : Function("RESTRN01", index)
+  , m_restrn(S52::FindIndex("RESTRN"))
+  , m_entres51(S52::FindIndex("ENTRES51"))
+  , m_entres61(S52::FindIndex("ENTRES61"))
+  , m_entres71(S52::FindIndex("ENTRES71"))
+  , m_achres51(S52::FindIndex("ACHRES51"))
+  , m_achres61(S52::FindIndex("ACHRES61"))
+  , m_achres71(S52::FindIndex("ACHRES71"))
+  , m_fshres51(S52::FindIndex("FSHRES51"))
+  , m_fshres71(S52::FindIndex("FSHRES71"))
+  , m_infare51(S52::FindIndex("INFARE51"))
+  , m_rsrdef51(S52::FindIndex("RSRDEF51"))
+  , m_set1({1, 2})
+  , m_set2({3, 4, 5, 6})
+  , m_set3({7, 8, 14})
+  , m_set4({9, 10, 11, 12, 13})
+{}
+
 S57::PaintDataMap S52::CSRestrEntry01::execute(const QVector<QVariant>&,
-                                            const S57::Object* /*obj*/) {
-  qWarning() << "RESTRN01: not implemented";
-  return S57::PaintDataMap(); // invalid paint data
+                                            const S57::Object* obj) {
+  const QVariant restrn = obj->attributeValue(m_restrn);
+  if (!restrn.isValid()) return S57::PaintDataMap();
+
+  auto items = restrn.toList();
+  if (items.isEmpty()) return S57::PaintDataMap();
+  QSet<int> s;
+  for (auto i: items) s.insert(i.toInt());
+
+  QVector<QVariant> vals;
+  if (s.intersects(m_set3)) {
+    // continuation A
+    if (s.intersects(m_set1) || s.intersects(m_set2)) {
+      vals.append(QVariant::fromValue(m_entres61));
+    } else if (s.intersects(m_set4)) {
+      vals.append(QVariant::fromValue(m_entres71));
+    } else {
+      vals.append(QVariant::fromValue(m_entres51));
+    }
+  } else if (s.intersects(m_set1)) {
+    // continuation B
+    if (s.intersects(m_set2)) {
+      vals.append(QVariant::fromValue(m_achres61));
+    } else if (s.intersects(m_set4)) {
+      vals.append(QVariant::fromValue(m_achres71));
+    } else {
+      vals.append(QVariant::fromValue(m_achres51));
+    }
+  } else if (s.intersects(m_set2)) {
+    // continuation C
+    if (s.intersects(m_set4)) {
+      vals.append(QVariant::fromValue(m_fshres71));
+    } else {
+      vals.append(QVariant::fromValue(m_fshres51));
+    }
+  } else if (s.intersects(m_set4)) {
+    vals.append(QVariant::fromValue(m_infare51));
+  } else {
+    vals.append(QVariant::fromValue(m_rsrdef51));
+  }
+  return S52::FindFunction("SY")->execute(vals, obj);
 }
 
 
