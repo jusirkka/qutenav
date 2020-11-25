@@ -2,12 +2,15 @@
 
 #include <QObject>
 #include "s52presentation.h"
+#include <QSet>
 
 
 class Settings: public QObject {
   Q_OBJECT
 
 public:
+
+  using TextGrouping = QSet<quint32>;
 
   static Settings* instance();
 
@@ -16,6 +19,7 @@ public:
   double safetyContour() const {return m_safetyContour;}
   double deepContour() const {return m_deepContour;}
   double shallowContour() const {return m_shallowContour;}
+  const TextGrouping& textGrouping() const {return m_textGrouping;}
 
   enum ColorTable {
     DayBright,
@@ -45,6 +49,7 @@ private:
   bool m_simplifiedSymbols;
   bool m_plainBoundaries;
   ColorTable m_colorTable;
+  TextGrouping m_textGrouping;
 
 };
 

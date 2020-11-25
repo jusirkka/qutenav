@@ -25,6 +25,10 @@ public:
 
 private:
 
+  ChartUpdater() = delete;
+  ChartUpdater(const ChartUpdater&) = delete;
+  ChartUpdater& operator=(const ChartUpdater&) = delete;
+
   void run() override;
 
   S57Chart* m_chart;
@@ -105,8 +109,7 @@ private:
   using IDVector = QVector<quint32>;
   using IDMap = QMap<quint32, quint32>;
 
-  class LocationArea {
-  public:
+  struct LocationArea {
     QRectF bbox;
     ChartInfoVector charts;
   };
@@ -121,6 +124,8 @@ private:
   using UpdaterMap = QMap<quint32, ChartUpdater*>;
 
   ChartManager(QObject *parent = nullptr);
+  ChartManager(const ChartManager&) = delete;
+  ChartManager& operator=(const ChartManager&) = delete;
 
   ChartVector m_charts;
   OutlineVector m_outlines;

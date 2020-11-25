@@ -54,11 +54,16 @@ public:
 
 class LineSimple: public Function {
 public:
-  LineSimple(quint32 index)
-    : Function("LS", index) {}
+  LineSimple(quint32 index);
 
   S57::PaintDataMap execute(const QVector<QVariant>& vals, const S57::Object* obj) override;
 
+private:
+
+  S57::PaintDataMap linesFromPoint(const QVector<QVariant>& vals, const S57::Object* obj);
+
+  const quint32 m_valnmr;
+  const quint32 m_orient;
 };
 
 class LineComplex: public Function {
@@ -149,10 +154,39 @@ public:
 
 class CSLights05: public Function {
 public:
-  CSLights05(quint32 index)
-    : Function("LIGHTS05", index) {}
-
+  CSLights05(quint32 index);
   S57::PaintDataMap execute(const QVector<QVariant>&, const S57::Object* obj) override;
+private:
+  static const uint floodlight = 8;
+  static const uint spotlight = 11;
+  static const uint striplight = 9;
+  static const uint directional = 1;
+  static const uint moire_effect = 16;
+
+  static const uint magenta = 12;
+
+  const quint32 m_catlit;
+  const quint32 m_lights82;
+  const quint32 m_lights81;
+  const quint32 m_lights11;
+  const quint32 m_lights12;
+  const quint32 m_lights13;
+  const quint32 m_litdef11;
+  const quint32 m_chblk;
+  const quint32 m_colour;
+  const quint32 m_sectr1;
+  const quint32 m_sectr2;
+  const quint32 m_orient;
+  const quint32 m_quesmrk1;
+
+  const QSet<int> m_set_wyo;
+  const QSet<int> m_set_wr;
+  const QSet<int> m_set_r;
+  const QSet<int> m_set_wg;
+  const QSet<int> m_set_g;
+  const QSet<int> m_set_o;
+  const QSet<int> m_set_y;
+  const QSet<int> m_set_w;
 };
 
 class CSObstruction04: public Function {

@@ -159,12 +159,16 @@ struct LineData {
   quint32 pattern;
 };
 
+using VertexVector = QVector<GLfloat>;
+
 struct PaintData {
   enum class Type {
     Invalid,
     CategoryOverride, // For a CS procedure to change the display category
-    Lines,
-    Triangles,
+    LineElements,
+    LineArrays,
+    TriangleElements,
+    TriangleArrays,
   };
 
   union {
@@ -175,6 +179,7 @@ struct PaintData {
   QColor color;
   GLsizei vertexOffset;
   ElementDataVector elements;
+  VertexVector vertices; // if non-empty, count and mode in elements refer to these vertices
 };
 
 using PaintDataVector = QVector<PaintData>;
@@ -204,6 +209,7 @@ public:
   const QRectF& boundingBox() const {return m_bbox;}
 
   bool canPaint(const QRectF& viewArea, quint32 scale, const QDate& today) const;
+  const QVector<Object*>& others() const;
 
 private:
 
@@ -222,6 +228,7 @@ private:
 
 };
 
+using ObjectVector = QVector<Object*>;
 
 }
 

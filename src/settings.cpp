@@ -24,6 +24,8 @@ Settings::Settings(QObject *parent)
   };
 
   m_maxCat = cats[Conf::MarinerParams::maxCategory()];
+
+  for (auto i: Conf::MarinerParams::textGrouping()) m_textGrouping.insert(i);
 }
 
 

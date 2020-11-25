@@ -166,12 +166,12 @@ public:
   const VertexVector& vertices() const {return m_vertices;}
   const IndexVector& indices() const {return m_indices;}
 
-  const S57::PaintDataVector lines(int prio) const {
-    return m_paintData[prio][S57::PaintData::Type::Lines];
+  const S57::PaintDataVector& lines(int prio) const {
+    return m_paintData[prio][S57::PaintData::Type::LineElements];
   }
 
-  const S57::PaintDataVector triangles(int prio) const {
-    return m_paintData[prio][S57::PaintData::Type::Triangles];
+  const S57::PaintDataVector& triangles(int prio) const {
+    return m_paintData[prio][S57::PaintData::Type::TriangleElements];
   }
 
   const GeoProjection* geoProjection() const {return m_nativeProj;}
