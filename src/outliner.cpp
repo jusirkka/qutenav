@@ -37,7 +37,7 @@ void Outliner::initializeGL() {
     qFatal("Failed to link the outliner program: %s", m_program->log().toUtf8().data());
   }
 
-  updateCharts();
+  updateBuffers();
 
   // locations
   m_program->bind();

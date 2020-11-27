@@ -150,7 +150,8 @@ void Globe::paintGL(const Camera *cam) {
     m_program->setAttributeBuffer(0, GL_FLOAT, layer.offset, 3, 0);
     // FIXME: use multidrawelements
     for (const StripData& s: layer.strips) {
-      gl->glDrawElements(GL_TRIANGLE_STRIP, s.size, GL_UNSIGNED_INT, (const void*) s.offset);
+      gl->glDrawElements(GL_TRIANGLE_STRIP, s.size, GL_UNSIGNED_INT,
+                         reinterpret_cast<const void*>(s.offset));
     }
   }
 }

@@ -12,6 +12,8 @@ uniform float screenYMax;
 layout(lines_adjacency) in;
 layout(triangle_strip, max_vertices = 7) out;
 
+noperspective out float texCoord;
+
 // assuming orthoprojection. Note: we drop the shift of origin
 // by vec2(screenXMax, screenYMax)
 vec2 toScreenSpace(vec4 v) {
@@ -50,6 +52,7 @@ void main(void) {
   if (dot(v0, v1) < - MITER_LIMIT) {
     miter_a = n1;
     len_a = lineWidth;
+    texCoord = 0.;
 
     // close the gap
     if(dot(v0, n1) > 0) {
@@ -83,12 +86,14 @@ void main(void) {
   }
 
   // generate the triangle strip
+  texCoord = 0.;
   gl_Position = vec4(( p1 + len_a * miter_a ) / scale, gl_in[1].gl_Position.z, 1.);
   EmitVertex();
 
   gl_Position = vec4((p1 - len_a * miter_a ) / scale, gl_in[1].gl_Position.z, 1.);
   EmitVertex();
 
+  texCoord = length(p2 - p1);
   gl_Position = vec4((p2 + len_b * miter_b ) / scale, gl_in[2].gl_Position.z, 1.);
   EmitVertex();
 

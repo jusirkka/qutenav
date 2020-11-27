@@ -1,6 +1,7 @@
 #include "s57object.h"
 #include <QDate>
 #include <QDebug>
+#include "shader.h"
 
 
 
@@ -105,4 +106,112 @@ bool S57::Object::canPaint(const QRectF& viewArea, quint32 scale, const QDate& t
 
   return true;
 }
+
+//
+// Paintdata
+//
+
+S57::PaintData::PaintData(Type t)
+  : m_type(t)
+{}
+
+
+void S57::TriangleData::setUniforms() const {
+  auto prog = GL::AreaShader::instance();
+  prog->prog()->setUniformValue(prog->m_locations.base_color, m_color);
+}
+
+void S57::TriangleData::setVertexOffset() const {
+  auto prog = GL::AreaShader::instance()->prog();
+  prog->setAttributeBuffer(0, GL_FLOAT, m_vertexOffset, 2, 0);
+}
+
+S57::TriangleData::TriangleData(Type t, const ElementDataVector& elems, GLsizei offset, const QColor& c)
+  : PaintData(t)
+  , m_elements(elems)
+  , m_vertexOffset(offset)
+  , m_color(c)
+{}
+
+S57::TriangleArrayData::TriangleArrayData(const ElementDataVector& elem, GLsizei offset, const QColor& c)
+  : TriangleData(Type::TriangleArrays, elem, offset, c)
+{}
+
+S57::TriangleElemData::TriangleElemData(const ElementDataVector& elem, GLsizei offset, const QColor& c)
+  : TriangleData(Type::TriangleElements, elem, offset, c)
+{}
+
+S57::LineData::LineData(Type t, const ElementDataVector& elems)
+  : PaintData(t)
+  , m_elements(elems)
+{}
+
+void S57::SolidLineData::setUniforms() const {
+  auto prog = GL::SolidLineShader::instance();
+  prog->prog()->setUniformValue(prog->m_locations.base_color, m_color);
+  prog->prog()->setUniformValue(prog->m_locations.lineWidth, m_lineWidth);
+}
+
+void S57::SolidLineData::setVertexOffset() const {
+  auto prog = GL::SolidLineShader::instance()->prog();
+  prog->setAttributeBuffer(0, GL_FLOAT, m_vertexOffset, 2, 0);
+}
+
+
+S57::SolidLineData::SolidLineData(Type t, const ElementDataVector& elems, GLsizei offset, const QColor& c, uint width)
+  : LineData(t, elems)
+  , m_vertexOffset(offset)
+  , m_color(c)
+  , m_lineWidth(width)
+{}
+
+
+void S57::DashedLineData::setUniforms() const {
+  auto prog = GL::DashedLineShader::instance();
+  prog->prog()->setUniformValue(prog->m_locations.base_color, m_color);
+  prog->prog()->setUniformValue(prog->m_locations.lineWidth, m_lineWidth);
+  prog->prog()->setUniformValue(prog->m_locations.pattern, m_pattern);
+}
+
+void S57::DashedLineData::setVertexOffset() const {
+  auto prog = GL::DashedLineShader::instance()->prog();
+  prog->setAttributeBuffer(0, GL_FLOAT, m_vertexOffset, 2, 0);
+}
+
+
+S57::DashedLineData::DashedLineData(Type t, const ElementDataVector& elems, GLsizei offset, const QColor& c, uint width, uint patt)
+  : LineData(t, elems)
+  , m_vertexOffset(offset)
+  , m_color(c)
+  , m_lineWidth(width)
+  , m_pattern(patt)
+{}
+
+
+S57::SolidLineElemData::SolidLineElemData(const ElementDataVector& elem, GLsizei offset, const QColor& c, uint width)
+  : SolidLineData(Type::SolidLineElements, elem, offset, c, width)
+{}
+
+S57::SolidLineArrayData::SolidLineArrayData(const ElementDataVector& elem, GLsizei offset, const QColor& c, uint width)
+  : SolidLineData(Type::SolidLineArrays, elem, offset, c, width)
+{}
+
+S57::DashedLineElemData::DashedLineElemData(const ElementDataVector& elem, GLsizei offset, const QColor& c, uint width, uint pattern)
+  : DashedLineData(Type::DashedLineElements, elem, offset, c, width, pattern)
+{}
+
+S57::DashedLineArrayData::DashedLineArrayData(const ElementDataVector& elem, GLsizei offset, const QColor& c, uint width, uint pattern)
+  : DashedLineData(Type::DashedLineArrays, elem, offset, c, width, pattern)
+{}
+
+S57::SolidLineLocalData::SolidLineLocalData(const VertexVector& vertices, const ElementDataVector& elem, GLsizei offset, const QColor& c, uint width)
+  : SolidLineData(Type::SolidLineArrays, elem, offset, c, width)
+  , m_vertices(vertices)
+{}
+
+S57::DashedLineLocalData::DashedLineLocalData(const VertexVector& vertices, const ElementDataVector& elem, GLsizei offset, const QColor& c, uint width, uint pattern)
+  : DashedLineData(Type::DashedLineArrays, elem, offset, c, width, pattern)
+  , m_vertices(vertices)
+{}
+
 

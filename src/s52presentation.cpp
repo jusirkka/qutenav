@@ -24,13 +24,7 @@ S57::PaintDataMap S52::Lookup::execute(const S57::Object *obj) const {
       auto fun = S52::FindFunction(m_references[refPos++]);
       // qDebug() << "function" << fun->name();
       stackPos = 0;
-      const S57::PaintDataMap ps = fun->execute(stack, obj);
-      for (auto it = ps.constBegin(); it != ps.constEnd(); ++it) {
-        if (paintData.contains(it.key())) {
-          qWarning() << "Overwriting paint data" << quint8(it.key());
-        }
-        paintData[it.key()] = it.value();
-      }
+      paintData += fun->execute(stack, obj);
       break;
     }
 

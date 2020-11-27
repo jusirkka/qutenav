@@ -21,7 +21,6 @@ GLWidget::GLWidget(QWidget* parent)
   connect(m_manager, &ChartManager::idle, this, &GLWidget::finalizeChartMode);
   connect(m_manager, &ChartManager::active, this, &GLWidget::initializeChartMode);
   connect(m_manager, &ChartManager::chartsUpdated, this, &GLWidget::updateCharts);
-  connect(m_manager, &ChartManager::objectsUpdated, this, &GLWidget::updateObjects);
 }
 
 
@@ -231,22 +230,9 @@ void GLWidget::northUp() {
 }
 
 void GLWidget::updateCharts() {
-  makeCurrent();
-  for (Drawable* d: m_mode->drawables()) {
-    d->updateCharts();
-  }
-  doneCurrent();
   update();
 }
 
-void GLWidget::updateObjects() {
-  makeCurrent();
-  for (Drawable* d: m_mode->drawables()) {
-    d->updateObjects();
-  }
-  doneCurrent();
-  update();
-}
 
 
 GLWidget::~GLWidget() {

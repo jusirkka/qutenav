@@ -3,31 +3,26 @@
 #include "conf_marinerparams.h"
 #include "settings.h"
 #include <cmath>
+#include "types.h"
 
-static void mergePaintData(S57::PaintDataMap& ps, const S57::PaintDataMap& ps1) {
-  for (auto it = ps1.constBegin(); it != ps1.constEnd(); ++it) {
-    if (ps.contains(it.key())) {
-      qWarning() << "Overwriting paint data" << quint8(it.key());
-    }
-    ps[it.key()] = it.value();
-  }
-}
 
 S57::PaintDataMap S52::AreaColor::execute(const QVector<QVariant>& vals,
                                        const S57::Object* obj) {
-  S57::PaintData p;
-
   auto geom = dynamic_cast<const S57::Geometry::Area*>(obj->geometry());
   Q_ASSERT(geom != nullptr);
 
-  p.type = S57::PaintData::Type::TriangleArrays;
-  p.elements = geom->triangleElements();
-  p.vertexOffset = geom->vertexOffset();
+  S57::PaintData* p;
 
-  p.color = S52::GetColor(vals[0].toUInt());
-  p.color.setAlpha(vals[1].toUInt());
+  auto color = S52::GetColor(vals[0].toUInt());
+  color.setAlpha(vals[1].toUInt());
 
-  return S57::PaintDataMap{{p.type, p}};
+  if (geom->indexed()) {
+    p = new S57::TriangleElemData(geom->triangleElements(), geom->vertexOffset(), color);
+  } else {
+    p = new S57::TriangleArrayData(geom->triangleElements(), geom->vertexOffset(), color);
+  }
+
+  return S57::PaintDataMap{{p->type(), p}};
 }
 
 S57::PaintDataMap S52::AreaPattern::execute(const QVector<QVariant>& /*vals*/,
@@ -48,14 +43,20 @@ S57::PaintDataMap S52::LineSimple::execute(const QVector<QVariant>& vals,
     return linesFromPoint(vals, obj);
   }
 
-  S57::PaintData p;
-  p.type = S57::PaintData::Type::LineElements;
-  p.vertexOffset = 0;
-  p.elements = line->lineElements();
-  p.params.line.pattern = vals[0].toInt();
-  p.params.line.lineWidth = vals[1].toInt();
-  p.color = S52::GetColor(vals[2].toUInt());
-  return S57::PaintDataMap{{p.type, p}};
+  S57::PaintData* p;
+
+  auto pattern = static_cast<S52::Lookup::Line>(vals[0].toUInt());
+  auto width = vals[1].toUInt();
+  auto color = S52::GetColor(vals[2].toUInt());
+
+  if (pattern == S52::Lookup::Line::Solid) {
+    p = new S57::SolidLineElemData(line->lineElements(), 0, color, width);
+  } else {
+    p = new S57::DashedLineElemData(line->lineElements(), 0, color, width,
+                                    as_numeric(pattern));
+  }
+
+  return S57::PaintDataMap{{p->type(), p}};
 }
 
 S57::PaintDataMap S52::LineSimple::linesFromPoint(const QVector<QVariant> &vals, const S57::Object *obj) {
@@ -73,33 +74,41 @@ S57::PaintDataMap S52::LineSimple::linesFromPoint(const QVector<QVariant> &vals,
     valnmr = 9. * 1852.;
   }
 
-  S57::PaintData p;
-  p.type = S57::PaintData::Type::LineArrays;
+  S57::ElementData e;
+  e.count = 4;
+  e.offset = 0;
+  e.mode = GL_LINE_STRIP_ADJACENCY;
 
+  S57::ElementDataVector elements;
+  elements.append(e);
+
+  S57::VertexVector vertices;
   const GLfloat x1 = point->points()[0];
   const GLfloat y1 = point->points()[1];
   const GLfloat x2 = x1 - valnmr * sin(orient);
   const GLfloat y2 = y1 - valnmr * cos(orient);
 
-  p.vertices.append(2 * x1 - x2);
-  p.vertices.append(2 * y1 - y2);
-  p.vertices.append(x1);
-  p.vertices.append(y1);
-  p.vertices.append(x2);
-  p.vertices.append(y2);
-  p.vertices.append(2 * x2 - x1);
-  p.vertices.append(2 * y2 - y1);
+  vertices << 2 * x1 - x2 << 2 * y1 - y2;
+  vertices << x1 << y1;
+  vertices << x2 << y2;
+  vertices << 2 * x2 - x1 << 2 * y2 - y1;
 
-  S57::ElementData e;
-  e.elementCount = 4;
-  e.elementOffset = 0;
-  e.mode = GL_LINE_STRIP_ADJACENCY;
-  p.elements.append(e);
 
-  p.params.line.pattern = vals[0].toInt();
-  p.params.line.lineWidth = vals[1].toInt();
-  p.color = S52::GetColor(vals[2].toUInt());
-  return p;
+  S57::PaintData* p;
+
+  auto pattern = static_cast<S52::Lookup::Line>(vals[0].toUInt());
+  auto width = vals[1].toUInt();
+  auto color = S52::GetColor(vals[2].toUInt());
+
+  if (pattern == S52::Lookup::Line::Solid) {
+    p = new S57::SolidLineLocalData(vertices, elements, 0, color, width);
+  } else {
+    p = new S57::DashedLineLocalData(vertices, elements, 0, color, width,
+                                     as_numeric(pattern));
+  }
+
+
+  return S57::PaintDataMap{{p->type(), p}};
 }
 
 
@@ -162,53 +171,57 @@ S57::PaintDataMap S52::CSDepthArea01::execute(const QVector<QVariant>&,
   }
 
 
-  S57::PaintData p;
-
-  p.type = S57::PaintData::Type::Triangles;
-  p.elements = geom->triangleElements();
-  p.vertexOffset = geom->vertexOffset();
+  S57::PaintData* p;
 
   const Settings* cfg = Settings::instance();
 
+  QColor color;
   if (cfg->twoShades() && depth >= cfg->safetyContour()) {
-    p.color = S52::GetColor(m_depdw);
+    color = S52::GetColor(m_depdw);
   } else if (depth >= cfg->deepContour()) {
-    p.color = S52::GetColor(m_depdw);
+    color = S52::GetColor(m_depdw);
   } else if (depth >= cfg->safetyContour()) {
-    p.color = S52::GetColor(m_depmd);
+    color = S52::GetColor(m_depmd);
   } else if (depth >= cfg->shallowContour()) {
-    p.color = S52::GetColor(m_depms);
+    color = S52::GetColor(m_depms);
   } else if (depth >= 0) {
-    p.color = S52::GetColor(m_depvs);
+    color = S52::GetColor(m_depvs);
   } else {
-    p.color = S52::GetColor(m_depit);
+    color = S52::GetColor(m_depit);
   }
 
   if (obj->classCode() != m_drgare) {
-    return S57::PaintDataMap{{p.type, p}};
+    if (geom->indexed()) {
+      p = new S57::TriangleElemData(geom->triangleElements(), geom->vertexOffset(), color);
+    } else {
+      p = new S57::TriangleArrayData(geom->triangleElements(), geom->vertexOffset(), color);
+    }
+    return S57::PaintDataMap{{p->type(), p}};
   }
 
   if (!obj->attributeValue(m_drval1).isValid()) {
-    p.color = S52::GetColor(m_depmd);
+    color = S52::GetColor(m_depmd);
   }
 
-  S57::PaintDataMap ps{{p.type, p}};
+  if (geom->indexed()) {
+    p = new S57::TriangleElemData(geom->triangleElements(), geom->vertexOffset(), color);
+  } else {
+    p = new S57::TriangleArrayData(geom->triangleElements(), geom->vertexOffset(), color);
+  }
+
+  S57::PaintDataMap ps{{p->type(), p}};
 
   // run AP(DRGARE01);LS(DASH,1,CHGRF)
 
   QVector<QVariant> vals;
   vals.append(QVariant::fromValue(m_drgare01));
-  auto ps1 = S52::FindFunction("AP")->execute(vals, obj);
-
-  mergePaintData(ps, ps1);
+  ps += S52::FindFunction("AP")->execute(vals, obj);
 
   vals.clear();
   vals.append(QVariant::fromValue(int(S52::Lookup::Line::Dashed)));
   vals.append(QVariant::fromValue(1));
   vals.append(QVariant::fromValue(m_chgrf));
-  ps1 = S52::FindFunction("LS")->execute(vals, obj);
-
-  mergePaintData(ps, ps1);
+  ps += S52::FindFunction("LS")->execute(vals, obj);
 
   return ps;
 }
@@ -267,7 +280,8 @@ S52::CSLights05::CSLights05(quint32 index)
   , m_set_w({1})
 {}
 
-static QString litdsn01(const S57::Object* obj) {
+static QString litdsn01(const S57::Object* /*obj*/) {
+  return "FIXME";
 }
 
 static bool overlaps_and_smaller(float s1, float s2, const QVariant& v1, const QVariant& v2) {
@@ -300,6 +314,14 @@ S57::PaintDataMap S52::CSLights05::execute(const QVector<QVariant>&,
     }
   }
 
+  QSet<int> cols;
+  items = obj->attributeValue(m_colour).toList();
+  if (items.isEmpty()) {
+    cols.insert(magenta);
+  } else {
+    for (auto i: items) cols.insert(i.toInt());
+  }
+
   quint32 lightSymbol;
   if (cols == m_set_wr || cols == m_set_w) {
     lightSymbol = m_lights11;
@@ -313,13 +335,8 @@ S57::PaintDataMap S52::CSLights05::execute(const QVector<QVariant>&,
 
 
   // continuation A
-  QSet<int> cols;
-  items = obj->attributeValue(m_colour).toList();
-  if (items.isEmpty()) {
-    cols.insert(magenta);
-  } else {
-    for (auto i: items) cols.insert(i.toInt());
-  }
+
+
   const bool isSector = obj->attributeValue(m_sectr1).isValid() && obj->attributeValue(m_sectr2).isValid();
 
   if (!isSector) {
@@ -341,8 +358,7 @@ S57::PaintDataMap S52::CSLights05::execute(const QVector<QVariant>&,
         vals.append(QVariant::fromValue(int(S52::Lookup::Line::Dashed)));
         vals.append(QVariant::fromValue(1));
         vals.append(QVariant::fromValue(m_chblk));
-        auto ps1 = S52::FindFunction("LS")->execute(vals, obj);
-        mergePaintData(ps, ps1);
+        ps += S52::FindFunction("LS")->execute(vals, obj);
       } else {
         vals.clear();
         vals.append(QVariant::fromValue(m_quesmrk1));
@@ -358,13 +374,12 @@ S57::PaintDataMap S52::CSLights05::execute(const QVector<QVariant>&,
       vals.append(QVariant::fromValue(3));
       vals.append(QVariant::fromValue(flare_at_45 ? 1 : 2));
       vals.append(QVariant::fromValue(3));
-      vals.append(QVariant::fromValue("15110"));
+      vals.append(QVariant::fromValue(QString("15110")));
       vals.append(QVariant::fromValue(2));
       vals.append(QVariant::fromValue(flare_at_45 ? -1 : 0));
       vals.append(QVariant::fromValue(m_chblk));
       vals.append(QVariant::fromValue(23));
-      auto ps1 = S52::FindFunction("TX")->execute(vals, obj);
-      mergePaintData(ps, ps1);
+      ps += S52::FindFunction("TX")->execute(vals, obj);
     }
 
     return ps;
@@ -388,13 +403,12 @@ S57::PaintDataMap S52::CSLights05::execute(const QVector<QVariant>&,
       vals.append(QVariant::fromValue(3));
       vals.append(QVariant::fromValue(2));
       vals.append(QVariant::fromValue(3));
-      vals.append(QVariant::fromValue("15110"));
+      vals.append(QVariant::fromValue(QString("15110")));
       vals.append(QVariant::fromValue(2));
       vals.append(QVariant::fromValue(0));
       vals.append(QVariant::fromValue(m_chblk));
       vals.append(QVariant::fromValue(23));
-      auto ps1 = S52::FindFunction("TX")->execute(vals, obj);
-      mergePaintData(ps, ps1);
+      ps += S52::FindFunction("TX")->execute(vals, obj);
     }
 
     return ps;
@@ -600,12 +614,10 @@ S57::PaintDataMap S52::CSShorelineQualOfPos03::execute(const QVector<QVariant>&,
     ps = S52::FindFunction("AP")->execute(vals, obj);
   }
 
-  S57::PaintDataMap ps1;
-
   if (inaccurate) {
     QVector<QVariant> vals;
     vals.append(QVariant::fromValue(m_lowacc01));
-    ps1 = S52::FindFunction("LC")->execute(vals, obj);
+    ps += S52::FindFunction("LC")->execute(vals, obj);
   } else {
     const QVariant condtn = obj->attributeValue(m_condtn);
     const int v1 = condtn.toInt();
@@ -640,12 +652,10 @@ S57::PaintDataMap S52::CSShorelineQualOfPos03::execute(const QVector<QVariant>&,
 
       if (!vals.isEmpty()) {
         vals.append(QVariant::fromValue(m_cstln));
-        ps1 = S52::FindFunction("LS")->execute(vals, obj);
+        ps += S52::FindFunction("LS")->execute(vals, obj);
       }
     }
   }
-
-  mergePaintData(ps, ps1);
 
   return ps;
 }

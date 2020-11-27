@@ -47,7 +47,6 @@ private slots:
   void finalizeChartMode();
 
   void updateCharts();
-  void updateObjects();
 
 private:
 

@@ -15,8 +15,6 @@ public:
 
   void paintGL(const Camera* cam) override;
   void initializeGL() override;
-  void updateBuffers() override {} // noop
-  void updateObjects() override {} // noop
   ~Globe() = default;
 
 private:
@@ -26,6 +24,7 @@ private:
 
   QOpenGLBuffer m_coordBuffer;
   QOpenGLBuffer m_indexBuffer;
+  QOpenGLShaderProgram* m_program;
 
   struct _locations {
     int base_color;

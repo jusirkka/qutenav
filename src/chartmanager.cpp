@@ -197,7 +197,6 @@ void ChartManager::updateCharts(const Camera *cam) {
   }
 
   m_hadCharts = !m_charts.isEmpty();
-  m_onlyObjects = newCharts.isEmpty() && m_ids.isEmpty();
 
   // remove old charts
   for (auto it = m_ids.constBegin(); it != m_ids.constEnd(); ++it) {
@@ -385,8 +384,6 @@ void ChartManager::manageThreads() {
   if (m_threads.isEmpty()) {
     if (!m_hadCharts) {
       emit active();
-    } else if (m_onlyObjects) {
-      emit objectsUpdated();
     } else {
       emit chartsUpdated();
     }

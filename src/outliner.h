@@ -16,14 +16,15 @@ public:
 
   void paintGL(const Camera* cam) override;
   void initializeGL() override;
-  void updateBuffers() override;
-  void updateObjects() override {} // noop
 
   ~Outliner() = default;
 
 private:
 
+  void updateBuffers();
+
   QOpenGLBuffer m_coordBuffer;
+  QOpenGLShaderProgram* m_program;
 
   using DataVector = QVector<GLfloat>;
 

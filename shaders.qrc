@@ -8,6 +8,7 @@
         <file>shaders/chartpainter.vert</file>
         <file>shaders/chartpainter.frag</file>
         <file>shaders/chartpainter-lines.geom</file>
-        <file>shaders/chartpainter-lines.frag</file>
+        <file>shaders/chartpainter-dashed.geom</file>
+        <file>shaders/chartpainter-dashed.frag</file>
     </qresource>
 </RCC>

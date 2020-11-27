@@ -63,7 +63,6 @@ signals:
   void idle();
   void active();
   void chartsUpdated();
-  void objectsUpdated();
 
 public slots:
 
@@ -137,7 +136,6 @@ private:
   IDMap m_ids;
 
   bool m_hadCharts;
-  bool m_onlyObjects;
   UpdaterMap m_threads;
 };
 

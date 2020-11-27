@@ -74,6 +74,7 @@ target_sources(qopencpn
     src/triangleoptimizer.cpp
     src/types.cpp
     src/wfreader.cpp
+    src/shader.cpp
     src/GeographicLib/Geodesic.cpp
     src/GeographicLib/GeodesicLine.cpp
     src/GeographicLib/Math.cpp
@@ -128,7 +129,6 @@ target_link_libraries(qopencpn
   PRIVATE
     KF5::I18n
     KF5::XmlGui
-    GDAL::GDAL
     Qt5::Sql
 )
 

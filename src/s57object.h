@@ -57,8 +57,10 @@ using AttributeIterator = QMap<quint32, Attribute>::const_iterator;
 
 struct ElementData {
   GLenum mode;
-  uintptr_t elementOffset;
-  size_t elementCount;
+  // offset to vertex/element buffer, depending whether
+  // vertices are indexed or not
+  uintptr_t offset;
+  size_t count;
 };
 
 using ElementDataVector = QVector<ElementData>;
@@ -135,18 +137,21 @@ private:
 
 class Area: public Line {
 public:
-  Area(const ElementDataVector& lelems, const ElementDataVector& telems, GLsizei vo)
+  Area(const ElementDataVector& lelems, const ElementDataVector& telems, GLsizei vo, bool indexed)
     : Line(lelems, vo)
     , m_triangleElements(telems)
+    , m_indexed(indexed)
   {
     m_type = Type::Area;
   }
 
   const ElementDataVector& triangleElements() const {return m_triangleElements;}
+  bool indexed() const {return m_indexed;}
 
 private:
 
   ElementDataVector m_triangleElements;
+  bool m_indexed;
 
 };
 
@@ -154,37 +159,147 @@ private:
 
 
 
-struct LineData {
-  quint32 lineWidth;
-  quint32 pattern;
-};
-
 using VertexVector = QVector<GLfloat>;
 
-struct PaintData {
+class PaintData {
+public:
+
   enum class Type {
     Invalid,
     CategoryOverride, // For a CS procedure to change the display category
-    LineElements,
-    LineArrays,
     TriangleElements,
     TriangleArrays,
+    SolidLineElements,
+    DashedLineElements,
+    SolidLineArrays,
+    DashedLineArrays,
+    SolidLineLocal,
+    DashedLineLocal,
   };
 
-  union {
-    LineData line;
-  } params;
+  virtual void setUniforms() const = 0;
+  virtual void setVertexOffset() const = 0;
+  Type type() const {return m_type;}
 
-  Type type;
-  QColor color;
-  GLsizei vertexOffset;
-  ElementDataVector elements;
-  VertexVector vertices; // if non-empty, count and mode in elements refer to these vertices
+  virtual ~PaintData() = default;
+
+protected:
+
+  PaintData(Type t);
+
+  Type m_type;
+
 };
 
-using PaintDataVector = QVector<PaintData>;
-using PaintDataMap = QMap<PaintData::Type, PaintData>;
-using PaintDataVectorMap = QMap<PaintData::Type, PaintDataVector>;
+class TriangleData: public PaintData {
+public:
+  void setUniforms() const override;
+  void setVertexOffset() const override;
+
+  const ElementDataVector& elements() const {return m_elements;}
+
+protected:
+
+  TriangleData(Type t, const ElementDataVector& elems, GLsizei offset, const QColor& c);
+
+  ElementDataVector m_elements;
+  GLsizei m_vertexOffset;
+  QColor m_color;
+
+};
+
+class TriangleArrayData: public TriangleData {
+public:
+  TriangleArrayData(const ElementDataVector& elem, GLsizei offset, const QColor& c);
+};
+
+class TriangleElemData: public TriangleData {
+public:
+  TriangleElemData(const ElementDataVector& elem, GLsizei offset, const QColor& c);
+};
+
+class LineData: public PaintData {
+public:
+  const ElementDataVector& elements() const {return m_elements;}
+
+protected:
+
+  LineData(Type t, const ElementDataVector& elems);
+
+  ElementDataVector m_elements;
+};
+
+class SolidLineData: public LineData {
+public:
+  void setUniforms() const override;
+  void setVertexOffset() const override;
+
+
+protected:
+
+  SolidLineData(Type t, const ElementDataVector& elems, GLsizei offset, const QColor& c, uint width);
+
+  GLsizei m_vertexOffset;
+  QColor m_color;
+  GLuint m_lineWidth;
+
+};
+
+class DashedLineData: public LineData {
+public:
+  void setUniforms() const override;
+  void setVertexOffset() const override;
+
+
+protected:
+
+  DashedLineData(Type t, const ElementDataVector& elems, GLsizei offset, const QColor& c, uint width, uint patt);
+
+  GLsizei m_vertexOffset;
+  QColor m_color;
+  GLuint m_lineWidth;
+  GLuint m_pattern;
+};
+
+class SolidLineElemData: public SolidLineData {
+public:
+  SolidLineElemData(const ElementDataVector& elem, GLsizei offset, const QColor& c, uint width);
+};
+
+class SolidLineArrayData: public SolidLineData {
+public:
+  SolidLineArrayData(const ElementDataVector& elem, GLsizei offset, const QColor& c, uint width);
+};
+
+class DashedLineElemData: public DashedLineData {
+public:
+  DashedLineElemData(const ElementDataVector& elem, GLsizei offset, const QColor& c, uint width, uint pattern);
+};
+
+class DashedLineArrayData: public DashedLineData {
+public:
+  DashedLineArrayData(const ElementDataVector& elem, GLsizei offset, const QColor& c, uint width, uint pattern);
+};
+
+class SolidLineLocalData: public SolidLineData {
+public:
+  SolidLineLocalData(const VertexVector& vertices, const ElementDataVector& elem, GLsizei offset, const QColor& c, uint width);
+  const VertexVector& vertices() const {return m_vertices;}
+private:
+  VertexVector m_vertices;
+};
+
+class DashedLineLocalData: public DashedLineData {
+public:
+  DashedLineLocalData(const VertexVector& vertices, const ElementDataVector& elem, GLsizei offset, const QColor& c, uint width, uint pattern);
+  const VertexVector& vertices() const {return m_vertices;}
+private:
+  VertexVector m_vertices;
+};
+
+
+using PaintDataMap = QMultiMap<PaintData::Type, PaintData*>;
+using PaintIterator = QMultiMap<PaintData::Type, PaintData*>::const_iterator;
 
 class ObjectBuilder;
 
@@ -209,7 +324,7 @@ public:
   const QRectF& boundingBox() const {return m_bbox;}
 
   bool canPaint(const QRectF& viewArea, quint32 scale, const QDate& today) const;
-  const QVector<Object*>& others() const;
+  const QVector<Object*>& others() const {return m_others;}
 
 private:
 
@@ -225,6 +340,7 @@ private:
   AttributeMap m_attributes;
   Geometry::Base* m_geometry;
   QRectF m_bbox;
+  QVector<Object*> m_others;
 
 };
 

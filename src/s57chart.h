@@ -6,6 +6,7 @@
 #include "s57object.h"
 #include "s52presentation.h"
 #include <QDate>
+#include <QMatrix4x4>
 
 //  OSENC V2 record definitions
 enum class SencRecordType: quint16 {
@@ -151,6 +152,7 @@ private:
 
 class GeoProjection;
 class Settings;
+class Camera;
 
 class S57Chart: public QObject {
 
@@ -163,16 +165,10 @@ public:
 
   S57Chart(quint32 id, const QString& path, const GeoProjection* proj);
 
-  const VertexVector& vertices() const {return m_vertices;}
-  const IndexVector& indices() const {return m_indices;}
-
-  const S57::PaintDataVector& lines(int prio) const {
-    return m_paintData[prio][S57::PaintData::Type::LineElements];
-  }
-
-  const S57::PaintDataVector& triangles(int prio) const {
-    return m_paintData[prio][S57::PaintData::Type::TriangleElements];
-  }
+  void drawAreas(int prio);
+  void drawSolidLines(int prio);
+  void drawDashedLines();
+  void setTransform(const Camera* cam);
 
   const GeoProjection* geoProjection() const {return m_nativeProj;}
 
@@ -202,7 +198,7 @@ private:
 
   using ObjectLookupVector = QVector<ObjectLookup>;
 
-  using PaintPriorityVector = QVector<S57::PaintDataVectorMap>;
+  using PaintPriorityVector = QVector<S57::PaintDataMap>;
 
   GLsizei addIndices(GLuint first, GLuint lower, GLuint upper, bool reversed);
   GLuint addAdjacent(GLuint base, GLuint nextprev);
@@ -219,5 +215,6 @@ private:
   PaintPriorityVector m_paintData;
   quint32 m_id;
   Settings* m_settings;
+  QMatrix4x4 m_pvm;
 };
 
