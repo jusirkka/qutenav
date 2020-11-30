@@ -158,7 +158,7 @@ void S57::SolidLineData::setVertexOffset() const {
 }
 
 
-S57::SolidLineData::SolidLineData(Type t, const ElementDataVector& elems, GLsizei offset, const QColor& c, uint width)
+S57::SolidLineData::SolidLineData(Type t, const ElementDataVector& elems, GLsizei offset, const QColor& c, GLfloat width)
   : LineData(t, elems)
   , m_vertexOffset(offset)
   , m_color(c)
@@ -179,7 +179,7 @@ void S57::DashedLineData::setVertexOffset() const {
 }
 
 
-S57::DashedLineData::DashedLineData(Type t, const ElementDataVector& elems, GLsizei offset, const QColor& c, uint width, uint patt)
+S57::DashedLineData::DashedLineData(Type t, const ElementDataVector& elems, GLsizei offset, const QColor& c, GLfloat width, uint patt)
   : LineData(t, elems)
   , m_vertexOffset(offset)
   , m_color(c)
@@ -188,30 +188,38 @@ S57::DashedLineData::DashedLineData(Type t, const ElementDataVector& elems, GLsi
 {}
 
 
-S57::SolidLineElemData::SolidLineElemData(const ElementDataVector& elem, GLsizei offset, const QColor& c, uint width)
+S57::SolidLineElemData::SolidLineElemData(const ElementDataVector& elem, GLsizei offset, const QColor& c, GLfloat width)
   : SolidLineData(Type::SolidLineElements, elem, offset, c, width)
 {}
 
-S57::SolidLineArrayData::SolidLineArrayData(const ElementDataVector& elem, GLsizei offset, const QColor& c, uint width)
+S57::SolidLineArrayData::SolidLineArrayData(const ElementDataVector& elem, GLsizei offset, const QColor& c, GLfloat width)
   : SolidLineData(Type::SolidLineArrays, elem, offset, c, width)
 {}
 
-S57::DashedLineElemData::DashedLineElemData(const ElementDataVector& elem, GLsizei offset, const QColor& c, uint width, uint pattern)
+S57::DashedLineElemData::DashedLineElemData(const ElementDataVector& elem, GLsizei offset, const QColor& c, GLfloat width, uint pattern)
   : DashedLineData(Type::DashedLineElements, elem, offset, c, width, pattern)
 {}
 
-S57::DashedLineArrayData::DashedLineArrayData(const ElementDataVector& elem, GLsizei offset, const QColor& c, uint width, uint pattern)
+S57::DashedLineArrayData::DashedLineArrayData(const ElementDataVector& elem, GLsizei offset, const QColor& c, GLfloat width, uint pattern)
   : DashedLineData(Type::DashedLineArrays, elem, offset, c, width, pattern)
 {}
 
-S57::SolidLineLocalData::SolidLineLocalData(const VertexVector& vertices, const ElementDataVector& elem, GLsizei offset, const QColor& c, uint width)
-  : SolidLineData(Type::SolidLineArrays, elem, offset, c, width)
+S57::SolidLineLocalData::SolidLineLocalData(const VertexVector& vertices, const ElementDataVector& elem, const QColor& c, GLfloat width)
+  : SolidLineData(Type::SolidLineLocal, elem, 0, c, width)
   , m_vertices(vertices)
 {}
 
-S57::DashedLineLocalData::DashedLineLocalData(const VertexVector& vertices, const ElementDataVector& elem, GLsizei offset, const QColor& c, uint width, uint pattern)
-  : DashedLineData(Type::DashedLineArrays, elem, offset, c, width, pattern)
+S57::SolidLineArrayData* S57::SolidLineLocalData::createArrayData(GLsizei offset) const {
+  return new SolidLineArrayData(m_elements, offset, m_color, m_lineWidth);
+}
+
+
+S57::DashedLineLocalData::DashedLineLocalData(const VertexVector& vertices, const ElementDataVector& elem, const QColor& c, GLfloat width, uint pattern)
+  : DashedLineData(Type::DashedLineLocal, elem, 0, c, width, pattern)
   , m_vertices(vertices)
 {}
 
+S57::DashedLineArrayData* S57::DashedLineLocalData::createArrayData(GLsizei offset) const {
+  return new DashedLineArrayData(m_elements, offset, m_color, m_lineWidth, m_pattern);
+}
 

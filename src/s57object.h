@@ -237,11 +237,11 @@ public:
 
 protected:
 
-  SolidLineData(Type t, const ElementDataVector& elems, GLsizei offset, const QColor& c, uint width);
+  SolidLineData(Type t, const ElementDataVector& elems, GLsizei offset, const QColor& c, GLfloat width);
 
   GLsizei m_vertexOffset;
   QColor m_color;
-  GLuint m_lineWidth;
+  GLfloat m_lineWidth;
 
 };
 
@@ -253,37 +253,40 @@ public:
 
 protected:
 
-  DashedLineData(Type t, const ElementDataVector& elems, GLsizei offset, const QColor& c, uint width, uint patt);
+  DashedLineData(Type t, const ElementDataVector& elems, GLsizei offset, const QColor& c, GLfloat width, uint patt);
 
   GLsizei m_vertexOffset;
   QColor m_color;
-  GLuint m_lineWidth;
+  GLfloat m_lineWidth;
   GLuint m_pattern;
 };
 
 class SolidLineElemData: public SolidLineData {
 public:
-  SolidLineElemData(const ElementDataVector& elem, GLsizei offset, const QColor& c, uint width);
+  SolidLineElemData(const ElementDataVector& elem, GLsizei offset, const QColor& c, GLfloat width);
 };
+
+class SolidLineLocalData;
 
 class SolidLineArrayData: public SolidLineData {
 public:
-  SolidLineArrayData(const ElementDataVector& elem, GLsizei offset, const QColor& c, uint width);
+  SolidLineArrayData(const ElementDataVector& elem, GLsizei offset, const QColor& c, GLfloat width);
 };
 
 class DashedLineElemData: public DashedLineData {
 public:
-  DashedLineElemData(const ElementDataVector& elem, GLsizei offset, const QColor& c, uint width, uint pattern);
+  DashedLineElemData(const ElementDataVector& elem, GLsizei offset, const QColor& c, GLfloat width, uint pattern);
 };
 
 class DashedLineArrayData: public DashedLineData {
 public:
-  DashedLineArrayData(const ElementDataVector& elem, GLsizei offset, const QColor& c, uint width, uint pattern);
+  DashedLineArrayData(const ElementDataVector& elem, GLsizei offset, const QColor& c, GLfloat width, uint pattern);
 };
 
 class SolidLineLocalData: public SolidLineData {
 public:
-  SolidLineLocalData(const VertexVector& vertices, const ElementDataVector& elem, GLsizei offset, const QColor& c, uint width);
+  SolidLineLocalData(const VertexVector& vertices, const ElementDataVector& elem, const QColor& c, GLfloat width);
+  SolidLineArrayData* createArrayData(GLsizei offset) const;
   const VertexVector& vertices() const {return m_vertices;}
 private:
   VertexVector m_vertices;
@@ -291,7 +294,8 @@ private:
 
 class DashedLineLocalData: public DashedLineData {
 public:
-  DashedLineLocalData(const VertexVector& vertices, const ElementDataVector& elem, GLsizei offset, const QColor& c, uint width, uint pattern);
+  DashedLineLocalData(const VertexVector& vertices, const ElementDataVector& elem, const QColor& c, GLfloat width, uint pattern);
+  DashedLineArrayData* createArrayData(GLsizei offset) const;
   const VertexVector& vertices() const {return m_vertices;}
 private:
   VertexVector m_vertices;
@@ -300,6 +304,7 @@ private:
 
 using PaintDataMap = QMultiMap<PaintData::Type, PaintData*>;
 using PaintIterator = QMultiMap<PaintData::Type, PaintData*>::const_iterator;
+using PaintMutIterator = QMultiMap<PaintData::Type, PaintData*>::iterator;
 
 class ObjectBuilder;
 

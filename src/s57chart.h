@@ -7,6 +7,7 @@
 #include "s52presentation.h"
 #include <QDate>
 #include <QMatrix4x4>
+#include <QOpenGLBuffer>
 
 //  OSENC V2 record definitions
 enum class SencRecordType: quint16 {
@@ -153,6 +154,7 @@ private:
 class GeoProjection;
 class Settings;
 class Camera;
+class QOpenGLContext;
 
 class S57Chart: public QObject {
 
@@ -175,6 +177,7 @@ public:
   quint32 id() const {return m_id;}
 
   void updatePaintData(const QRectF& viewArea, quint32 scale);
+  void finalizePaintData();
 
 signals:
 
@@ -200,21 +203,26 @@ private:
 
   using PaintPriorityVector = QVector<S57::PaintDataMap>;
 
-  GLsizei addIndices(GLuint first, GLuint lower, GLuint upper, bool reversed);
-  GLuint addAdjacent(GLuint base, GLuint nextprev);
-  void triangulate(const S57::ElementDataVector& lelems, S57::ElementDataVector& telems);
-  QRectF computeBBox(const S57::ElementDataVector& elems);
+  static void triangulate(const S57::ElementDataVector& lelems,
+                          S57::ElementDataVector& telems,
+                          const VertexVector& vertices,
+                          IndexVector& indices);
 
   Extent m_extent;
   GeoProjection* m_nativeProj;
   PolygonVector m_coverage;
   PolygonVector m_nocoverage;
   ObjectLookupVector m_lookups;
-  VertexVector m_vertices;
-  IndexVector m_indices;
   PaintPriorityVector m_paintData;
+  PaintPriorityVector m_updatedPaintData;
+  VertexVector m_updatedVertices;
   quint32 m_id;
   Settings* m_settings;
   QMatrix4x4 m_pvm;
+  QOpenGLBuffer m_coordBuffer;
+  QOpenGLBuffer m_indexBuffer;
+  GLsizei m_staticVertexOffset;
+  GLsizei m_staticElemOffset;
+
 };
 

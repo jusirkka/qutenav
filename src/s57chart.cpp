@@ -13,6 +13,7 @@
 #include "settings.h"
 #include "shader.h"
 #include <QOpenGLExtraFunctions>
+#include <QOpenGLContext>
 
 using Buffer = QVector<char>;
 using HandlerFunc = std::function<bool (const Buffer&)>;
@@ -175,12 +176,21 @@ public:
 
 }
 
+static GLsizei addIndices(GLuint first, GLuint mid1, GLuint mid2, bool reversed, S57Chart::IndexVector& indices);
+static GLuint addAdjacent(GLuint base, GLuint next, S57::VertexVector& vertices);
+static QRectF computeBBox(const S57::ElementDataVector &elems,
+                          const S57Chart::VertexVector& vertices,
+                          const S57Chart::IndexVector& indices);
+
 S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
-  : QObject(nullptr)
+  : QObject()
   , m_nativeProj(new SimpleMercator)
   , m_paintData(S52::Lookup::PriorityCount)
+  , m_updatedPaintData(S52::Lookup::PriorityCount)
   , m_id(id)
   , m_settings(Settings::instance())
+  , m_coordBuffer(QOpenGLBuffer::VertexBuffer)
+  , m_indexBuffer(QOpenGLBuffer::IndexBuffer)
 {
   S57ChartOutline outline(path);
   m_extent = outline.extent();
@@ -199,7 +209,7 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
 
   struct TrianglePatch {
     GLenum mode;
-    QVector<float> vertices;
+    VertexVector vertices;
   };
 
   using LineHandle = QVector<int>;
@@ -222,6 +232,9 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
 
   QMap<int, int> connMap;
   QMap<int, EdgeExtent> edgeMap;
+
+  VertexVector vertices;
+  IndexVector indices;
 
 
   const QMap<SencRecordType, Handler*> handlers {
@@ -354,7 +367,7 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
       })
     },
 
-    {SencRecordType::VECTOR_EDGE_NODE_TABLE_RECORD, new Handler([this, &edgeMap] (const Buffer& b) {
+    {SencRecordType::VECTOR_EDGE_NODE_TABLE_RECORD, new Handler([&vertices, &edgeMap] (const Buffer& b) {
         // qDebug() << "vector edge node table record";
         const char* ptr = b.constData();
 
@@ -374,16 +387,16 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
           ptr += 2 * pcnt * sizeof(float);
 
           EdgeExtent edge;
-          edge.first = m_vertices.size() / 2;
+          edge.first = vertices.size() / 2;
           edge.last = edge.first + pcnt - 1;
           edgeMap[index] = edge;
-          m_vertices.append(edges);
+          vertices.append(edges);
         }
         return true;
       })
     },
 
-    {SencRecordType::VECTOR_CONNECTED_NODE_TABLE_RECORD, new Handler([this, &connMap] (const Buffer& b) {
+    {SencRecordType::VECTOR_CONNECTED_NODE_TABLE_RECORD, new Handler([&vertices, &connMap] (const Buffer& b) {
         // qDebug() << "vector connected node table record";
         const char* ptr = b.constData();
 
@@ -401,9 +414,9 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
           auto y = *reinterpret_cast<const float*>(ptr);
           ptr += sizeof(float);
 
-          connMap[index] = m_vertices.size() / 2;
-          m_vertices.append(x);
-          m_vertices.append(y);
+          connMap[index] = vertices.size() / 2;
+          vertices.append(x);
+          vertices.append(y);
         }
         return true;
       })
@@ -466,14 +479,14 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
   }
   qDeleteAll(handlers);
 
-  auto lineGeometry = [this, edgeMap, connMap] (const LineHandle& geom, S57::ElementDataVector& elems) {
+  auto lineGeometry = [&indices, &vertices, edgeMap, connMap] (const LineHandle& geom, S57::ElementDataVector& elems) {
     const int cnt = geom.size() / 3;
     // qDebug() << geom;
     for (int i = 0; i < cnt;) {
       S57::ElementData e;
       e.mode = GL_LINE_STRIP_ADJACENCY;
-      e.offset = m_indices.size() * sizeof(GLuint);
-      m_indices.append(0); // dummy index to account adjacency
+      e.offset = indices.size() * sizeof(GLuint);
+      indices.append(0); // dummy index to account adjacency
       e.count = 1;
       int np = 3 * i;
       while (i < cnt && geom[3 * i] == geom[np]) {
@@ -482,9 +495,9 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
         if (edgeMap.contains(std::abs(m))) {
           const int first = edgeMap[std::abs(m)].first;
           const int last = edgeMap[std::abs(m)].last;
-          e.count += addIndices(c1, first, last, m < 0);
+          e.count += addIndices(c1, first, last, m < 0, indices);
         } else {
-          m_indices.append(c1);
+          indices.append(c1);
           e.count += 1;
         }
         np = 3 * i + 2;
@@ -494,15 +507,15 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
         const GLuint last = connMap[geom[3 * i - 1]];
         // account adjacency
         const int adj = e.offset / sizeof(GLuint);
-        const GLuint first = m_indices[adj + 1];
+        const GLuint first = indices[adj + 1];
         if (last == first) {
-          m_indices[adj] = m_indices.last(); // prev
-          m_indices.append(last); // last real index
-          m_indices.append(m_indices[adj + 2]); // adjacent = next of first
+          indices[adj] = indices.last(); // prev
+          indices.append(last); // last real index
+          indices.append(indices[adj + 2]); // adjacent = next of first
         } else {
-          m_indices[adj] = addAdjacent(first, m_indices[adj + 2]);
-          m_indices.append(last);
-          m_indices.append(addAdjacent(last, m_indices.last()));
+          indices[adj] = addAdjacent(first, indices[adj + 2], vertices);
+          indices.append(last);
+          indices.append(addAdjacent(last, indices.last(), vertices));
         }
         e.count += 2;
       }
@@ -511,27 +524,30 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
     const GLuint last = connMap[geom[geom.size() - 1]];
     // account adjacency
     const int adj = elems.last().offset / sizeof(GLuint);
-    const GLuint first = m_indices[adj + 1];
+    const GLuint first = indices[adj + 1];
     if (last == first) {
-      m_indices[adj] = m_indices.last(); // prev
-      m_indices.append(last); // last real index
-      m_indices.append(m_indices[adj + 2]); // adjacent = next of first
+      indices[adj] = indices.last(); // prev
+      indices.append(last); // last real index
+      indices.append(indices[adj + 2]); // adjacent = next of first
     } else {
-      m_indices.append(last); // adjacent = same as last
-      m_indices[adj] = addAdjacent(first, m_indices[adj + 2]);
-      m_indices.append(last);
-      m_indices.append(addAdjacent(last, m_indices.last()));
+      indices.append(last); // adjacent = same as last
+      indices[adj] = addAdjacent(first, indices[adj + 2], vertices);
+      indices.append(last);
+      indices.append(addAdjacent(last, indices.last(), vertices));
     }
     elems.last().count += 2;
   };
 
-  auto triangleGeometry = [this] (const TriangleHandle& geom, S57::ElementDataVector& elems) {
+  auto triangleGeometry = [&vertices] (const TriangleHandle& geom, S57::ElementDataVector& elems) {
+    GLint offset = 0;
     for (const TrianglePatch& p: geom) {
       S57::ElementData d;
       d.mode = p.mode;
+      d.offset = offset;
       d.count = p.vertices.size() / 2;
-      m_vertices.append(p.vertices);
+      vertices.append(p.vertices);
       elems.append(d);
+      offset += d.count;
     }
   };
 
@@ -546,21 +562,39 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
       lineGeometry(d.lines, elems);
       helper.setGeometry(d.object,
                          new S57::Geometry::Line(elems, 0),
-                         computeBBox(elems));
+                         computeBBox(elems, vertices, indices));
 
     } else if (d.type == S57::Geometry::Type::Area) {
 
       S57::ElementDataVector lelems;
       lineGeometry(d.lines, lelems);
 
-      GLsizei offset = m_vertices.size() * sizeof(GLfloat);
+      GLsizei offset = vertices.size() * sizeof(GLfloat);
       S57::ElementDataVector telems;
       triangleGeometry(d.triangles, telems);
 
       helper.setGeometry(d.object,
                          new S57::Geometry::Area(lelems, telems, offset, false),
-                         computeBBox(lelems));
+                         computeBBox(lelems, vertices, indices));
     }
+
+    // fill in the buffers
+
+    if (!m_coordBuffer.create()) qFatal("No can do");
+    m_coordBuffer.setUsagePattern(QOpenGLBuffer::DynamicDraw);
+    m_coordBuffer.bind();
+    m_staticVertexOffset = vertices.size() * sizeof(GLfloat);
+    // add 10% extra space for vertices added later
+    m_coordBuffer.allocate(m_staticVertexOffset + m_staticVertexOffset / 10);
+    m_coordBuffer.write(0, vertices.constData(), m_staticVertexOffset);
+
+    m_indexBuffer.create();
+    m_indexBuffer.setUsagePattern(QOpenGLBuffer::DynamicDraw);
+    m_indexBuffer.bind();
+    m_staticElemOffset = indices.size() * sizeof(GLuint);
+    // add 10% extra space for elements added later
+    m_indexBuffer.allocate(m_staticElemOffset + m_staticElemOffset / 10);
+    m_indexBuffer.write(0, indices.constData(), m_staticElemOffset);
 
     // bind objects to lookup records
     S52::Lookup* lp = S52::FindLookup(d.object);
@@ -568,17 +602,11 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
   }
 }
 
-GLuint S57Chart::addAdjacent(GLuint base, GLuint next) {
-  const float x1 = m_vertices[2 * base];
-  const float y1 = m_vertices[2 * base + 1];
-  const float x2 = m_vertices[2 * next];
-  const float y2 = m_vertices[2 * next + 1];
-  m_vertices.append(2 * x1 - x2);
-  m_vertices.append(2 * y1 - y2);
-  return (m_vertices.size() - 1) / 2;
-}
 
-void S57Chart::triangulate(const S57::ElementDataVector& lelems, S57::ElementDataVector& telems) {
+void S57Chart::triangulate(const S57::ElementDataVector& lelems,
+                           S57::ElementDataVector& telems,
+                           const VertexVector& vertices,
+                           IndexVector& indices) {
 
   // The number type to use for tessellation
   using Coord = GLfloat;
@@ -596,14 +624,14 @@ void S57Chart::triangulate(const S57::ElementDataVector& lelems, S57::ElementDat
   // The first polyline defines the main polygon.
 
   // adjacency: extra initial index, two extras at the end
-  int last = m_indices.size() - 3;
+  int last = indices.size() - 3;
   int first;
   for (int k = lelems.size() - 1; k >= 0; k--) {
     first = last - lelems[k].count + 4;
     std::vector<Point> ring;
     for (int i = first; i <= last; i++) {
-      const int index = m_indices[i];
-      const Point p{m_vertices[2 * index], m_vertices[2 * index + 1]};
+      const int index = indices[i];
+      const Point p{vertices[2 * index], vertices[2 * index + 1]};
       ring.push_back(p);
     }
     std::vector<std::vector<Point>> polygon;
@@ -613,15 +641,15 @@ void S57Chart::triangulate(const S57::ElementDataVector& lelems, S57::ElementDat
     // Run tessellation
     // Returns array of indices that refer to the vertices of the input polygon.
     // Three subsequent indices form a triangle. Output triangles are clockwise.
-    std::vector<N> indices = mapbox::earcut<N>(polygon);
+    std::vector<N> earcuts = mapbox::earcut<N>(polygon);
 
     QVector<N> triangles;
-    const GLsizei triCount = indices.size() / 3;
+    const GLsizei triCount = earcuts.size() / 3;
     // add triangle indices in ccw order
     for (int i = 0; i < triCount; i++)  {
-      const N i0 = m_indices[first + indices[3 * i]];
-      const N i1 = m_indices[first + indices[3 * i + 1]];
-      const N i2 = m_indices[first + indices[3 * i + 2]];
+      const N i0 = indices[first + earcuts[3 * i]];
+      const N i1 = indices[first + earcuts[3 * i + 1]];
+      const N i2 = indices[first + earcuts[3 * i + 2]];
       triangles.append(i0);
       triangles.append(i2);
       triangles.append(i1);
@@ -634,8 +662,8 @@ void S57Chart::triangulate(const S57::ElementDataVector& lelems, S57::ElementDat
       S57::ElementData e;
       e.mode = GL_TRIANGLE_STRIP;
       e.count = strip.size();
-      e.offset = m_indices.size() * sizeof(GLuint);
-      m_indices.append(strip);
+      e.offset = indices.size() * sizeof(GLuint);
+      indices.append(strip);
       telems.append(e);
     }
 
@@ -645,25 +673,44 @@ void S57Chart::triangulate(const S57::ElementDataVector& lelems, S57::ElementDat
 }
 
 
-GLsizei S57Chart::addIndices(GLuint first, GLuint mid1, GLuint mid2, bool reversed) {
-  m_indices.append(first);
-  if (!reversed) {
-    for (uint i = mid1; i <= mid2; i++) {
-      m_indices.append(i);
-    }
-  } else {
-    for (int i = mid2; i >= static_cast<int>(mid1); i--) {
-      m_indices.append(i);
+void S57Chart::finalizePaintData() {
+  // clear old paint data
+  for (S57::PaintDataMap& d: m_paintData) {
+    for (S57::PaintMutIterator it = d.begin(); it != d.end(); ++it) {
+      delete it.value();
     }
   }
-  return 1 + mid2 - mid1 + 1;
+
+  m_paintData = m_updatedPaintData;
+
+  // update vertex buffer
+  m_coordBuffer.bind();
+  const GLsizei dataLen = m_staticVertexOffset + sizeof(GLfloat) * m_updatedVertices.size();
+  if (dataLen > m_coordBuffer.size()) {
+    auto staticData = new uchar[m_staticVertexOffset];
+    auto coords = m_coordBuffer.map(QOpenGLBuffer::ReadOnly);
+    memcpy(staticData, coords, m_staticVertexOffset);
+    m_coordBuffer.unmap();
+    // add 10% extra
+    m_coordBuffer.allocate(dataLen + dataLen / 10);
+    m_coordBuffer.write(0, staticData, m_staticVertexOffset);
+    delete [] staticData;
+  }
+
+  m_coordBuffer.write(m_staticVertexOffset, m_updatedVertices.constData(), dataLen - m_staticVertexOffset);
+
 }
 
 void S57Chart::updatePaintData(const QRectF &viewArea, quint32 scale) {
-  for (auto& d: m_paintData) d.clear();
+
+  // clear old updates
+  for (S57::PaintDataMap& d: m_updatedPaintData) d.clear();
+  m_updatedVertices.clear();
+
 
   auto maxcat = as_numeric(m_settings->maxCategory());
   auto today = QDate::currentDate();
+
 
   for (ObjectLookup& d: m_lookups) {
     // check bbox & scale
@@ -678,21 +725,47 @@ void S57Chart::updatePaintData(const QRectF &viewArea, quint32 scale) {
       continue;
     }
 
-    m_paintData[d.lookup->priority()] += pd;
+    // handle the local arrays
+
+    S57::PaintMutIterator it = pd.find(S57::PaintData::Type::SolidLineLocal);
+    while (it != pd.end() && it.key() == S57::PaintData::Type::SolidLineLocal) {
+      auto p = dynamic_cast<S57::SolidLineLocalData*>(it.value());
+      auto pn = p->createArrayData(m_staticVertexOffset + m_updatedVertices.size());
+      m_updatedVertices += p->vertices();
+      delete p;
+      pd.erase(it);
+      m_updatedPaintData[d.lookup->priority()].insert(pn->type(), pn);
+    }
+
+    it = pd.find(S57::PaintData::Type::DashedLineLocal);
+    while (it != pd.end() && it.key() == S57::PaintData::Type::DashedLineLocal) {
+      auto p = dynamic_cast<S57::DashedLineLocalData*>(it.value());
+      auto pn = p->createArrayData(m_staticVertexOffset + m_updatedVertices.size());
+      m_updatedVertices += p->vertices();
+      delete p;
+      pd.erase(it);
+      m_updatedPaintData[d.lookup->priority()].insert(pn->type(), pn);
+    }
+
+    m_updatedPaintData[d.lookup->priority()] += pd;
 
   }
 }
 
 
-QRectF S57Chart::computeBBox(const S57::ElementDataVector &elems) {
+
+static QRectF computeBBox(const S57::ElementDataVector &elems,
+                          const S57Chart::VertexVector& vertices,
+                          const S57Chart::IndexVector& indices) {
+
   QPointF ur(-1.e15, -1.e15);
   QPointF ll(1.e15, 1.e15);
 
   for (const S57::ElementData& elem: elems) {
     const int first = elem.offset / sizeof(GLuint);
     for (uint i = 0; i < elem.count; i++) {
-      const int index = m_indices[first + i];
-      QPointF q(m_vertices[2 * index], m_vertices[2 * index + 1]);
+      const int index = indices[first + i];
+      QPointF q(vertices[2 * index], vertices[2 * index + 1]);
       ur.setX(qMax(ur.x(), q.x()));
       ur.setY(qMax(ur.y(), q.y()));
       ll.setX(qMin(ll.x(), q.x()));
@@ -705,76 +778,89 @@ QRectF S57Chart::computeBBox(const S57::ElementDataVector &elems) {
 
 void S57Chart::drawAreas(int prio) {
 
+  m_coordBuffer.bind();
+  m_indexBuffer.bind();
+
   auto prog = GL::AreaShader::instance();
   prog->setTransform(m_pvm);
   prog->setDepth(- 1 + .1 * prio + .01);
 
+
   auto gl = QOpenGLContext::currentContext()->extraFunctions();
 
   const S57::PaintIterator end = m_paintData[prio].constEnd();
 
-  S57::PaintIterator arrI = m_paintData[prio].constFind(S57::PaintData::Type::TriangleArrays);
+  S57::PaintIterator arr = m_paintData[prio].constFind(S57::PaintData::Type::TriangleArrays);
 
-  while (arrI != end && arrI.key() == S57::PaintData::Type::TriangleArrays) {
-    auto d = dynamic_cast<const S57::TriangleArrayData*>(arrI.value());
+  while (arr != end && arr.key() == S57::PaintData::Type::TriangleArrays) {
+    auto d = dynamic_cast<const S57::TriangleArrayData*>(arr.value());
     d->setUniforms();
     d->setVertexOffset();
     for (const S57::ElementData& e: d->elements()) {
       gl->glDrawArrays(e.mode, e.offset, e.count);
     }
-    ++arrI;
+    ++arr;
   }
 
-  S57::PaintIterator elemI = m_paintData[prio].constFind(S57::PaintData::Type::TriangleElements);
+  S57::PaintIterator elem = m_paintData[prio].constFind(S57::PaintData::Type::TriangleElements);
 
-  while (elemI != end && elemI.key() == S57::PaintData::Type::TriangleElements) {
-    auto d = dynamic_cast<const S57::TriangleElemData*>(elemI.value());
+  while (elem != end && elem.key() == S57::PaintData::Type::TriangleElements) {
+    auto d = dynamic_cast<const S57::TriangleElemData*>(elem.value());
     d->setUniforms();
     d->setVertexOffset();
     for (const S57::ElementData& e: d->elements()) {
       gl->glDrawElements(e.mode, e.count, GL_UNSIGNED_INT,
                          reinterpret_cast<const void*>(e.offset));
     }
-    ++arrI;
+    ++elem;
   }
 }
 
 void S57Chart::drawSolidLines(int prio) {
+
+  m_coordBuffer.bind();
+  m_indexBuffer.bind();
+
   auto prog = GL::SolidLineShader::instance();
   prog->setTransform(m_pvm);
   prog->setDepth(- 1 + .1 * prio + .02);
+
 
   auto gl = QOpenGLContext::currentContext()->extraFunctions();
 
   const S57::PaintIterator end = m_paintData[prio].constEnd();
 
-  S57::PaintIterator arrI = m_paintData[prio].constFind(S57::PaintData::Type::SolidLineArrays);
+  S57::PaintIterator arr = m_paintData[prio].constFind(S57::PaintData::Type::SolidLineArrays);
 
-  while (arrI != end && arrI.key() == S57::PaintData::Type::SolidLineArrays) {
-    auto d = dynamic_cast<const S57::SolidLineArrayData*>(arrI.value());
+  while (arr != end && arr.key() == S57::PaintData::Type::SolidLineArrays) {
+    auto d = dynamic_cast<const S57::SolidLineArrayData*>(arr.value());
     d->setUniforms();
     d->setVertexOffset();
     for (const S57::ElementData& e: d->elements()) {
       gl->glDrawArrays(e.mode, e.offset, e.count);
     }
-    ++arrI;
+    ++arr;
   }
 
-  S57::PaintIterator elemI = m_paintData[prio].constFind(S57::PaintData::Type::SolidLineElements);
+  S57::PaintIterator elem = m_paintData[prio].constFind(S57::PaintData::Type::SolidLineElements);
 
-  while (elemI != end && elemI.key() == S57::PaintData::Type::SolidLineElements) {
-    auto d = dynamic_cast<const S57::SolidLineElemData*>(elemI.value());
+  while (elem != end && elem.key() == S57::PaintData::Type::SolidLineElements) {
+    auto d = dynamic_cast<const S57::SolidLineElemData*>(elem.value());
     d->setUniforms();
     d->setVertexOffset();
     for (const S57::ElementData& e: d->elements()) {
       gl->glDrawElements(e.mode, e.count, GL_UNSIGNED_INT,
                          reinterpret_cast<const void*>(e.offset));
     }
-    ++arrI;
+    ++elem;
   }
 }
 
 void S57Chart::drawDashedLines() {
+
+  m_coordBuffer.bind();
+  m_indexBuffer.bind();
+
   auto prog = GL::DashedLineShader::instance();
   prog->setTransform(m_pvm);
 
@@ -785,29 +871,29 @@ void S57Chart::drawDashedLines() {
     const S57::PaintIterator end = m_paintData[prio].constEnd();
     prog->setDepth(- 1 + .1 * prio + .02);
 
-    S57::PaintIterator arrI = m_paintData[prio].constFind(S57::PaintData::Type::DashedLineArrays);
+    S57::PaintIterator arr = m_paintData[prio].constFind(S57::PaintData::Type::DashedLineArrays);
 
-    while (arrI != end && arrI.key() == S57::PaintData::Type::DashedLineArrays) {
-      auto d = dynamic_cast<const S57::DashedLineArrayData*>(arrI.value());
+    while (arr != end && arr.key() == S57::PaintData::Type::DashedLineArrays) {
+      auto d = dynamic_cast<const S57::DashedLineArrayData*>(arr.value());
       d->setUniforms();
       d->setVertexOffset();
       for (const S57::ElementData& e: d->elements()) {
         gl->glDrawArrays(e.mode, e.offset, e.count);
       }
-      ++arrI;
+      ++arr;
     }
 
-    S57::PaintIterator elemI = m_paintData[prio].constFind(S57::PaintData::Type::DashedLineElements);
+    S57::PaintIterator elem = m_paintData[prio].constFind(S57::PaintData::Type::DashedLineElements);
 
-    while (elemI != end && elemI.key() == S57::PaintData::Type::DashedLineElements) {
-      auto d = dynamic_cast<const S57::DashedLineElemData*>(elemI.value());
+    while (elem != end && elem.key() == S57::PaintData::Type::DashedLineElements) {
+      auto d = dynamic_cast<const S57::DashedLineElemData*>(elem.value());
       d->setUniforms();
       d->setVertexOffset();
       for (const S57::ElementData& e: d->elements()) {
         gl->glDrawElements(e.mode, e.count, GL_UNSIGNED_INT,
                            reinterpret_cast<const void*>(e.offset));
       }
-      ++arrI;
+      ++elem;
     }
   }
 }
@@ -819,3 +905,28 @@ void S57Chart::setTransform(const Camera *cam) {
   tr.translate(p.x(), p.y());
   m_pvm = cam->projection() * cam->view() * tr;
 }
+
+static GLsizei addIndices(GLuint first, GLuint mid1, GLuint mid2, bool reversed, S57Chart::IndexVector& indices) {
+  indices.append(first);
+  if (!reversed) {
+    for (uint i = mid1; i <= mid2; i++) {
+      indices.append(i);
+    }
+  } else {
+    for (int i = mid2; i >= static_cast<int>(mid1); i--) {
+      indices.append(i);
+    }
+  }
+  return 1 + mid2 - mid1 + 1;
+}
+
+static GLuint addAdjacent(GLuint base, GLuint next, S57::VertexVector& vertices) {
+  const float x1 = vertices[2 * base];
+  const float y1 = vertices[2 * base + 1];
+  const float x2 = vertices[2 * next];
+  const float y2 = vertices[2 * next + 1];
+  vertices.append(2 * x1 - x2);
+  vertices.append(2 * y1 - y2);
+  return (vertices.size() - 1) / 2;
+}
+

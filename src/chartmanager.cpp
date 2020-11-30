@@ -9,6 +9,8 @@
 #include <QVariant>
 #include <QDirIterator>
 #include "camera.h"
+#include <QOpenGLContext>
+#include "glthread.h"
 
 
 ChartManager::Database::Database() {
@@ -81,7 +83,9 @@ ChartManager* ChartManager::instance() {
 
 ChartManager::ChartManager(QObject *parent)
   : QObject(parent)
-  , m_db() {
+  , m_db()
+  , m_workers({nullptr}) // temporary, to be replaced in createThreads
+{
 
   // check & fill database
   const QString sql = "select id, scale, geoproj, reference, width, height, path from charts";
@@ -154,9 +158,34 @@ void ChartManager::createOutline(GeoProjection* proj, const ChartInfo& info) {
   }
 }
 
+void ChartManager::createThreads(QOpenGLContext* ctx) {
+  const int numThreads = QThread::idealThreadCount();
+  qDebug() << "number of chart updaters =" << numThreads;
+  m_workers.clear(); // remove the temporary setting in ctor
+  for (int i = 0; i < numThreads; ++i) {
+    auto thread = new GL::Thread(ctx);
+    auto worker = new ChartUpdater(m_workers.size());
+    m_idleStack.push(worker->id());
+    worker->moveToThread(thread);
+    connect(thread, &QThread::finished, worker, &QObject::deleteLater);
+    connect(worker, &ChartUpdater::done, this, &ChartManager::manageThreads);
+    thread->start();
+    m_threads.append(thread);
+    m_workers.append(worker);
+  }
+}
+
+ChartManager::~ChartManager() {
+  for (GL::Thread* thread: m_threads) {
+    thread->quit();
+    thread->wait();
+  }
+  qDeleteAll(m_threads);
+}
+
 void ChartManager::updateCharts(const Camera *cam) {
 
-  if (!m_threads.isEmpty()) return;
+  if (m_idleStack.size() != m_workers.size()) return;
 
   m_viewport = m_viewport.translated(cam->geoprojection()->fromWGS84(m_proj->reference()));
   m_proj->setReference(cam->geoprojection()->reference());
@@ -188,10 +217,10 @@ void ChartManager::updateCharts(const Camera *cam) {
       if (!viewArea.intersects(chart.bbox.translated(m_proj->fromWGS84(chart.ref))))  continue;
       if (float(chart.scale) / m_scale > maxScaleRatio) continue;
       if (float(m_scale) / chart.scale > maxScaleRatio) continue;
-      if (!m_ids.contains(chart.id)) {
+      if (!m_chartIds.contains(chart.id)) {
         newCharts.append(chart.id);
       } else {
-        m_ids.remove(chart.id);
+        m_chartIds.remove(chart.id);
       }
     }
   }
@@ -199,30 +228,28 @@ void ChartManager::updateCharts(const Camera *cam) {
   m_hadCharts = !m_charts.isEmpty();
 
   // remove old charts
-  for (auto it = m_ids.constBegin(); it != m_ids.constEnd(); ++it) {
+  for (auto it = m_chartIds.constBegin(); it != m_chartIds.constEnd(); ++it) {
     delete m_charts[it.value()];
     m_charts[it.value()] = nullptr;
   }
   ChartVector charts;
-  // update m_ids
-  m_ids.clear();
+  // update m_chartIds
+  m_chartIds.clear();
   for (S57Chart* c: m_charts) {
     if (c != nullptr) {
-      m_ids[c->id()] = charts.size();
+      m_chartIds[c->id()] = charts.size();
       charts.append(c);
     }
   }
   m_charts = charts;
 
   bool noCharts = m_charts.isEmpty() && newCharts.isEmpty();
-  // create updater(object) threads
+  // create pending chart update data
   for (S57Chart* c: m_charts) {
     const QRectF va = viewArea.translated(c->geoProjection()->fromWGS84(m_proj->reference()));
-    auto upd = new ChartUpdater(c, va, m_scale);
-    connect(upd, &ChartUpdater::finished, this, &ChartManager::manageThreads);
-    m_threads[c->id()] = upd;
+    m_pendingStack.push(ChartData(c, va, m_scale));
   }
-  // append new charts
+  // create pending chart creation data
   if (!newCharts.isEmpty()) {
     QString sql = "select id, path from charts where id in (";
     sql += QString("?,").repeated(newCharts.size());
@@ -233,14 +260,25 @@ void ChartManager::updateCharts(const Camera *cam) {
     }
     m_db.exec(r);
     while (r.next()) {
-      quint32 id = r.value(0).toUInt();
-      auto upd = new ChartUpdater(id, r.value(1).toString(), m_proj, viewArea, m_scale);
-      connect(upd, &ChartUpdater::finished, this, &ChartManager::manageThreads);
-      m_threads[id] = upd;
+      const quint32 id = r.value(0).toUInt();
+      const auto path = r.value(1).toString();
+      m_pendingStack.push(ChartData(id, path, m_proj, viewArea, m_scale));
     }
   }
-  for (auto thread: m_threads.values()) {
-    thread->start();
+
+  while (!m_pendingStack.isEmpty() && !m_idleStack.isEmpty()) {
+    const ChartData d = m_pendingStack.pop();
+    const quint32 index = m_idleStack.pop();
+    ChartUpdater* dest = m_workers[index];
+    if (d.chart != nullptr) {
+      QMetaObject::invokeMethod(dest, [dest, d] () {
+        dest->updateChart(d.chart, d.viewArea, d.scale);
+      });
+    } else {
+      QMetaObject::invokeMethod(dest, [dest, d] () {
+        dest->createChart(d.id, d.path, d.proj, d.viewArea, d.scale);
+      });
+    }
   }
 
   if (noCharts && m_hadCharts) emit idle();
@@ -368,20 +406,35 @@ void ChartManager::updateDB() {
   }
 }
 
-void ChartManager::manageThreads() {
+void ChartManager::manageThreads(S57Chart* chart) {
   // qDebug() << "chartmanager: manageThreads";
-  auto thread = qobject_cast<ChartUpdater*>(sender());
-  quint32 id = thread->chart()->id();
 
-  if (!m_ids.contains(id)) {
-    m_ids[id] = m_charts.size();
-    m_charts.append(thread->chart());
+  chart->finalizePaintData();
+
+  auto chartId = chart->id();
+  if (!m_chartIds.contains(chartId)) {
+    m_chartIds[chartId] = m_charts.size();
+    m_charts.append(chart);
   }
 
-  delete m_threads[id];
-  m_threads.remove(id);
+  auto dest = qobject_cast<ChartUpdater*>(sender());
+  if (!m_pendingStack.isEmpty()) {
+    const ChartData d = m_pendingStack.pop();
+    if (d.chart != nullptr) {
+      QMetaObject::invokeMethod(dest, [dest, d] () {
+        dest->updateChart(d.chart, d.viewArea, d.scale);
+      });
+    } else {
+      QMetaObject::invokeMethod(dest, [dest, d] () {
+        dest->createChart(d.id, d.path, d.proj, d.viewArea, d.scale);
+      });
+    }
+  } else {
+    m_idleStack.push(dest->id());
+  }
 
-  if (m_threads.isEmpty()) {
+
+  if (m_idleStack.size() == m_workers.size()) {
     if (!m_hadCharts) {
       emit active();
     } else {
@@ -391,30 +444,17 @@ void ChartManager::manageThreads() {
 }
 
 
-ChartUpdater::ChartUpdater(S57Chart* chart, const QRectF& viewArea, quint32 scale)
-  : QThread()
-  , m_chart(chart)
-  , m_id(0)
-  , m_path()
-  , m_proj(nullptr)
-  , m_area(viewArea)
-  , m_scale(scale) {}
-
-ChartUpdater::ChartUpdater(quint32 id, const QString& path, const GeoProjection* p, const QRectF& viewArea, quint32 scale)
-  : QThread()
-  , m_chart(nullptr)
-  , m_id(id)
-  , m_path(path)
-  , m_proj(p)
-  , m_area(viewArea)
-  , m_scale(scale) {}
-
-
-void ChartUpdater::run() {
-  if (!m_chart) {
-    m_chart = new S57Chart(m_id, m_path, m_proj);
-    m_area.translate(m_chart->geoProjection()->fromWGS84(m_proj->reference()));
-  }
-  // qDebug() << "run: update paintdata";
-  m_chart->updatePaintData(m_area, m_scale);
+void ChartUpdater::createChart(quint32 id, const QString &path, const GeoProjection *p,
+                               QRectF viewArea, quint32 scale) {
+  auto chart = new S57Chart(id, path, p);
+  viewArea.translate(chart->geoProjection()->fromWGS84(p->reference()));
+  // qDebug() << "ChartUpdater::createChart";
+  chart->updatePaintData(viewArea, scale);
+  emit done(chart);
 }
+
+void ChartUpdater::updateChart(S57Chart *chart, const QRectF &viewArea, quint32 scale) {
+  chart->updatePaintData(viewArea, scale);
+  emit done(chart);
+}
+

@@ -36,7 +36,9 @@ void GLWidget::initializeGL() {
     }
   }
 
-  auto gl = QOpenGLContext::currentContext()->functions();
+  m_manager->createThreads(context());
+
+  auto gl = context()->functions();
   gl->glClearColor(.4, .4, .4, 1.);
 
   if (!m_vao.isCreated()) {

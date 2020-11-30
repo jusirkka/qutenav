@@ -53,7 +53,7 @@ charspec       \'[1-2][4-6][0-2][0-9]+\'
 {colorname}         yylval->v_string = yytext; return COLOR;
 
 {float}             yylval->v_float = strtof(yytext, NULL); return FLOAT;
-{num}               yylval->v_int = (int) strtol(yytext, NULL, 0); return INT;
+{num}               yylval->v_int = static_cast<int>(strtol(yytext, NULL, 0)); return INT;
 
 {charspec}          {
                       QString s = yytext;

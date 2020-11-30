@@ -2,6 +2,7 @@
 
 #include "s52presentation_p.h"
 #include <QDebug>
+#include "types.h"
 
 int s52instr_lex(Private::Instr_ValueType*, Private::LocationType*, yyscan_t);
 
@@ -90,7 +91,7 @@ command: TX '(' varstring ',' INT ',' INT ',' INT ',' CHARSPEC ','
     bc.setCode(lookup, S52::Lookup::Code::Fun);
     bc.setRef(lookup, fun->index());
   } else {
-    qWarning() << "TX: parse error, called with (attribute)" << $5 << $7 << $9 << $11 << $13 << $15 << $17 << $19;
+    qWarning() << "TX: unknown symbol, called with (attribute)" << $5 << $7 << $9 << $11 << $13 << $15 << $17 << $19;
   }
 };
 
@@ -149,7 +150,7 @@ command: TE '(' string ',' string ',' INT ',' INT ',' INT ',' CHARSPEC ','
     bc.setCode(lookup, S52::Lookup::Code::Fun);
     bc.setRef(lookup, fun->index());
   } else {
-    qWarning() << "TE: parse error, called with" << $3 << $5 << $7 << $9 << $11 << $13 << $15 << $17 << $19 << $21;
+    qWarning() << "TE: unknown symbols, called with" << $3 << $5 << $7 << $9 << $11 << $13 << $15 << $17 << $19 << $21;
   }
 
 };
@@ -211,7 +212,7 @@ command: SY '(' SYMBOL optrotation ')' {
     bc.setCode(lookup, S52::Lookup::Code::Fun);
     bc.setRef(lookup, fun->index());
   } else {
-    qWarning() << "SY: parse error, called with " << $3 << $4;
+    qWarning() << "SY: unknown symbol, called with " << $3 << $4;
   }
 };
 
@@ -249,20 +250,20 @@ command: LS '(' pstyle ',' INT ',' COLOR ')' {
     bc.setCode(lookup, S52::Lookup::Code::Fun);
     bc.setRef(lookup, fun->index());
   } else {
-    qWarning() << "LS: parse error, called with " << $3 << $5 << $7;
+    qWarning() << "LS: unknown symbol, called with " << $3 << $5 << $7;
   }
 };
 
 pstyle: SOLID {
-  $$ = int(S52::Lookup::Line::Solid);
+  $$ = as_numeric(S52::Lookup::Line::Solid);
 };
 
 pstyle: DASHED {
-  $$ = int(S52::Lookup::Line::Dashed);
+  $$ = as_numeric(S52::Lookup::Line::Dashed);
 };
 
 pstyle: DOTTED {
-  $$ = int(S52::Lookup::Line::Dotted);
+  $$ = as_numeric(S52::Lookup::Line::Dotted);
 };
 
 command: LC '(' SYMBOL ')' {
@@ -277,7 +278,7 @@ command: LC '(' SYMBOL ')' {
     bc.setCode(lookup, S52::Lookup::Code::Fun);
     bc.setRef(lookup, fun->index());
   } else {
-    qWarning() << "LC: parse error, called with " << $3;
+    qWarning() << "LC: unknown symbol, called with " << $3;
   }
 };
 
@@ -296,7 +297,7 @@ command: AC '(' COLOR opttransparency ')' {
     bc.setCode(lookup, S52::Lookup::Code::Fun);
     bc.setRef(lookup, fun->index());
   } else {
-    qWarning() << "AC: parse error, called with " << $3 << $4;
+    qWarning() << "AC: unknown symbol, called with " << $3 << $4;
   }
 };
 
@@ -323,7 +324,7 @@ command: AP '(' SYMBOL optrotation ')' {
     bc.setCode(lookup, S52::Lookup::Code::Fun);
     bc.setRef(lookup, fun->index());
   } else {
-    qWarning() << "AP: parse error, called with " << $3 << $4;
+    qWarning() << "AP: unknown symbol, called with " << $3 << $4;
   }
 };
 
@@ -336,7 +337,7 @@ command: CS '(' SYMBOL ')' {
     bc.setCode(lookup, S52::Lookup::Code::Fun);
     bc.setRef(lookup, fun->index());
   } else {
-    qWarning() << "CS: parse error, called with " << $3;
+    qWarning() << "CS: unknown symbol, called with " << $3;
   }
 };
 

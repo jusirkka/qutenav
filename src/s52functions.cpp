@@ -101,9 +101,9 @@ S57::PaintDataMap S52::LineSimple::linesFromPoint(const QVector<QVariant> &vals,
   auto color = S52::GetColor(vals[2].toUInt());
 
   if (pattern == S52::Lookup::Line::Solid) {
-    p = new S57::SolidLineLocalData(vertices, elements, 0, color, width);
+    p = new S57::SolidLineLocalData(vertices, elements, color, width);
   } else {
-    p = new S57::DashedLineLocalData(vertices, elements, 0, color, width,
+    p = new S57::DashedLineLocalData(vertices, elements, color, width,
                                      as_numeric(pattern));
   }
 

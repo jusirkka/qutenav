@@ -75,6 +75,7 @@ target_sources(qopencpn
     src/types.cpp
     src/wfreader.cpp
     src/shader.cpp
+    src/glthread.cpp
     src/GeographicLib/Geodesic.cpp
     src/GeographicLib/GeodesicLine.cpp
     src/GeographicLib/Math.cpp

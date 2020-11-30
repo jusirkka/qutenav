@@ -128,7 +128,7 @@ line            l
 {float_1}           yylval->v_float = strtod(yytext, NULL); return FLOAT;
 {float_2}           yylval->v_float = strtod(yytext, NULL); return FLOAT;
 {float_3}           yylval->v_float = strtod(yytext, NULL); return FLOAT;
-{num}               yylval->v_int = (int) strtol(yytext, NULL, 0); return INT;
+{num}               yylval->v_int = static_cast<int>(strtol(yytext, NULL, 0)); return INT;
 
 
 

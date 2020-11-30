@@ -38,7 +38,7 @@ colorname      [@A-Z\[\\\]\^_\`a-z\{\|\}~]
 
 %%
 
-{unum}              yylval->v_int = (int) strtol(yytext, NULL, 0); return INT;
+{unum}              yylval->v_int = static_cast<int>(strtol(yytext, NULL, 0)); return INT;
 
 "SP"                return SP;
 "ST"                return ST;
