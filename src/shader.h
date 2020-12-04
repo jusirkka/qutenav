@@ -8,6 +8,7 @@ namespace S57 {
 class TriangleData;
 class SolidLineData;
 class DashedLineData;
+class TextElemData;
 }
 
 namespace GL {
@@ -17,9 +18,9 @@ public:
 
   const QOpenGLShaderProgram* prog() const {return m_program;}
   QOpenGLShaderProgram* prog() {return m_program;}
+  void setDepth(int prio);
 
-  virtual void setTransform(const QMatrix4x4& pvm) = 0;
-  virtual void setDepth(GLfloat depth) = 0;
+  virtual void setGlobals(const Camera* cam, const QPointF& tr) = 0;
   virtual void initializePaint();
 
   virtual ~Shader();
@@ -33,9 +34,12 @@ protected:
     QString fname;
   };
 
-  Shader(const QVector<Source>& sources);
+  Shader(const QVector<Source>& sources, GLfloat ds);
 
   QOpenGLShaderProgram* m_program;
+
+  GLfloat m_depthShift;
+  int m_depth;
 
 };
 
@@ -45,16 +49,15 @@ class AreaShader: public Shader {
 
 public:
   static AreaShader* instance();
-  void setTransform(const QMatrix4x4& pvm) override;
-  void setDepth(GLfloat depth) override;
+  void setGlobals(const Camera* cam, const QPointF& tr) override;
 
 private:
   AreaShader();
 
   struct _locations {
+    int m_pv;
+    int tr;
     int base_color;
-    int m_pvm;
-    int depth;
   } m_locations;
 
 };
@@ -65,25 +68,21 @@ class SolidLineShader: public Shader {
 
 public:
   static SolidLineShader* instance();
-  void setTransform(const QMatrix4x4& pvm) override;
-  void setDepth(GLfloat depth) override;
-
-  void setScreen(const Camera* cam);
+  void setGlobals(const Camera* cam, const QPointF& t0) override;
 
 private:
   SolidLineShader();
 
   struct _locations {
-    int base_color;
-    int m_pvm;
-    int depth;
-    int screenXMax;
-    int screenYMax;
+    int m_pv;
+    int tr;
+    int windowScale;
     int lineWidth;
+    int base_color;
   } m_locations;
 
-  const float m_dots_per_mm_x;
   const float m_dots_per_mm_y;
+
 };
 
 
@@ -93,10 +92,7 @@ class DashedLineShader: public Shader {
 
 public:
   static DashedLineShader* instance();
-  void setTransform(const QMatrix4x4& pvm) override;
-  void setDepth(GLfloat depth) override;
-
-  void setScreen(const Camera* cam);
+  void setGlobals(const Camera* cam, const QPointF& t0) override;
 
 private:
   DashedLineShader();
@@ -105,18 +101,45 @@ private:
   static constexpr uint linefactor = 1;
 
   struct _locations {
-    int base_color;
-    int m_pvm;
-    int depth;
-    int screenXMax;
-    int screenYMax;
+    int m_pv;
+    int tr;
+    int windowScale;
     int lineWidth;
+    int base_color;
     int pattern;
     int patlen;
     int factor;
   } m_locations;
 
-  const float m_dots_per_mm_x;
+  const float m_dots_per_mm_y;
+
+};
+
+class TextShader: public Shader {
+
+  friend class S57::TextElemData;
+
+public:
+  static TextShader* instance();
+  void setGlobals(const Camera* cam, const QPointF& t0) override;
+  void initializePaint() override;
+
+private:
+  TextShader();
+
+  struct _locations {
+    int m_pv;
+    int tr;
+    int w_atlas;
+    int h_atlas;
+    int windowScale;
+    int textScale;
+    int pivot;
+    int pivotShift;
+    int atlas;
+    int base_color;
+  } m_locations;
+
   const float m_dots_per_mm_y;
 
 };

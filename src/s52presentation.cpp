@@ -29,7 +29,7 @@ S57::PaintDataMap S52::Lookup::execute(const S57::Object *obj) const {
     }
 
     case Code::Var:
-      stack[stackPos++] = obj->attributes()[m_references[refPos++]].value();
+      stack[stackPos++] = obj->attributeValue(m_references[refPos++]);
       break;
 
     default:

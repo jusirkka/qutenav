@@ -11,6 +11,11 @@ OutlineMode::OutlineMode(float wmm, float hmm, GeoProjection* p)
   m_drawables << new Outliner(this) << new Globe(this);
 }
 
+OutlineMode::~OutlineMode() {
+  delete m_camera;
+  qDeleteAll(m_drawables);
+}
+
 DetailMode* OutlineMode::largerScaleMode() const {
   return nullptr;
 }

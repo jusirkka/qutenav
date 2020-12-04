@@ -33,6 +33,15 @@ find_package(BISON ${BISON_MIN_VERSION} REQUIRED)
 set(FLEX_MIN_VERSION "2.6.1")
 find_package(FLEX ${FLEX_MIN_VERSION} REQUIRED)
 
+set(FREETYPE_MIN_VERSION "2.10.4")
+find_package(Freetype ${FREETYPE_MIN_VERSION} REQUIRED)
+
+set(FONTCONFIG_MIN_VERSION "2.13")
+find_package(Fontconfig ${FONTCONFIG_MIN_VERSION} REQUIRED)
+
+#set(HARFBUZZ_MIN_VERSION "2.6.7")
+find_package(harfbuzz ${HARFBUZZ_MIN_VERSION} REQUIRED)
+
 #
 # targets
 #
@@ -58,7 +67,9 @@ target_sources(qopencpn
     src/drawable.cpp
     src/geoprojection.cpp
     src/globe.cpp
+    src/glthread.cpp
     src/glwidget.cpp
+    src/glyphmanager.cpp
     src/main.cpp
     src/mainwindow.cpp
     src/orthocam.cpp
@@ -71,11 +82,12 @@ target_sources(qopencpn
     src/s57chart.cpp
     src/s57object.cpp
     src/settings.cpp
+    src/shader.cpp
+    src/textmanager.cpp
+    src/tiny_sdf.cpp
     src/triangleoptimizer.cpp
     src/types.cpp
     src/wfreader.cpp
-    src/shader.cpp
-    src/glthread.cpp
     src/GeographicLib/Geodesic.cpp
     src/GeographicLib/GeodesicLine.cpp
     src/GeographicLib/Math.cpp
@@ -120,10 +132,7 @@ target_include_directories(qopencpn
 
 target_compile_features(qopencpn
   PRIVATE
-    cxx_auto_type
-    cxx_constexpr
-    cxx_override
-    cxx_range_for
+    cxx_std_17
 )
 
 target_link_libraries(qopencpn
@@ -131,6 +140,9 @@ target_link_libraries(qopencpn
     KF5::I18n
     KF5::XmlGui
     Qt5::Sql
+    Freetype::Freetype
+    Fontconfig::Fontconfig
+    harfbuzz::harfbuzz
 )
 
 

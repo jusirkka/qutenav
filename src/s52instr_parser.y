@@ -117,6 +117,9 @@ command: TE '(' string ',' string ',' INT ',' INT ',' INT ',' CHARSPEC ','
     // format
     bc.setCode(lookup, S52::Lookup::Code::Immed);
     bc.setImmed(lookup, QVariant::fromValue($3));
+    // number of attributes
+    bc.setCode(lookup, S52::Lookup::Code::Immed);
+    bc.setImmed(lookup, QVariant::fromValue(refs.size()));
     // attribute references
     for (quint32 ref: refs) {
       bc.setCode(lookup, S52::Lookup::Code::Var);
@@ -164,6 +167,7 @@ varstring: VARIABLE {
 
     bc.setCode(lookup, S52::Lookup::Code::Var);
     bc.setRef(lookup, reader->names[$1]);
+    // qDebug() << $1 << reader->names[$1];
   } else {
     qWarning() << "TX: attribute not found" << $1;
   }

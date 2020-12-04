@@ -5,6 +5,7 @@
 
 #include "mainwindow.h"
 #include "s52presentation.h"
+#include "textmanager.h"
 
 #include <QSurfaceFormat>
 #include <KAboutData>
@@ -51,6 +52,9 @@ int main(int argc, char *argv[])
   aboutData.setupCommandLine(&parser);
   parser.process(app);
   aboutData.processCommandLine(&parser);
+
+  qRegisterMetaType<TextKey>();
+  qRegisterMetaType<GL::GlyphData>();
 
   QSurfaceFormat format;
   format.setVersion(4, 6);

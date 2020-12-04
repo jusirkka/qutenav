@@ -1,6 +1,5 @@
 #version 450 core
 
-
 uniform vec4 base_color;
 out vec4 color;
 

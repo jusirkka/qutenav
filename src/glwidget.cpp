@@ -6,21 +6,31 @@
 #include <cmath>
 #include <QPainter>
 #include "chartmanager.h"
+#include "textmanager.h"
+#include <QGuiApplication>
+#include <QScreen>
 
 GLWidget::GLWidget(QWidget* parent)
   : QOpenGLWidget(parent)
   , m_mode(DetailMode::RestoreState())
   , m_logger(nullptr)
-  , m_manager(ChartManager::instance())
+  , m_chartManager(ChartManager::instance())
+  , m_textManager(TextManager::instance())
 {
   m_timer = new QTimer(this);
   m_timer->setInterval(1000/25);
   connect(m_timer, &QTimer::timeout, this, &GLWidget::pan);
 
-  connect(this, &GLWidget::updateViewport, m_manager, &ChartManager::updateCharts);
-  connect(m_manager, &ChartManager::idle, this, &GLWidget::finalizeChartMode);
-  connect(m_manager, &ChartManager::active, this, &GLWidget::initializeChartMode);
-  connect(m_manager, &ChartManager::chartsUpdated, this, &GLWidget::updateCharts);
+  connect(this, &GLWidget::updateViewport, m_chartManager, &ChartManager::updateCharts);
+  connect(m_chartManager, &ChartManager::idle, this, &GLWidget::finalizeChartMode);
+  connect(m_chartManager, &ChartManager::active, this, &GLWidget::initializeChartMode);
+  connect(m_chartManager, &ChartManager::chartsUpdated, this, &GLWidget::updateCharts);
+
+  connect(m_textManager, &TextManager::newStrings, this, [this] () {
+    qDebug() << "new strings";
+    emit updateViewport(m_mode->camera(), true);
+    update();
+  });
 }
 
 
@@ -36,7 +46,8 @@ void GLWidget::initializeGL() {
     }
   }
 
-  m_manager->createThreads(context());
+  m_chartManager->createThreads(context());
+  m_textManager->createContext(context());
 
   auto gl = context()->functions();
   gl->glClearColor(.4, .4, .4, 1.);
@@ -67,6 +78,10 @@ void GLWidget::resizeGL(int w, int h) {
     m_mode->camera()->resize(widthMM(), heightMM());
   }
   emit updateViewport(m_mode->camera());
+  qDebug() << "WxH (mm) =" << widthMM() << "x" << heightMM();
+  qDebug() << "WxH (pixels) =" << width() << "x" << height();
+  qDebug() << "WxH (pixels / mm) =" << QGuiApplication::primaryScreen()->physicalDotsPerInchX() / 25.4 << "x" << QGuiApplication::primaryScreen()->physicalDotsPerInchY() / 25.4;
+  qDebug() << "WxH (pixels / mm) =" << static_cast<float>(width()) / widthMM() << "x" << static_cast<float>(height()) / heightMM();
 }
 
 void GLWidget::paintGL() {
@@ -172,7 +187,7 @@ void GLWidget::zoomIn() {
     initializeChartMode();
   }
 
-  if (m_manager->isValidScale(m_mode->camera(), scale)) {
+  if (m_chartManager->isValidScale(m_mode->camera(), scale)) {
     m_mode->camera()->setScale(scale);
     emit updateViewport(m_mode->camera());
   }

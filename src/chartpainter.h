@@ -12,6 +12,7 @@ namespace GL {
 class AreaShader;
 class SolidLineShader;
 class DashedLineShader;
+class TextShader;
 }
 
 class ChartPainter: public Drawable {
@@ -32,6 +33,6 @@ private:
   GL::AreaShader* m_areaShader;
   GL::SolidLineShader* m_solidShader;
   GL::DashedLineShader* m_dashedShader;
-
+  GL::TextShader* m_textShader;
 };
 

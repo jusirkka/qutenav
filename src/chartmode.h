@@ -8,6 +8,9 @@ public:
   ChartMode(float wmm, float hmm, GeoProjection* p);
   DetailMode* largerScaleMode() const override;
   DetailMode* smallerScaleMode() const override;
+
+  ~ChartMode();
+
 protected:
 
   QString className() const override {return "ChartMode";}

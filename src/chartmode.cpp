@@ -10,6 +10,10 @@ ChartMode::ChartMode(float wmm, float hmm, GeoProjection* p)
   m_drawables << new ChartPainter(this);
 }
 
+ChartMode::~ChartMode() {
+  delete m_camera;
+  qDeleteAll(m_drawables);
+}
 
 DetailMode* ChartMode::smallerScaleMode() const {
   return nullptr;

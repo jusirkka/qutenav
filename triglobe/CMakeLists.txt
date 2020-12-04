@@ -22,10 +22,7 @@ target_include_directories(triglobe
 
 target_compile_features(triglobe
   PRIVATE
-    cxx_auto_type
-    cxx_constexpr
-    cxx_override
-    cxx_range_for
+    cxx_std_17
 )
 
 target_link_libraries(triglobe

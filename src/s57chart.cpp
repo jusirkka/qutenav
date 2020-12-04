@@ -14,6 +14,7 @@
 #include "shader.h"
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLContext>
+#include "textmanager.h"
 
 using Buffer = QVector<char>;
 using HandlerFunc = std::function<bool (const Buffer&)>;
@@ -181,6 +182,11 @@ static GLuint addAdjacent(GLuint base, GLuint next, S57::VertexVector& vertices)
 static QRectF computeBBox(const S57::ElementDataVector &elems,
                           const S57Chart::VertexVector& vertices,
                           const S57Chart::IndexVector& indices);
+static QPointF computeLineCenter(const S57::ElementDataVector &elems,
+                                 const S57Chart::VertexVector& vertices,
+                                 const S57Chart::IndexVector& indices);
+static QPointF computeAreaCenter(const S57::ElementDataVector &elems,
+                                 const S57Chart::VertexVector& vertices, GLsizei offset);
 
 S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
   : QObject()
@@ -560,9 +566,12 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
 
       S57::ElementDataVector elems;
       lineGeometry(d.lines, elems);
+
+      const QPointF c = computeLineCenter(elems, vertices, indices);
+      const QRectF bbox = computeBBox(elems, vertices, indices);
       helper.setGeometry(d.object,
-                         new S57::Geometry::Line(elems, 0),
-                         computeBBox(elems, vertices, indices));
+                         new S57::Geometry::Line(elems, c, 0),
+                         bbox);
 
     } else if (d.type == S57::Geometry::Type::Area) {
 
@@ -573,9 +582,11 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
       S57::ElementDataVector telems;
       triangleGeometry(d.triangles, telems);
 
+      const QPointF c = computeAreaCenter(telems, vertices, offset);
+      const QRectF bbox = computeBBox(lelems, vertices, indices);
       helper.setGeometry(d.object,
-                         new S57::Geometry::Area(lelems, telems, offset, false),
-                         computeBBox(lelems, vertices, indices));
+                         new S57::Geometry::Area(lelems, c, telems, offset, false),
+                         bbox);
     }
 
     // fill in the buffers
@@ -600,6 +611,18 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
     S52::Lookup* lp = S52::FindLookup(d.object);
     m_lookups.append(ObjectLookup(d.object, lp));
   }
+}
+
+S57Chart::~S57Chart() {
+  for (ObjectLookup& d: m_lookups) {
+    delete d.object;
+  }
+  for (S57::PaintDataMap& d: m_paintData) {
+    for (S57::PaintMutIterator it = d.begin(); it != d.end(); ++it) {
+      delete it.value();
+    }
+  }
+  delete m_nativeProj;
 }
 
 
@@ -775,15 +798,110 @@ static QRectF computeBBox(const S57::ElementDataVector &elems,
   return QRectF(ll, ur); // inverted y-axis
 }
 
+static QPointF computeLineCenter(const S57::ElementDataVector &elems,
+                                 const S57Chart::VertexVector& vertices,
+                                 const S57Chart::IndexVector& indices) {
+  int first = elems[0].offset / sizeof(GLuint) + 1; // account adjacency
+  int last = first + elems[0].count - 3; // account adjacency
+  if (elems.size() > 1 || indices[first] == indices[last]) {
+    // several lines or closed loops: compute center of gravity
+    QPointF s(0, 0);
+    int n = 0;
+    for (auto& elem: elems) {
+      first = elem.offset / sizeof(GLuint) + 1; // account adjacency
+      last = first + elem.count - 3; // account adjacency
+      for (int i = first; i <= last; i++) {
+        const int index = indices[i];
+        s.rx() += vertices[2 * index + 0];
+        s.ry() += vertices[2 * index + 1];
+      }
+      n += elem.count - 2;
+    }
+    return s / n;
+  }
+  // single open line: compute mid point of running length
+  QVector<float> lengths;
+  float len = 0;
+  for (int i = first; i < last; i++) {
+    const int i1 = indices[i + 1];
+    const int i0 = indices[i];
+    const QPointF d(vertices[2 * i1] - vertices[2 * i0], vertices[2 * i1 + 1] - vertices[2 * i0 + 1]);
+    lengths.append(sqrt(QPointF::dotProduct(d, d)));
+    len += lengths.last();
+  }
+  const float halfLen = len / 2;
+  len = 0;
+  int i = 0;
+  while (i < lengths.size() && len < halfLen) {
+    len += lengths[i];
+    i++;
+  }
+  const int i1 = indices[first + i];
+  const int i0 = indices[first + i - 1];
+  const QPointF p1(vertices[2 * i1], vertices[2 * i1 + 1]);
+  const QPointF p0(vertices[2 * i0], vertices[2 * i0 + 1]);
+  return p0 + (len - halfLen) * (p1 - p0);
 
-void S57Chart::drawAreas(int prio) {
+}
+
+static QPointF computeAreaCenter(const S57::ElementDataVector &elems,
+                                 const S57Chart::VertexVector& vertices,
+                                 GLsizei offset) {
+  float area = 0;
+  QPoint s(0, 0);
+  for (const S57::ElementData& elem: elems) {
+    if (elem.mode == GL_TRIANGLES) {
+      int first = offset / sizeof(GLfloat) + 2 * elem.offset;
+      for (uint i = 0; i < elem.count / 3; i++) {
+        const QPointF p0(vertices[first + 6 * i + 0], vertices[first + 6 * i + 1]);
+        const QPointF p1(vertices[first + 6 * i + 2], vertices[first + 6 * i + 3]);
+        const QPointF p2(vertices[first + 6 * i + 4], vertices[first + 6 * i + 5]);
+        const float da = std::abs((p1.x() - p0.x()) * (p2.y() - p0.y()) - (p2.x() - p0.x()) * (p1.y() - p0.y()));
+        area += da;
+        s.rx() += da / 3. * (p0.x() + p1.x() + p2.x());
+        s.ry() += da / 3. * (p0.y() + p1.y() + p2.y());
+      }
+    } else if (elem.mode == GL_TRIANGLE_STRIP) {
+      int first = offset / sizeof(GLfloat) + 2 * elem.offset;
+      for (uint i = 0; i < elem.count - 2; i++) {
+        const QPointF p0(vertices[first + 2 * i + 0], vertices[first + 2 * i + 1]);
+        const QPointF p1(vertices[first + 2 * i + 2], vertices[first + 2 * i + 3]);
+        const QPointF p2(vertices[first + 2 * i + 4], vertices[first + 2 * i + 5]);
+        const float da = std::abs((p1.x() - p0.x()) * (p2.y() - p0.y()) - (p2.x() - p0.x()) * (p1.y() - p0.y()));
+        area += da;
+        s.rx() += da / 3. * (p0.x() + p1.x() + p2.x());
+        s.ry() += da / 3. * (p0.y() + p1.y() + p2.y());
+      }
+    } else if (elem.mode == GL_TRIANGLE_FAN) {
+      int first = offset / sizeof(GLfloat) + 2 * elem.offset;
+      const QPointF p0(vertices[first + 0], vertices[first + 1]);
+      for (uint i = 0; i < elem.count - 2; i++) {
+        const QPointF p1(vertices[first + 2 * i + 2], vertices[first + 2 * i + 3]);
+        const QPointF p2(vertices[first + 2 * i + 4], vertices[first + 2 * i + 5]);
+        const float da = std::abs((p1.x() - p0.x()) * (p2.y() - p0.y()) - (p2.x() - p0.x()) * (p1.y() - p0.y()));
+        area += da;
+        s.rx() += da / 3. * (p0.x() + p1.x() + p2.x());
+        s.ry() += da / 3. * (p0.y() + p1.y() + p2.y());
+      }
+    } else {
+      Q_ASSERT_X(false, "computeAreaCenter", "Unknown primitive");
+    }
+  }
+
+  return s / area;
+}
+
+
+void S57Chart::drawAreas(const Camera* cam, int prio) {
 
   m_coordBuffer.bind();
   m_indexBuffer.bind();
 
   auto prog = GL::AreaShader::instance();
-  prog->setTransform(m_pvm);
-  prog->setDepth(- 1 + .1 * prio + .01);
+
+  const QPointF p = cam->geoprojection()->fromWGS84(geoProjection()->reference());
+  prog->setGlobals(cam, p);
+  prog->setDepth(prio);
 
 
   auto gl = QOpenGLContext::currentContext()->extraFunctions();
@@ -816,14 +934,16 @@ void S57Chart::drawAreas(int prio) {
   }
 }
 
-void S57Chart::drawSolidLines(int prio) {
+void S57Chart::drawSolidLines(const Camera* cam, int prio) {
 
   m_coordBuffer.bind();
   m_indexBuffer.bind();
 
   auto prog = GL::SolidLineShader::instance();
-  prog->setTransform(m_pvm);
-  prog->setDepth(- 1 + .1 * prio + .02);
+
+  const QPointF p = cam->geoprojection()->fromWGS84(geoProjection()->reference());
+  prog->setGlobals(cam, p);
+  prog->setDepth(prio);
 
 
   auto gl = QOpenGLContext::currentContext()->extraFunctions();
@@ -856,20 +976,21 @@ void S57Chart::drawSolidLines(int prio) {
   }
 }
 
-void S57Chart::drawDashedLines() {
+void S57Chart::drawDashedLines(const Camera* cam) {
 
   m_coordBuffer.bind();
   m_indexBuffer.bind();
 
   auto prog = GL::DashedLineShader::instance();
-  prog->setTransform(m_pvm);
+  const QPointF p = cam->geoprojection()->fromWGS84(geoProjection()->reference());
+  prog->setGlobals(cam, p);
 
   auto gl = QOpenGLContext::currentContext()->extraFunctions();
 
   for (int prio = 0; prio < S52::Lookup::PriorityCount; prio++) {
 
     const S57::PaintIterator end = m_paintData[prio].constEnd();
-    prog->setDepth(- 1 + .1 * prio + .02);
+    prog->setDepth(prio);
 
     S57::PaintIterator arr = m_paintData[prio].constFind(S57::PaintData::Type::DashedLineArrays);
 
@@ -898,13 +1019,37 @@ void S57Chart::drawDashedLines() {
   }
 }
 
-void S57Chart::setTransform(const Camera *cam) {
+
+void S57Chart::drawText(const Camera* cam) {
+
+  TextManager::instance()->bind();
+
+  auto prog = GL::TextShader::instance();
+
   const QPointF p = cam->geoprojection()->fromWGS84(geoProjection()->reference());
-  QMatrix4x4 tr;
-  tr.setToIdentity();
-  tr.translate(p.x(), p.y());
-  m_pvm = cam->projection() * cam->view() * tr;
+  prog->setGlobals(cam, p);
+
+
+  auto gl = QOpenGLContext::currentContext()->extraFunctions();
+
+  for (int prio = 0; prio < S52::Lookup::PriorityCount; prio++) {
+
+    prog->setDepth(prio);
+
+    const S57::PaintIterator end = m_paintData[prio].constEnd();
+    S57::PaintIterator elem = m_paintData[prio].constFind(S57::PaintData::Type::TextElements);
+
+    while (elem != end && elem.key() == S57::PaintData::Type::TextElements) {
+      auto d = dynamic_cast<const S57::TextElemData*>(elem.value());
+      d->setUniforms();
+      d->setVertexOffset();
+      gl->glDrawElements(d->elements().mode, d->elements().count, GL_UNSIGNED_INT,
+                         reinterpret_cast<const void*>(d->elements().offset));
+      ++elem;
+    }
+  }
 }
+
 
 static GLsizei addIndices(GLuint first, GLuint mid1, GLuint mid2, bool reversed, S57Chart::IndexVector& indices) {
   indices.append(first);

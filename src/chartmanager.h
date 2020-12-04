@@ -75,7 +75,7 @@ signals:
 
 public slots:
 
-  void updateCharts(const Camera* cam);
+  void updateCharts(const Camera* cam, bool force = false);
 
 private slots:
 

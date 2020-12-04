@@ -2,6 +2,7 @@
 #include <QDate>
 #include <QDebug>
 #include "shader.h"
+#include "s52presentation.h"
 
 
 
@@ -60,13 +61,20 @@ static QDate stringToDate(const QString& s, const QDate& today, bool start) {
   return QDate();
 }
 
+S57::Object::~Object() {
+  delete m_geometry;
+}
+
 QString S57::Object::name() const {
   auto s = QString("%1-%2-%3").arg(identifier()).arg(classCode()).arg(char(geometry()->type()));
   return s;
 }
 
 QVariant S57::Object::attributeValue(quint32 attr) const {
-  if (!m_attributes.contains(attr)) return QVariant();
+  if (!m_attributes.contains(attr)) {
+    // qWarning() << name() << ": attribute" << attr << "not present";
+    return QVariant();
+  }
   return m_attributes[attr].value();
 }
 
@@ -79,7 +87,7 @@ bool S57::Object::canPaint(const QRectF& viewArea, quint32 scale, const QDate& t
   if (m_attributes.contains(scaminIndex)) {
     const quint32 mx = m_attributes[scaminIndex].value().toUInt();
     if (scale > mx) {
-      // qDebug() << "scale too big" << scale << mx;
+      // qDebug() << "scale too small" << scale << mx << name();
       return false;
     }
   }
@@ -149,7 +157,8 @@ S57::LineData::LineData(Type t, const ElementDataVector& elems)
 void S57::SolidLineData::setUniforms() const {
   auto prog = GL::SolidLineShader::instance();
   prog->prog()->setUniformValue(prog->m_locations.base_color, m_color);
-  prog->prog()->setUniformValue(prog->m_locations.lineWidth, m_lineWidth);
+  // FIXME too thick lines without correction factor
+  prog->prog()->setUniformValue(prog->m_locations.lineWidth, .5f * m_lineWidth);
 }
 
 void S57::SolidLineData::setVertexOffset() const {
@@ -169,7 +178,8 @@ S57::SolidLineData::SolidLineData(Type t, const ElementDataVector& elems, GLsize
 void S57::DashedLineData::setUniforms() const {
   auto prog = GL::DashedLineShader::instance();
   prog->prog()->setUniformValue(prog->m_locations.base_color, m_color);
-  prog->prog()->setUniformValue(prog->m_locations.lineWidth, m_lineWidth);
+  // FIXME too thick lines without correction factor
+  prog->prog()->setUniformValue(prog->m_locations.lineWidth, .5f * m_lineWidth);
   prog->prog()->setUniformValue(prog->m_locations.pattern, m_pattern);
 }
 
@@ -222,4 +232,40 @@ S57::DashedLineLocalData::DashedLineLocalData(const VertexVector& vertices, cons
 S57::DashedLineArrayData* S57::DashedLineLocalData::createArrayData(GLsizei offset) const {
   return new DashedLineArrayData(m_elements, offset, m_color, m_lineWidth, m_pattern);
 }
+
+
+S57::TextElemData::TextElemData(const QPointF& pivot,
+                                const QPointF& pivotOffset,
+                                const QPointF& bboxOffset,
+                                float boxScale,
+                                GLsizei vertexOffset,
+                                const ElementData& elems,
+                                const QColor& c)
+  : PaintData(Type::TextElements)
+  , m_elements(elems)
+  , m_vertexOffset(vertexOffset)
+  , m_color(c)
+  , m_scaleMM(boxScale * .9) // ad hoc factor: too large fonts
+  , m_pivot(pivot)
+  , m_shiftMM(- boxScale * pivotOffset + bboxOffset)
+{}
+
+
+void S57::TextElemData::setUniforms() const {
+  auto prog = GL::TextShader::instance();
+  prog->prog()->setUniformValue(prog->m_locations.base_color, m_color);
+  prog->prog()->setUniformValue(prog->m_locations.textScale, m_scaleMM * prog->m_dots_per_mm_y);
+  prog->prog()->setUniformValue(prog->m_locations.pivot, m_pivot);
+  prog->prog()->setUniformValue(prog->m_locations.pivotShift, m_shiftMM * prog->m_dots_per_mm_y);
+}
+
+void S57::TextElemData::setVertexOffset() const {
+  auto prog = GL::TextShader::instance()->prog();
+  const int texOffset = 2 * sizeof(GLfloat);
+  const int stride = 4 * sizeof(GLfloat);
+  prog->setAttributeBuffer(0, GL_FLOAT, m_vertexOffset, 2, stride);
+  prog->setAttributeBuffer(1, GL_FLOAT, m_vertexOffset + texOffset, 2, stride);
+}
+
+
 

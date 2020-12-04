@@ -4,10 +4,10 @@
 #include "settings.h"
 #include <cmath>
 #include "types.h"
-
+#include "textmanager.h"
 
 S57::PaintDataMap S52::AreaColor::execute(const QVector<QVariant>& vals,
-                                       const S57::Object* obj) {
+                                          const S57::Object* obj) {
   auto geom = dynamic_cast<const S57::Geometry::Area*>(obj->geometry());
   Q_ASSERT(geom != nullptr);
 
@@ -125,16 +125,142 @@ S57::PaintDataMap S52::PointSymbol::execute(const QVector<QVariant>& /*vals*/,
   return S57::PaintDataMap(); // invalid paint data
 }
 
-S57::PaintDataMap S52::Text::execute(const QVector<QVariant>& /*vals*/,
-                                            const S57::Object* /*obj*/) {
-  // qWarning() << "TX: not implemented";
-  return S57::PaintDataMap(); // invalid paint data
+S57::PaintDataMap S52::Text::execute(const QVector<QVariant>& vals,
+                                     const S57::Object* obj) {
+
+  const QString txt = vals[0].toString();
+  if (txt.isEmpty()) {
+    return S57::PaintDataMap();
+  }
+  // qDebug() << "TX:" << as_numeric(obj->geometry()->type()) << txt;
+
+  const quint8 group = vals[8].toUInt();
+  if (!Settings::instance()->textGrouping().contains(group)) {
+    qWarning() << "skipping TX in group" << group;
+    return S57::PaintDataMap();
+  }
+
+  const QString chars = vals[4].toString();
+
+  assert(chars.left(1).toUInt() == 1); // style: always system's default
+  const quint8 width = chars.mid(2, 1).toUInt();
+  assert(width == 1 || width == 2); // always roman slant
+
+  auto weight = as_enum<TXT::Weight>(chars.mid(1, 1).toUInt(), TXT::AllWeights);
+
+  auto space = as_enum<TXT::Space>(vals[3].toUInt(), TXT::AllSpaces);
+  if (space != TXT::Space::Standard/* && space != TXT::Space::Wrapped*/) {
+    qWarning() << "TX: unsupported space" << as_numeric(space);
+    return S57::PaintDataMap();
+  }
+
+  const TextData d = TextManager::instance()->textData(txt, weight/*, space*/);
+  if (!d.isValid()) {
+    return S57::PaintDataMap();
+  }
+
+  auto hjust = as_enum<TXT::HJust>(vals[1].toUInt(), TXT::AllHjusts);
+  auto vjust = as_enum<TXT::VJust>(vals[2].toUInt(), TXT::AllVjusts);
+
+  const QPointF dPivot(m_pivotHMap[hjust] * d.bbox().width(),
+                       m_pivotVMap[vjust] * d.bbox().height());
+
+  const float bodySizeMM = chars.mid(3).toUInt() * .351;
+
+  const QPointF dMM = QPointF(vals[5].toInt(), - vals[6].toInt()) * bodySizeMM;
+
+  const QColor color = S52::GetColor(vals[7].toUInt());
+
+  S57::PaintData* p = new S57::TextElemData(obj->geometry()->center(),
+                                            dPivot,
+                                            dMM,
+                                            bodySizeMM / d.bbox().height(),
+                                            d.offset(),
+                                            d.elements(),
+                                            color);
+
+  return S57::PaintDataMap{{p->type(), p}};
 }
 
-S57::PaintDataMap S52::TextExtended::execute(const QVector<QVariant>& /*vals*/,
-                                            const S57::Object* /*obj*/) {
-  // qWarning() << "TE: not implemented";
-  return S57::PaintDataMap(); // invalid paint data
+
+S57::PaintDataMap S52::TextExtended::execute(const QVector<QVariant>& vals,
+                                             const S57::Object* obj) {
+  const QString txt = vals[0].toString();
+  if (txt.isEmpty()) {
+    return S57::PaintDataMap();
+  }
+
+  const int numAttrs = vals[1].toInt();
+
+  const quint8 group = vals[numAttrs + 9].toUInt();
+  if (!Settings::instance()->textGrouping().contains(group)) {
+    qWarning() << "skipping TE in group" << group;
+    return S57::PaintDataMap();
+  }
+
+  char format[256];
+  strcpy(format, txt.toUtf8().data());
+  char buf[256];
+  for (int i = 0; i < numAttrs; i++) {
+    const QMetaType::Type t = static_cast<QMetaType::Type>(vals[2 + i].type());
+    switch (t) {
+    case QMetaType::QString:
+      sprintf(buf, format, vals[2 + i].toString().toUtf8().constData());
+      break;
+    case QMetaType::Double:
+      sprintf(buf, format, vals[2 + i].toDouble());
+      break;
+    case QMetaType::Int:
+      sprintf(buf, format, vals[2 + i].toInt());
+      break;
+    default:
+      // qWarning() << "TE: Unhandled attribute value" << vals[2 + i] << "in object" << obj->name();
+      return S57::PaintDataMap();
+    }
+    strcpy(format, buf);
+  }
+  // qDebug() << "TE:" << as_numeric(obj->geometry()->type()) << buf;
+
+  const QString chars = vals[numAttrs + 5].toString();
+
+  assert(chars.left(1).toUInt() == 1); // style: always system's default
+  const quint8 width = chars.mid(2, 1).toUInt();
+  assert(width == 1 || width == 2); // always roman slant
+
+  auto weight = as_enum<TXT::Weight>(chars.mid(1, 1).toUInt(), TXT::AllWeights);
+
+  auto space = as_enum<TXT::Space>(vals[numAttrs + 4].toUInt(), TXT::AllSpaces);
+  if (space != TXT::Space::Standard/* && space != TXT::Space::Wrapped*/) {
+    qWarning() << "TE: unsupported space" << as_numeric(space);
+    return S57::PaintDataMap();
+  }
+
+  const TextData d = TextManager::instance()->textData(buf, weight/*, space*/);
+  if (!d.isValid()) {
+    return S57::PaintDataMap();
+  }
+
+  auto hjust = as_enum<TXT::HJust>(vals[numAttrs + 2].toUInt(), TXT::AllHjusts);
+  auto vjust = as_enum<TXT::VJust>(vals[numAttrs + 3].toUInt(), TXT::AllVjusts);
+
+  const QPointF dPivot(m_pivotHMap[hjust] * d.bbox().width(),
+                       m_pivotVMap[vjust] * d.bbox().height());
+
+  const float bodySizeMM = chars.mid(3).toUInt() * .351;
+
+  const QPointF dMM = QPointF(vals[numAttrs + 6].toInt(), - vals[numAttrs + 7].toInt()) * bodySizeMM;
+
+  const QColor color = S52::GetColor(vals[numAttrs + 8].toUInt());
+
+  S57::PaintData* p = new S57::TextElemData(obj->geometry()->center(),
+                                            dPivot,
+                                            dMM,
+                                            bodySizeMM / d.bbox().height(),
+                                            d.offset(),
+                                            d.elements(),
+                                            color);
+
+  return S57::PaintDataMap{{p->type(), p}};
 }
 
 

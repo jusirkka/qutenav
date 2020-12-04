@@ -18,40 +18,40 @@ void ChartPainter::initializeGL() {
   m_areaShader = GL::AreaShader::instance();
   m_solidShader = GL::SolidLineShader::instance();
   m_dashedShader = GL::DashedLineShader::instance();
+  m_textShader = GL::TextShader::instance();
 
   auto gl = QOpenGLContext::currentContext()->functions();
   gl->glEnable(GL_DEPTH_TEST);
   gl->glDisable(GL_STENCIL_TEST);
   gl->glDisable(GL_CULL_FACE);
+  gl->glEnable(GL_BLEND);
+  gl->glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 
 void ChartPainter::paintGL(const Camera* cam) {
 
-
-  for (S57Chart* chart: m_manager->charts()) {
-    chart->setTransform(cam);
-  }
-
-  // draw with non-discarding progs nearest objects (highest priority) first
+  // draw opaque objects nearest objects (highest priority) first
   for (int i = S52::Lookup::PriorityCount - 1; i >= 0; i--) {
+    m_solidShader->initializePaint();
+    for (S57Chart* chart: m_manager->charts()) {
+      chart->drawSolidLines(cam, i);
+    }
     m_areaShader->initializePaint();
     for (S57Chart* chart: m_manager->charts()) {
-      chart->drawAreas(i);
-    }
-    m_solidShader->initializePaint();
-    m_solidShader->setScreen(cam);
-    for (S57Chart* chart: m_manager->charts()) {
-      chart->drawSolidLines(i);
+      chart->drawAreas(cam, i);
     }
   }
 
-  // draw with discarding progs in any order
+  // draw translucent objects
   m_dashedShader->initializePaint();
-  m_dashedShader->setScreen(cam);
-
   for (S57Chart* chart: m_manager->charts()) {
-    chart->drawDashedLines();
+    chart->drawDashedLines(cam);
   }
+  m_textShader->initializePaint();
+  for (S57Chart* chart: m_manager->charts()) {
+    chart->drawText(cam);
+  }
+
 }
 

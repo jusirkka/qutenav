@@ -167,10 +167,10 @@ public:
 
   S57Chart(quint32 id, const QString& path, const GeoProjection* proj);
 
-  void drawAreas(int prio);
-  void drawSolidLines(int prio);
-  void drawDashedLines();
-  void setTransform(const Camera* cam);
+  void drawAreas(const Camera* cam, int prio);
+  void drawSolidLines(const Camera* cam, int prio);
+  void drawText(const Camera* cam);
+  void drawDashedLines(const Camera* cam);
 
   const GeoProjection* geoProjection() const {return m_nativeProj;}
 
@@ -178,6 +178,8 @@ public:
 
   void updatePaintData(const QRectF& viewArea, quint32 scale);
   void finalizePaintData();
+
+  ~S57Chart();
 
 signals:
 
@@ -218,7 +220,6 @@ private:
   VertexVector m_updatedVertices;
   quint32 m_id;
   Settings* m_settings;
-  QMatrix4x4 m_pvm;
   QOpenGLBuffer m_coordBuffer;
   QOpenGLBuffer m_indexBuffer;
   GLsizei m_staticVertexOffset;

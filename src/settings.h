@@ -10,7 +10,7 @@ class Settings: public QObject {
 
 public:
 
-  using TextGrouping = QSet<quint32>;
+  using TextGrouping = QSet<quint8>;
 
   static Settings* instance();
 

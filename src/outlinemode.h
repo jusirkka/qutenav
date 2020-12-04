@@ -9,6 +9,8 @@ public:
   DetailMode* largerScaleMode() const override;
   DetailMode* smallerScaleMode() const override;
 
+  ~OutlineMode();
+
 protected:
 
   QString className() const override {return "OutlineMode";}

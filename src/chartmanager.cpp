@@ -183,7 +183,7 @@ ChartManager::~ChartManager() {
   qDeleteAll(m_threads);
 }
 
-void ChartManager::updateCharts(const Camera *cam) {
+void ChartManager::updateCharts(const Camera *cam, bool force) {
 
   if (m_idleStack.size() != m_workers.size()) return;
 
@@ -194,7 +194,8 @@ void ChartManager::updateCharts(const Camera *cam) {
 
   const auto margin = QMarginsF(vp.width(), vp.height(), vp.width(), vp.height());
   bool vpok = m_viewport.contains(vp) && !m_viewport.contains(vp + margin);
-  if (vpok && cam->scale() == m_scale) return;
+
+  if (vpok && cam->scale() == m_scale && !force) return;
 
   m_scale = cam->scale();
 

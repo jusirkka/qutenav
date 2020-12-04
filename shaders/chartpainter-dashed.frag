@@ -16,7 +16,9 @@ void main(void) {
 
   // discard the bit if it doesn't match the masking pattern
   uint up = uint(pattern);
-  if ((up & bit) == 0U) discard;
-
-  color = base_color;
+  if ((up & bit) == 0U) {
+    color = vec4(base_color.rgb, 0.);
+  } else {
+    color = base_color;
+  }
 }

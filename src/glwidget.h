@@ -7,6 +7,7 @@
 
 class QOpenGLDebugLogger;
 class ChartManager;
+class TextManager;
 
 class GLWidget: public QOpenGLWidget
 {
@@ -37,7 +38,7 @@ protected:
 
 signals:
 
-  void updateViewport(const Camera* cam);
+  void updateViewport(const Camera* cam, bool force = false);
 
 private slots:
 
@@ -54,7 +55,8 @@ private:
   QOpenGLVertexArrayObject m_vao;
   DetailMode* m_mode;
   QOpenGLDebugLogger* m_logger;
-  ChartManager* m_manager;
+  ChartManager* m_chartManager;
+  TextManager* m_textManager;
 
   QPoint m_diff;
   QPoint m_lastPos;

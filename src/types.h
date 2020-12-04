@@ -3,6 +3,7 @@
 #include <QString>
 #include <cmath>
 #include <QVector2D>
+#include <QVector>
 
 class NotImplementedError {
 public:
@@ -159,3 +160,37 @@ template <typename Enumeration>
 auto as_numeric(Enumeration const value) {
   return static_cast<typename std::underlying_type<Enumeration>::type>(value);
 }
+
+template <typename E, typename T = typename std::underlying_type<E>::type>
+class OutOfRangeError {
+public:
+  OutOfRangeError(T v)
+    : m_value(v) {}
+  QString msg() const {return QString("Value %1 cannot be cast to %2")
+        .arg(m_value).arg(typeid(E).name());}
+
+private:
+  T m_value;
+};
+
+template <typename E>
+auto as_enum(typename std::underlying_type<E>::type value,
+             const QVector<typename std::underlying_type<E>::type>& all_values) {
+  if (!all_values.contains(value)) throw OutOfRangeError<E>(value);
+  return static_cast<E>(value);
+}
+
+namespace TXT {
+
+enum class HJust: quint8 {Centre = 1, Right = 2, Left = 3};
+enum class VJust: quint8 {Bottom = 1, Centre = 2, Top = 3};
+enum class Space: quint8 {Fit = 1, Standard = 2, Wrapped = 3};
+enum class Weight: quint8 {Light = 4, Medium = 5, Bold = 6};
+
+static const inline QVector<quint8> AllHjusts {1, 2, 3};
+static const inline QVector<quint8> AllVjusts {1, 2, 3};
+static const inline QVector<quint8> AllSpaces {1, 2, 3};
+static const inline QVector<quint8> AllWeights {4, 5, 6};
+
+}
+

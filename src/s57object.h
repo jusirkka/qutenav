@@ -71,28 +71,31 @@ enum class Type: char {
   Point = 'P',
   Line = 'L',
   Area = 'A',
-  Meta, // not really a geometry type
+  Meta = 'M', // not really a geometry type
 };
 
 class Base {
 public:
 
   Type type() const {return m_type;}
+  const QPointF& center() const {return m_center;}
 
   virtual ~Base() = default;
 
 protected:
 
+  Base(Type t, const QPointF& c): m_type(t), m_center(c) {}
   Base(Type t): m_type(t) {}
 
   Type m_type;
+  QPointF m_center;
 
 };
 
 
 class Meta: public Base {
 public:
-  Meta(): Base(Type::Meta) {}
+  Meta(): Base(Type::Meta, QPointF()) {}
 };
 
 using PointVector = QVector<double>;
@@ -100,7 +103,7 @@ using PointVector = QVector<double>;
 class Point: public Base {
 public:
   Point(const QPointF& p)
-    : Base(Type::Point) {
+    : Base(Type::Point, p) {
     m_points.append(p.x());
     m_points.append(p.y());
     m_points.append(0.);
@@ -108,7 +111,15 @@ public:
 
   Point(const PointVector& ps)
     : Base(Type::Point)
-    , m_points(ps) {}
+    , m_points(ps) {
+    QPointF s(0, 0);
+    const int n = m_points.size() / 3;
+    for (int i = 0; i < n; i++) {
+      s.rx() += m_points[3 * i + 0];
+      s.ry() += m_points[3 * i + 1];
+    }
+    m_center = s / n;
+  }
 
   const PointVector& points() const {return m_points;}
 
@@ -120,8 +131,8 @@ private:
 
 class Line: public Base {
 public:
-  Line(const ElementDataVector& elems, GLsizei vo)
-    : Base(Type::Line)
+  Line(const ElementDataVector& elems, const QPointF& c, GLsizei vo)
+    : Base(Type::Line, c)
     , m_lineElements(elems)
     , m_vertexOffset(vo) {}
 
@@ -137,8 +148,8 @@ private:
 
 class Area: public Line {
 public:
-  Area(const ElementDataVector& lelems, const ElementDataVector& telems, GLsizei vo, bool indexed)
-    : Line(lelems, vo)
+  Area(const ElementDataVector& lelems, const QPointF& c, const ElementDataVector& telems, GLsizei vo, bool indexed)
+    : Line(lelems, c, vo)
     , m_triangleElements(telems)
     , m_indexed(indexed)
   {
@@ -165,7 +176,6 @@ class PaintData {
 public:
 
   enum class Type {
-    Invalid,
     CategoryOverride, // For a CS procedure to change the display category
     TriangleElements,
     TriangleArrays,
@@ -175,6 +185,7 @@ public:
     DashedLineArrays,
     SolidLineLocal,
     DashedLineLocal,
+    TextElements,
   };
 
   virtual void setUniforms() const = 0;
@@ -266,7 +277,6 @@ public:
   SolidLineElemData(const ElementDataVector& elem, GLsizei offset, const QColor& c, GLfloat width);
 };
 
-class SolidLineLocalData;
 
 class SolidLineArrayData: public SolidLineData {
 public:
@@ -302,6 +312,34 @@ private:
 };
 
 
+class TextElemData: public PaintData {
+public:
+  void setUniforms() const override;
+  void setVertexOffset() const override;
+
+  TextElemData(const QPointF& pivot,
+               const QPointF& pivotOffset,
+               const QPointF& bboxOffset,
+               float boxScale,
+               GLsizei vertexOffset,
+               const ElementData& elems,
+               const QColor& c);
+
+  const ElementData& elements() const {return m_elements;}
+
+protected:
+
+
+  ElementData m_elements;
+  GLsizei m_vertexOffset;
+  QColor m_color;
+  GLfloat m_scaleMM;
+  QPointF m_pivot;
+  QPointF m_shiftMM;
+
+};
+
+
 using PaintDataMap = QMultiMap<PaintData::Type, PaintData*>;
 using PaintIterator = QMultiMap<PaintData::Type, PaintData*>::const_iterator;
 using PaintMutIterator = QMultiMap<PaintData::Type, PaintData*>::iterator;
@@ -318,6 +356,8 @@ public:
     : m_feature_id(fid)
     , m_feature_type_code(ftype)
     , m_geometry(nullptr) {}
+
+  ~Object();
 
   QString name() const;
 
