@@ -19,6 +19,7 @@ void ChartPainter::initializeGL() {
   m_solidShader = GL::SolidLineShader::instance();
   m_dashedShader = GL::DashedLineShader::instance();
   m_textShader = GL::TextShader::instance();
+  m_rasterShader = GL::RasterSymbolShader::instance();
 
   auto gl = QOpenGLContext::currentContext()->functions();
   gl->glEnable(GL_DEPTH_TEST);
@@ -43,15 +44,23 @@ void ChartPainter::paintGL(const Camera* cam) {
     }
   }
 
-  // draw translucent objects
-  m_dashedShader->initializePaint();
-  for (S57Chart* chart: m_manager->charts()) {
-    chart->drawDashedLines(cam);
+  // draw translucent objects farthest first
+  for (int i = 0; i < S52::Lookup::PriorityCount; i++) {
+    m_dashedShader->initializePaint();
+    for (S57Chart* chart: m_manager->charts()) {
+      chart->drawDashedLines(cam, i);
+    }
+    m_rasterShader->initializePaint();
+    for (S57Chart* chart: m_manager->charts()) {
+      chart->drawRasterSymbols(cam, i);
+    }
+    m_textShader->initializePaint();
+    for (S57Chart* chart: m_manager->charts()) {
+      chart->drawText(cam, i);
+    }
   }
-  m_textShader->initializePaint();
-  for (S57Chart* chart: m_manager->charts()) {
-    chart->drawText(cam);
-  }
+
+
 
 }
 

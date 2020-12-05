@@ -5,6 +5,7 @@
 #include <QOpenGLFunctions>
 #include <QColor>
 #include <QRectF>
+#include "types.h"
 
 namespace S57 {
 
@@ -186,6 +187,7 @@ public:
     SolidLineLocal,
     DashedLineLocal,
     TextElements,
+    RasterSymbolElements,
   };
 
   virtual void setUniforms() const = 0;
@@ -337,6 +339,29 @@ protected:
   QPointF m_pivot;
   QPointF m_shiftMM;
 
+};
+
+
+class RasterSymbolElemData: public PaintData {
+public:
+  void setUniforms() const override;
+  void setVertexOffset() const override;
+
+  RasterSymbolElemData(const QPointF& pivot,
+                       const QPoint& pivotOffset,
+                       const ElementData& elems,
+                       quint32 index,
+                       S52::SymbolType type);
+
+  const ElementData& elements() const {return m_elements;}
+
+protected:
+
+  ElementData m_elements;
+  QPointF m_pivot;
+  QPoint m_pivotOffset;
+  quint32 m_index;
+  S52::SymbolType m_type;
 };
 
 

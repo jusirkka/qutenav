@@ -194,3 +194,10 @@ static const inline QVector<quint8> AllWeights {4, 5, 6};
 
 }
 
+namespace S52 {
+
+enum class SymbolType: quint8 {Single = 1, LineStyle = 2, Pattern = 3};
+static const inline QVector<quint8> AllSymbols {1, 2, 3};
+
+}
+

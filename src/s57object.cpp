@@ -268,4 +268,28 @@ void S57::TextElemData::setVertexOffset() const {
 }
 
 
+S57::RasterSymbolElemData::RasterSymbolElemData(const QPointF& pivot,
+                                                const QPoint& pivotOffset,
+                                                const ElementData& elems,
+                                                quint32 index,
+                                                S52::SymbolType type)
+  : PaintData(Type::RasterSymbolElements)
+  , m_elements(elems)
+  , m_pivot(pivot)
+  , m_pivotOffset(pivotOffset)
+  , m_index(index)
+  , m_type(type)
+{}
+
+
+void S57::RasterSymbolElemData::setUniforms() const {
+  auto prog = GL::RasterSymbolShader::instance();
+  prog->prog()->setUniformValue(prog->m_locations.pivot, m_pivot);
+  prog->prog()->setUniformValue(prog->m_locations.pivotShift, m_pivotOffset);
+}
+
+void S57::RasterSymbolElemData::setVertexOffset() const {
+  // noop
+}
+
 

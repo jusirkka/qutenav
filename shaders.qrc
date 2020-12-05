@@ -13,5 +13,7 @@
         <file>shaders/chartpainter-text.vert</file>
         <file>shaders/chartpainter-text.frag</file>
         <file>shaders/chartpainter-lines.vert</file>
+        <file>shaders/chartpainter-rastersymbol.vert</file>
+        <file>shaders/chartpainter-rastersymbol.frag</file>
     </qresource>
 </RCC>

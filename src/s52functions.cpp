@@ -5,6 +5,7 @@
 #include <cmath>
 #include "types.h"
 #include "textmanager.h"
+#include "rastersymbolmanager.h"
 
 S57::PaintDataMap S52::AreaColor::execute(const QVector<QVariant>& vals,
                                           const S57::Object* obj) {
@@ -27,7 +28,7 @@ S57::PaintDataMap S52::AreaColor::execute(const QVector<QVariant>& vals,
 
 S57::PaintDataMap S52::AreaPattern::execute(const QVector<QVariant>& /*vals*/,
                                             const S57::Object* /*obj*/) {
-  // qWarning() << "AP: not implemented";
+  qWarning() << "AP: not implemented";
   return S57::PaintDataMap(); // invalid paint data
 }
 
@@ -119,10 +120,28 @@ S57::PaintDataMap S52::LineComplex::execute(const QVector<QVariant>& /*vals*/,
 }
 
 
-S57::PaintDataMap S52::PointSymbol::execute(const QVector<QVariant>& /*vals*/,
-                                            const S57::Object* /*obj*/) {
-  // qWarning() << "SY: not implemented";
-  return S57::PaintDataMap(); // invalid paint data
+S57::PaintDataMap S52::PointSymbol::execute(const QVector<QVariant>& vals,
+                                            const S57::Object* obj) {
+
+  // FIXME: rotation
+  const QMetaType::Type t = static_cast<QMetaType::Type>(vals[1].type());
+  Q_ASSERT(t == QMetaType::Float || t == QMetaType::Double);
+
+  quint32 index = vals[0].toUInt();
+  const SymbolData s = RasterSymbolManager::instance()->symbolData(index, S52::SymbolType::Single);
+
+  if (!s.isValid()) {
+    qDebug() << "Missing raster symbol. FIXME: try vector symbols";
+    return S57::PaintDataMap();
+  }
+
+  S57::PaintData* p = new S57::RasterSymbolElemData(obj->geometry()->center(),
+                                                    s.offset(),
+                                                    s.elements(),
+                                                    index,
+                                                    S52::SymbolType::Single);
+
+  return S57::PaintDataMap{{p->type(), p}};
 }
 
 S57::PaintDataMap S52::Text::execute(const QVector<QVariant>& vals,
@@ -634,7 +653,7 @@ S57::PaintDataMap S52::CSQualOfPos01::execute(const QVector<QVariant>&,
         vals.append(QVariant::fromValue(m_lowacc03)); // "?"
       }
     }
-    return S57::PaintDataMap();
+    return S52::FindFunction("SY")->execute(vals, obj);
   }
   default:
     return S57::PaintDataMap();

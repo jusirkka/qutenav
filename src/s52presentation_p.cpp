@@ -11,7 +11,6 @@
 
 void s52hpgl_error(Private::LocationType* loc,
                    Private::Presentation* p,
-                   S52::LineStyle*,
                    yyscan_t scanner, const char*  msg) {
   s52instr_error(loc, p, 0, scanner, msg);
 }
@@ -96,34 +95,8 @@ S52::Lookup::Type Private::Presentation::typeFilter(const S57::Object *obj) cons
 }
 
 
-static QString findFile(const QString& s) {
-  QDir dataDir;
-  QStringList locs;
-  QString file;
-
-  for (const QString& loc: QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation)) {
-    locs << QString("%1/qopencpn/s57data").arg(loc);
-  }
-
-  for (const QString& loc: locs) {
-    dataDir = QDir(loc);
-    const QStringList files = dataDir.entryList(QStringList() << s,
-                                                QDir::Files | QDir::Readable);
-    if (files.size() == 1) {
-      file = files.first();
-      break;
-    }
-  }
-
-  if (file.isEmpty()) {
-    qFatal("%s not found in any of the standard locations", s.toUtf8().constData());
-  }
-
-  return dataDir.absoluteFilePath(file);
-}
-
 void Private::Presentation::readObjectClasses() {
-  QFile file(findFile("s57objectclasses.csv"));
+  QFile file(S52::FindPath("s57objectclasses.csv"));
   file.open(QFile::ReadOnly);
   QTextStream s(&file);
 
@@ -171,7 +144,7 @@ void Private::Presentation::readAttributes() {
     {"F", S57::Attribute::Type::Real},
   };
 
-  QFile afile(findFile("s57attributes.csv"));
+  QFile afile(S52::FindPath("s57attributes.csv"));
   afile.open(QFile::ReadOnly);
   QTextStream s1(&afile);
 
@@ -194,7 +167,7 @@ void Private::Presentation::readAttributes() {
   }
   afile.close();
 
-  QFile dfile(findFile("attdecode.csv"));
+  QFile dfile(S52::FindPath("attdecode.csv"));
   dfile.open(QFile::ReadOnly);
   QTextStream s2(&dfile);
 
@@ -217,7 +190,7 @@ void Private::Presentation::readAttributes() {
 }
 
 void Private::Presentation::readChartSymbols() {
-  QFile file(findFile("chartsymbols.xml"));
+  QFile file(S52::FindPath("chartsymbols.xml"));
   file.open(QFile::ReadOnly);
   QXmlStreamReader reader(&file);
 
@@ -230,11 +203,11 @@ void Private::Presentation::readChartSymbols() {
     } else if (reader.name() == "lookups") {
       readLookups(reader);
     } else if (reader.name() == "line-styles") {
-      readLineStyles(reader);
+      readSymbolNames(reader);
     } else if (reader.name() == "patterns") {
-      readPatterns(reader);
+      readSymbolNames(reader);
     } else if (reader.name() == "symbols") {
-      readSymbols(reader);
+      readSymbolNames(reader);
     }
   }
   file.close();
@@ -397,203 +370,26 @@ S52::ColorRef Private::Presentation::parseColorRef(QXmlStreamReader& reader) {
   return ref;
 }
 
-static S52::ModelData parseModelData(QXmlStreamReader& reader, QPoint* ref, QString* hpgl) {
-  int w = reader.attributes().value("width").toInt();
-  int h = reader.attributes().value("height").toInt();
-  int minD;
-  int maxD;
-  QPoint p;
-  QPoint o;
-
+void Private::Presentation::readSymbolNames(QXmlStreamReader& reader) {
   while (reader.readNextStartElement()) {
-    if (reader.name() == "distance") {
-      minD = reader.attributes().value("min").toInt();
-      maxD = reader.attributes().value("min").toInt();
-      reader.skipCurrentElement();
-    } else if (reader.name() == "pivot") {
-      p = QPoint(reader.attributes().value("x").toInt(),
-                 reader.attributes().value("y").toInt());
-      reader.skipCurrentElement();
-    } else if (reader.name() == "origin") {
-      o = QPoint(reader.attributes().value("x").toInt(),
-                 reader.attributes().value("y").toInt());
-      reader.skipCurrentElement();
-    } else if (reader.name() == "graphics-location") {
-      if (ref) {
-        ref->setX(reader.attributes().value("x").toInt());
-        ref->setY(reader.attributes().value("y").toInt());
-      }
-      reader.skipCurrentElement();
-    } else if (reader.name() == "HPGL") {
-      if (hpgl) {
-        *hpgl = reader.readElementText();
-      } else {
-        reader.skipCurrentElement();
-      }
-    } else {
-      qWarning() << "Don't know how to handle" << reader.name();
-      reader.skipCurrentElement();
-    }
-  }
-
-  return S52::ModelData(w, h, minD, maxD, p, o);
-}
-
-void Private::Presentation::readLineStyles(QXmlStreamReader& reader) {
-  while (reader.readNextStartElement()) {
-    Q_ASSERT(reader.name() == "line-style");
-
-    QString styleName;
-    int id = reader.attributes().value("RCID").toInt();
-    S52::ModelData d;
-    QString description;
-    S52::ColorRef ref;
-    QString instruction;
-
-    bool ok = true;
-    while (reader.readNextStartElement()) {
-      if (reader.name() == "name") {
-        styleName = reader.readElementText();
-        if (names.contains(styleName) && lineStyles.contains(names[styleName])) {
-          qWarning() << styleName << "already parsed, skipping";
-          ok = false;
-          break;
-        }
-      } else if (reader.name() == "vector") {
-        d = parseModelData(reader, nullptr, nullptr);
-      } else if (reader.name() == "description") {
-        description = reader.readElementText();
-      } else if (reader.name() == "HPGL") {
-        instruction = reader.readElementText();
-      } else if (reader.name() == "color-ref") {
-        ref = parseColorRef(reader);
-      } else {
-        qWarning() << "Don't know how to handle" << reader.name();
-        reader.skipCurrentElement();
-      }
-    }
-    if (!ok) {
-      reader.skipCurrentElement();
-      continue;
-    }
-    if (!names.contains(styleName)) {
-      names[styleName] = m_nextSymbolIndex++;
-    }
-    lineStyles[names[styleName]] = S52::LineStyle(id, d, description, ref, instruction);
-  }
-}
-
-void Private::Presentation::readPatterns(QXmlStreamReader& reader) {
-  while (reader.readNextStartElement()) {
-    Q_ASSERT(reader.name() == "pattern");
-
-    QString patternName;
-    int id = reader.attributes().value("RCID").toInt();
-    S52::ModelData dv;
-    S52::ModelData dr;
-    QString description;
-    S52::ColorRef ref;
-    QString instruction;
-    QPoint gref;
-    bool staggered;
-    bool raster;
-    bool variable;
-
-    while (reader.readNextStartElement()) {
-      if (reader.name() == "name") {
-        patternName = reader.readElementText();
-      } else if (reader.name() == "definition") {
-        raster = reader.readElementText() == "R";
-      } else if (reader.name() == "filltype") {
-        staggered = reader.readElementText() != "L";
-      } else if (reader.name() == "spacing") {
-        variable = reader.readElementText() != "C";
-      } else if (reader.name() == "vector") {
-        dv = parseModelData(reader, nullptr, nullptr);
-      } else if (reader.name() == "bitmap") {
-        dr = parseModelData(reader, &gref, nullptr);
-      } else if (reader.name() == "description") {
-        description = reader.readElementText();
-      } else if (reader.name() == "HPGL") {
-        instruction = reader.readElementText();
-      } else if (reader.name() == "color-ref") {
-        ref = parseColorRef(reader);
-      } else {
-        qWarning() << "Don't know how to handle" << reader.name();
-        reader.skipCurrentElement();
-      }
-    }
-    if (names.contains(patternName) && patterns.contains(names[patternName])) {
-      if (!patterns[names[patternName]].isRaster() || raster) {
-        qWarning() << patternName << "already parsed, skipping";
-        continue;
-      }
-    }
-
-    if (!names.contains(patternName)) {
-      names[patternName] = m_nextSymbolIndex++;
-    }
-    if (raster) {
-      QString src = QString("%1 %2").arg(gref.x()).arg(gref.y());
-      patterns[names[patternName]] = S52::Pattern(id, dr, description, ref, src, raster, staggered, variable);
-    } else {
-      patterns[names[patternName]] = S52::Pattern(id, dv, description, ref, instruction, raster, staggered, variable);
-    }
-  }
-}
-
-void Private::Presentation::readSymbols(QXmlStreamReader& reader) {
-  while (reader.readNextStartElement()) {
-    Q_ASSERT(reader.name() == "symbol");
+    Q_ASSERT(reader.name() == "line-style" ||
+             reader.name() == "pattern" ||
+             reader.name() == "symbol");
 
     QString symbolName;
-    int id = reader.attributes().value("RCID").toInt();
-    S52::ModelData dv;
-    S52::ModelData dr;
-    QString description;
-    S52::ColorRef ref;
-    QString instruction;
-    QPoint gref;
-    bool raster;
-
     while (reader.readNextStartElement()) {
       if (reader.name() == "name") {
         symbolName = reader.readElementText();
-      } else if (reader.name() == "definition") {
-        raster = reader.readElementText() == "R";
-      } else if (reader.name() == "vector") {
-        dv = parseModelData(reader, nullptr, &instruction);
-      } else if (reader.name() == "bitmap") {
-        dr = parseModelData(reader, &gref, nullptr);
-      } else if (reader.name() == "description") {
-        description = reader.readElementText();
-      } else if (reader.name() == "color-ref") {
-        ref = parseColorRef(reader);
-      } else if (reader.name() == "prefer-bitmap") {
-        reader.skipCurrentElement();
-      } else {
-        qWarning() << "Don't know how to handle" << reader.name();
-        reader.skipCurrentElement();
+        break;
       }
     }
-    if (names.contains(symbolName) && symbols.contains(names[symbolName])) {
-      if (!symbols[names[symbolName]].isRaster() || raster) {
-        qWarning() << symbolName << "already parsed, skipping";
-        continue;
-      }
-    }
-
+    reader.skipCurrentElement();
     if (!names.contains(symbolName)) {
       names[symbolName] = m_nextSymbolIndex++;
     }
-    if (raster) {
-      QString src = QString("%1 %2").arg(gref.x()).arg(gref.y());
-      symbols[names[symbolName]] = S52::Symbol(id, dr, description, ref, src, raster);
-    } else {
-      symbols[names[symbolName]] = S52::Symbol(id, dv, description, ref, instruction, raster);
-    }
   }
 }
+
 
 void Private::Presentation::init() {
 

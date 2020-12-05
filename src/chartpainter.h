@@ -13,6 +13,7 @@ class AreaShader;
 class SolidLineShader;
 class DashedLineShader;
 class TextShader;
+class RasterSymbolShader;
 }
 
 class ChartPainter: public Drawable {
@@ -34,5 +35,6 @@ private:
   GL::SolidLineShader* m_solidShader;
   GL::DashedLineShader* m_dashedShader;
   GL::TextShader* m_textShader;
+  GL::RasterSymbolShader* m_rasterShader;
 };
 

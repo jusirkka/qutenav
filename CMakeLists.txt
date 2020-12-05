@@ -76,6 +76,7 @@ target_sources(qopencpn
     src/outlinemode.cpp
     src/outliner.cpp
     src/perscam.cpp
+    src/rastersymbolmanager.cpp
     src/s52functions.cpp
     src/s52presentation.cpp
     src/s52presentation_p.cpp

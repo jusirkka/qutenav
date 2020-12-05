@@ -15,6 +15,7 @@
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLContext>
 #include "textmanager.h"
+#include "rastersymbolmanager.h"
 
 using Buffer = QVector<char>;
 using HandlerFunc = std::function<bool (const Buffer&)>;
@@ -976,7 +977,7 @@ void S57Chart::drawSolidLines(const Camera* cam, int prio) {
   }
 }
 
-void S57Chart::drawDashedLines(const Camera* cam) {
+void S57Chart::drawDashedLines(const Camera* cam, int prio) {
 
   m_coordBuffer.bind();
   m_indexBuffer.bind();
@@ -984,43 +985,41 @@ void S57Chart::drawDashedLines(const Camera* cam) {
   auto prog = GL::DashedLineShader::instance();
   const QPointF p = cam->geoprojection()->fromWGS84(geoProjection()->reference());
   prog->setGlobals(cam, p);
+  prog->setDepth(prio);
 
   auto gl = QOpenGLContext::currentContext()->extraFunctions();
 
-  for (int prio = 0; prio < S52::Lookup::PriorityCount; prio++) {
 
-    const S57::PaintIterator end = m_paintData[prio].constEnd();
-    prog->setDepth(prio);
+  const S57::PaintIterator end = m_paintData[prio].constEnd();
 
-    S57::PaintIterator arr = m_paintData[prio].constFind(S57::PaintData::Type::DashedLineArrays);
+  S57::PaintIterator arr = m_paintData[prio].constFind(S57::PaintData::Type::DashedLineArrays);
 
-    while (arr != end && arr.key() == S57::PaintData::Type::DashedLineArrays) {
-      auto d = dynamic_cast<const S57::DashedLineArrayData*>(arr.value());
-      d->setUniforms();
-      d->setVertexOffset();
-      for (const S57::ElementData& e: d->elements()) {
-        gl->glDrawArrays(e.mode, e.offset, e.count);
-      }
-      ++arr;
+  while (arr != end && arr.key() == S57::PaintData::Type::DashedLineArrays) {
+    auto d = dynamic_cast<const S57::DashedLineArrayData*>(arr.value());
+    d->setUniforms();
+    d->setVertexOffset();
+    for (const S57::ElementData& e: d->elements()) {
+      gl->glDrawArrays(e.mode, e.offset, e.count);
     }
+    ++arr;
+  }
 
-    S57::PaintIterator elem = m_paintData[prio].constFind(S57::PaintData::Type::DashedLineElements);
+  S57::PaintIterator elem = m_paintData[prio].constFind(S57::PaintData::Type::DashedLineElements);
 
-    while (elem != end && elem.key() == S57::PaintData::Type::DashedLineElements) {
-      auto d = dynamic_cast<const S57::DashedLineElemData*>(elem.value());
-      d->setUniforms();
-      d->setVertexOffset();
-      for (const S57::ElementData& e: d->elements()) {
-        gl->glDrawElements(e.mode, e.count, GL_UNSIGNED_INT,
-                           reinterpret_cast<const void*>(e.offset));
-      }
-      ++elem;
+  while (elem != end && elem.key() == S57::PaintData::Type::DashedLineElements) {
+    auto d = dynamic_cast<const S57::DashedLineElemData*>(elem.value());
+    d->setUniforms();
+    d->setVertexOffset();
+    for (const S57::ElementData& e: d->elements()) {
+      gl->glDrawElements(e.mode, e.count, GL_UNSIGNED_INT,
+                         reinterpret_cast<const void*>(e.offset));
     }
+    ++elem;
   }
 }
 
 
-void S57Chart::drawText(const Camera* cam) {
+void S57Chart::drawText(const Camera* cam, int prio) {
 
   TextManager::instance()->bind();
 
@@ -1028,25 +1027,45 @@ void S57Chart::drawText(const Camera* cam) {
 
   const QPointF p = cam->geoprojection()->fromWGS84(geoProjection()->reference());
   prog->setGlobals(cam, p);
-
+  prog->setDepth(prio);
 
   auto gl = QOpenGLContext::currentContext()->extraFunctions();
 
-  for (int prio = 0; prio < S52::Lookup::PriorityCount; prio++) {
+  const S57::PaintIterator end = m_paintData[prio].constEnd();
+  S57::PaintIterator elem = m_paintData[prio].constFind(S57::PaintData::Type::TextElements);
 
-    prog->setDepth(prio);
+  while (elem != end && elem.key() == S57::PaintData::Type::TextElements) {
+    auto d = dynamic_cast<const S57::TextElemData*>(elem.value());
+    d->setUniforms();
+    d->setVertexOffset();
+    gl->glDrawElements(d->elements().mode, d->elements().count, GL_UNSIGNED_INT,
+                       reinterpret_cast<const void*>(d->elements().offset));
+    ++elem;
+  }
+}
 
-    const S57::PaintIterator end = m_paintData[prio].constEnd();
-    S57::PaintIterator elem = m_paintData[prio].constFind(S57::PaintData::Type::TextElements);
+void S57Chart::drawRasterSymbols(const Camera* cam, int prio) {
 
-    while (elem != end && elem.key() == S57::PaintData::Type::TextElements) {
-      auto d = dynamic_cast<const S57::TextElemData*>(elem.value());
-      d->setUniforms();
-      d->setVertexOffset();
-      gl->glDrawElements(d->elements().mode, d->elements().count, GL_UNSIGNED_INT,
-                         reinterpret_cast<const void*>(d->elements().offset));
-      ++elem;
-    }
+  RasterSymbolManager::instance()->bind();
+
+  auto prog = GL::RasterSymbolShader::instance();
+
+  const QPointF p = cam->geoprojection()->fromWGS84(geoProjection()->reference());
+  prog->setGlobals(cam, p);
+  prog->setDepth(prio);
+
+  auto gl = QOpenGLContext::currentContext()->extraFunctions();
+
+  const S57::PaintIterator end = m_paintData[prio].constEnd();
+  S57::PaintIterator elem = m_paintData[prio].constFind(S57::PaintData::Type::RasterSymbolElements);
+
+  while (elem != end && elem.key() == S57::PaintData::Type::RasterSymbolElements) {
+    auto d = dynamic_cast<const S57::RasterSymbolElemData*>(elem.value());
+    d->setUniforms();
+    d->setVertexOffset();
+    gl->glDrawElements(d->elements().mode, d->elements().count, GL_UNSIGNED_INT,
+                       reinterpret_cast<const void*>(d->elements().offset));
+    ++elem;
   }
 }
 

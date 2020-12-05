@@ -1,11 +1,9 @@
 #pragma once
 
-#include <QObject>
 #include "types.h"
-#include <QRectF>
 #include "s57object.h"
-#include "types.h"
 #include "glyphmanager.h"
+#include <QRectF>
 #include <QHash>
 #include <QOpenGLBuffer>
 #include <QMutex>
@@ -106,7 +104,7 @@ public:
   TextManager();
 
   static TextManager* instance();
-  void createContext(QOpenGLContext* ctx);
+  void createBuffers(QOpenGLContext* ctx);
 
   TextData textData(const QString& txt, TXT::Weight weight) const;
 

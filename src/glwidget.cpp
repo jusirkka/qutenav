@@ -7,6 +7,7 @@
 #include <QPainter>
 #include "chartmanager.h"
 #include "textmanager.h"
+#include "rastersymbolmanager.h"
 #include <QGuiApplication>
 #include <QScreen>
 
@@ -16,6 +17,7 @@ GLWidget::GLWidget(QWidget* parent)
   , m_logger(nullptr)
   , m_chartManager(ChartManager::instance())
   , m_textManager(TextManager::instance())
+  , m_rasterManager(RasterSymbolManager::instance())
 {
   m_timer = new QTimer(this);
   m_timer->setInterval(1000/25);
@@ -46,18 +48,19 @@ void GLWidget::initializeGL() {
     }
   }
 
-  m_chartManager->createThreads(context());
-  m_textManager->createContext(context());
-
-  auto gl = context()->functions();
-  gl->glClearColor(.4, .4, .4, 1.);
-
   if (!m_vao.isCreated()) {
     if (!m_vao.create()) {
       qFatal("Doh!");
     }
+
+    m_chartManager->createThreads(context());
+    m_textManager->createBuffers(context());
+    m_rasterManager->createSymbols();
   }
   m_vao.bind();
+
+  auto gl = context()->functions();
+  gl->glClearColor(.4, .4, .4, 1.);
 
   for (Drawable* chart: m_mode->drawables()) {
     chart->initializeGL();

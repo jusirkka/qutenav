@@ -169,8 +169,9 @@ public:
 
   void drawAreas(const Camera* cam, int prio);
   void drawSolidLines(const Camera* cam, int prio);
-  void drawText(const Camera* cam);
-  void drawDashedLines(const Camera* cam);
+  void drawText(const Camera* cam, int prio);
+  void drawDashedLines(const Camera* cam, int prio);
+  void drawRasterSymbols(const Camera* cam, int prio);
 
   const GeoProjection* geoProjection() const {return m_nativeProj;}
 

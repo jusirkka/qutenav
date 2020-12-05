@@ -9,6 +9,7 @@ class TriangleData;
 class SolidLineData;
 class DashedLineData;
 class TextElemData;
+class RasterSymbolElemData;
 }
 
 namespace GL {
@@ -138,6 +139,31 @@ private:
     int pivotShift;
     int atlas;
     int base_color;
+  } m_locations;
+
+  const float m_dots_per_mm_y;
+
+};
+
+class RasterSymbolShader: public Shader {
+
+  friend class S57::RasterSymbolElemData;
+
+public:
+  static RasterSymbolShader* instance();
+  void setGlobals(const Camera* cam, const QPointF& t0) override;
+  void initializePaint() override;
+
+private:
+  RasterSymbolShader();
+
+  struct _locations {
+    int m_pv;
+    int tr;
+    int windowScale;
+    int pivot;
+    int pivotShift;
+    int atlas;
   } m_locations;
 
   const float m_dots_per_mm_y;

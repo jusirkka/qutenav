@@ -156,3 +156,43 @@ void GL::TextShader::initializePaint() {
   m_program->enableAttributeArray(0);
   m_program->enableAttributeArray(1);
 }
+
+
+GL::RasterSymbolShader* GL::RasterSymbolShader::instance() {
+  static auto shader = new GL::RasterSymbolShader;
+  return shader;
+}
+
+void GL::RasterSymbolShader::setGlobals(const Camera *cam, const QPointF &tr) {
+  m_program->setUniformValue(m_locations.m_pv, cam->projection() * cam->view());
+  m_program->setUniformValue(m_locations.tr, tr);
+  const float s = .5 * cam->heightMM() * m_dots_per_mm_y * cam->projection()(1, 1);
+  m_program->setUniformValue(m_locations.windowScale, s);
+  m_program->setUniformValue(m_locations.atlas, 0);
+
+  const int texOffset = 2 * sizeof(GLfloat);
+  const int stride = 4 * sizeof(GLfloat);
+  m_program->setAttributeBuffer(0, GL_FLOAT, 0, 2, stride);
+  m_program->setAttributeBuffer(1, GL_FLOAT, texOffset, 2, stride);
+
+}
+
+
+GL::RasterSymbolShader::RasterSymbolShader()
+  : Shader({{QOpenGLShader::Vertex, ":/shaders/chartpainter-rastersymbol.vert"},
+            {QOpenGLShader::Fragment, ":/shaders/chartpainter-rastersymbol.frag"}}, .03)
+  , m_dots_per_mm_y(QGuiApplication::primaryScreen()->physicalDotsPerInchY() / 25.4)
+{
+  m_locations.m_pv = m_program->uniformLocation("m_pv");
+  m_locations.tr = m_program->uniformLocation("tr");
+  m_locations.windowScale = m_program->uniformLocation("windowScale");
+  m_locations.pivot = m_program->uniformLocation("pivot");
+  m_locations.pivotShift = m_program->uniformLocation("pivotShift");
+  m_locations.atlas = m_program->uniformLocation("atlas");
+}
+
+void GL::RasterSymbolShader::initializePaint() {
+  m_program->bind();
+  m_program->enableAttributeArray(0);
+  m_program->enableAttributeArray(1);
+}

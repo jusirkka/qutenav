@@ -8,6 +8,7 @@
 class QOpenGLDebugLogger;
 class ChartManager;
 class TextManager;
+class RasterSymbolManager;
 
 class GLWidget: public QOpenGLWidget
 {
@@ -57,6 +58,7 @@ private:
   QOpenGLDebugLogger* m_logger;
   ChartManager* m_chartManager;
   TextManager* m_textManager;
+  RasterSymbolManager* m_rasterManager;
 
   QPoint m_diff;
   QPoint m_lastPos;

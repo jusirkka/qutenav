@@ -45,7 +45,7 @@ TextManager* TextManager::instance() {
   return m;
 }
 
-void TextManager::createContext(QOpenGLContext *ctx) {
+void TextManager::createBuffers(QOpenGLContext *ctx) {
   m_context = new QOpenGLContext;
   m_context->setFormat(QSurfaceFormat::defaultFormat());
   m_context->setShareContext(ctx);

@@ -1,5 +1,7 @@
 #include "s52presentation_p.h"
 #include <QDebug>
+#include <QDir>
+#include <QStandardPaths>
 
 S57::PaintDataMap S52::Lookup::execute(const S57::Object *obj) const {
 
@@ -93,6 +95,11 @@ QColor S52::GetColor(quint32 index) {
   return p->colorTables[p->currentColorTable].colors[index];
 }
 
+QString S52::GetRasterFileName() {
+  const Private::Presentation* p = Private::Presentation::instance();
+  return S52::FindPath(p->colorTables[p->currentColorTable].graphicsFile);
+}
+
 QColor S52::GetColor(const QString& name) {
   const Private::Presentation* p = Private::Presentation::instance();
   Q_ASSERT(p->names.contains(name));
@@ -115,3 +122,30 @@ void S52::InitPresentation() {
   Private::Presentation* p = Private::Presentation::instance();
   p->init();
 }
+
+QString S52::FindPath(const QString& s) {
+  QDir dataDir;
+  QStringList locs;
+  QString file;
+
+  for (const QString& loc: QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation)) {
+    locs << QString("%1/qopencpn/s57data").arg(loc);
+  }
+
+  for (const QString& loc: locs) {
+    dataDir = QDir(loc);
+    const QStringList files = dataDir.entryList(QStringList() << s,
+                                                QDir::Files | QDir::Readable);
+    if (files.size() == 1) {
+      file = files.first();
+      break;
+    }
+  }
+
+  if (file.isEmpty()) {
+    qFatal("%s not found in any of the standard locations", s.toUtf8().constData());
+  }
+
+  return dataDir.absoluteFilePath(file);
+}
+

@@ -15,7 +15,6 @@ int s52hpgl_lex(Private::HPGL_ValueType*, Private::LocationType*, yyscan_t);
 %define api.value.type {Private::HPGL_ValueType}
 
 %parse-param {Private::Presentation* reader}
-%parse-param {S52::LineStyle* symbol}
 %parse-param {yyscan_t scanner}
 %lex-param {yyscan_t scanner}
 

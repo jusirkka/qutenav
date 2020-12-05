@@ -60,9 +60,7 @@ private:
 
   void readColorTables(QXmlStreamReader& reader);
   void readLookups(QXmlStreamReader& reader);
-  void readLineStyles(QXmlStreamReader& reader);
-  void readPatterns(QXmlStreamReader& reader);
-  void readSymbols(QXmlStreamReader& reader);
+  void readSymbolNames(QXmlStreamReader& reader);
 
   S52::ColorRef parseColorRef(QXmlStreamReader &reader);
 
@@ -129,15 +127,6 @@ public:
   LookupVector lookups;
   LookupTable lookupTable;
 
-  using LineStyleMap = QMap<quint32, S52::LineStyle>;
-  LineStyleMap lineStyles;
-
-  using PatternMap = QMap<quint32, S52::Pattern>;
-  PatternMap patterns;
-
-  using SymbolMap = QMap<quint32, S52::Symbol>;
-  SymbolMap symbols;
-
   S52::Functions* functions;
   Settings* settings;
   bool simplifiedSymbols;
@@ -149,7 +138,6 @@ public:
 
 void s52hpgl_error(Private::LocationType*,
                    Private::Presentation*,
-                   S52::LineStyle*,
                    yyscan_t, const char*);
 
 void s52instr_error(Private::LocationType*,
