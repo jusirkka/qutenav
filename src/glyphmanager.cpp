@@ -297,7 +297,6 @@ GL::Mesh* Font::shapeText(const HB::Text &txt, hb_buffer_t *buf, bool* newGlyphs
   const QVector<GLuint> triangles {0, 1, 2, 0, 2, 3};
   uint ioffset = 0;
   auto mesh = new GL::Mesh;
-  QRect bbox(0, 0, 0, 0);
 
   *newGlyphs = false;
   float ymin = 1.e15;

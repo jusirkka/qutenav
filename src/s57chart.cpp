@@ -166,6 +166,19 @@ public:
   void addAttribute(S57::Object* obj, quint16 acode, const Attribute& a) const {
     obj->m_attributes[acode] = a;
   }
+  void addString(S57::Object* obj, quint16 acode, const QString& s) const {
+    if (S52::GetAttributeType(acode) == S57::Attribute::Type::IntegerList) {
+      const QStringList tokens = s.split(",");
+      QVariantList vs;
+      for (const QString& t: tokens) {
+        vs << QVariant::fromValue(t.toInt());
+      }
+      // qDebug() << S52::GetAttributeName(acode) << vs;
+      obj->m_attributes[acode] = S57::Attribute(vs);
+    } else {
+      obj->m_attributes[acode] = S57::Attribute(s);
+    }
+  }
   bool setGeometry(S57::Object* obj, S57::Geometry::Base* g, const QRectF& bb) const {
     if (obj->m_geometry != nullptr) {
       return false;
@@ -256,10 +269,10 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
     },
 
     {SencRecordType::FEATURE_ATTRIBUTE_RECORD, new Handler([&current, helper] (const Buffer& b) {
-        // qDebug() << "feature attribute record";
         if (!current) return false;
         auto p = reinterpret_cast<const OSENC_Attribute_Record_Payload*>(b.constData());
         auto t = static_cast<S57::Attribute::Type>(p->attribute_value_type);
+        // qDebug() << "feature attribute record" << p->attribute_type_code << S52::GetAttributeName(p->attribute_type_code) << p->attribute_value_type;
         switch (t) {
         case S57::Attribute::Type::Integer: {
           int v;
@@ -267,15 +280,6 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
           helper.addAttribute(current,
                               p->attribute_type_code,
                               S57::Attribute(v));
-          return true;
-        }
-        case S57::Attribute::Type::IntegerList: {
-          int bytes = b.size() - sizeof(OSENC_Attribute_Record_Payload) + 1;
-          QVector<int> vs(bytes / sizeof(int));
-          memcpy(vs.data(), &p->attribute_data, bytes);
-          helper.addAttribute(current,
-                              p->attribute_type_code,
-                              S57::Attribute(vs));
           return true;
         }
         case S57::Attribute::Type::Real: {
@@ -288,9 +292,10 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
         }
         case S57::Attribute::Type::String: {
           const char* s = &p->attribute_data; // null terminated string
-          helper.addAttribute(current,
-                              p->attribute_type_code,
-                              S57::Attribute(QString::fromUtf8(s)));
+          // handles strings and integer lists
+          helper.addString(current,
+                           p->attribute_type_code,
+                           QString::fromUtf8(s));
           return true;
         }
         case S57::Attribute::Type::None: {

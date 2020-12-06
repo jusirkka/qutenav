@@ -15,7 +15,7 @@ noperspective out vec2 tex;
 void main(void) {
   tex = texin;
   const vec2 v = 1. / windowScale * vertex +
-      pivot + tr + pivotShift / windowScale;
+      pivot + tr - pivotShift / windowScale;
   gl_Position = m_pv * vec4(v, depth, 1.);
 }
 

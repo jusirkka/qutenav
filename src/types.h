@@ -201,3 +201,26 @@ static const inline QVector<quint8> AllSymbols {1, 2, 3};
 
 }
 
+struct SymbolKey {
+
+  SymbolKey(quint32 idx, S52::SymbolType s)
+    : index(idx)
+    , type(s) {}
+
+  SymbolKey() = default;
+
+  quint32 index;
+  S52::SymbolType type;
+};
+
+
+inline bool operator== (const SymbolKey& k1, const SymbolKey& k2) {
+  if (k1.index != k2.index) return false;
+  return k1.type == k2.type;
+}
+
+inline uint qHash(const SymbolKey& key, uint seed) {
+  return qHash(qMakePair(key.index, as_numeric(key.type)), seed);
+}
+
+

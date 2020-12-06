@@ -97,11 +97,11 @@ public:
 private:
 
   static const inline QMap<TXT::HJust, float> m_pivotHMap {
-    {TXT::HJust::Left, 0.f}, {TXT::HJust::Centre, .5f}, {TXT::HJust::Right, 1.f}
+    {TXT::HJust::Left, 0.f}, {TXT::HJust::Centre, -.5f}, {TXT::HJust::Right, -1.f}
   };
 
   static const inline QMap<TXT::VJust, float> m_pivotVMap {
-    {TXT::VJust::Top, 0.f}, {TXT::VJust::Centre, -.5f}, {TXT::VJust::Bottom, -1.f}
+    {TXT::VJust::Top, 0.f}, {TXT::VJust::Centre, .5f}, {TXT::VJust::Bottom, 1.f}
   };
 
 };
@@ -117,11 +117,11 @@ public:
 private:
 
   static const inline QMap<TXT::HJust, float> m_pivotHMap {
-    {TXT::HJust::Left, 0.f}, {TXT::HJust::Centre, .5f}, {TXT::HJust::Right, 1.f}
+    {TXT::HJust::Left, 0.f}, {TXT::HJust::Centre, -.5f}, {TXT::HJust::Right, -1.f}
   };
 
   static const inline QMap<TXT::VJust, float> m_pivotVMap {
-    {TXT::VJust::Top, 0.f}, {TXT::VJust::Centre, -.5f}, {TXT::VJust::Bottom, -1.f}
+    {TXT::VJust::Top, 0.f}, {TXT::VJust::Centre, .5f}, {TXT::VJust::Bottom, 1.f}
   };
 
 };

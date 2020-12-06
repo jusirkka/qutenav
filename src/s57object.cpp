@@ -21,11 +21,12 @@ bool S57::Attribute::matches(const Attribute &constraint) const {
     return std::abs(m_value.toDouble() - constraint.value().toDouble()) < 1.e-6;
   }
 
-  // Compare integer lists up to constraint list size
+  // Compare integer lists: Note that we require exact match
+  // not just up to constraint list size
   if (m_type == Type::IntegerList) {
-    QList<QVariant> clist = constraint.value().toList();
-    QList<QVariant> mlist = m_value.toList();
-    if (mlist.size() < clist.size()) return false;
+    QVariantList clist = constraint.value().toList();
+    QVariantList mlist = m_value.toList();
+    if (mlist.size() != clist.size()) return false;
     for (int i = 0; i < clist.size(); i++) {
       if (mlist[i].toInt() != clist[i].toInt()) return false;
     }
@@ -235,6 +236,7 @@ S57::DashedLineArrayData* S57::DashedLineLocalData::createArrayData(GLsizei offs
 
 
 S57::TextElemData::TextElemData(const QPointF& pivot,
+                                const QPointF& bboxBase,
                                 const QPointF& pivotOffset,
                                 const QPointF& bboxOffset,
                                 float boxScale,
@@ -245,9 +247,9 @@ S57::TextElemData::TextElemData(const QPointF& pivot,
   , m_elements(elems)
   , m_vertexOffset(vertexOffset)
   , m_color(c)
-  , m_scaleMM(boxScale * .9) // ad hoc factor: too large fonts
+  , m_scaleMM(boxScale)
   , m_pivot(pivot)
-  , m_shiftMM(- boxScale * pivotOffset + bboxOffset)
+  , m_shiftMM(bboxOffset + boxScale * (pivotOffset - bboxBase))
 {}
 
 

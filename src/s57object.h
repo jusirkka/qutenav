@@ -6,6 +6,7 @@
 #include <QColor>
 #include <QRectF>
 #include "types.h"
+#include <QDebug>
 
 namespace S57 {
 
@@ -29,7 +30,7 @@ public:
     : m_type(Type::Real)
     , m_value(QVariant::fromValue(v)) {}
 
-  Attribute(const QVector<int>& v)
+  Attribute(const QVariantList& v)
     : m_type(Type::IntegerList)
     , m_value(QVariant::fromValue(v)) {}
 
@@ -320,6 +321,7 @@ public:
   void setVertexOffset() const override;
 
   TextElemData(const QPointF& pivot,
+               const QPointF& bboxBase,
                const QPointF& pivotOffset,
                const QPointF& bboxOffset,
                float boxScale,

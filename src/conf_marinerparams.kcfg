@@ -37,11 +37,11 @@
     </entry>
     <entry name="PlainBoundaries" key="plain_boundaries" type="Bool">
       <label>Draw plain area boundaries instead of symbolized ones.</label>
-      <default>true</default>
+      <default>false</default>
     </entry>
     <entry name="SimplifiedSymbols" key="simplified_symbols" type="Bool">
       <label>Draw simplified symbols.</label>
-      <default>true</default>
+      <default>false</default>
     </entry>
     <entry name="TextGrouping" key="text_grouping" type="IntList">
       <label>Text display groups.</label>

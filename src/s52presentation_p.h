@@ -3,6 +3,7 @@
 #include <QHash>
 #include "s52presentation.h"
 #include "settings.h"
+#include "types.h"
 
 #define S52INSTR_LTYPE Private::LocationType
 #define S52INSTR_STYPE Private::Instr_ValueType
@@ -81,20 +82,34 @@ public:
   S52::Lookup::Type typeFilter(const S57::Object* obj) const;
 
   using IdentifierHash = QHash<QString, quint32>;
-  using StringHash = QHash<quint32, QString>;
+
+  struct ClassDescription {
+    ClassDescription(const QString& c, const QString& d)
+      : code(c)
+      , description(d) {}
+
+    ClassDescription() = default;
+
+    QString code;
+    QString description;
+  };
+
+  using ClassHash = QHash<quint32, ClassDescription>;
 
   IdentifierHash names;
-  StringHash classDescriptions;
+  ClassHash classes;
 
   using DescriptionMap = QMap<quint32, QString>;
 
   struct AttributeDescription {
-    AttributeDescription(S57::Attribute::Type t, const QString& d)
-      : type(t)
+    AttributeDescription(const QString& c, S57::Attribute::Type t, const QString& d)
+      : code(c)
+      , type(t)
       , description(d) {}
 
     AttributeDescription() = default;
 
+    QString code;
     S57::Attribute::Type type;
     QString description;
     DescriptionMap enumDescriptions;
@@ -102,6 +117,22 @@ public:
   using AttributeMap = QMap<quint32, AttributeDescription>;
 
   AttributeMap attributes;
+
+
+  struct SymbolDescription {
+    SymbolDescription(const QString& c, const QString& d)
+      : code(c)
+      , description(d) {}
+
+    SymbolDescription() = default;
+
+    QString code;
+    QString description;
+  };
+
+  using SymbolHash = QHash<SymbolKey, SymbolDescription>;
+
+  SymbolHash symbols;
 
   using ColorVector = QVector<QColor>;
 

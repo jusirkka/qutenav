@@ -53,27 +53,31 @@ S52::Lookup* S52::FindLookup(const S57::Object* obj) {
   auto qi = p->lookupTable[t].find(qcode);
   quint32 index = qi.value();
 
+  // note: the items with the same key in QHash are in reversed order
+  // => need to find the last match
+  bool match = false;
+  int maxMatchedAttributes = 0; // a hack to overcome wrong ordering of lookups
   for (; i != p->lookupTable[t].end() && i.key() == code; ++i) {
-    S52::Lookup* lup = p->lookups[i.value()];
+    const S52::Lookup* lup = p->lookups[i.value()];
     if (lup->attributes().isEmpty()) {
-      index = i.value(); // the default
+      if (!match) index = i.value(); // the default
       continue;
     }
-    if (lup->attributes().size() != obj->attributes().size()) continue;
-    bool match = true;
+    bool amatch = true;
     for (auto it = lup->attributes().constBegin(); it != lup->attributes().constEnd(); ++it) {
       if (!obj->attributes().contains(it.key())) {
-        match = false;
+        amatch = false;
         break;
       }
       if (!obj->attributes()[it.key()].matches(it.value())) {
-        match = false;
+        amatch = false;
         break;
       }
     }
-    if (match) {
+    if (amatch && lup->attributes().size() >= maxMatchedAttributes) {
+      maxMatchedAttributes = lup->attributes().size();
       index = i.value();
-      break;
+      match = true;
     }
   }
   return p->lookups[index];
@@ -95,15 +99,15 @@ QColor S52::GetColor(quint32 index) {
   return p->colorTables[p->currentColorTable].colors[index];
 }
 
-QString S52::GetRasterFileName() {
-  const Private::Presentation* p = Private::Presentation::instance();
-  return S52::FindPath(p->colorTables[p->currentColorTable].graphicsFile);
-}
-
 QColor S52::GetColor(const QString& name) {
   const Private::Presentation* p = Private::Presentation::instance();
   Q_ASSERT(p->names.contains(name));
   return p->colorTables[p->currentColorTable].colors[p->names[name]];
+}
+
+QString S52::GetRasterFileName() {
+  const Private::Presentation* p = Private::Presentation::instance();
+  return S52::FindPath(p->colorTables[p->currentColorTable].graphicsFile);
 }
 
 QVariant S52::GetAttribute(const QString &name, const S57::Object *obj) {
@@ -149,3 +153,69 @@ QString S52::FindPath(const QString& s) {
   return dataDir.absoluteFilePath(file);
 }
 
+QString S52::GetSymbolInfo(quint32 index, S52::SymbolType t) {
+  const Private::Presentation* p = Private::Presentation::instance();
+  const SymbolKey key(index, t);
+  if (!p->symbols.contains(key)) return QString();
+  return p->symbols[key].code + ": " + p->symbols[key].description;
+}
+
+QString S52::GetAttributeInfo(quint32 index, const S57::Object* obj) {
+  const Private::Presentation* p = Private::Presentation::instance();
+  if (!p->attributes.contains(index)) return QString();
+  QString info;
+  auto attr = p->attributes[index];
+  info += attr.code + ": " + attr.description + ": ";
+  QVariant v = obj->attributeValue(index);
+  switch (attr.type) {
+  case S57::Attribute::Type::Real:
+    info += QString::number(v.toDouble());
+    break;
+  case S57::Attribute::Type::String:
+    info += v.toString();
+    break;
+  case S57::Attribute::Type::Integer:
+    if (!attr.enumDescriptions.isEmpty()) {
+      info += attr.enumDescriptions[v.toInt()];
+    } else {
+      info += QString::number(v.toInt());
+    }
+    break;
+  case S57::Attribute::Type::IntegerList:
+  {
+    auto items = v.toList();
+    for (auto a: items) {
+      if (!attr.enumDescriptions.isEmpty()) {
+        info += attr.enumDescriptions[a.toInt()] + ", ";
+      } else {
+        info += QString::number(a.toInt()) + ", ";
+      }
+    }
+    if (!items.isEmpty()) info.remove(info.length() - 2, 2);
+  }
+    break;
+  default:
+    ; // do nothing
+  }
+  return info;
+}
+
+
+QString S52::GetClassInfo(quint32 index) {
+  const Private::Presentation* p = Private::Presentation::instance();
+  if (!p->classes.contains(index)) return QString();
+  auto cl = p->classes[index];
+  return cl.code + ": " + cl.description;
+}
+
+S57::Attribute::Type S52::GetAttributeType(quint32 index) {
+  const Private::Presentation* p = Private::Presentation::instance();
+  if (!p->attributes.contains(index)) return S57::Attribute::Type::None;
+  return p->attributes[index].type;
+}
+
+QString S52::GetAttributeName(quint32 index) {
+  const Private::Presentation* p = Private::Presentation::instance();
+  if (!p->attributes.contains(index)) return QString();
+  return p->attributes[index].code;
+}

@@ -95,9 +95,14 @@ Function* FindFunction(const QString& name);
 QColor GetColor(quint32 index);
 QColor GetColor(const QString& name);
 QVariant GetAttribute(const QString& name, const S57::Object* obj);
+S57::Attribute::Type GetAttributeType(quint32 index);
+QString GetAttributeName(quint32 index);
 quint32 FindIndex(const QString& name);
 void InitPresentation();
 QString FindPath(const QString& filename);
 QString GetRasterFileName();
+QString GetSymbolInfo(quint32 index, S52::SymbolType t);
+QString GetAttributeInfo(quint32 index, const S57::Object* obj);
+QString GetClassInfo(quint32 index);
 
 } // namespace S52

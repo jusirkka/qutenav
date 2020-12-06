@@ -115,7 +115,7 @@ S57::PaintDataMap S52::LineSimple::linesFromPoint(const QVector<QVariant> &vals,
 
 S57::PaintDataMap S52::LineComplex::execute(const QVector<QVariant>& /*vals*/,
                                             const S57::Object* /*obj*/) {
-  // qWarning() << "LC: not implemented";
+  qWarning() << "LC: not implemented";
   return S57::PaintDataMap(); // invalid paint data
 }
 
@@ -129,6 +129,12 @@ S57::PaintDataMap S52::PointSymbol::execute(const QVector<QVariant>& vals,
 
   quint32 index = vals[0].toUInt();
   const SymbolData s = RasterSymbolManager::instance()->symbolData(index, S52::SymbolType::Single);
+
+  qDebug() << "[Class]" << S52::GetClassInfo(obj->classCode());
+  qDebug() << "[Symbol]" << S52::GetSymbolInfo(index, S52::SymbolType::Single);
+  for (auto k: obj->attributes().keys()) {
+    qDebug() << GetAttributeInfo(k, obj);
+  }
 
   if (!s.isValid()) {
     qDebug() << "Missing raster symbol. FIXME: try vector symbols";
@@ -184,13 +190,15 @@ S57::PaintDataMap S52::Text::execute(const QVector<QVariant>& vals,
   const QPointF dPivot(m_pivotHMap[hjust] * d.bbox().width(),
                        m_pivotVMap[vjust] * d.bbox().height());
 
-  const float bodySizeMM = chars.mid(3).toUInt() * .351;
+  // ad-hoc factor: too large fonts
+  const float bodySizeMM = chars.mid(3).toUInt() * .351 * .6;
 
   const QPointF dMM = QPointF(vals[5].toInt(), - vals[6].toInt()) * bodySizeMM;
 
   const QColor color = S52::GetColor(vals[7].toUInt());
 
   S57::PaintData* p = new S57::TextElemData(obj->geometry()->center(),
+                                            d.bbox().bottomLeft(), // inverted y-axis
                                             dPivot,
                                             dMM,
                                             bodySizeMM / d.bbox().height(),
@@ -265,13 +273,15 @@ S57::PaintDataMap S52::TextExtended::execute(const QVector<QVariant>& vals,
   const QPointF dPivot(m_pivotHMap[hjust] * d.bbox().width(),
                        m_pivotVMap[vjust] * d.bbox().height());
 
-  const float bodySizeMM = chars.mid(3).toUInt() * .351;
+  // ad-hoc factor: too large fonts
+  const float bodySizeMM = chars.mid(3).toUInt() * .351 * .6;
 
   const QPointF dMM = QPointF(vals[numAttrs + 6].toInt(), - vals[numAttrs + 7].toInt()) * bodySizeMM;
 
   const QColor color = S52::GetColor(vals[numAttrs + 8].toUInt());
 
   S57::PaintData* p = new S57::TextElemData(obj->geometry()->center(),
+                                            d.bbox().bottomLeft(), // inverted y-axis
                                             dPivot,
                                             dMM,
                                             bodySizeMM / d.bbox().height(),

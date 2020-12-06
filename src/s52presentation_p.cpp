@@ -121,14 +121,15 @@ void Private::Presentation::readObjectClasses() {
     }
 
     names[className] = classCode;
-    classDescriptions[classCode] = description;
+    classes[classCode] = ClassDescription(className, description);
 
   }
 
   // Object class for unknowns
   const quint32 unknownCode = 666666;
-  names["######"] = unknownCode;
-  classDescriptions[unknownCode] = "Unknown object class";
+  const QString unknownClass("######");
+  names[unknownClass] = unknownCode;
+  classes[unknownCode] = ClassDescription(unknownClass, "Unknown object class");
 
   file.close();
 }
@@ -163,7 +164,7 @@ void Private::Presentation::readAttributes() {
     const S57::Attribute::Type t = typeLookup[parts[3]];
 
     names[attributeName] = id;
-    attributes[id] = AttributeDescription(t, description);
+    attributes[id] = AttributeDescription(attributeName, t, description);
   }
   afile.close();
 
@@ -319,7 +320,7 @@ void Private::Presentation::readLookups(QXmlStreamReader& reader) {
           ok = false;
           break;
         }
-        QString value = token.mid(6);
+        QString value = token.mid(6).simplified();
         quint32 id = names[key];
         if (value.isEmpty()) {
           attrs[id] = S57::Attribute(S57::Attribute::Type::Any);
@@ -328,9 +329,9 @@ void Private::Presentation::readLookups(QXmlStreamReader& reader) {
         } else if (attributes[id].type == S57::Attribute::Type::Integer) {
           attrs[id] = S57::Attribute(value.toInt());
         } else if (attributes[id].type == S57::Attribute::Type::IntegerList) {
-          QVector<int> values;
+          QVariantList values;
           QStringList parts = value.split(",");
-          for (auto p: parts) values << p.toInt();
+          for (auto p: parts) values << QVariant::fromValue(p.toInt());
           attrs[id] = S57::Attribute(values);
         } else if (attributes[id].type == S57::Attribute::Type::Real) {
           attrs[id] = S57::Attribute(value.toDouble());
@@ -371,21 +372,37 @@ S52::ColorRef Private::Presentation::parseColorRef(QXmlStreamReader& reader) {
 }
 
 void Private::Presentation::readSymbolNames(QXmlStreamReader& reader) {
+  const QMap<QString, S52::SymbolType> typeLookup {
+    {"line-style", S52::SymbolType::LineStyle},
+    {"pattern", S52::SymbolType::Pattern},
+    {"symbol", S52::SymbolType::Single},
+  };
+
   while (reader.readNextStartElement()) {
     Q_ASSERT(reader.name() == "line-style" ||
              reader.name() == "pattern" ||
              reader.name() == "symbol");
 
-    QString symbolName;
+    S52::SymbolType t = typeLookup[reader.name().toString()];
+
+    QString name;
+    QString descr;
     while (reader.readNextStartElement()) {
       if (reader.name() == "name") {
-        symbolName = reader.readElementText();
-        break;
+        name = reader.readElementText();
+      } else if (reader.name() == "description") {
+        descr = reader.readElementText();
+      } else {
+        reader.skipCurrentElement();
       }
     }
-    reader.skipCurrentElement();
-    if (!names.contains(symbolName)) {
-      names[symbolName] = m_nextSymbolIndex++;
+    if (!names.contains(name)) {
+      names[name] = m_nextSymbolIndex++;
+    }
+    quint32 index = names[name];
+    const SymbolKey key(index, t);
+    if (!symbols.contains(key)) {
+      symbols.insert(key, SymbolDescription(name, descr));
     }
   }
 }
