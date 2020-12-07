@@ -173,6 +173,27 @@ WGS84Point::WGS84Point(double lng, double lat): m_Valid(true) {
 }
 
 
+bool operator!= (const WGS84Point& a, const WGS84Point& b) {
+  if (a.m_Valid != b.m_Valid) return true;
+  if (!a.m_Valid) return false; // both invalid
+
+  const WGS84Point d(a.m_Longitude - b.m_Longitude, a.m_Latitude - b.m_Latitude);
+
+  if (d.m_Longitude > .1) return true;
+  if (d.m_Latitude > .1) return true;
+
+  const double c2 = a.radiansLat() * a.radiansLat();
+  const double dlng2 = d.radiansLat() * d.radiansLat();
+  const double dlat2 = d.radiansLng() * d.radiansLng();
+
+  // within 20 meters?
+  return sqrt(dlat2 + c2 * dlng2) * WGS84Point::semimajor_axis > WGS84Point::equality_radius;
+}
+
+bool operator== (const WGS84Point& a, const WGS84Point& b) {
+  return !(a != b);
+}
+
 WGS84Bearing WGS84Bearing::fromMeters(double m, const Angle& a) {
   return WGS84Bearing(m, a);
 }

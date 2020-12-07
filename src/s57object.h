@@ -7,6 +7,7 @@
 #include <QRectF>
 #include "types.h"
 #include <QDebug>
+#include "geoprojection.h"
 
 namespace S57 {
 
@@ -81,38 +82,44 @@ public:
 
   Type type() const {return m_type;}
   const QPointF& center() const {return m_center;}
+  const WGS84Point& centerLL() const {return m_centerLL;}
 
   virtual ~Base() = default;
 
 protected:
 
-  Base(Type t, const QPointF& c): m_type(t), m_center(c) {}
+  Base(Type t, const QPointF& c, const WGS84Point& cll)
+    : m_type(t)
+    , m_center(c)
+    , m_centerLL(cll) {}
+
   Base(Type t): m_type(t) {}
 
   Type m_type;
   QPointF m_center;
+  WGS84Point m_centerLL;
 
 };
 
 
 class Meta: public Base {
 public:
-  Meta(): Base(Type::Meta, QPointF()) {}
+  Meta(): Base(Type::Meta, QPointF(), WGS84Point()) {}
 };
 
 using PointVector = QVector<double>;
 
 class Point: public Base {
 public:
-  Point(const QPointF& p)
-    : Base(Type::Point, p) {
+  Point(const QPointF& p, const GeoProjection* proj)
+    : Base(Type::Point, p, proj->toWGS84(p)) {
     m_points.append(p.x());
     m_points.append(p.y());
     m_points.append(0.);
   }
 
   Point(const PointVector& ps)
-    : Base(Type::Point)
+    : Base(Type::Point, QPointF(), WGS84Point())
     , m_points(ps) {
     QPointF s(0, 0);
     const int n = m_points.size() / 3;
@@ -134,7 +141,7 @@ private:
 class Line: public Base {
 public:
   Line(const ElementDataVector& elems, const QPointF& c, GLsizei vo)
-    : Base(Type::Line, c)
+    : Base(Type::Line, c, WGS84Point())
     , m_lineElements(elems)
     , m_vertexOffset(vo) {}
 
@@ -379,10 +386,15 @@ class Object {
 
 public:
 
-  Object(quint32 fid, quint32 ftype)
+  using LocationHash = QMultiHash<WGS84Point, const S57::Object*>;
+  using LocationIterator = LocationHash::const_iterator;
+
+
+  Object(quint32 fid, quint32 ftype, const LocationHash& others)
     : m_feature_id(fid)
     , m_feature_type_code(ftype)
-    , m_geometry(nullptr) {}
+    , m_geometry(nullptr)
+    , m_others(others) {}
 
   ~Object();
 
@@ -394,9 +406,10 @@ public:
   const AttributeMap& attributes() const {return m_attributes;}
   QVariant attributeValue(quint32 attr) const;
   const QRectF& boundingBox() const {return m_bbox;}
+  LocationIterator others() const {return m_others.find(m_geometry->centerLL());}
+  LocationIterator othersEnd() const {return m_others.cend();}
 
   bool canPaint(const QRectF& viewArea, quint32 scale, const QDate& today) const;
-  const QVector<Object*>& others() const {return m_others;}
 
 private:
 
@@ -412,7 +425,7 @@ private:
   AttributeMap m_attributes;
   Geometry::Base* m_geometry;
   QRectF m_bbox;
-  QVector<Object*> m_others;
+  const LocationHash& m_others;
 
 };
 

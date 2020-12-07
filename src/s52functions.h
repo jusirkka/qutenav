@@ -287,10 +287,28 @@ public:
 
 class CSTopmarks01: public Function {
 public:
-  CSTopmarks01(quint32 index)
-    : Function("TOPMAR01", index) {}
 
+  CSTopmarks01(quint32 index);
   S57::PaintDataMap execute(const QVector<QVariant>&, const S57::Object* obj) override;
+
+private:
+
+  bool isFloating(const S57::Object* obj) const;
+  bool isRigid(const S57::Object* obj) const;
+
+  const quint32 m_quesmrk1;
+  const quint32 m_topshp;
+  const quint32 m_tmardef1;
+  const quint32 m_tmardef2;
+
+  const QSet<quint32> m_set_floats;
+  const QSet<quint32> m_set_rigids;
+
+  const QMap<quint32, quint32> m_floats;
+  const QMap<quint32, quint32> m_rigids;
+
+
+
 };
 
 class CSWrecks02: public Function {

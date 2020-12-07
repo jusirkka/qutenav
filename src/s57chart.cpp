@@ -259,10 +259,10 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
 
   const QMap<SencRecordType, Handler*> handlers {
 
-    {SencRecordType::FEATURE_ID_RECORD, new Handler([&current, &objects] (const Buffer& b) {
+    {SencRecordType::FEATURE_ID_RECORD, new Handler([&current, &objects, this] (const Buffer& b) {
         // qDebug() << "feature id record";
         auto p = reinterpret_cast<const OSENC_Feature_Identification_Record_Payload*>(b.constData());
-        current = new S57::Object(p->feature_ID, p->feature_type_code);
+        current = new S57::Object(p->feature_ID, p->feature_type_code, m_locations);
         objects.append(OData(current));
         return true;
       })
@@ -317,7 +317,7 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
         auto p0 = m_nativeProj->fromWGS84(WGS84Point::fromLL(p->lon, p->lat));
         objects.last().type = S57::Geometry::Type::Point;
         QRectF bb(p0 - QPointF(10, 10), QSizeF(20, 20));
-        return helper.setGeometry(current, new S57::Geometry::Point(p0), bb);
+        return helper.setGeometry(current, new S57::Geometry::Point(p0, m_nativeProj), bb);
       })
     },
 
@@ -358,7 +358,7 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
       })
     },
 
-    {SencRecordType::FEATURE_GEOMETRY_RECORD_MULTIPOINT, new Handler([&current, &objects, helper] (const Buffer& b) {
+    {SencRecordType::FEATURE_GEOMETRY_RECORD_MULTIPOINT, new Handler([&current, &objects, helper, this] (const Buffer& b) {
         // qDebug() << "feature geometry/multipoint record";
         if (!current) return false;
         auto p = reinterpret_cast<const OSENC_MultipointGeometry_Record_Payload*>(b.constData());
@@ -616,6 +616,12 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
     // bind objects to lookup records
     S52::Lookup* lp = S52::FindLookup(d.object);
     m_lookups.append(ObjectLookup(d.object, lp));
+
+    // sort point objects by their locations
+    const WGS84Point p = d.object->geometry()->centerLL();
+    if (p.valid()) {
+      m_locations.insert(p, d.object);
+    }
   }
 }
 

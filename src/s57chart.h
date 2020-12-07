@@ -206,6 +206,9 @@ private:
 
   using PaintPriorityVector = QVector<S57::PaintDataMap>;
 
+  using LocationHash = QMultiHash<WGS84Point, const S57::Object*>;
+  using LocationIterator = LocationHash::const_iterator;
+
   static void triangulate(const S57::ElementDataVector& lelems,
                           S57::ElementDataVector& telems,
                           const VertexVector& vertices,
@@ -216,6 +219,7 @@ private:
   PolygonVector m_coverage;
   PolygonVector m_nocoverage;
   ObjectLookupVector m_lookups;
+  LocationHash m_locations;
   PaintPriorityVector m_paintData;
   PaintPriorityVector m_updatedPaintData;
   VertexVector m_updatedVertices;

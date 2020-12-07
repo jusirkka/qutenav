@@ -195,9 +195,9 @@ chars: chars CHAR {
 command: SY '(' SYMBOL optrotation ')' {
   auto fun = S52::FindFunction("SY");
   bool ok = reader->names.contains($3);
-  bool notvar;
-  float rot = $4.toFloat(&notvar);
-  if (!notvar) ok &= reader->names.contains($4);
+  bool lit;
+  float rot = $4.toFloat(&lit);
+  if (!lit) ok = ok && reader->names.contains($4);
 
   if (ok) {
     S52::ByteCoder bc;
@@ -205,7 +205,7 @@ command: SY '(' SYMBOL optrotation ')' {
     bc.setCode(lookup, S52::Lookup::Code::Immed);
     bc.setImmed(lookup, QVariant::fromValue(reader->names[$3]));
 
-    if (notvar) {
+    if (lit) {
       bc.setCode(lookup, S52::Lookup::Code::Immed);
       bc.setImmed(lookup, QVariant::fromValue(rot));
     } else {
@@ -316,14 +316,23 @@ opttransparency: ',' INT {
 command: AP '(' SYMBOL optrotation ')' {
   auto fun = S52::FindFunction("AP");
   bool ok = reader->names.contains($3);
+  bool lit;
+  float rot = $4.toFloat(&lit);
+  if (!lit) ok = ok && reader->names.contains($4);
+
   if (ok) {
     S52::ByteCoder bc;
 
     bc.setCode(lookup, S52::Lookup::Code::Immed);
     bc.setImmed(lookup, QVariant::fromValue(reader->names[$3]));
 
-    bc.setCode(lookup, S52::Lookup::Code::Immed);
-    bc.setImmed(lookup, QVariant::fromValue($4));
+    if (lit) {
+      bc.setCode(lookup, S52::Lookup::Code::Immed);
+      bc.setImmed(lookup, QVariant::fromValue(rot));
+    } else {
+      bc.setCode(lookup, S52::Lookup::Code::Var);
+      bc.setRef(lookup, reader->names[$4]);
+    }
 
     bc.setCode(lookup, S52::Lookup::Code::Fun);
     bc.setRef(lookup, fun->index());

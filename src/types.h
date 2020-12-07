@@ -71,8 +71,11 @@ class WGS84Point {
 public:
 
   static constexpr double semimajor_axis = 6378137.0;
+  // closer than this points are considered equal
+  static constexpr double equality_radius = 20.;
 
   friend WGS84Point operator+ (const WGS84Point& a, const WGS84Bearing& b);
+  friend bool operator!= (const WGS84Point& a, const WGS84Point& b);
 
   static WGS84Point fromLL(double lng, double lat);
   static WGS84Point fromLLRadians(double lng, double lat);
@@ -115,6 +118,14 @@ private:
   bool m_Valid;
 
 };
+
+bool operator!= (const WGS84Point& a, const WGS84Point& b);
+bool operator== (const WGS84Point& a, const WGS84Point& b);
+
+inline uint qHash(const WGS84Point& a, uint seed) {
+  return qHash(qMakePair(a.lng(), a.lat()), seed);
+}
+
 
 using WGS84PointVector = QVector<WGS84Point>;
 

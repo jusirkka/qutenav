@@ -130,11 +130,11 @@ S57::PaintDataMap S52::PointSymbol::execute(const QVector<QVariant>& vals,
   quint32 index = vals[0].toUInt();
   const SymbolData s = RasterSymbolManager::instance()->symbolData(index, S52::SymbolType::Single);
 
-  qDebug() << "[Class]" << S52::GetClassInfo(obj->classCode());
-  qDebug() << "[Symbol]" << S52::GetSymbolInfo(index, S52::SymbolType::Single);
-  for (auto k: obj->attributes().keys()) {
-    qDebug() << GetAttributeInfo(k, obj);
-  }
+  // qDebug() << "[Class]" << S52::GetClassInfo(obj->classCode());
+  // qDebug() << "[Symbol]" << S52::GetSymbolInfo(index, S52::SymbolType::Single);
+  // for (auto k: obj->attributes().keys()) {
+  //   qDebug() << GetAttributeInfo(k, obj);
+  // }
 
   if (!s.isValid()) {
     qDebug() << "Missing raster symbol. FIXME: try vector symbols";
@@ -496,8 +496,11 @@ S57::PaintDataMap S52::CSLights05::execute(const QVector<QVariant>&,
 
   if (!isSector) {
     bool flare_at_45 = false;
-    if (!obj->others().isEmpty() && cols.intersects(m_set_wyo)) {
-      flare_at_45 = true;
+    S57::Object::LocationIterator it = obj->others();
+    for (; it != obj->othersEnd() && it.key() == obj->geometry()->centerLL(); ++it) {
+      if (it.value() == obj) continue;
+      if (cols.intersects(m_set_wyo)) flare_at_45 = true;
+      break;
     }
 
     QVector<QVariant> vals;
@@ -578,8 +581,10 @@ S57::PaintDataMap S52::CSLights05::execute(const QVector<QVariant>&,
   auto ps = S52::FindFunction("LS")->execute(vals, obj);
 
   bool extended_arc_radius = false;
-  for (const S57::Object* other: obj->others()) {
-    if (overlaps_and_smaller(s1, s2, other->attributeValue(m_sectr1), other->attributeValue(m_sectr2))) {
+  S57::Object::LocationIterator it = obj->others();
+  for (; it != obj->othersEnd() && it.key() == obj->geometry()->centerLL(); ++it) {
+    if (it.value() == obj) continue;
+    if (overlaps_and_smaller(s1, s2, it.value()->attributeValue(m_sectr1), it.value()->attributeValue(m_sectr2))) {
       extended_arc_radius = true;
       break;
     }
@@ -816,15 +821,120 @@ S57::PaintDataMap S52::CSShorelineQualOfPos03::execute(const QVector<QVariant>&,
 }
 
 S57::PaintDataMap S52::CSEntrySoundings02::execute(const QVector<QVariant>&,
-                                            const S57::Object* /*obj*/) {
+                                                   const S57::Object* /*obj*/) {
   qWarning() << "SOUNDG02: not implemented";
   return S57::PaintDataMap(); // invalid paint data
 }
 
+S52::CSTopmarks01::CSTopmarks01(quint32 index)
+  : Function("TOPMAR01", index)
+  , m_quesmrk1(S52::FindIndex("QUESMRK1"))
+  , m_topshp(S52::FindIndex("TOPSHP"))
+  , m_tmardef1(S52::FindIndex("TMARDEF1"))
+  , m_tmardef2(S52::FindIndex("TMARDEF2"))
+  , m_set_floats({S52::FindIndex("LITFLT"),
+                 S52::FindIndex("LITVES"),
+                 S52::FindIndex("BOYCAR"),
+                 S52::FindIndex("BOYINB"),
+                 S52::FindIndex("BOYISD"),
+                 S52::FindIndex("BOYLAT"),
+                 S52::FindIndex("BOYSAW"),
+                 S52::FindIndex("BOYSPP"),
+                 S52::FindIndex("boylat"),
+                 S52::FindIndex("boywtw"),
+                 })
+  , m_set_rigids({S52::FindIndex("LITFLT"),
+                 S52::FindIndex("BCNCAR"),
+                 S52::FindIndex("BCNISD"),
+                 S52::FindIndex("BCNLAT"),
+                 S52::FindIndex("BCNSAW"),
+                 S52::FindIndex("BCNSPP"),
+                 S52::FindIndex("bcnlat"),
+                 S52::FindIndex("bcnwtw"),
+                 })
+  , m_floats ({
+{1, S52::FindIndex("TOPMAR02")}, {2, S52::FindIndex("TOPMAR04")},
+{3, S52::FindIndex("TOPMAR10")}, {4, S52::FindIndex("TOPMAR12")},
+{5, S52::FindIndex("TOPMAR13")}, {6, S52::FindIndex("TOPMAR14")},
+{7, S52::FindIndex("TOPMAR65")}, {8, S52::FindIndex("TOPMAR17")},
+{9, S52::FindIndex("TOPMAR16")}, {10, S52::FindIndex("TOPMAR08")},
+{11, S52::FindIndex("TOPMAR07")}, {12, S52::FindIndex("TOPMAR14")},
+{13, S52::FindIndex("TOPMAR05")}, {14, S52::FindIndex("TOPMAR06")},
+{18, S52::FindIndex("TOPMAR10")}, {19, S52::FindIndex("TOPMAR13")},
+{20, S52::FindIndex("TOPMAR14")}, {21, S52::FindIndex("TOPMAR13")},
+{22, S52::FindIndex("TOPMAR14")}, {23, S52::FindIndex("TOPMAR14")},
+{24, S52::FindIndex("TOPMAR02")}, {25, S52::FindIndex("TOPMAR04")},
+{26, S52::FindIndex("TOPMAR10")}, {27, S52::FindIndex("TOPMAR17")},
+{28, S52::FindIndex("TOPMAR18")}, {29, S52::FindIndex("TOPMAR02")},
+{30, S52::FindIndex("TOPMAR17")}, {31, S52::FindIndex("TOPMAR14")},
+{32, S52::FindIndex("TOPMAR10")},
+              })
+  , m_rigids({
+{1, S52::FindIndex("TOPMAR22")}, {2, S52::FindIndex("TOPMAR24")},
+{3, S52::FindIndex("TOPMAR30")}, {4, S52::FindIndex("TOPMAR32")},
+{5, S52::FindIndex("TOPMAR33")}, {6, S52::FindIndex("TOPMAR34")},
+{7, S52::FindIndex("TOPMAR85")}, {8, S52::FindIndex("TOPMAR86")},
+{9, S52::FindIndex("TOPMAR36")}, {10, S52::FindIndex("TOPMAR28")},
+{11, S52::FindIndex("TOPMAR27")}, {12, S52::FindIndex("TOPMAR14")},
+{13, S52::FindIndex("TOPMAR25")}, {14, S52::FindIndex("TOPMAR26")},
+{15, S52::FindIndex("TOPMAR88")}, {16, S52::FindIndex("TOPMAR87")},
+{18, S52::FindIndex("TOPMAR30")}, {19, S52::FindIndex("TOPMAR33")},
+{20, S52::FindIndex("TOPMAR34")}, {21, S52::FindIndex("TOPMAR33")},
+{22, S52::FindIndex("TOPMAR34")}, {23, S52::FindIndex("TOPMAR34")},
+{24, S52::FindIndex("TOPMAR22")}, {25, S52::FindIndex("TOPMAR24")},
+{26, S52::FindIndex("TOPMAR30")}, {27, S52::FindIndex("TOPMAR86")},
+{28, S52::FindIndex("TOPMAR89")}, {29, S52::FindIndex("TOPMAR22")},
+{30, S52::FindIndex("TOPMAR86")}, {31, S52::FindIndex("TOPMAR14")},
+{32, S52::FindIndex("TOPMAR30")},
+             })
+
+{}
+
 S57::PaintDataMap S52::CSTopmarks01::execute(const QVector<QVariant>&,
-                                            const S57::Object* /*obj*/) {
-  qWarning() << "TOPMAR01: not implemented";
-  return S57::PaintDataMap(); // invalid paint data
+                                             const S57::Object* obj) {
+  quint32 topmrk = m_quesmrk1;
+
+  if (obj->attributeValue(m_topshp).isValid()) {
+    quint32 topshp = obj->attributeValue(m_topshp).toUInt();
+
+    S57::Object::LocationIterator it = obj->others();
+    for (; it != obj->othersEnd() && it.key() == obj->geometry()->centerLL(); ++it) {
+      if (it.value() == obj) continue;
+      if (isFloating(it.value())) {
+        if (m_floats.contains(topshp)) {
+          topmrk = m_floats[topshp];
+        } else {
+          topmrk = m_tmardef2;
+        }
+        qDebug() << "TOPMRK01: floating";
+        break;
+      }
+      if (isRigid(it.value())) {
+        if (m_rigids.contains(topshp)) {
+          topmrk = m_rigids[topshp];
+        } else {
+          topmrk = m_tmardef1;
+        }
+        qDebug() << "TOPMRK01: rigid";
+        break;
+      }
+    }
+  }
+
+  QVector<QVariant> vals;
+  vals.append(QVariant::fromValue(topmrk));
+  vals.append(QVariant::fromValue(0.));
+  return S52::FindFunction("SY")->execute(vals, obj);
+}
+
+bool S52::CSTopmarks01::isFloating(const S57::Object *obj) const {
+  const quint32 cl = obj->classCode();
+  return m_set_floats.contains(cl);
+}
+
+bool S52::CSTopmarks01::isRigid(const S57::Object *obj) const {
+  const quint32 cl = obj->classCode();
+  return m_set_rigids.contains(cl);
 }
 
 S57::PaintDataMap S52::CSWrecks02::execute(const QVector<QVariant>&,
