@@ -278,6 +278,8 @@ void Private::Presentation::readLookups(QXmlStreamReader& reader) {
     {"Standard", S52::Lookup::Category::Standard},
   };
 
+  LookupTable unsortedLookups;
+
   while (reader.readNextStartElement()) {
     Q_ASSERT(reader.name() == "lookup");
 
@@ -350,8 +352,29 @@ void Private::Presentation::readLookups(QXmlStreamReader& reader) {
       continue;
     }
     auto lookup = new S52::Lookup(name, id, code, prio, cat, attrs, comment, instr);
-    lookupTable[name].insert(code, lookups.size());
-    lookups.append(lookup);
+
+    unsortedLookups[name][code].append(lookup);
+  }
+
+  // sort lookups
+  LUPTableIterator tables(unsortedLookups.cbegin());
+  while (tables != unsortedLookups.cend()) {
+    const S52::Lookup::Type& table = tables.key();
+    const LookupHash& classes = tables.value();
+    LUPHashIterator cl(classes.cbegin());
+    while (cl != classes.cend()) {
+      const quint32& feature = cl.key();
+      LookupVector lups = cl.value();
+      std::sort(lups.begin(), lups.end(), [] (const S52::Lookup* s1, const S52::Lookup* s2) {
+        if (s1->attributes().size() != s2->attributes().size()) {
+          return s1->attributes().size() > s2->attributes().size();
+        }
+        return s1->rcid() < s2->rcid();
+      });
+      lookupTable[table][feature] = lups;
+      ++cl;
+    }
+    ++tables;
   }
 }
 
@@ -412,10 +435,17 @@ void Private::Presentation::init() {
 
   functions = new S52::Functions();
 
-  for (S52::Lookup* lup: lookups) {
-    int err = parseInstruction(lup);
-    if (err != 0) {
-      qWarning() << "Error parsing" << lup->source();
+  for (LUPTableIterator tables(lookupTable.cbegin()); tables != lookupTable.cend(); ++tables) {
+    const LookupHash& classes = tables.value();
+    LUPHashIterator cl(classes.cbegin());
+    for (LUPHashIterator cl(classes.cbegin()); cl != classes.cend(); ++cl) {
+      LookupVector lups = cl.value();
+      for (S52::Lookup* lup: lups) {
+        int err = parseInstruction(lup);
+        if (err != 0) {
+          qWarning() << "Error parsing" << lup->source();
+        }
+      }
     }
   }
 }

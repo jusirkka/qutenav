@@ -151,11 +151,12 @@ public:
 
 
   using LookupVector = QVector<S52::Lookup*>;
-  using LookupHash = QMultiHash<quint32, quint32>; // key: class code, value: vector index
-  using LupIterator = QMultiHash<quint32, quint32>::iterator;
+  using LookupHash = QHash<quint32, LookupVector>; // key: class code
   using LookupTable = QMap<S52::Lookup::Type, LookupHash>;
 
-  LookupVector lookups;
+  using LUPTableIterator = QMap<S52::Lookup::Type, LookupHash>::const_iterator;
+  using LUPHashIterator = QHash<quint32, LookupVector>::const_iterator;
+
   LookupTable lookupTable;
 
   S52::Functions* functions;

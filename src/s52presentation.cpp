@@ -46,41 +46,33 @@ S52::Lookup* S52::FindLookup(const S57::Object* obj) {
   const quint32 code = obj->classCode();
   const Private::Presentation* p = Private::Presentation::instance();
   const S52::Lookup::Type t = p->typeFilter(obj);
-  auto i = p->lookupTable[t].find(code);
 
-  // symbology for unknowns
-  auto qcode = p->names["######"];
-  auto qi = p->lookupTable[t].find(qcode);
-  quint32 index = qi.value();
+  using LookupVector = QVector<Lookup*>;
 
-  // note: the items with the same key in QHash are in reversed order
-  // => need to find the last match
-  bool match = false;
-  int maxMatchedAttributes = 0; // a hack to overcome wrong ordering of lookups
-  for (; i != p->lookupTable[t].end() && i.key() == code; ++i) {
-    const S52::Lookup* lup = p->lookups[i.value()];
+  // ordered by attribute count and rcid
+  const LookupVector lups = p->lookupTable[t][code];
+
+  for (Lookup* lup: lups) {
     if (lup->attributes().isEmpty()) {
-      if (!match) index = i.value(); // the default
-      continue;
+      return lup;
     }
-    bool amatch = true;
+    bool match = true;
     for (auto it = lup->attributes().constBegin(); it != lup->attributes().constEnd(); ++it) {
       if (!obj->attributes().contains(it.key())) {
-        amatch = false;
+        match = false;
         break;
       }
       if (!obj->attributes()[it.key()].matches(it.value())) {
-        amatch = false;
+        match = false;
         break;
       }
     }
-    if (amatch && lup->attributes().size() >= maxMatchedAttributes) {
-      maxMatchedAttributes = lup->attributes().size();
-      index = i.value();
-      match = true;
+    if (match) {
+      return lup;
     }
   }
-  return p->lookups[index];
+  // symbology for unknowns
+  return p->lookupTable[t][p->names["######"]][0];
 }
 
 S52::Function* S52::FindFunction(quint32 index) {
