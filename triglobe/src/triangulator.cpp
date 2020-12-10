@@ -41,7 +41,7 @@ void Triangulator::addFront(const Mesh &points) {
     int ipp = (ip - 1 + np) % np;
     const scalar el = glm::length(points[ip] - points[ipp]);
     if (el < SD::Function::eps) {
-      qDebug() << "skipping" << ip;
+      // qDebug() << "skipping" << ip;
       continue;
     }
     const vec3 sp = m_scene->projectToSurface(points[ip]);
@@ -51,7 +51,7 @@ void Triangulator::addFront(const Mesh &points) {
     scalar e = el - elmax;
     while (e > 0.) {
       const scalar t = 1. - e / el;
-      qDebug() << "splitting at " << t;
+      // qDebug() << "splitting at " << t;
       const vec3 p = m_scene->projectToSurface(points[ip] * t + points[ipp] * (1 - t));
       m_mesh.append(p);
       Front::Data d;
@@ -95,7 +95,7 @@ void Triangulator::triangulate() {
     if (ec == 0 || jc == 0 || sc == 0) break;
 
     Front* f0 = m_fronts.pop();
-    qDebug() << "Front pop" << f0->points.size() << f0->meshIndex(0);
+    // qDebug() << "Front pop" << f0->points.size() << f0->meshIndex(0);
 
     try {
 
@@ -133,7 +133,7 @@ void Triangulator::triangulate() {
           if (!joinUs) {
             expand(f0, edgeLen);
             ec -= 1;
-            if (ec >= 0) qDebug() << "remaining expands" << ec;
+            // if (ec >= 0) qDebug() << "remaining expands" << ec;
           }
         }
       } // canExpand
@@ -143,7 +143,7 @@ void Triangulator::triangulate() {
         m_triangles.append(f0->meshIndex(-1));
         delete f0;
       } else {
-        qDebug() << "Remaining front size" << f0->points.size();
+        // qDebug() << "Remaining front size" << f0->points.size();
         if (ec == 0 || jc == 0 || sc == 0) {
           m_fronts.push(f0);
         }
@@ -179,7 +179,7 @@ void Triangulator::expand(Front *f, scalar edgeLen) {
     nt = 1;
   }
 
-  qDebug() << "expand" << edgeLen << nt;
+  // qDebug() << "expand" << edgeLen << nt;
 
   // these need to be recalculated
   f->points[f->frontIndex(-1)].angleValid = false;
@@ -205,7 +205,7 @@ void Triangulator::expand(Front *f, scalar edgeLen) {
     d.n = m_scene->gradient(sp);
     TangentSpace(d.n, d.t, d.b);
     d.roc = m_scene->minimalROC(sp);
-    qDebug() << "expand roc" << d.roc;
+    // qDebug() << "expand roc" << d.roc;
 
     // FIXME/optimization: first insert nt - 1 empty items and fill them in this loop
     f->insert(f->currentIndex + i, d);
@@ -245,7 +245,7 @@ Triangulator::Front* Triangulator::seedHexagon() {
   } else {
     edgeLen = rocToEdgeLen(roc);
   }
-  qDebug() << "seed edge length =" << edgeLen;
+  // qDebug() << "seed edge length =" << edgeLen;
   for (int i = 0; i < 6; i++) {
 
     const scalar x = edgeLen * cos(i * M_PI / 3);
@@ -261,7 +261,7 @@ Triangulator::Front* Triangulator::seedHexagon() {
     d.n = m_scene->gradient(sp);
     TangentSpace(d.n, d.t, d.b);
     d.roc = m_scene->minimalROC(sp);
-    qDebug() << "seed roc" << d.roc;
+    // qDebug() << "seed roc" << d.roc;
 
     front->append(d);
   }
@@ -281,14 +281,14 @@ Triangulator::Front* Triangulator::seedHexagon() {
 // f: 1, 2, 3
 // f2: 3, 4, 5, 0, 1
 void Triangulator::splitFront(Front *f, quint32 i1, quint32 i2) {
-  qDebug() << "split front" << f->points.size();
-  qDebug() << f->meshIndex(i1,  -3) << f->meshIndex(i1, -2)  << f->meshIndex(i1, -1)
-           << f->meshIndex(i1,   0) << f->meshIndex(i1,  1);
-  qDebug() << f->meshIndex(i2,  -2) << f->meshIndex(i2, -1)  << f->meshIndex(i2, 0)
-           << f->meshIndex(i2,   1) << f->meshIndex(i2,  2);
+  // qDebug() << "split front" << f->points.size();
+  // qDebug() << f->meshIndex(i1,  -3) << f->meshIndex(i1, -2)  << f->meshIndex(i1, -1)
+  //          << f->meshIndex(i1,   0) << f->meshIndex(i1,  1);
+  // qDebug() << f->meshIndex(i2,  -2) << f->meshIndex(i2, -1)  << f->meshIndex(i2, 0)
+  //          << f->meshIndex(i2,   1) << f->meshIndex(i2,  2);
   if (f->frontIndex(qMin(i1, i2), -qMax(i1, i2)) < 2) {
-    qDebug() << i1 << i2 << f->meshIndex(i1, 0) << f->meshIndex(i2, 0)
-             << f->expansionAngle();
+    // qDebug() << i1 << i2 << f->meshIndex(i1, 0) << f->meshIndex(i2, 0)
+    //          << f->expansionAngle();
     auto msg = QString("Too small front");
     throw Interrupt(msg, Indices()
                     << f->meshIndex(i1, 0)
@@ -321,8 +321,8 @@ void Triangulator::splitFront(Front *f, quint32 i1, quint32 i2) {
   f2->points.last().angleValid = false;
   f2->finalize();
 
-  qDebug() << "current front" << f->points.size() << f->meshIndex(0);
-  qDebug() << "new front" << f2->points.size() << f2->meshIndex(0);
+  // qDebug() << "current front" << f->points.size() << f->meshIndex(0);
+  // qDebug() << "new front" << f2->points.size() << f2->meshIndex(0);
 
   m_fronts.push(f2);
 }
@@ -330,7 +330,7 @@ void Triangulator::splitFront(Front *f, quint32 i1, quint32 i2) {
 // e.g. f1.size = 6, i1 = 3, f2.size = 4, i2 = 2
 // f1: 1-0, 1-1, 1-2, 1-3, 2-2, 2-3, 2-0, 2-1, 2-2, 1-3, 1-4, 1-5
 void Triangulator::joinFronts(Front *f1, const Front *f2, quint32 i1, quint32 i2) {
-  qDebug() << "join fronts" << f1->points.size() << f2->points.size();
+  // qDebug() << "join fronts" << f1->points.size() << f2->points.size();
   if (f1->points.size() == 6 && f2->points.size() == 753) {
     throw Interrupt("join", Indices()
                     << f1->meshIndex(i1, 0)
@@ -371,7 +371,7 @@ void Triangulator::joinFronts(Front *f1, const Front *f2, quint32 i1, quint32 i2
 
   // f1: 1-0, 1-1, 1-2, copy-of-1-3, copy-of-2-2, 2-3, 2-0, 2-1, 2-2, 1-3, 1-4, 1-5
   f1->finalize();
-  qDebug() << "joined size" << f1->points.size();
+  // qDebug() << "joined size" << f1->points.size();
 }
 
 
@@ -407,7 +407,7 @@ scalar Triangulator::flatRegionEdgeLen(const vec3 &p,
     if (len < edgeLen) edgeLen = len;
     w += M_PI / 18;
   } while (w < oa);
-   qDebug() << "flatRegionEdgeLen:" << edgeLen;
+  // qDebug() << "flatRegionEdgeLen:" << edgeLen;
   return edgeLen;
 }
 
@@ -633,7 +633,7 @@ quint32 Triangulator::Front::checkIntrasect(quint32 collisionIndex, bool& ok) co
 
   const int n = 5;
   if (points.size() <= 2 * n + 2) {
-    qDebug() << "small front";
+    // qDebug() << "small front";
   }
   QMap<quint32, quint32> edges;
   if (points.size() <= 2 * n + 2) {
@@ -660,7 +660,7 @@ quint32 Triangulator::Front::checkIntrasect(quint32 collisionIndex, bool& ok) co
     const vec3& q02 = adaptor.mesh[m2] - adaptor.mesh[meshIndex(0)];
     const vec2 q2 = vec2(glm::dot(t, q02), glm::dot(b, q02));
     if (intersect(p, q1, q2)) {
-      qDebug() << "intrasect" << m1 << m2 << points[frontIndex(0)].openingAngle;
+      // qDebug() << "intrasect" << m1 << m2 << points[frontIndex(0)].openingAngle;
       const scalar oa1 = computeOpeningAngle(frontIndex(0), m1);
       const scalar oa2 = computeOpeningAngle(frontIndex(0), m2);
       quint32 im, ip;
@@ -704,7 +704,7 @@ bool Triangulator::Front::checkIntersect(quint32 mi) const {
 
   const int n = 5;
   if (points.size() <= 2 * n + 2) {
-    qDebug() << "small front";
+    // qDebug() << "small front";
   }
   QMap<quint32, quint32> edges;
   if (points.size() <= 2 * n + 2) {

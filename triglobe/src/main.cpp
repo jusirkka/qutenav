@@ -8,6 +8,7 @@
 #include <QDebug>
 #include <QRegularExpression>
 #include <QStandardPaths>
+#include <QStringList>
 
 static int indexFromChartName(const QString &name);
 
@@ -70,13 +71,23 @@ int main(int argc, char *argv[]) {
 
   GDALAllRegister();
 
-  // FIXME: search standard paths
-  QDir chartDir(QString("/home/jusirkka/share/gshhg/GSHHS_shp/%1").arg(c));
-  QStringList charts = chartDir.entryList(QStringList() << "*_L?.shp",
-                                          QDir::Files | QDir::Readable, QDir::Name);
+  QStringList locs;
+  for (const QString& loc: QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation)) {
+    locs << QString("%1/gshhg/GSHHS_shp").arg(loc);
+  }
+
+  QStringList charts;
+  QDir chartDir;
+  for (const QString& loc: locs) {
+    chartDir = QDir(QString("%1/%2").arg(loc).arg(c));
+    charts = chartDir.entryList(QStringList() << "*_L?.shp",
+                                QDir::Files | QDir::Readable, QDir::Name);
+    if (!charts.isEmpty()) break;
+  }
+
 
   if (charts.isEmpty()) {
-    qFatal("%s is not a valid chart directory", chartDir.absolutePath().toUtf8().data());
+    qFatal("Could not find valid chart directory, searched %s", locs.join(", ").toUtf8().constData());
   }
   qDebug() << charts;
 
@@ -97,6 +108,7 @@ int main(int argc, char *argv[]) {
   f.close();
 
   for (const QString& chart: charts) {
+    qDebug() << "Triangulating" << chart;
     auto path = chartDir.absoluteFilePath(chart);
     auto world = static_cast<GDALDataset*>(GDALOpenEx(path.toUtf8(), GDAL_OF_VECTOR, nullptr, nullptr, nullptr));
     if (world == nullptr) continue;
@@ -106,7 +118,9 @@ int main(int argc, char *argv[]) {
 
     OGRLayer* layer = world->GetLayer(0);
     auto feature = layer->GetNextFeature();
+    qDebug() << "Num features =" << layer->GetFeatureCount();
     while (feature != nullptr) {
+      qDebug() <<"Feature" << feature->GetFID();
       for (int i = 0; i < feature->GetGeomFieldCount(); i++) {
         auto poly = dynamic_cast<const OGRPolygon*>(feature->GetGeomFieldRef(i));
         Triangulator::Mesh front;

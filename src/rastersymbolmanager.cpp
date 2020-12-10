@@ -5,6 +5,25 @@
 #include <QXmlStreamReader>
 #include <QDebug>
 
+SymbolData::SymbolData(const QPoint& off, const QSize& size, int mnd, bool st, const S57::ElementData& elems)
+  : d(new SymbolSharedData) {
+
+  d->offset = off;
+  d->size = size;
+  d->elements = elems;
+
+  // check if pivot is outside of the rect(offset, w, h) and enlarge
+  // note: inverted y-axis
+  const QPointF origin(off.x(), off.y() - size.height());
+  const QRectF rtest(origin, size);
+  auto r1 = rtest.united(QRectF(QPointF(0, 0), QSizeF(.1, .1)));
+  const int x0 = r1.width() + mnd;
+  const int y0 = r1.height() + mnd;
+  const int x1 = st ? .5 * x0 : 0.;
+  d->advance = PatternAdvance(x0, y0, x1);
+}
+
+
 RasterSymbolManager::RasterSymbolManager()
   : m_invalid()
   , m_coordBuffer(QOpenGLBuffer::VertexBuffer)
@@ -81,6 +100,7 @@ void RasterSymbolManager::parsePatterns(QXmlStreamReader &reader, VertexVector &
     QString patternName;
     SymbolSharedData d;
     bool staggered;
+    int minDist;
 
     while (reader.readNextStartElement()) {
       if (reader.name() == "name") {
@@ -88,7 +108,7 @@ void RasterSymbolManager::parsePatterns(QXmlStreamReader &reader, VertexVector &
       } else if (reader.name() == "filltype") {
         staggered = reader.readElementText() != "L";
       } else if (reader.name() == "bitmap") {
-        parseSymbolData(reader, d, vertices, indices);
+        parseSymbolData(reader, d, minDist, vertices, indices);
         break;
       } else {
         reader.skipCurrentElement();
@@ -101,7 +121,7 @@ void RasterSymbolManager::parsePatterns(QXmlStreamReader &reader, VertexVector &
       continue;
     }
 
-    SymbolData s(d.offset, d.size, d.minDist, d.maxDist, staggered, d.elements);
+    SymbolData s(d.offset, d.size, minDist, staggered, d.elements);
 
     const SymbolKey key(S52::FindIndex(patternName), S52::SymbolType::Pattern);
     if (m_symbolMap.contains(key)) {
@@ -121,12 +141,13 @@ void RasterSymbolManager::parseSymbols(QXmlStreamReader &reader, VertexVector &v
 
     QString symbolName;
     SymbolSharedData d;
+    int minDist;
 
     while (reader.readNextStartElement()) {
       if (reader.name() == "name") {
         symbolName = reader.readElementText();
       } else if (reader.name() == "bitmap") {
-        parseSymbolData(reader, d, vertices, indices);
+        parseSymbolData(reader, d, minDist, vertices, indices);
         break;
       } else {
         reader.skipCurrentElement();
@@ -139,7 +160,7 @@ void RasterSymbolManager::parseSymbols(QXmlStreamReader &reader, VertexVector &v
       continue;
     }
 
-    SymbolData s(d.offset, d.size, 0, 0, false, d.elements);
+    SymbolData s(d.offset, d.size, 0, false, d.elements);
 
     const SymbolKey key(S52::FindIndex(symbolName), S52::SymbolType::Single);
     if (m_symbolMap.contains(key)) {
@@ -153,7 +174,7 @@ void RasterSymbolManager::parseSymbols(QXmlStreamReader &reader, VertexVector &v
 }
 
 
-void RasterSymbolManager::parseSymbolData(QXmlStreamReader &reader, SymbolSharedData &d, VertexVector &vertices, IndexVector &indices) {
+void RasterSymbolManager::parseSymbolData(QXmlStreamReader &reader, SymbolSharedData &d, int& minDist, VertexVector &vertices, IndexVector &indices) {
   Q_ASSERT(reader.name() == "bitmap");
 
   int w = reader.attributes().value("width").toInt();
@@ -169,8 +190,7 @@ void RasterSymbolManager::parseSymbolData(QXmlStreamReader &reader, SymbolShared
 
   while (reader.readNextStartElement()) {
     if (reader.name() == "distance") {
-      d.minDist = reader.attributes().value("min").toInt();
-      d.maxDist = reader.attributes().value("min").toInt();
+      minDist = reader.attributes().value("min").toInt();
       reader.skipCurrentElement();
     } else if (reader.name() == "pivot") {
       p = QPoint(reader.attributes().value("x").toInt(),
@@ -189,7 +209,8 @@ void RasterSymbolManager::parseSymbolData(QXmlStreamReader &reader, SymbolShared
     }
   }
 
-  d.offset = QPoint(p.x() - o.x(), o.y() - p.y());
+  // offset of the upper left corner
+  d.offset = QPoint(o.x() - p.x(), p.y() - o.y());
   d.elements = S57::ElementData {GL_TRIANGLES, indices.size() * sizeof(GLuint), 6};
 
 

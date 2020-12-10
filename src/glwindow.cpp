@@ -1,5 +1,5 @@
-#include "glwidget.h"
-#include <QOpenGLFunctions>
+#include "glwindow.h"
+#include <QOpenGLExtraFunctions>
 #include <QOpenGLDebugLogger>
 #include <QMouseEvent>
 #include <QTimer>
@@ -11,8 +11,8 @@
 #include <QGuiApplication>
 #include <QScreen>
 
-GLWidget::GLWidget(QWidget* parent)
-  : QOpenGLWidget(parent)
+GLWindow::GLWindow()
+  : QOpenGLWindow(QOpenGLWindow::NoPartialUpdate)
   , m_mode(DetailMode::RestoreState())
   , m_logger(nullptr)
   , m_chartManager(ChartManager::instance())
@@ -21,12 +21,12 @@ GLWidget::GLWidget(QWidget* parent)
 {
   m_timer = new QTimer(this);
   m_timer->setInterval(1000/25);
-  connect(m_timer, &QTimer::timeout, this, &GLWidget::pan);
+  connect(m_timer, &QTimer::timeout, this, &GLWindow::pan);
 
-  connect(this, &GLWidget::updateViewport, m_chartManager, &ChartManager::updateCharts);
-  connect(m_chartManager, &ChartManager::idle, this, &GLWidget::finalizeChartMode);
-  connect(m_chartManager, &ChartManager::active, this, &GLWidget::initializeChartMode);
-  connect(m_chartManager, &ChartManager::chartsUpdated, this, &GLWidget::updateCharts);
+  connect(this, &GLWindow::updateViewport, m_chartManager, &ChartManager::updateCharts);
+  connect(m_chartManager, &ChartManager::idle, this, &GLWindow::finalizeChartMode);
+  connect(m_chartManager, &ChartManager::active, this, &GLWindow::initializeChartMode);
+  connect(m_chartManager, &ChartManager::chartsUpdated, this, &GLWindow::updateCharts);
 
   connect(m_textManager, &TextManager::newStrings, this, [this] () {
     qDebug() << "new strings";
@@ -36,11 +36,11 @@ GLWidget::GLWidget(QWidget* parent)
 }
 
 
-void GLWidget::saveState() {
+void GLWindow::saveState() {
   m_mode->saveState();
 }
 
-void GLWidget::initializeGL() {
+void GLWindow::initializeGL() {
   if (!m_logger) {
     m_logger = new QOpenGLDebugLogger(this);
     if (!m_logger->initialize()) {
@@ -71,7 +71,7 @@ void GLWidget::initializeGL() {
   }
 }
 
-void GLWidget::resizeGL(int w, int h) {
+void GLWindow::resizeGL(int w, int h) {
   auto gl = QOpenGLContext::currentContext()->functions();
   gl->glViewport(0, 0, w, h);
   try {
@@ -87,14 +87,16 @@ void GLWidget::resizeGL(int w, int h) {
   qDebug() << "WxH (pixels / mm) =" << static_cast<float>(width()) / widthMM() << "x" << static_cast<float>(height()) / heightMM();
 }
 
-void GLWidget::paintGL() {
+void GLWindow::paintGL() {
 
-  auto gl = QOpenGLContext::currentContext()->functions();
+  auto gl = QOpenGLContext::currentContext()->extraFunctions();
+
   gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
   for (Drawable* chart: m_mode->drawables()) {
     chart->paintGL(m_mode->camera());
   }
+
   for (const QOpenGLDebugMessage& message: m_logger->loggedMessages()) {
     qDebug() << message;
   }
@@ -112,21 +114,21 @@ static float gravity(int dx) {
 }
 
 
-void GLWidget::mousePressEvent(QMouseEvent* event) {
+void GLWindow::mousePressEvent(QMouseEvent* event) {
   m_timer->stop();
   m_diff *= 0;
   m_lastPos = event->pos();
   m_moveCounter = 0;
 }
 
-void GLWidget::mouseDoubleClickEvent(QMouseEvent*) {
+void GLWindow::mouseDoubleClickEvent(QMouseEvent*) {
   m_timer->stop();
   m_mode->camera()->reset();
   emit updateViewport(m_mode->camera());
   update();
 }
 
-void GLWidget::mouseReleaseEvent(QMouseEvent*) {
+void GLWindow::mouseReleaseEvent(QMouseEvent*) {
   if (m_diff.isNull()) return;
 
   m_diff.setX(gravity(m_diff.x()));
@@ -137,7 +139,7 @@ void GLWidget::mouseReleaseEvent(QMouseEvent*) {
 
 
 
-void GLWidget::mouseMoveEvent(QMouseEvent* event) {
+void GLWindow::mouseMoveEvent(QMouseEvent* event) {
   if (m_timer->isActive()) return;
   m_diff = event->pos() - m_lastPos;
 
@@ -151,7 +153,7 @@ void GLWidget::mouseMoveEvent(QMouseEvent* event) {
   m_moveCounter = (m_moveCounter + 1) % 100000;
 }
 
-void GLWidget::wheelEvent(QWheelEvent *event) {
+void GLWindow::wheelEvent(QWheelEvent *event) {
   if (event->angleDelta().y() > 0) {
     zoomOut();
   } else if (event->angleDelta().y() < 0) {
@@ -159,7 +161,7 @@ void GLWidget::wheelEvent(QWheelEvent *event) {
   }
 }
 
-void GLWidget::pan() {
+void GLWindow::pan() {
   if (m_diff.isNull()) return;
   const QPointF start(2 * m_lastPos.x() / float(width()) - 1, 1 - 2 * m_lastPos.y() / float(height()));
   const QPointF amount(2 * m_diff.x() / float(width()), - 2 * m_diff.y() / float(height()));
@@ -168,7 +170,7 @@ void GLWidget::pan() {
   update();
 }
 
-void GLWidget::compassPan(Angle bearing, float pixels) {
+void GLWindow::compassPan(Angle bearing, float pixels) {
   if (pixels <= 0.) return;
   const Angle a = Angle::fromDegrees(90) - bearing;
   const QPointF amount(-2 * pixels * a.cos() / float(width()), -2 * pixels * a.sin() / float(height()));
@@ -178,7 +180,7 @@ void GLWidget::compassPan(Angle bearing, float pixels) {
 }
 
 
-void GLWidget::zoomIn() {
+void GLWindow::zoomIn() {
   // evenly distributed steps in log scale, div steps per decade
   const float s = m_mode->camera()->scale();
   const float s_min = m_mode->camera()->minScale();
@@ -198,7 +200,7 @@ void GLWidget::zoomIn() {
   update();
 }
 
-void GLWidget::zoomOut() {
+void GLWindow::zoomOut() {
   const float s_min = m_mode->camera()->minScale();
   const float div = 10;
   const quint32 i = quint32((log10(m_mode->camera()->scale() / s_min)) * div + .5) + 1;
@@ -216,7 +218,7 @@ void GLWidget::zoomOut() {
   update();
 }
 
-void GLWidget::initializeChartMode() {
+void GLWindow::initializeChartMode() {
   DetailMode* mode = m_mode->smallerScaleMode();
   if (mode == nullptr) {
     updateCharts();
@@ -229,7 +231,7 @@ void GLWidget::initializeChartMode() {
   doneCurrent();
 }
 
-void GLWidget::finalizeChartMode() {
+void GLWindow::finalizeChartMode() {
   DetailMode* mode = m_mode->largerScaleMode();
   if (mode == nullptr) {
     updateCharts();
@@ -242,20 +244,20 @@ void GLWidget::finalizeChartMode() {
   doneCurrent();
 }
 
-void GLWidget::northUp() {
+void GLWindow::northUp() {
   Angle a = m_mode->camera()->northAngle();
   m_mode->camera()->rotateEye(- a);
   emit updateViewport(m_mode->camera());
   update();
 }
 
-void GLWidget::updateCharts() {
+void GLWindow::updateCharts() {
   update();
 }
 
 
 
-GLWidget::~GLWidget() {
+GLWindow::~GLWindow() {
   makeCurrent();
   m_vao.destroy();
   doneCurrent();

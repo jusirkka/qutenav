@@ -26,10 +26,55 @@ S57::PaintDataMap S52::AreaColor::execute(const QVector<QVariant>& vals,
   return S57::PaintDataMap{{p->type(), p}};
 }
 
-S57::PaintDataMap S52::AreaPattern::execute(const QVector<QVariant>& /*vals*/,
-                                            const S57::Object* /*obj*/) {
-  qWarning() << "AP: not implemented";
-  return S57::PaintDataMap(); // invalid paint data
+S57::PaintDataMap S52::AreaPattern::execute(const QVector<QVariant>& vals,
+                                            const S57::Object* obj) {
+
+  const quint32 index = vals[0].toUInt();
+  const SymbolData s = RasterSymbolManager::instance()->symbolData(index, S52::SymbolType::Pattern);
+
+  if (!s.isValid()) {
+    qWarning() << "Missing raster pattern. Vector patterns not implemented";
+    return S57::PaintDataMap();
+  }
+
+  // qDebug() << "[Class]" << S52::GetClassInfo(obj->classCode());
+  // qDebug() << "[Symbol]" << S52::GetSymbolInfo(index, S52::SymbolType::Pattern);
+  // qDebug() << "[Location]" << obj->geometry()->centerLL().print();
+  // for (auto k: obj->attributes().keys()) {
+  //   qDebug() << GetAttributeInfo(k, obj);
+  // }
+  // qDebug() << "[Pattern]" << s.size() << s.advance().x << s.advance().xy;
+
+  const QMetaType::Type t = static_cast<QMetaType::Type>(vals[1].type());
+  Q_ASSERT(t == QMetaType::Float || t == QMetaType::Double);
+  if (vals[1].toDouble() > 0.) {
+    qWarning() << "Rotations not implemented" << vals[1].toDouble();
+  }
+
+  auto geom = dynamic_cast<const S57::Geometry::Area*>(obj->geometry());
+  Q_ASSERT(geom != nullptr);
+
+  S57::PaintData* p;
+
+  if (geom->indexed()) {
+    p = new S57::RasterPatternElemData(geom->triangleElements(),
+                                       geom->vertexOffset(),
+                                       obj->boundingBox(),
+                                       s.offset(),
+                                       s.advance(),
+                                       s.elements(),
+                                       index);
+  } else {
+    p = new S57::RasterPatternArrayData(geom->triangleElements(),
+                                        geom->vertexOffset(),
+                                        obj->boundingBox(),
+                                        s.offset(),
+                                        s.advance(),
+                                        s.elements(),
+                                        index);
+  }
+
+  return S57::PaintDataMap{{p->type(), p}};
 }
 
 S52::LineSimple::LineSimple(quint32 index)
@@ -123,9 +168,11 @@ S57::PaintDataMap S52::LineComplex::execute(const QVector<QVariant>& /*vals*/,
 S57::PaintDataMap S52::PointSymbol::execute(const QVector<QVariant>& vals,
                                             const S57::Object* obj) {
 
-  // FIXME: rotation
   const QMetaType::Type t = static_cast<QMetaType::Type>(vals[1].type());
   Q_ASSERT(t == QMetaType::Float || t == QMetaType::Double);
+  if (vals[1].toDouble() > 0.) {
+    qWarning() << "Rotations not implemented" << vals[1].toDouble();
+  }
 
   quint32 index = vals[0].toUInt();
   const SymbolData s = RasterSymbolManager::instance()->symbolData(index, S52::SymbolType::Single);
@@ -137,15 +184,14 @@ S57::PaintDataMap S52::PointSymbol::execute(const QVector<QVariant>& vals,
   // }
 
   if (!s.isValid()) {
-    qDebug() << "Missing raster symbol. FIXME: try vector symbols";
+    qDebug() << "Missing raster symbol. Vector symbols not implemented";
     return S57::PaintDataMap();
   }
 
   S57::PaintData* p = new S57::RasterSymbolElemData(obj->geometry()->center(),
                                                     s.offset(),
                                                     s.elements(),
-                                                    index,
-                                                    S52::SymbolType::Single);
+                                                    index);
 
   return S57::PaintDataMap{{p->type(), p}};
 }
@@ -167,15 +213,15 @@ S57::PaintDataMap S52::Text::execute(const QVector<QVariant>& vals,
 
   const QString chars = vals[4].toString();
 
-  assert(chars.left(1).toUInt() == 1); // style: always system's default
+  Q_ASSERT(chars.left(1).toUInt() == 1); // style: always system's default
   const quint8 width = chars.mid(2, 1).toUInt();
-  assert(width == 1 || width == 2); // always roman slant
+  Q_ASSERT(width == 1 || width == 2); // always roman slant
 
   auto weight = as_enum<TXT::Weight>(chars.mid(1, 1).toUInt(), TXT::AllWeights);
 
   auto space = as_enum<TXT::Space>(vals[3].toUInt(), TXT::AllSpaces);
   if (space != TXT::Space::Standard/* && space != TXT::Space::Wrapped*/) {
-    qWarning() << "TX: unsupported space" << as_numeric(space);
+    qWarning() << "TX: text spacing type" << as_numeric(space)<< "not implemented";
     return S57::PaintDataMap();
   }
 
@@ -219,12 +265,6 @@ S57::PaintDataMap S52::TextExtended::execute(const QVector<QVariant>& vals,
 
   const int numAttrs = vals[1].toInt();
 
-  const quint8 group = vals[numAttrs + 9].toUInt();
-  if (!Settings::instance()->textGrouping().contains(group)) {
-    qWarning() << "skipping TE in group" << group;
-    return S57::PaintDataMap();
-  }
-
   char format[256];
   strcpy(format, txt.toUtf8().data());
   char buf[256];
@@ -241,55 +281,25 @@ S57::PaintDataMap S52::TextExtended::execute(const QVector<QVariant>& vals,
       sprintf(buf, format, vals[2 + i].toInt());
       break;
     default:
-      // qWarning() << "TE: Unhandled attribute value" << vals[2 + i] << "in object" << obj->name();
+      qWarning() << "TE: Unhandled attribute value" << vals[2 + i];
+      qWarning() << "[Class]" << S52::GetClassInfo(obj->classCode());
+      qWarning() << "[Location]" << obj->geometry()->centerLL().print();
+      for (auto k: obj->attributes().keys()) {
+        qWarning() << GetAttributeInfo(k, obj);
+      }
       return S57::PaintDataMap();
     }
     strcpy(format, buf);
   }
   // qDebug() << "TE:" << as_numeric(obj->geometry()->type()) << buf;
 
-  const QString chars = vals[numAttrs + 5].toString();
-
-  assert(chars.left(1).toUInt() == 1); // style: always system's default
-  const quint8 width = chars.mid(2, 1).toUInt();
-  assert(width == 1 || width == 2); // always roman slant
-
-  auto weight = as_enum<TXT::Weight>(chars.mid(1, 1).toUInt(), TXT::AllWeights);
-
-  auto space = as_enum<TXT::Space>(vals[numAttrs + 4].toUInt(), TXT::AllSpaces);
-  if (space != TXT::Space::Standard/* && space != TXT::Space::Wrapped*/) {
-    qWarning() << "TE: unsupported space" << as_numeric(space);
-    return S57::PaintDataMap();
+  QVector<QVariant> txVals;
+  txVals.append(QVariant::fromValue(QString::fromUtf8(buf)));
+  for (int i = 0; i < 8; i++) {
+    txVals.append(vals[numAttrs + 2 + i]);
   }
 
-  const TextData d = TextManager::instance()->textData(buf, weight/*, space*/);
-  if (!d.isValid()) {
-    return S57::PaintDataMap();
-  }
-
-  auto hjust = as_enum<TXT::HJust>(vals[numAttrs + 2].toUInt(), TXT::AllHjusts);
-  auto vjust = as_enum<TXT::VJust>(vals[numAttrs + 3].toUInt(), TXT::AllVjusts);
-
-  const QPointF dPivot(m_pivotHMap[hjust] * d.bbox().width(),
-                       m_pivotVMap[vjust] * d.bbox().height());
-
-  // ad-hoc factor: too large fonts
-  const float bodySizeMM = chars.mid(3).toUInt() * .351 * .6;
-
-  const QPointF dMM = QPointF(vals[numAttrs + 6].toInt(), - vals[numAttrs + 7].toInt()) * bodySizeMM;
-
-  const QColor color = S52::GetColor(vals[numAttrs + 8].toUInt());
-
-  S57::PaintData* p = new S57::TextElemData(obj->geometry()->center(),
-                                            d.bbox().bottomLeft(), // inverted y-axis
-                                            dPivot,
-                                            dMM,
-                                            bodySizeMM / d.bbox().height(),
-                                            d.offset(),
-                                            d.elements(),
-                                            color);
-
-  return S57::PaintDataMap{{p->type(), p}};
+  return S52::FindFunction("TX")->execute(vals, obj);
 }
 
 
@@ -370,6 +380,7 @@ S57::PaintDataMap S52::CSDepthArea01::execute(const QVector<QVariant>&,
 
   QVector<QVariant> vals;
   vals.append(QVariant::fromValue(m_drgare01));
+  vals.append(QVariant::fromValue(0.));
   ps += S52::FindFunction("AP")->execute(vals, obj);
 
   vals.clear();
@@ -580,12 +591,12 @@ S57::PaintDataMap S52::CSLights05::execute(const QVector<QVariant>&,
   vals.append(QVariant::fromValue(m_chblk));
   auto ps = S52::FindFunction("LS")->execute(vals, obj);
 
-  bool extended_arc_radius = false;
+  //bool extended_arc_radius = false;
   S57::Object::LocationIterator it = obj->others();
   for (; it != obj->othersEnd() && it.key() == obj->geometry()->centerLL(); ++it) {
     if (it.value() == obj) continue;
     if (overlaps_and_smaller(s1, s2, it.value()->attributeValue(m_sectr1), it.value()->attributeValue(m_sectr2))) {
-      extended_arc_radius = true;
+      //extended_arc_radius = true;
       break;
     }
   }
@@ -771,6 +782,7 @@ S57::PaintDataMap S52::CSShorelineQualOfPos03::execute(const QVector<QVariant>&,
   if (obj->geometry()->type() == S57::Geometry::Type::Area) {
     QVector<QVariant> vals;
     vals.append(QVariant::fromValue(m_crossx01));
+    vals.append(QVariant::fromValue(0.));
     ps = S52::FindFunction("AP")->execute(vals, obj);
   }
 

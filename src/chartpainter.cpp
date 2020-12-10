@@ -7,6 +7,7 @@
 #include <QGuiApplication>
 #include <QScreen>
 #include "shader.h"
+#include <QOpenGLFramebufferObject>
 
 ChartPainter::ChartPainter(QObject* parent)
   : Drawable(parent)
@@ -25,12 +26,14 @@ void ChartPainter::initializeGL() {
   gl->glEnable(GL_DEPTH_TEST);
   gl->glDisable(GL_STENCIL_TEST);
   gl->glDisable(GL_CULL_FACE);
-  gl->glEnable(GL_BLEND);
+  gl->glDisable(GL_BLEND);
   gl->glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 
 void ChartPainter::paintGL(const Camera* cam) {
+
+  auto gl = QOpenGLContext::currentContext()->functions();
 
   // draw opaque objects nearest objects (highest priority) first
   for (int i = S52::Lookup::PriorityCount - 1; i >= 0; i--) {
@@ -43,6 +46,8 @@ void ChartPainter::paintGL(const Camera* cam) {
       chart->drawAreas(cam, i);
     }
   }
+
+  gl->glEnable(GL_BLEND);
 
   // draw translucent objects farthest first
   for (int i = 0; i < S52::Lookup::PriorityCount; i++) {
@@ -59,6 +64,14 @@ void ChartPainter::paintGL(const Camera* cam) {
       chart->drawText(cam, i);
     }
   }
+
+  // draw stencilled objects
+  m_rasterShader->initializePaint();
+  for (S57Chart* chart: m_manager->charts()) {
+    chart->drawPatterns(cam);
+  }
+
+  gl->glDisable(GL_BLEND);
 
 
 

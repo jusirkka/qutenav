@@ -172,6 +172,7 @@ public:
   void drawText(const Camera* cam, int prio);
   void drawDashedLines(const Camera* cam, int prio);
   void drawRasterSymbols(const Camera* cam, int prio);
+  void drawPatterns(const Camera* cam);
 
   const GeoProjection* geoProjection() const {return m_nativeProj;}
 
@@ -229,6 +230,8 @@ private:
   QOpenGLBuffer m_indexBuffer;
   GLsizei m_staticVertexOffset;
   GLsizei m_staticElemOffset;
+
+  const float m_dots_per_mm_y;
 
 };
 

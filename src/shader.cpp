@@ -146,7 +146,7 @@ GL::TextShader::TextShader()
   m_locations.windowScale = m_program->uniformLocation("windowScale");
   m_locations.textScale = m_program->uniformLocation("textScale");
   m_locations.pivot = m_program->uniformLocation("pivot");
-  m_locations.pivotShift = m_program->uniformLocation("pivotShift");
+  m_locations.offset = m_program->uniformLocation("offset");
   m_locations.atlas = m_program->uniformLocation("atlas");
   m_locations.base_color = m_program->uniformLocation("base_color");
 }
@@ -187,7 +187,7 @@ GL::RasterSymbolShader::RasterSymbolShader()
   m_locations.tr = m_program->uniformLocation("tr");
   m_locations.windowScale = m_program->uniformLocation("windowScale");
   m_locations.pivot = m_program->uniformLocation("pivot");
-  m_locations.pivotShift = m_program->uniformLocation("pivotShift");
+  m_locations.offset = m_program->uniformLocation("offset");
   m_locations.atlas = m_program->uniformLocation("atlas");
 }
 

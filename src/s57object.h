@@ -118,7 +118,7 @@ public:
     m_points.append(0.);
   }
 
-  Point(const PointVector& ps)
+  Point(const PointVector& ps, const GeoProjection* proj)
     : Base(Type::Point, QPointF(), WGS84Point())
     , m_points(ps) {
     QPointF s(0, 0);
@@ -128,6 +128,7 @@ public:
       s.ry() += m_points[3 * i + 1];
     }
     m_center = s / n;
+    m_centerLL = proj->toWGS84(m_center);
   }
 
   const PointVector& points() const {return m_points;}
@@ -140,8 +141,8 @@ private:
 
 class Line: public Base {
 public:
-  Line(const ElementDataVector& elems, const QPointF& c, GLsizei vo)
-    : Base(Type::Line, c, WGS84Point())
+  Line(const ElementDataVector& elems, const QPointF& c, GLsizei vo, const GeoProjection* proj)
+    : Base(Type::Line, c, proj->toWGS84(c))
     , m_lineElements(elems)
     , m_vertexOffset(vo) {}
 
@@ -157,8 +158,8 @@ private:
 
 class Area: public Line {
 public:
-  Area(const ElementDataVector& lelems, const QPointF& c, const ElementDataVector& telems, GLsizei vo, bool indexed)
-    : Line(lelems, c, vo)
+  Area(const ElementDataVector& lelems, const QPointF& c, const ElementDataVector& telems, GLsizei vo, bool indexed, const GeoProjection* proj)
+    : Line(lelems, c, vo, proj)
     , m_triangleElements(telems)
     , m_indexed(indexed)
   {
@@ -196,6 +197,8 @@ public:
     DashedLineLocal,
     TextElements,
     RasterSymbolElements,
+    RasterPatternElements,
+    RasterPatternArrays,
   };
 
   virtual void setUniforms() const = 0;
@@ -359,8 +362,7 @@ public:
   RasterSymbolElemData(const QPointF& pivot,
                        const QPoint& pivotOffset,
                        const ElementData& elems,
-                       quint32 index,
-                       S52::SymbolType type);
+                       quint32 index);
 
   const ElementData& elements() const {return m_elements;}
 
@@ -370,7 +372,62 @@ protected:
   QPointF m_pivot;
   QPoint m_pivotOffset;
   quint32 m_index;
-  S52::SymbolType m_type;
+};
+
+class RasterPatternData: public PaintData {
+public:
+  void setUniforms() const override;
+  void setVertexOffset() const override;
+
+  void setAreaUniforms() const;
+  void setAreaVertexOffset() const;
+  void setPivot(const QPointF& p) const;
+
+  RasterPatternData(Type t,
+                    const ElementDataVector& aelems,
+                    GLsizei aoffset,
+                    const QRectF& bbox,
+                    const QPoint& offset,
+                    const PatternAdvance& advance,
+                    const ElementData& elem,
+                    quint32 index);
+
+  const ElementData& elements() const {return m_elements;}
+  const ElementDataVector& areaElements() const {return m_areaElements;}
+  const QRectF& bbox() const {return m_bbox;}
+  const PatternAdvance& advance() const {return m_advance;}
+
+protected:
+
+  ElementDataVector m_areaElements;
+  GLsizei m_areaVertexOffset;
+  QRectF m_bbox;
+  QPoint m_offset;
+  PatternAdvance m_advance;
+  ElementData m_elements;
+  quint32 m_index;
+};
+
+class RasterPatternElemData: public RasterPatternData {
+public:
+  RasterPatternElemData(const ElementDataVector& aelems,
+                        GLsizei aoffset,
+                        const QRectF& bbox,
+                        const QPoint& offset,
+                        const PatternAdvance& advance,
+                        const ElementData& elem,
+                        quint32 index);
+};
+
+class RasterPatternArrayData: public RasterPatternData {
+public:
+  RasterPatternArrayData(const ElementDataVector& aelems,
+                         GLsizei aoffset,
+                         const QRectF& bbox,
+                         const QPoint& offset,
+                         const PatternAdvance& advance,
+                         const ElementData& elem,
+                         quint32 index);
 };
 
 

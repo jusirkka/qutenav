@@ -87,29 +87,65 @@ WGS84Point WGS84Point::parseISO6709(const QString& loc) {
   return WGS84Point(lng, lat);
 }
 
-QString WGS84Point::print() {
-  if (!m_Valid) return "N/A";
-
-  // 50°40'46"N 024°48'26"E
-  QString s("%1°%2'%3\"%4");
-  QString r;
-  QChar z('0');
-  r += s.arg(degreesLat(), 2, 10, z).arg(minutesLat(), 2, 10, z)
-          .arg(secondsLat(), 2, 10, z).arg(northern() ? "N" : "S");
-  r += " ";
-  r += s.arg(degreesLng(), 3, 10, z).arg(minutesLng(), 2, 10, z)
-       .arg(secondsLng(), 2, 10, z).arg(eastern() ? "E" : "W");
-
-  return r;
+static double sexas(double r) {
+    r = std::abs(r);
+    return  60 * (r - int(r));
 }
 
-QString WGS84Point::toISO6709() {
+
+QString WGS84Point::print(Units units) const {
+  if (!m_Valid) return "N/A";
+
+  const QChar z('0');
+
+  switch (units) {
+  case Units::DegMinSec: {
+    // 50°40'46“N 024°48'26“E
+    const QString s("%1°%2‘%3“%4");
+    QString r;
+    r += s.arg(degreesLat(), 2, 10, z).arg(minutesLat(), 2, 10, z)
+            .arg(secondsLat(), 2, 10, z).arg(northern() ? "N" : "S");
+    r += " ";
+    r += s.arg(degreesLng(), 3, 10, z).arg(minutesLng(), 2, 10, z)
+         .arg(secondsLng(), 2, 10, z).arg(eastern() ? "E" : "W");
+
+    return r;
+  }
+  case Units::DegMin: {
+    // 50°40.7667'N 024°48.4333'“̣E
+    const QString s("%1°%2‘%3");
+    QString r;
+    r += s.arg(degreesLat(), 2, 10, z).arg(sexas(m_Latitude), 2, 'f', 4, z)
+        .arg(northern() ? "N" : "S");
+    r += " ";
+    r += s.arg(degreesLng(), 3, 10, z).arg(sexas(m_Longitude), 2, 'f', 4, z)
+        .arg(eastern() ? "E" : "W");
+
+    return r;
+  }
+  case Units::Deg: {
+    // 50.679445° 024.807222°
+    const QString s("%1°");
+    QString r;
+    r += s.arg(m_Latitude, 2, 'f', 6, z);
+    r += " ";
+    r += s.arg(m_Longitude, 3, 'f', 6, z);
+
+    return r;
+  }
+  default:
+    return "N/A";
+  }
+
+}
+
+QString WGS84Point::toISO6709() const {
   if (!m_Valid) return "N/A";
   // +27.5916+086.5640CRSWGS_84/
   QChar z('0');
   QString s("%1%2%3%4CRSWGS_84/"); // sign lat, abs lat, sign lng, abs lng
-  return s.arg(m_Latitude < 0 ? '-' : '+').arg(std::abs(m_Latitude), 0, 'f', 2, z)
-      .arg(m_Longitude < 0 ? '-' : '+').arg(std::abs(m_Longitude), 0, 'f', 3, z);
+  return s.arg(m_Latitude < 0 ? '-' : '+').arg(std::abs(m_Latitude), 0, 'f', 10, z)
+      .arg(m_Longitude < 0 ? '-' : '+').arg(std::abs(m_Longitude), 0, 'f', 10, z);
 }
 
 double WGS84Point::radiansLng() const {
@@ -120,10 +156,6 @@ double WGS84Point::radiansLat() const {
   return RADS_PER_DEG * m_Latitude;
 }
 
-static double sexas(double r) {
-    r = std::abs(r);
-    return  60 * (r - int(r));
-}
 
 ushort WGS84Point::degreesLat() const {
   return std::abs(m_Latitude);

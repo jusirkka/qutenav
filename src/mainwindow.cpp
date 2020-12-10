@@ -1,5 +1,5 @@
 #include "mainwindow.h"
-#include "glwidget.h"
+#include "glwindow.h"
 #include "globe.h"
 #include <KActionCollection>
 #include <KHelpMenu>
@@ -10,11 +10,11 @@
 
 MainWindow::MainWindow()
   : KXmlGuiWindow()
-  , m_GLWidget(new GLWidget(this))
+  , m_GLWindow(new GLWindow())
 {
   setWindowTitle(qAppName());
 
-  setCentralWidget(m_GLWidget);
+  setCentralWidget(QWidget::createWindowContainer(m_GLWindow, this));
   addActions();
   setupGUI();
   QMetaObject::connectSlotsByName(this);
@@ -26,7 +26,7 @@ void MainWindow::on_quit_triggered() {
 }
 
 void MainWindow::on_northUp_triggered() {
-  m_GLWidget->northUp();
+  m_GLWindow->northUp();
 }
 
 void MainWindow::on_fullScreen_toggled(bool on) {
@@ -39,27 +39,27 @@ void MainWindow::on_fullScreen_toggled(bool on) {
 }
 
 void MainWindow::on_panNorth_triggered() {
-  m_GLWidget->compassPan(Angle::fromDegrees(0));
+  m_GLWindow->compassPan(Angle::fromDegrees(0));
 }
 
 void MainWindow::on_panEast_triggered() {
-  m_GLWidget->compassPan(Angle::fromDegrees(90));
+  m_GLWindow->compassPan(Angle::fromDegrees(90));
 }
 
 void MainWindow::on_panSouth_triggered() {
-  m_GLWidget->compassPan(Angle::fromDegrees(180));
+  m_GLWindow->compassPan(Angle::fromDegrees(180));
 }
 
 void MainWindow::on_panWest_triggered() {
-  m_GLWidget->compassPan(Angle::fromDegrees(270));
+  m_GLWindow->compassPan(Angle::fromDegrees(270));
 }
 
 void MainWindow::on_zoomIn_triggered() {
-  m_GLWidget->zoomIn();
+  m_GLWindow->zoomIn();
 }
 
 void MainWindow::on_zoomOut_triggered() {
-  m_GLWidget->zoomOut();
+  m_GLWindow->zoomOut();
 }
 
 
@@ -153,7 +153,7 @@ void MainWindow::addActions() {
 
 void MainWindow::closeEvent(QCloseEvent* event) {
   writeSettings();
-  m_GLWidget->saveState();
+  m_GLWindow->saveState();
   event->accept();
 }
 

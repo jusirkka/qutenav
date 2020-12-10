@@ -39,8 +39,11 @@ find_package(Freetype ${FREETYPE_MIN_VERSION} REQUIRED)
 set(FONTCONFIG_MIN_VERSION "2.13")
 find_package(Fontconfig ${FONTCONFIG_MIN_VERSION} REQUIRED)
 
-#set(HARFBUZZ_MIN_VERSION "2.6.7")
-find_package(harfbuzz ${HARFBUZZ_MIN_VERSION} REQUIRED)
+#set(HARFBUZZ_VERSION "2.6.7")
+find_package(harfbuzz ${HARFBUZZ_VERSION} REQUIRED)
+
+set(GLM_VERSION "0.9.9")
+find_package(glm ${GLM_VERSION} REQUIRED)
 
 #
 # targets
@@ -68,7 +71,7 @@ target_sources(qopencpn
     src/geoprojection.cpp
     src/globe.cpp
     src/glthread.cpp
-    src/glwidget.cpp
+    src/glwindow.cpp
     src/glyphmanager.cpp
     src/main.cpp
     src/mainwindow.cpp

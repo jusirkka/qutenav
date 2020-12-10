@@ -16,6 +16,8 @@
 #include <QOpenGLContext>
 #include "textmanager.h"
 #include "rastersymbolmanager.h"
+#include <QGuiApplication>
+#include <QScreen>
 
 using Buffer = QVector<char>;
 using HandlerFunc = std::function<bool (const Buffer&)>;
@@ -211,6 +213,7 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
   , m_settings(Settings::instance())
   , m_coordBuffer(QOpenGLBuffer::VertexBuffer)
   , m_indexBuffer(QOpenGLBuffer::IndexBuffer)
+  , m_dots_per_mm_y(QGuiApplication::primaryScreen()->physicalDotsPerInchY() / 25.4)
 {
   S57ChartOutline outline(path);
   m_extent = outline.extent();
@@ -375,7 +378,7 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
           ll.setX(qMin(ll.x(), q.x()));
           ll.setY(qMin(ll.y(), q.y()));
         }
-        return helper.setGeometry(current, new S57::Geometry::Point(ps), QRectF(ll, ur));
+        return helper.setGeometry(current, new S57::Geometry::Point(ps, m_nativeProj), QRectF(ll, ur));
       })
     },
 
@@ -576,7 +579,7 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
       const QPointF c = computeLineCenter(elems, vertices, indices);
       const QRectF bbox = computeBBox(elems, vertices, indices);
       helper.setGeometry(d.object,
-                         new S57::Geometry::Line(elems, c, 0),
+                         new S57::Geometry::Line(elems, c, 0, m_nativeProj),
                          bbox);
 
     } else if (d.type == S57::Geometry::Type::Area) {
@@ -591,7 +594,7 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
       const QPointF c = computeAreaCenter(telems, vertices, offset);
       const QRectF bbox = computeBBox(lelems, vertices, indices);
       helper.setGeometry(d.object,
-                         new S57::Geometry::Area(lelems, c, telems, offset, false),
+                         new S57::Geometry::Area(lelems, c, telems, offset, false, m_nativeProj),
                          bbox);
     }
 
@@ -944,6 +947,45 @@ void S57Chart::drawAreas(const Camera* cam, int prio) {
     }
     ++elem;
   }
+
+  // stencil pattern areas
+
+  gl->glEnable(GL_STENCIL_TEST);
+  gl->glDisable(GL_DEPTH_TEST);
+  gl->glStencilMask(0xff);
+  gl->glStencilFunc(GL_ALWAYS, 1, 0xff);
+  gl->glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+  gl->glColorMask(false, false, false, false);
+
+  arr = m_paintData[prio].constFind(S57::PaintData::Type::RasterPatternArrays);
+
+  while (arr != end && arr.key() == S57::PaintData::Type::RasterPatternArrays) {
+    auto d = dynamic_cast<const S57::RasterPatternArrayData*>(arr.value());
+    d->setAreaUniforms();
+    d->setAreaVertexOffset();
+    for (const S57::ElementData& e: d->areaElements()) {
+      gl->glDrawArrays(e.mode, e.offset, e.count);
+    }
+    ++arr;
+  }
+
+  elem = m_paintData[prio].constFind(S57::PaintData::Type::RasterPatternElements);
+
+  while (elem != end && elem.key() == S57::PaintData::Type::RasterPatternElements) {
+    auto d = dynamic_cast<const S57::RasterPatternElemData*>(elem.value());
+    d->setAreaUniforms();
+    d->setAreaVertexOffset();
+    for (const S57::ElementData& e: d->areaElements()) {
+      gl->glDrawElements(e.mode, e.count, GL_UNSIGNED_INT,
+                         reinterpret_cast<const void*>(e.offset));
+    }
+    ++elem;
+  }
+
+  gl->glDisable(GL_STENCIL_TEST);
+  gl->glEnable(GL_DEPTH_TEST);
+  gl->glStencilMask(0x00);
+  gl->glColorMask(true, true, true, true);
 }
 
 void S57Chart::drawSolidLines(const Camera* cam, int prio) {
@@ -1080,6 +1122,84 @@ void S57Chart::drawRasterSymbols(const Camera* cam, int prio) {
   }
 }
 
+
+void S57Chart::drawPatterns(const Camera *cam) {
+  RasterSymbolManager::instance()->bind();
+
+  auto prog = GL::RasterSymbolShader::instance();
+
+  const QPointF p = cam->geoprojection()->fromWGS84(geoProjection()->reference());
+  prog->setGlobals(cam, p);
+
+  auto gl = QOpenGLContext::currentContext()->extraFunctions();
+  gl->glEnable(GL_STENCIL_TEST);
+  gl->glStencilMask(0xff);
+  gl->glStencilFunc(GL_EQUAL, 1, 0xff);
+  gl->glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+
+  const qreal s = .5 * cam->heightMM() * m_dots_per_mm_y * cam->projection()(1, 1);
+
+  auto createPivots = [s] (const QRectF bbox, const PatternAdvance& adv) {
+    QVector<QPointF> pivots;
+    const qreal X = adv.x / s;
+    const qreal Y = adv.xy.y() / s;
+    const qreal xs = adv.xy.x() / s;
+
+    const int ny = std::floor(bbox.top() / Y);
+    //const int my = std::ceil(bbox.bottom() / Y) + 1;
+    const int my = ny + 2;
+
+    for (int ky = ny; ky < my; ky++) {
+      const qreal x1 = ky % 2 == 0 ? 0. : xs;
+      const int nx = std::floor((bbox.left() - x1) / X);
+      //const int mx = std::ceil((bbox.right() - x1) / X) + 1;
+      const int mx = nx + 2;
+      for (int kx = nx; kx < mx; kx++) {
+        pivots.append(QPoint(kx * X + x1, ky * Y));
+      }
+    }
+
+    return pivots;
+  };
+
+  for (int prio = 0; prio < S52::Lookup::PriorityCount; prio++) {
+    S57::PaintIterator end = m_paintData[prio].constEnd();
+
+    prog->setDepth(prio);
+
+    S57::PaintIterator arr = m_paintData[prio].constFind(S57::PaintData::Type::RasterPatternArrays);
+    while (arr != end && arr.key() == S57::PaintData::Type::RasterPatternArrays) {
+      auto d = dynamic_cast<const S57::RasterPatternArrayData*>(arr.value());
+      d->setUniforms();
+      d->setVertexOffset();
+
+      for (const QPointF& p: createPivots(d->bbox(), d->advance())) {
+        d->setPivot(p);
+        gl->glDrawElements(d->elements().mode, d->elements().count, GL_UNSIGNED_INT,
+                           reinterpret_cast<const void*>(d->elements().offset));
+      }
+      ++arr;
+    }
+
+//    S57::PaintIterator elem = m_paintData[prio].constFind(S57::PaintData::Type::RasterPatternElements);
+//    while (elem != end && elem.key() == S57::PaintData::Type::RasterPatternElements) {
+//      auto d = dynamic_cast<const S57::RasterPatternElemData*>(elem.value());
+//      d->setUniforms();
+//      d->setVertexOffset();
+
+//      for (const QPointF& p: createPivots(d->bbox(), d->advance())) {
+//        d->setPivot(p);
+//        gl->glDrawElements(d->elements().mode, d->elements().count, GL_UNSIGNED_INT,
+//                           reinterpret_cast<const void*>(d->elements().offset));
+//      }
+//      ++elem;
+//    }
+  }
+
+  gl->glDisable(GL_STENCIL_TEST);
+  gl->glStencilMask(0x00);
+  gl->glClear(GL_STENCIL_BUFFER_BIT);
+}
 
 static GLsizei addIndices(GLuint first, GLuint mid1, GLuint mid2, bool reversed, S57Chart::IndexVector& indices) {
   indices.append(first);

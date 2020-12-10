@@ -4,7 +4,7 @@
 #include <QObject>
 
 
-class GLWidget;
+class GLWindow;
 
 class MainWindow: public KXmlGuiWindow {
   Q_OBJECT
@@ -37,7 +37,7 @@ private:
 
 private:
 
-  GLWidget* m_GLWidget;
+  GLWindow* m_GLWindow;
   QRect m_fallbackGeom;
 
 };

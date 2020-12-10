@@ -65,10 +65,13 @@ Angle operator- (const Angle& a, const Angle& b);
 Angle operator- (const Angle& a);
 
 
+
 class WGS84Bearing;
 
 class WGS84Point {
 public:
+
+  enum class Units {Deg, DegMin, DegMinSec};
 
   static constexpr double semimajor_axis = 6378137.0;
   // closer than this points are considered equal
@@ -85,8 +88,8 @@ public:
   WGS84Point& operator=(const WGS84Point& a) {m_Longitude = a.m_Longitude; m_Latitude = a.m_Latitude; m_Valid = a.m_Valid; return *this;}
   WGS84Point(): m_Longitude(0), m_Latitude(0), m_Valid(false) {}
 
-  QString print();
-  QString toISO6709();
+  QString print(Units units = Units::DegMin) const;
+  QString toISO6709() const;
   double lng() const {return m_Longitude;}
   double lat() const {return m_Latitude;}
 
@@ -224,7 +227,6 @@ struct SymbolKey {
   S52::SymbolType type;
 };
 
-
 inline bool operator== (const SymbolKey& k1, const SymbolKey& k2) {
   if (k1.index != k2.index) return false;
   return k1.type == k2.type;
@@ -233,5 +235,15 @@ inline bool operator== (const SymbolKey& k1, const SymbolKey& k2) {
 inline uint qHash(const SymbolKey& key, uint seed) {
   return qHash(qMakePair(key.index, as_numeric(key.type)), seed);
 }
+
+struct PatternAdvance {
+  PatternAdvance(int x0, int y0, int x1)
+    : x(x0), xy(x1, y0) {}
+
+  PatternAdvance() = default;
+
+  int x;
+  QPoint xy;
+};
 
 

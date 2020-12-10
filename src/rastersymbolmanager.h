@@ -18,16 +18,12 @@ struct SymbolSharedData: public QSharedData {
     : QSharedData(d)
     , offset(d.offset)
     , size(d.size)
-    , minDist(d.minDist)
-    , maxDist(d.maxDist)
-    , staggered(d.staggered)
+    , advance(d.advance)
     , elements(d.elements) {}
 
   QPoint offset;
   QSize size;
-  int minDist;
-  int maxDist;
-  bool staggered;
+  PatternAdvance advance;
   S57::ElementData elements;
 };
 
@@ -41,19 +37,12 @@ public:
   SymbolData()
     : d(new SymbolSharedData) {}
 
-  SymbolData(const QPoint& off, const QSize& size, int mnd, int mxd, bool st, const S57::ElementData& elems)
-    : d(new SymbolSharedData) {
-    d->offset = off;
-    d->size = size;
-    d->minDist = mnd;
-    d->maxDist = mxd;
-    d->staggered = st;
-    d->elements = elems;
-  }
+  SymbolData(const QPoint& off, const QSize& size, int mnd, bool st, const S57::ElementData& elems);
 
   bool isValid() const {return d->size.isValid();}
   const QPoint& offset() const {return d->offset;}
   const QSize& size() const {return d->size;}
+  const PatternAdvance& advance() const {return d->advance;}
   const S57::ElementData& elements() const {return d->elements;}
 
 private:
@@ -65,9 +54,8 @@ private:
 inline bool operator== (const SymbolData& s1, const SymbolData& s2) {
   if (s1.d->offset != s2.d->offset) return false;
   if (s1.d->size != s2.d->size) return false;
-  if (s1.d->minDist != s2.d->minDist) return false;
-  if (s1.d->maxDist != s2.d->maxDist) return false;
-  if (s1.d->staggered != s2.d->staggered) return false;
+  if (s1.d->advance.x != s2.d->advance.x) return false;
+  if (s1.d->advance.xy != s2.d->advance.xy) return false;
   if (s1.d->elements.offset != s2.d->elements.offset) return false;
   return true;
 }
@@ -101,7 +89,7 @@ private:
 
   void parseSymbols(QXmlStreamReader& reader, VertexVector& vertices, IndexVector& indices);
   void parsePatterns(QXmlStreamReader& reader, VertexVector& vertices, IndexVector& indices);
-  void parseSymbolData(QXmlStreamReader& reader, SymbolSharedData& d, VertexVector& vertices, IndexVector& indices);
+  void parseSymbolData(QXmlStreamReader& reader, SymbolSharedData& d, int& minDist, VertexVector& vertices, IndexVector& indices);
 
   SymbolMap m_symbolMap;
   SymbolData m_invalid;

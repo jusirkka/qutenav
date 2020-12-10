@@ -10,6 +10,7 @@ class SolidLineData;
 class DashedLineData;
 class TextElemData;
 class RasterSymbolElemData;
+class RasterPatternData;
 }
 
 namespace GL {
@@ -47,6 +48,7 @@ protected:
 class AreaShader: public Shader {
 
   friend class S57::TriangleData;
+  friend class S57::RasterPatternData;
 
 public:
   static AreaShader* instance();
@@ -136,7 +138,7 @@ private:
     int windowScale;
     int textScale;
     int pivot;
-    int pivotShift;
+    int offset;
     int atlas;
     int base_color;
   } m_locations;
@@ -148,6 +150,7 @@ private:
 class RasterSymbolShader: public Shader {
 
   friend class S57::RasterSymbolElemData;
+  friend class S57::RasterPatternData;
 
 public:
   static RasterSymbolShader* instance();
@@ -162,7 +165,7 @@ private:
     int tr;
     int windowScale;
     int pivot;
-    int pivotShift;
+    int offset;
     int atlas;
   } m_locations;
 

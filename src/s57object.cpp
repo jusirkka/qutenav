@@ -73,7 +73,7 @@ QString S57::Object::name() const {
 
 QVariant S57::Object::attributeValue(quint32 attr) const {
   if (!m_attributes.contains(attr)) {
-    // qWarning() << name() << ": attribute" << attr << "not present";
+    // qWarning() << name() << ": attribute" << S52::GetAttributeName(attr) << "not present";
     return QVariant();
   }
   return m_attributes[attr].value();
@@ -258,7 +258,7 @@ void S57::TextElemData::setUniforms() const {
   prog->prog()->setUniformValue(prog->m_locations.base_color, m_color);
   prog->prog()->setUniformValue(prog->m_locations.textScale, m_scaleMM * prog->m_dots_per_mm_y);
   prog->prog()->setUniformValue(prog->m_locations.pivot, m_pivot);
-  prog->prog()->setUniformValue(prog->m_locations.pivotShift, m_shiftMM * prog->m_dots_per_mm_y);
+  prog->prog()->setUniformValue(prog->m_locations.offset, m_shiftMM * prog->m_dots_per_mm_y);
 }
 
 void S57::TextElemData::setVertexOffset() const {
@@ -273,25 +273,105 @@ void S57::TextElemData::setVertexOffset() const {
 S57::RasterSymbolElemData::RasterSymbolElemData(const QPointF& pivot,
                                                 const QPoint& pivotOffset,
                                                 const ElementData& elems,
-                                                quint32 index,
-                                                S52::SymbolType type)
+                                                quint32 index)
   : PaintData(Type::RasterSymbolElements)
   , m_elements(elems)
   , m_pivot(pivot)
   , m_pivotOffset(pivotOffset)
   , m_index(index)
-  , m_type(type)
 {}
 
 
 void S57::RasterSymbolElemData::setUniforms() const {
   auto prog = GL::RasterSymbolShader::instance();
   prog->prog()->setUniformValue(prog->m_locations.pivot, m_pivot);
-  prog->prog()->setUniformValue(prog->m_locations.pivotShift, m_pivotOffset);
+  prog->prog()->setUniformValue(prog->m_locations.offset, m_pivotOffset);
 }
 
 void S57::RasterSymbolElemData::setVertexOffset() const {
   // noop
 }
+
+
+void S57::RasterPatternData::setUniforms() const {
+  auto prog = GL::RasterSymbolShader::instance();
+  prog->prog()->setUniformValue(prog->m_locations.offset, m_offset);
+}
+
+void S57::RasterPatternData::setVertexOffset() const {
+  // noop
+}
+
+void S57::RasterPatternData::setAreaUniforms() const {
+  // noop
+}
+
+void S57::RasterPatternData::setAreaVertexOffset() const {
+  auto prog = GL::AreaShader::instance()->prog();
+  prog->setAttributeBuffer(0, GL_FLOAT, m_areaVertexOffset, 2, 0);
+}
+
+void S57::RasterPatternData::setPivot(const QPointF& p) const {
+  auto prog = GL::RasterSymbolShader::instance();
+  prog->prog()->setUniformValue(prog->m_locations.pivot, p);
+}
+
+
+S57::RasterPatternData::RasterPatternData(Type t,
+                                          const ElementDataVector& aelems,
+                                          GLsizei aoffset,
+                                          const QRectF& bbox,
+                                          const QPoint& offset,
+                                          const PatternAdvance& advance,
+                                          const ElementData& elem,
+                                          quint32 index)
+  : PaintData(t)
+  , m_areaElements(aelems)
+  , m_areaVertexOffset(aoffset)
+  , m_bbox(bbox)
+  , m_offset(offset)
+  , m_advance(advance)
+  , m_elements(elem)
+  , m_index(index)
+{}
+
+S57::RasterPatternElemData::RasterPatternElemData(const ElementDataVector& aelems,
+                                                  GLsizei aoffset,
+                                                  const QRectF& bbox,
+                                                  const QPoint& offset,
+                                                  const PatternAdvance& advance,
+                                                  const ElementData& elem,
+                                                  quint32 index)
+  : RasterPatternData(Type::RasterPatternElements,
+                      aelems,
+                      aoffset,
+                      bbox,
+                      offset,
+                      advance,
+                      elem,
+                      index)
+{}
+
+
+S57::RasterPatternArrayData::RasterPatternArrayData(const ElementDataVector& aelems,
+                                                    GLsizei aoffset,
+                                                    const QRectF& bbox,
+                                                    const QPoint& offset,
+                                                    const PatternAdvance& advance,
+                                                    const ElementData& elem,
+                                                    quint32 index)
+  : RasterPatternData(Type::RasterPatternArrays,
+                      aelems,
+                      aoffset,
+                      bbox,
+                      offset,
+                      advance,
+                      elem,
+                      index)
+{}
+
+
+
+
 
 

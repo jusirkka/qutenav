@@ -1,6 +1,6 @@
 #pragma once
 
-#include <QOpenGLWidget>
+#include <QOpenGLWindow>
 #include <QOpenGLVertexArrayObject>
 
 #include "detailmode.h"
@@ -10,15 +10,15 @@ class ChartManager;
 class TextManager;
 class RasterSymbolManager;
 
-class GLWidget: public QOpenGLWidget
+class GLWindow: public QOpenGLWindow
 {
 
   Q_OBJECT
 
 public:
 
-  GLWidget(QWidget* parent = nullptr);
-  ~GLWidget();
+  GLWindow();
+  ~GLWindow();
   void saveState();
   void northUp();
   void zoomIn();
