@@ -69,6 +69,7 @@ target_sources(qopencpn
     src/detailmode.cpp
     src/drawable.cpp
     src/geoprojection.cpp
+    src/glcontext.cpp
     src/globe.cpp
     src/glthread.cpp
     src/glwindow.cpp

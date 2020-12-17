@@ -8,27 +8,28 @@
 #include "chartmanager.h"
 #include "textmanager.h"
 #include "rastersymbolmanager.h"
+#include "glcontext.h"
 #include <QGuiApplication>
 #include <QScreen>
 
 GLWindow::GLWindow()
-  : QOpenGLWindow(QOpenGLWindow::NoPartialUpdate)
+  : QOpenGLWindow()
   , m_mode(DetailMode::RestoreState())
   , m_logger(nullptr)
-  , m_chartManager(ChartManager::instance())
-  , m_textManager(TextManager::instance())
-  , m_rasterManager(RasterSymbolManager::instance())
 {
   m_timer = new QTimer(this);
   m_timer->setInterval(1000/25);
   connect(m_timer, &QTimer::timeout, this, &GLWindow::pan);
 
-  connect(this, &GLWindow::updateViewport, m_chartManager, &ChartManager::updateCharts);
-  connect(m_chartManager, &ChartManager::idle, this, &GLWindow::finalizeChartMode);
-  connect(m_chartManager, &ChartManager::active, this, &GLWindow::initializeChartMode);
-  connect(m_chartManager, &ChartManager::chartsUpdated, this, &GLWindow::updateCharts);
+  auto chartMgr = ChartManager::instance();
+  connect(this, &GLWindow::updateViewport, chartMgr, &ChartManager::updateCharts);
+  connect(chartMgr, &ChartManager::idle, this, &GLWindow::finalizeChartMode);
+  connect(chartMgr, &ChartManager::active, this, &GLWindow::initializeChartMode);
+  connect(chartMgr, &ChartManager::chartsUpdated, this, &GLWindow::updateCharts);
 
-  connect(m_textManager, &TextManager::newStrings, this, [this] () {
+
+  auto textMgr = TextManager::instance();
+  connect(textMgr, &TextManager::newStrings, this, [this] () {
     qDebug() << "new strings";
     emit updateViewport(m_mode->camera(), true);
     update();
@@ -53,14 +54,14 @@ void GLWindow::initializeGL() {
       qFatal("Doh!");
     }
 
-    m_chartManager->createThreads(context());
-    m_textManager->createBuffers(context());
-    m_rasterManager->createSymbols();
+    GL::Context::instance()->initializeContext(this);
+
+    ChartManager::instance()->createThreads(context());
+    TextManager::instance()->createBuffers();
+    RasterSymbolManager::instance()->createSymbols();
   }
   m_vao.bind();
 
-  auto gl = context()->functions();
-  gl->glClearColor(.4, .4, .4, 1.);
 
   for (Drawable* chart: m_mode->drawables()) {
     chart->initializeGL();
@@ -72,11 +73,12 @@ void GLWindow::initializeGL() {
 }
 
 void GLWindow::resizeGL(int w, int h) {
-  auto gl = QOpenGLContext::currentContext()->functions();
-  gl->glViewport(0, 0, w, h);
+  makeCurrent();
+  auto funcs = QOpenGLContext::currentContext()->functions();
+  funcs->glViewport(0, 0, w, h);
   try {
     m_mode->camera()->resize(widthMM(), heightMM());
-  } catch (ScaleOutOfBounds e) {
+  } catch (ScaleOutOfBounds& e) {
     m_mode->camera()->setScale(e.suggestedScale());
     m_mode->camera()->resize(widthMM(), heightMM());
   }
@@ -89,10 +91,14 @@ void GLWindow::resizeGL(int w, int h) {
 
 void GLWindow::paintGL() {
 
-  auto gl = QOpenGLContext::currentContext()->extraFunctions();
+  auto f = QOpenGLContext::currentContext()->functions();
 
-  gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+  f->glClearStencil(0x00);
+  f->glClearDepthf(1.);
+  f->glClearColor(.4, .4, .4, 1.);
+  f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
+  f->glViewport(0, 0, width(), height());
   for (Drawable* chart: m_mode->drawables()) {
     chart->paintGL(m_mode->camera());
   }
@@ -192,7 +198,7 @@ void GLWindow::zoomIn() {
     initializeChartMode();
   }
 
-  if (m_chartManager->isValidScale(m_mode->camera(), scale)) {
+  if (ChartManager::instance()->isValidScale(m_mode->camera(), scale)) {
     m_mode->camera()->setScale(scale);
     emit updateViewport(m_mode->camera());
   }
@@ -220,10 +226,7 @@ void GLWindow::zoomOut() {
 
 void GLWindow::initializeChartMode() {
   DetailMode* mode = m_mode->smallerScaleMode();
-  if (mode == nullptr) {
-    updateCharts();
-    return;
-  }
+  if (mode == nullptr) return;
   delete m_mode;
   m_mode = mode;
   makeCurrent();
@@ -233,10 +236,7 @@ void GLWindow::initializeChartMode() {
 
 void GLWindow::finalizeChartMode() {
   DetailMode* mode = m_mode->largerScaleMode();
-  if (mode == nullptr) {
-    updateCharts();
-    return;
-  }
+  if (mode == nullptr) return;
   delete m_mode;
   m_mode = mode;
   makeCurrent();
@@ -251,7 +251,19 @@ void GLWindow::northUp() {
   update();
 }
 
-void GLWindow::updateCharts() {
+void GLWindow::rotateEye(Angle a) {
+  m_mode->camera()->rotateEye(a);
+  emit updateViewport(m_mode->camera());
+  update();
+}
+
+
+void GLWindow::updateCharts(const QRectF& viewArea) {
+  makeCurrent();
+  for (Drawable* d: m_mode->drawables()) {
+    d->updateCharts(m_mode->camera(), viewArea);
+  }
+  doneCurrent();
   update();
 }
 

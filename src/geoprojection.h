@@ -7,6 +7,7 @@ class GeoProjection {
 public:
 
   static GeoProjection* CreateProjection(const QString& className);
+
   virtual WGS84Point toWGS84(const QPointF& p) const = 0;
   virtual QPointF fromWGS84(const WGS84Point& w) const = 0;
   virtual QString className() const = 0;

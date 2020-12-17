@@ -24,6 +24,7 @@ public:
   void zoomIn();
   void zoomOut();
   void compassPan(Angle bearing, float pixels = 1.);
+  void rotateEye(Angle amount);
 
 protected:
 
@@ -48,7 +49,7 @@ private slots:
   void initializeChartMode();
   void finalizeChartMode();
 
-  void updateCharts();
+  void updateCharts(const QRectF& viewArea);
 
 private:
 
@@ -56,9 +57,6 @@ private:
   QOpenGLVertexArrayObject m_vao;
   DetailMode* m_mode;
   QOpenGLDebugLogger* m_logger;
-  ChartManager* m_chartManager;
-  TextManager* m_textManager;
-  RasterSymbolManager* m_rasterManager;
 
   QPoint m_diff;
   QPoint m_lastPos;

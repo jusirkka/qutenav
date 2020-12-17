@@ -8,6 +8,8 @@ class OrthoCam: public Camera {
 public:
 
   OrthoCam(float wmm, float hmm, GeoProjection* proj);
+  OrthoCam(const QSizeF& vp, const WGS84Point& eye, quint32 scale, GeoProjection* proj);
+
   void pan(QPointF dragStart, QPointF dragAmount) override;
   void rotateEye(Angle a) override;
   void setScale(quint32 scale) override;

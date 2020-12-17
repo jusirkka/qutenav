@@ -9,10 +9,8 @@
 #include <QMutex>
 #include <QSharedData>
 
-class QOpenGLContext;
 class QThread;
 class TextShaper;
-class QOffscreenSurface;
 class QOpenGLTexture;
 class QTimer;
 
@@ -104,7 +102,7 @@ public:
   TextManager();
 
   static TextManager* instance();
-  void createBuffers(QOpenGLContext* ctx);
+  void createBuffers();
 
   TextData textData(const QString& txt, TXT::Weight weight) const;
 
@@ -128,8 +126,6 @@ private:
 
   using TextMap = QHash<TextKey, TextData>;
 
-  QOpenGLContext* m_context;
-  QOffscreenSurface* m_surface;
   QMutex m_mutex;
   QThread* m_thread;
   TextShaper* m_worker;

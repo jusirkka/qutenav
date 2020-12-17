@@ -204,7 +204,7 @@ static QPointF computeLineCenter(const S57::ElementDataVector &elems,
 static QPointF computeAreaCenter(const S57::ElementDataVector &elems,
                                  const S57Chart::VertexVector& vertices, GLsizei offset);
 
-S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
+S57Chart::S57Chart(quint32 id, const QString& path)
   : QObject()
   , m_nativeProj(new SimpleMercator)
   , m_paintData(S52::Lookup::PriorityCount)
@@ -219,9 +219,9 @@ S57Chart::S57Chart(quint32 id, const QString& path, const GeoProjection* proj)
   m_extent = outline.extent();
   m_nativeProj->setReference(outline.reference());
 
-  if (*proj != *m_nativeProj) {
-    throw NotImplementedError("Only SimpleMercator supported for now");
-  }
+  //  if (*proj != *m_nativeProj) {
+  //    throw NotImplementedError("Only SimpleMercator supported for now");
+  //  }
 
   QFile file(path);
   file.open(QFile::ReadOnly);
@@ -1000,7 +1000,7 @@ void S57Chart::drawSolidLines(const Camera* cam, int prio) {
   prog->setDepth(prio);
 
 
-  auto gl = QOpenGLContext::currentContext()->extraFunctions();
+  auto f = QOpenGLContext::currentContext()->extraFunctions();
 
   const S57::PaintIterator end = m_paintData[prio].constEnd();
 
@@ -1011,7 +1011,7 @@ void S57Chart::drawSolidLines(const Camera* cam, int prio) {
     d->setUniforms();
     d->setVertexOffset();
     for (const S57::ElementData& e: d->elements()) {
-      gl->glDrawArrays(e.mode, e.offset, e.count);
+      f->glDrawArrays(e.mode, e.offset, e.count);
     }
     ++arr;
   }
@@ -1023,8 +1023,8 @@ void S57Chart::drawSolidLines(const Camera* cam, int prio) {
     d->setUniforms();
     d->setVertexOffset();
     for (const S57::ElementData& e: d->elements()) {
-      gl->glDrawElements(e.mode, e.count, GL_UNSIGNED_INT,
-                         reinterpret_cast<const void*>(e.offset));
+      f->glDrawElements(e.mode, e.count, GL_UNSIGNED_INT,
+                        reinterpret_cast<const void*>(e.offset));
     }
     ++elem;
   }
@@ -1040,7 +1040,7 @@ void S57Chart::drawDashedLines(const Camera* cam, int prio) {
   prog->setGlobals(cam, p);
   prog->setDepth(prio);
 
-  auto gl = QOpenGLContext::currentContext()->extraFunctions();
+  auto f = QOpenGLContext::currentContext()->extraFunctions();
 
 
   const S57::PaintIterator end = m_paintData[prio].constEnd();
@@ -1052,7 +1052,7 @@ void S57Chart::drawDashedLines(const Camera* cam, int prio) {
     d->setUniforms();
     d->setVertexOffset();
     for (const S57::ElementData& e: d->elements()) {
-      gl->glDrawArrays(e.mode, e.offset, e.count);
+      f->glDrawArrays(e.mode, e.offset, e.count);
     }
     ++arr;
   }
@@ -1064,8 +1064,8 @@ void S57Chart::drawDashedLines(const Camera* cam, int prio) {
     d->setUniforms();
     d->setVertexOffset();
     for (const S57::ElementData& e: d->elements()) {
-      gl->glDrawElements(e.mode, e.count, GL_UNSIGNED_INT,
-                         reinterpret_cast<const void*>(e.offset));
+      f->glDrawElements(e.mode, e.count, GL_UNSIGNED_INT,
+                        reinterpret_cast<const void*>(e.offset));
     }
     ++elem;
   }
@@ -1082,7 +1082,7 @@ void S57Chart::drawText(const Camera* cam, int prio) {
   prog->setGlobals(cam, p);
   prog->setDepth(prio);
 
-  auto gl = QOpenGLContext::currentContext()->extraFunctions();
+  auto f = QOpenGLContext::currentContext()->extraFunctions();
 
   const S57::PaintIterator end = m_paintData[prio].constEnd();
   S57::PaintIterator elem = m_paintData[prio].constFind(S57::PaintData::Type::TextElements);
@@ -1091,8 +1091,8 @@ void S57Chart::drawText(const Camera* cam, int prio) {
     auto d = dynamic_cast<const S57::TextElemData*>(elem.value());
     d->setUniforms();
     d->setVertexOffset();
-    gl->glDrawElements(d->elements().mode, d->elements().count, GL_UNSIGNED_INT,
-                       reinterpret_cast<const void*>(d->elements().offset));
+    f->glDrawElements(d->elements().mode, d->elements().count, GL_UNSIGNED_INT,
+                      reinterpret_cast<const void*>(d->elements().offset));
     ++elem;
   }
 }
@@ -1107,7 +1107,7 @@ void S57Chart::drawRasterSymbols(const Camera* cam, int prio) {
   prog->setGlobals(cam, p);
   prog->setDepth(prio);
 
-  auto gl = QOpenGLContext::currentContext()->extraFunctions();
+  auto f = QOpenGLContext::currentContext()->extraFunctions();
 
   const S57::PaintIterator end = m_paintData[prio].constEnd();
   S57::PaintIterator elem = m_paintData[prio].constFind(S57::PaintData::Type::RasterSymbolElements);
@@ -1116,8 +1116,8 @@ void S57Chart::drawRasterSymbols(const Camera* cam, int prio) {
     auto d = dynamic_cast<const S57::RasterSymbolElemData*>(elem.value());
     d->setUniforms();
     d->setVertexOffset();
-    gl->glDrawElements(d->elements().mode, d->elements().count, GL_UNSIGNED_INT,
-                       reinterpret_cast<const void*>(d->elements().offset));
+    f->glDrawElements(d->elements().mode, d->elements().count, GL_UNSIGNED_INT,
+                      reinterpret_cast<const void*>(d->elements().offset));
     ++elem;
   }
 }
@@ -1131,11 +1131,11 @@ void S57Chart::drawPatterns(const Camera *cam) {
   const QPointF p = cam->geoprojection()->fromWGS84(geoProjection()->reference());
   prog->setGlobals(cam, p);
 
-  auto gl = QOpenGLContext::currentContext()->extraFunctions();
-  gl->glEnable(GL_STENCIL_TEST);
-  gl->glStencilMask(0xff);
-  gl->glStencilFunc(GL_EQUAL, 1, 0xff);
-  gl->glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+  auto f = QOpenGLContext::currentContext()->extraFunctions();
+  f->glEnable(GL_STENCIL_TEST);
+  f->glStencilMask(0xff);
+  f->glStencilFunc(GL_EQUAL, 1, 0xff);
+  f->glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 
   const qreal s = .5 * cam->heightMM() * m_dots_per_mm_y * cam->projection()(1, 1);
 
@@ -1175,7 +1175,7 @@ void S57Chart::drawPatterns(const Camera *cam) {
 
       for (const QPointF& p: createPivots(d->bbox(), d->advance())) {
         d->setPivot(p);
-        gl->glDrawElements(d->elements().mode, d->elements().count, GL_UNSIGNED_INT,
+        f->glDrawElements(d->elements().mode, d->elements().count, GL_UNSIGNED_INT,
                            reinterpret_cast<const void*>(d->elements().offset));
       }
       ++arr;
@@ -1196,9 +1196,9 @@ void S57Chart::drawPatterns(const Camera *cam) {
 //    }
   }
 
-  gl->glDisable(GL_STENCIL_TEST);
-  gl->glStencilMask(0x00);
-  gl->glClear(GL_STENCIL_BUFFER_BIT);
+  f->glDisable(GL_STENCIL_TEST);
+  f->glStencilMask(0x00);
+  f->glClear(GL_STENCIL_BUFFER_BIT);
 }
 
 static GLsizei addIndices(GLuint first, GLuint mid1, GLuint mid2, bool reversed, S57Chart::IndexVector& indices) {

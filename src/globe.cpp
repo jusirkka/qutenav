@@ -118,20 +118,23 @@ void Globe::initializeGL() {
   m_locations.base_color = m_program->uniformLocation("base_color");
   m_locations.m_pv = m_program->uniformLocation("m_pv");
   m_locations.lp = m_program->uniformLocation("lp");
+}
 
+void Globe::updateCharts(const Camera* /*cam*/, const QRectF& /*viewArea*/)  {
+ // noop
+}
+
+void Globe::paintGL(const Camera *cam) {
   auto gl = QOpenGLContext::currentContext()->functions();
+  gl->glDisable(GL_BLEND);
   gl->glEnable(GL_DEPTH_TEST);
   gl->glEnable(GL_STENCIL_TEST);
   gl->glEnable(GL_CULL_FACE);
   gl->glFrontFace(GL_CCW);
   gl->glCullFace(GL_BACK);
-  gl->glStencilFuncSeparate(GL_FRONT, GL_EQUAL, 0, 0xff);
-  gl->glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_KEEP, GL_INCR);
-}
-
-void Globe::paintGL(const Camera *cam) {
-  auto gl = QOpenGLContext::currentContext()->extraFunctions();
-
+  gl->glStencilFunc(GL_EQUAL, 0, 0xff);
+  gl->glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
+  gl->glStencilMask(0xff);
   m_program->bind();
 
   m_program->enableAttributeArray(0);

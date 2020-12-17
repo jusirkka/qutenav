@@ -28,6 +28,9 @@
       <Action name="panEast"/>
       <Action name="panSouth"/>
       <Action name="panWest"/>
+      <Separator/>
+      <Action name="rotateCW"/>
+      <Action name="rotateCCW"/>
     </Menu>
 
     <Menu name="settings">

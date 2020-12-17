@@ -46,19 +46,25 @@ void Outliner::initializeGL() {
   m_locations.center = m_program->uniformLocation("center");
   m_locations.angle = m_program->uniformLocation("angle");
 
-  auto gl = QOpenGLContext::currentContext()->functions();
-  gl->glEnable(GL_DEPTH_TEST);
-  gl->glEnable(GL_STENCIL_TEST);
-  gl->glEnable(GL_CULL_FACE);
-  gl->glFrontFace(GL_CCW);
-  gl->glCullFace(GL_BACK);
-  gl->glStencilFuncSeparate(GL_FRONT, GL_EQUAL, 0, 0xff);
-  gl->glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_KEEP, GL_INCR);
 
+}
+
+void Outliner::updateCharts(const Camera* /*cam*/, const QRectF& /*viewArea*/) {
+  // noop
 }
 
 void Outliner::paintGL(const Camera* cam) {
   auto gl = QOpenGLContext::currentContext()->extraFunctions();
+
+  gl->glEnable(GL_DEPTH_TEST);
+  gl->glDisable(GL_BLEND);
+  gl->glEnable(GL_STENCIL_TEST);
+  gl->glEnable(GL_CULL_FACE);
+  gl->glFrontFace(GL_CCW);
+  gl->glCullFace(GL_BACK);
+  gl->glStencilFunc(GL_EQUAL, 0, 0xff);
+  gl->glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
+  gl->glStencilMask(0xff);
 
   m_program->bind();
 

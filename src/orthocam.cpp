@@ -11,6 +11,31 @@ OrthoCam::OrthoCam(float wmm, float hmm, GeoProjection* p)
   resize(wmm, hmm);
 }
 
+// set projection from vp & resize the mmHeight accordingly
+OrthoCam::OrthoCam(const QSizeF &vp, const WGS84Point& eye, quint32 scale, GeoProjection *proj)
+  : Camera(proj, 0) {
+
+  m_geoprojection->setReference(eye);
+  m_northAngle = Angle::fromDegrees(0.);
+  m_reference_0 = m_geoprojection->reference();
+  m_northAngle_0 = m_northAngle;
+
+  m_scale = scale;
+
+  const qreal dx = .5 * vp.width();
+  const qreal dy = .5 * vp.height();
+
+  m_projection.setToIdentity();
+  m_projection.ortho(-dx, dx, -dy, dy, -1., 1.);
+
+  const WGS84Point p1 = m_geoprojection->toWGS84(QPoint(0., dy));
+
+  auto d = (p1 - m_geoprojection->reference()).meters();
+
+  m_mmHeight = 2000. * d / m_scale;
+
+}
+
 void OrthoCam::setScale(quint32 scale) {
   m_scale = scale;
   updateProjection();
@@ -19,7 +44,7 @@ void OrthoCam::setScale(quint32 scale) {
 void OrthoCam::updateProjection() {
   // distance in meters from center to the top edge of the display
   const float d = m_scale * m_mmHeight / 2000.;
-  auto b = WGS84Bearing::fromMeters(d, northAngle());
+  auto b = WGS84Bearing::fromMeters(d, Angle::fromDegrees(0.));
   const QPointF p1 = m_geoprojection->fromWGS84(m_geoprojection->reference() + b);
   const float y1 = p1.y();
   const float x1 = y1 * aspect();
@@ -33,7 +58,7 @@ quint32 OrthoCam::minScale() const {return MIN_SCALE;}
 void OrthoCam::resize(float wmm, float hmm) {
   m_mmHeight = hmm;
   const float d = m_scale * m_mmHeight / 2000.;
-  auto b = WGS84Bearing::fromMeters(d, northAngle());
+  auto b = WGS84Bearing::fromMeters(d, Angle::fromDegrees(0.));
   const QPointF p1 = m_geoprojection->fromWGS84(m_geoprojection->reference() + b);
   const float y1 = p1.y();
   const float x1 = y1 * wmm / hmm;
@@ -62,21 +87,11 @@ void OrthoCam::doReset() {
   const float sa = m_northAngle.sin();
   m_view.setRow(IX, QVector2D(ca, -sa));
   m_view.setRow(IY, QVector2D(sa, ca));
-
-  // apparent horizontal scale changes with orientation
-  // FIXME/optimization: call only when needed, criterion based on derivatives of
-  // geoprojection
-  updateProjection();
 }
 
 void OrthoCam::rotateEye(Angle a) {
-  m_view.setToIdentity();
-  const float ca = a.cos();
-  const float sa = a.sin();
-  m_view.setRow(IX, QVector2D(ca, sa));
-  m_view.setRow(IY, QVector2D(sa, ca));
-
-  updateProjection();
+  m_northAngle = m_northAngle + a;
+  doReset();
 }
 
 WGS84Point OrthoCam::eye() const {return m_geoprojection->reference();}

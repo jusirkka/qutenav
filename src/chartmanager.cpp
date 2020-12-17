@@ -11,6 +11,7 @@
 #include "camera.h"
 #include <QOpenGLContext>
 #include "glthread.h"
+#include "glcontext.h"
 
 
 ChartManager::Database::Database() {
@@ -188,34 +189,44 @@ void ChartManager::updateCharts(const Camera *cam, bool force) {
   if (m_idleStack.size() != m_workers.size()) return;
 
   m_viewport = m_viewport.translated(cam->geoprojection()->fromWGS84(m_proj->reference()));
-  m_proj->setReference(cam->geoprojection()->reference());
+  m_proj->setReference(cam->eye());
 
   const QRectF vp = cam->boundingBox();
 
   const auto margin = QMarginsF(vp.width(), vp.height(), vp.width(), vp.height());
   bool vpok = m_viewport.contains(vp) && !m_viewport.contains(vp + margin);
 
+  // qDebug() << "viewport distance =" << cam->distance(m_viewport);
+
   if (vpok && cam->scale() == m_scale && !force) return;
+  // qDebug() << "camera FOV =" << cam->scale() * cam->heightMM() / 2000.;
 
   m_scale = cam->scale();
 
-  if (!vpok) {
-    const float mw = vp.width() * (viewportFactor - 1) / 2;
-    const float mh = vp.height() * (viewportFactor - 1) / 2;
-    m_viewport = vp + QMarginsF(mw, mh, mw, mh);
+  qreal mw = vp.width() * (viewportFactor - 1) / 2;
+  qreal mh = vp.height() * (viewportFactor - 1) / 2;
+  m_viewport = vp + QMarginsF(mw, mh, mw, mh);
+
+  mw = m_viewport.width() * (marginFactor - 1) / 2;
+  mh = m_viewport.height() * (marginFactor - 1) / 2;
+  m_viewArea = m_viewport + QMarginsF(mw, mh, mw, mh);
+
+  const qreal a0 = m_viewArea.width() / m_viewArea.height();
+  if (cam->aspect() >  a0) {
+    m_viewArea.setWidth(cam->aspect() * m_viewArea.height());
+  } else {
+    m_viewArea.setHeight(m_viewArea.width() / cam->aspect());
   }
-  const float mw = m_viewport.width() * (marginFactor - 1) / 2;
-  const float mh = m_viewport.height() * (marginFactor - 1) / 2;
-  auto viewArea = m_viewport + QMarginsF(mw, mh, mw, mh);
+  m_viewArea.moveCenter(QPointF(0., 0.));
 
   IDVector newCharts;
   for (const LocationArea& a: m_locationAreas) {
     const WGS84Point ref = a.charts.first().ref;
     const float d = (m_proj->reference() - ref).meters();
     if (d > maxRadius) continue; // this test removes dateline and similar problems
-    if (!viewArea.intersects(a.bbox.translated(m_proj->fromWGS84(ref)))) continue;
+    if (!m_viewArea.intersects(a.bbox.translated(m_proj->fromWGS84(ref)))) continue;
     for (const ChartInfo& chart: a.charts) {
-      if (!viewArea.intersects(chart.bbox.translated(m_proj->fromWGS84(chart.ref))))  continue;
+      if (!m_viewArea.intersects(chart.bbox.translated(m_proj->fromWGS84(chart.ref))))  continue;
       if (float(chart.scale) / m_scale > maxScaleRatio) continue;
       if (float(m_scale) / chart.scale > maxScaleRatio) continue;
       if (!m_chartIds.contains(chart.id)) {
@@ -247,7 +258,7 @@ void ChartManager::updateCharts(const Camera *cam, bool force) {
   bool noCharts = m_charts.isEmpty() && newCharts.isEmpty();
   // create pending chart update data
   for (S57Chart* c: m_charts) {
-    const QRectF va = viewArea.translated(c->geoProjection()->fromWGS84(m_proj->reference()));
+    const QRectF va = m_viewArea.translated(c->geoProjection()->fromWGS84(m_proj->reference()));
     m_pendingStack.push(ChartData(c, va, m_scale));
   }
   // create pending chart creation data
@@ -263,7 +274,7 @@ void ChartManager::updateCharts(const Camera *cam, bool force) {
     while (r.next()) {
       const quint32 id = r.value(0).toUInt();
       const auto path = r.value(1).toString();
-      m_pendingStack.push(ChartData(id, path, m_proj, viewArea, m_scale));
+      m_pendingStack.push(ChartData(id, path, m_proj->reference(), m_viewArea, m_scale));
     }
   }
 
@@ -277,7 +288,7 @@ void ChartManager::updateCharts(const Camera *cam, bool force) {
       });
     } else {
       QMetaObject::invokeMethod(dest, [dest, d] () {
-        dest->createChart(d.id, d.path, d.proj, d.viewArea, d.scale);
+        dest->createChart(d.id, d.path, d.ref, d.viewArea, d.scale);
       });
     }
   }
@@ -410,7 +421,9 @@ void ChartManager::updateDB() {
 void ChartManager::manageThreads(S57Chart* chart) {
   // qDebug() << "chartmanager: manageThreads";
 
+  GL::Context::instance()->makeCurrent();
   chart->finalizePaintData();
+  GL::Context::instance()->doneCurrent();
 
   auto chartId = chart->id();
   if (!m_chartIds.contains(chartId)) {
@@ -427,7 +440,7 @@ void ChartManager::manageThreads(S57Chart* chart) {
       });
     } else {
       QMetaObject::invokeMethod(dest, [dest, d] () {
-        dest->createChart(d.id, d.path, d.proj, d.viewArea, d.scale);
+        dest->createChart(d.id, d.path, d.ref, d.viewArea, d.scale);
       });
     }
   } else {
@@ -439,16 +452,16 @@ void ChartManager::manageThreads(S57Chart* chart) {
     if (!m_hadCharts) {
       emit active();
     } else {
-      emit chartsUpdated();
+      emit chartsUpdated(m_viewArea);
     }
   }
 }
 
 
-void ChartUpdater::createChart(quint32 id, const QString &path, const GeoProjection *p,
+void ChartUpdater::createChart(quint32 id, const QString &path, const WGS84Point& ref,
                                QRectF viewArea, quint32 scale) {
-  auto chart = new S57Chart(id, path, p);
-  viewArea.translate(chart->geoProjection()->fromWGS84(p->reference()));
+  auto chart = new S57Chart(id, path);
+  viewArea.translate(chart->geoProjection()->fromWGS84(ref));
   // qDebug() << "ChartUpdater::createChart";
   chart->updatePaintData(viewArea, scale);
   emit done(chart);

@@ -3,6 +3,7 @@
 #include <QOpenGLShaderProgram>
 
 class Camera;
+class WGS84Point;
 
 namespace S57 {
 class TriangleData;
@@ -12,6 +13,7 @@ class TextElemData;
 class RasterSymbolElemData;
 class RasterPatternData;
 }
+
 
 namespace GL {
 
@@ -58,7 +60,7 @@ private:
   AreaShader();
 
   struct _locations {
-    int m_pv;
+    int m_p;
     int tr;
     int base_color;
   } m_locations;
@@ -77,7 +79,7 @@ private:
   SolidLineShader();
 
   struct _locations {
-    int m_pv;
+    int m_p;
     int tr;
     int windowScale;
     int lineWidth;
@@ -104,7 +106,7 @@ private:
   static constexpr uint linefactor = 1;
 
   struct _locations {
-    int m_pv;
+    int m_p;
     int tr;
     int windowScale;
     int lineWidth;
@@ -131,7 +133,7 @@ private:
   TextShader();
 
   struct _locations {
-    int m_pv;
+    int m_p;
     int tr;
     int w_atlas;
     int h_atlas;
@@ -139,7 +141,6 @@ private:
     int textScale;
     int pivot;
     int offset;
-    int atlas;
     int base_color;
   } m_locations;
 
@@ -161,16 +162,38 @@ private:
   RasterSymbolShader();
 
   struct _locations {
-    int m_pv;
+    int m_p;
     int tr;
     int windowScale;
     int pivot;
     int offset;
-    int atlas;
   } m_locations;
 
   const float m_dots_per_mm_y;
 
+};
+
+class TextureShader: public Shader {
+
+
+public:
+  static TextureShader* instance();
+  void setGlobals(const Camera* cam, const QPointF& t0) override;
+  void initializePaint() override;
+  void setUniforms(const Camera *cam,
+                   const WGS84Point& ref,
+                   const QRectF &va);
+
+private:
+  TextureShader();
+
+  struct _locations {
+    int m_pv;
+    int scale_tex;
+    int scale_vertex;
+    int tr_tex;
+    int tr_vertex;
+  } m_locations;
 };
 
 

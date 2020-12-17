@@ -6,11 +6,10 @@
 #include <QOpenGLTexture>
 #include <QTimer>
 #include <QDebug>
+#include "glcontext.h"
 
 TextManager::TextManager()
   : QObject()
-  , m_context(nullptr)
-  , m_surface(nullptr)
   , m_mutex()
   , m_thread(new QThread)
   , m_worker(new TextShaper(&m_mutex))
@@ -34,10 +33,8 @@ TextManager::~TextManager() {
   m_thread->quit();
   m_thread->wait();
   delete m_thread;
-  m_context->makeCurrent(m_surface);
+  GL::Context::instance()->makeCurrent();
   delete m_glyphTexture;
-  delete m_context;
-  delete m_surface;
 }
 
 TextManager* TextManager::instance() {
@@ -45,22 +42,9 @@ TextManager* TextManager::instance() {
   return m;
 }
 
-void TextManager::createBuffers(QOpenGLContext *ctx) {
-  m_context = new QOpenGLContext;
-  m_context->setFormat(QSurfaceFormat::defaultFormat());
-  m_context->setShareContext(ctx);
-  m_context->setScreen(ctx->screen());
-  m_context->create();
+void TextManager::createBuffers() {
 
-  m_surface = new QOffscreenSurface;
-  m_surface->setFormat(m_context->format());
-  m_surface->setScreen(m_context->screen());
-  m_surface->create();
-
-  if (!QOpenGLContext::currentContext()) {
-    qDebug() << "createContext: making own context current";
-    m_context->makeCurrent(m_surface);
-  }
+  GL::Context::instance()->makeCurrent();
 
   // initialize vertex buffer
   m_coordBuffer.create();
@@ -114,10 +98,7 @@ void TextManager::handleShape(const TextKey& key, GL::Mesh* mesh, const GL::Glyp
 
   m_shapeTimer->start();
 
-  if (!QOpenGLContext::currentContext()) {
-    qDebug() << "handleShape: making own context current";
-    m_context->makeCurrent(m_surface);
-  }
+  GL::Context::instance()->makeCurrent();
 
   if (atlas.newGlyphs) {
     QMutexLocker lock(&m_mutex);
@@ -180,6 +161,7 @@ void TextManager::handleShape(const TextKey& key, GL::Mesh* mesh, const GL::Glyp
   m_textMap.insert(key, TextData(mesh->bbox, elems, vOff));
 
   delete mesh;
+
 }
 
 TextData TextManager::textData(const QString& txt, TXT::Weight weight) const {

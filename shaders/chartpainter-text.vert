@@ -2,7 +2,7 @@
 layout (location = 0) in vec2 vertex;
 layout (location = 1) in vec2 texin;
 
-uniform mat4 m_pv;
+uniform mat4 m_p;
 uniform int w_atlas;
 uniform int h_atlas;
 uniform float depth;
@@ -19,6 +19,6 @@ void main(void) {
   tex = vec2(texin.x / w_atlas, texin.y / h_atlas);
   const float a = 1. / windowScale;
   const vec2 v = a * (textScale * vertex + offset) + pivot + tr;
-  gl_Position = m_pv * vec4(v, depth, 1.);
+  gl_Position = m_p * vec4(v, depth, 1.);
 }
 

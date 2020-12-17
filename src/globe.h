@@ -15,6 +15,8 @@ public:
 
   void paintGL(const Camera* cam) override;
   void initializeGL() override;
+  void updateCharts(const Camera* cam, const QRectF& viewArea) override;
+
   ~Globe() = default;
 
 private:

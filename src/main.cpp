@@ -60,9 +60,8 @@ int main(int argc, char *argv[])
   format.setVersion(4, 6);
   format.setProfile(QSurfaceFormat::CoreProfile);
   format.setOption(QSurfaceFormat::DebugContext);
-  format.setDepthBufferSize(16);
-  format.setStencilBufferSize(1);
-  format.setAlphaBufferSize(8);
+  format.setDepthBufferSize(24);
+  format.setStencilBufferSize(8);
   QSurfaceFormat::setDefaultFormat(format);
 
   S52::InitPresentation();

@@ -73,7 +73,7 @@ QString S57::Object::name() const {
 
 QVariant S57::Object::attributeValue(quint32 attr) const {
   if (!m_attributes.contains(attr)) {
-    // qWarning() << name() << ": attribute" << S52::GetAttributeName(attr) << "not present";
+    // qWarning() << "[Attribute]" << S52::GetAttributeName(attr) << "not present [" << m_geometry->centerLL().print() << "]";
     return QVariant();
   }
   return m_attributes[attr].value();

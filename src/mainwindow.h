@@ -26,6 +26,8 @@ private slots:
   void on_panEast_triggered();
   void on_panSouth_triggered();
   void on_panWest_triggered();
+  void on_rotateCW_triggered();
+  void on_rotateCCW_triggered();
   void on_zoomIn_triggered();
   void on_zoomOut_triggered();
 

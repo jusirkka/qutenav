@@ -165,7 +165,7 @@ public:
   using VertexVector = QVector<GLfloat>;
   using IndexVector = QVector<GLuint>;
 
-  S57Chart(quint32 id, const QString& path, const GeoProjection* proj);
+  S57Chart(quint32 id, const QString& path);
 
   void drawAreas(const Camera* cam, int prio);
   void drawSolidLines(const Camera* cam, int prio);

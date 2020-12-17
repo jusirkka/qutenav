@@ -42,6 +42,7 @@ public:
   }
 
   QRectF boundingBox() const;
+  qreal distance(const QRectF& r) const;
 
   virtual ~Camera() {delete m_geoprojection;}
 

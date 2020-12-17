@@ -54,6 +54,14 @@ void MainWindow::on_panWest_triggered() {
   m_GLWindow->compassPan(Angle::fromDegrees(270));
 }
 
+void MainWindow::on_rotateCW_triggered() {
+  m_GLWindow->rotateEye(Angle::fromDegrees(-1.));
+}
+
+void MainWindow::on_rotateCCW_triggered() {
+  m_GLWindow->rotateEye(Angle::fromDegrees(1.));
+}
+
 void MainWindow::on_zoomIn_triggered() {
   m_GLWindow->zoomIn();
 }
@@ -108,7 +116,9 @@ void MainWindow::addActions() {
     {"panEast", "Pan East", "Right", "", "", true, false, false},
     {"panSouth", "Pan South", "Down", "", "", true, false, false},
     {"panWest", "Pan West", "Left", "", "", true, false, false},
-    {"northUp", "North Up", "N", "", "Rotate North to upwards direction", true, false, false},
+    {"northUp", "North Up", "N", "", "Reset North upwards", true, false, false},
+    {"rotateCCW", "Rotate CCW", "B", "", "Rotate chart counterclockwise", true, false, false},
+    {"rotateCW", "Rotate CW", "M", "", "Rotate chart clockwise", true, false, false},
   };
 
   for (auto d: actionData) {

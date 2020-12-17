@@ -31,7 +31,7 @@ public:
 public slots:
 
   void updateChart(S57Chart* chart, const QRectF& viewArea, quint32 scale);
-  void createChart(quint32 id, const QString& path, const GeoProjection* p,
+  void createChart(quint32 id, const QString& path, const WGS84Point& ref,
                    QRectF viewArea, quint32 scale);
 
 signals:
@@ -71,7 +71,7 @@ signals:
 
   void idle();
   void active();
-  void chartsUpdated();
+  void chartsUpdated(const QRectF& viewArea);
 
 public slots:
 
@@ -91,23 +91,23 @@ private:
       , scale(s)
       , id(0)
       , path()
-      , proj(nullptr) {}
+      , ref() {}
 
-    ChartData(quint32 i, const QString& pth, GeoProjection* p,
+    ChartData(quint32 i, const QString& pth, const WGS84Point& r,
               const QRectF& v, quint32 s)
       : chart(nullptr)
       , viewArea(v)
       , scale(s)
       , id(i)
       , path(pth)
-      , proj(p) {}
+      , ref(r) {}
 
     S57Chart* chart;
     QRectF viewArea;
     quint32 scale;
     quint32 id;
     QString path;
-    GeoProjection* proj;
+    WGS84Point ref;
 
     ChartData() = default;
     ChartData(const ChartData&) = default;
@@ -161,8 +161,8 @@ private:
 
   static constexpr float locationRadius = 1000000; // 1000 km
   static constexpr float maxRadius = 15000000; // 15000 km
-  static constexpr float viewportFactor = 1.6;
-  static constexpr float marginFactor = 1.1;
+  static constexpr float viewportFactor = 1.9;
+  static constexpr float marginFactor = 1.08;
   static constexpr float maxScaleRatio = 32.;
 
   using LocationAreaVector = QVector<LocationArea>;
@@ -177,6 +177,7 @@ private:
   LocationAreaVector m_locationAreas;
   GeoProjection* m_proj;
   QRectF m_viewport;
+  QRectF m_viewArea;
   quint32 m_scale;
   IDMap m_chartIds;
 

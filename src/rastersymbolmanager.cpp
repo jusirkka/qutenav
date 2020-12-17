@@ -90,7 +90,7 @@ void RasterSymbolManager::createSymbols() {
   m_indexBuffer.create();
   m_indexBuffer.bind();
   m_indexBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
-  m_indexBuffer.allocate(indices.constData() ,sizeof(GLuint) * indices.size());
+  m_indexBuffer.allocate(indices.constData(), sizeof(GLuint) * indices.size());
 }
 
 void RasterSymbolManager::parsePatterns(QXmlStreamReader &reader, VertexVector &vertices, IndexVector &indices) {

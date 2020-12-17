@@ -6,7 +6,7 @@
 const float MITER_LIMIT = .75;
 
 uniform float lineWidth; // the thickness of the line in pixels
-uniform mat4 m_pv;
+uniform mat4 m_p;
 uniform float windowScale;
 
 layout(lines_adjacency) in;
@@ -47,24 +47,24 @@ void main(void) {
 
     // close the gap
     if(dot(v0, n1) > 0) {
-      gl_Position = m_pv * vec4(p1 + thickness * n0, gl_in[1].gl_Position.z, 1.);
+      gl_Position = m_p * vec4(p1 + thickness * n0, gl_in[1].gl_Position.z, 1.);
       EmitVertex();
 
-      gl_Position = m_pv * vec4(p1 + thickness * n1, gl_in[1].gl_Position.z, 1.);
+      gl_Position = m_p * vec4(p1 + thickness * n1, gl_in[1].gl_Position.z, 1.);
       EmitVertex();
 
-      gl_Position = m_pv * vec4(p1, gl_in[1].gl_Position.z, 1.);
+      gl_Position = m_p * vec4(p1, gl_in[1].gl_Position.z, 1.);
       EmitVertex();
 
       EndPrimitive();
     } else {
-      gl_Position = m_pv * vec4(p1 - thickness * n1, gl_in[1].gl_Position.z, 1.);
+      gl_Position = m_p * vec4(p1 - thickness * n1, gl_in[1].gl_Position.z, 1.);
       EmitVertex();
 
-      gl_Position = m_pv * vec4(p1 - thickness * n0, gl_in[1].gl_Position.z, 1.);
+      gl_Position = m_p * vec4(p1 - thickness * n0, gl_in[1].gl_Position.z, 1.);
       EmitVertex();
 
-      gl_Position = m_pv * vec4(p1, gl_in[1].gl_Position.z, 1.);
+      gl_Position = m_p * vec4(p1, gl_in[1].gl_Position.z, 1.);
       EmitVertex();
 
       EndPrimitive();
@@ -77,16 +77,16 @@ void main(void) {
   }
 
   // generate the triangle strip
-  gl_Position = m_pv * vec4(p1 + len_a * miter_a, gl_in[1].gl_Position.z, 1.);
+  gl_Position = m_p * vec4(p1 + len_a * miter_a, gl_in[1].gl_Position.z, 1.);
   EmitVertex();
 
-  gl_Position = m_pv * vec4(p1 - len_a * miter_a, gl_in[1].gl_Position.z, 1.);
+  gl_Position = m_p * vec4(p1 - len_a * miter_a, gl_in[1].gl_Position.z, 1.);
   EmitVertex();
 
-  gl_Position = m_pv * vec4(p2 + len_b * miter_b, gl_in[2].gl_Position.z, 1.);
+  gl_Position = m_p * vec4(p2 + len_b * miter_b, gl_in[2].gl_Position.z, 1.);
   EmitVertex();
 
-  gl_Position = m_pv * vec4(p2 - len_b * miter_b, gl_in[2].gl_Position.z, 1.);
+  gl_Position = m_p * vec4(p2 - len_b * miter_b, gl_in[2].gl_Position.z, 1.);
   EmitVertex();
 
   EndPrimitive();
