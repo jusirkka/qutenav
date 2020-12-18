@@ -112,7 +112,7 @@ QString WGS84Point::print(Units units) const {
     return r;
   }
   case Units::DegMin: {
-    // 50°40.7667'N 024°48.4333'“̣E
+    // 50°40.7667'N 024°48.4333'E
     const QString s("%1°%2‘%3");
     QString r;
     r += s.arg(degreesLat(), 2, 10, z).arg(sexas(m_Latitude), 2, 'f', 4, z)

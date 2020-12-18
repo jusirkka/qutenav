@@ -16,8 +16,7 @@
 #include <QOpenGLContext>
 #include "textmanager.h"
 #include "rastersymbolmanager.h"
-#include <QGuiApplication>
-#include <QScreen>
+#include "platform.h"
 
 using Buffer = QVector<char>;
 using HandlerFunc = std::function<bool (const Buffer&)>;
@@ -213,7 +212,7 @@ S57Chart::S57Chart(quint32 id, const QString& path)
   , m_settings(Settings::instance())
   , m_coordBuffer(QOpenGLBuffer::VertexBuffer)
   , m_indexBuffer(QOpenGLBuffer::IndexBuffer)
-  , m_dots_per_mm_y(QGuiApplication::primaryScreen()->physicalDotsPerInchY() / 25.4)
+  , m_pivotBuffer(QOpenGLBuffer::VertexBuffer)
 {
   S57ChartOutline outline(path);
   m_extent = outline.extent();
@@ -598,24 +597,6 @@ S57Chart::S57Chart(quint32 id, const QString& path)
                          bbox);
     }
 
-    // fill in the buffers
-
-    if (!m_coordBuffer.create()) qFatal("No can do");
-    m_coordBuffer.setUsagePattern(QOpenGLBuffer::DynamicDraw);
-    m_coordBuffer.bind();
-    m_staticVertexOffset = vertices.size() * sizeof(GLfloat);
-    // add 10% extra space for vertices added later
-    m_coordBuffer.allocate(m_staticVertexOffset + m_staticVertexOffset / 10);
-    m_coordBuffer.write(0, vertices.constData(), m_staticVertexOffset);
-
-    m_indexBuffer.create();
-    m_indexBuffer.setUsagePattern(QOpenGLBuffer::DynamicDraw);
-    m_indexBuffer.bind();
-    m_staticElemOffset = indices.size() * sizeof(GLuint);
-    // add 10% extra space for elements added later
-    m_indexBuffer.allocate(m_staticElemOffset + m_staticElemOffset / 10);
-    m_indexBuffer.write(0, indices.constData(), m_staticElemOffset);
-
     // bind objects to lookup records
     S52::Lookup* lp = S52::FindLookup(d.object);
     m_lookups.append(ObjectLookup(d.object, lp));
@@ -626,6 +607,31 @@ S57Chart::S57Chart(quint32 id, const QString& path)
       m_locations.insert(p, d.object);
     }
   }
+
+  // fill in the buffers
+
+  if (!m_coordBuffer.create()) qFatal("No can do");
+  m_coordBuffer.setUsagePattern(QOpenGLBuffer::DynamicDraw);
+  m_coordBuffer.bind();
+  m_staticVertexOffset = vertices.size() * sizeof(GLfloat);
+  // add 10% extra space for vertices added later
+  m_coordBuffer.allocate(m_staticVertexOffset + m_staticVertexOffset / 10);
+  m_coordBuffer.write(0, vertices.constData(), m_staticVertexOffset);
+
+  m_indexBuffer.create();
+  m_indexBuffer.setUsagePattern(QOpenGLBuffer::DynamicDraw);
+  m_indexBuffer.bind();
+  m_staticElemOffset = indices.size() * sizeof(GLuint);
+  // add 10% extra space for elements added later
+  m_indexBuffer.allocate(m_staticElemOffset + m_staticElemOffset / 10);
+  m_indexBuffer.write(0, indices.constData(), m_staticElemOffset);
+
+  m_pivotBuffer.create();
+  m_pivotBuffer.setUsagePattern(QOpenGLBuffer::DynamicDraw);
+  m_pivotBuffer.bind();
+  // 5K raster symbol/pattern instances
+  m_pivotBuffer.allocate(5000 * 2 * sizeof(GLfloat));
+
 }
 
 S57Chart::~S57Chart() {
@@ -723,7 +729,7 @@ void S57Chart::finalizePaintData() {
 
   // update vertex buffer
   m_coordBuffer.bind();
-  const GLsizei dataLen = m_staticVertexOffset + sizeof(GLfloat) * m_updatedVertices.size();
+  GLsizei dataLen = m_staticVertexOffset + sizeof(GLfloat) * m_updatedVertices.size();
   if (dataLen > m_coordBuffer.size()) {
     auto staticData = new uchar[m_staticVertexOffset];
     auto coords = m_coordBuffer.map(QOpenGLBuffer::ReadOnly);
@@ -737,6 +743,15 @@ void S57Chart::finalizePaintData() {
 
   m_coordBuffer.write(m_staticVertexOffset, m_updatedVertices.constData(), dataLen - m_staticVertexOffset);
 
+  // update pivot buffer
+  m_pivotBuffer.bind();
+  dataLen = sizeof(GLfloat) * m_updatedPivots.size();
+  if (dataLen > m_pivotBuffer.size()) {
+    m_pivotBuffer.allocate(dataLen);
+  }
+
+  m_pivotBuffer.write(0, m_updatedPivots.constData(), dataLen);
+
 }
 
 void S57Chart::updatePaintData(const QRectF &viewArea, quint32 scale) {
@@ -744,11 +759,43 @@ void S57Chart::updatePaintData(const QRectF &viewArea, quint32 scale) {
   // clear old updates
   for (S57::PaintDataMap& d: m_updatedPaintData) d.clear();
   m_updatedVertices.clear();
-
+  m_updatedPivots.clear();
 
   auto maxcat = as_numeric(m_settings->maxCategory());
   auto today = QDate::currentDate();
 
+  const qreal sf = scaleFactor(viewArea, scale);
+
+  SymbolPriorityVector symbols(S52::Lookup::PriorityCount);
+
+  using Handler = std::function<void (const S57::PaintMutIterator&, int)>;
+
+  auto parseLocals = [] (S57::PaintData::Type t, S57::PaintDataMap& pd, int prio, Handler func) {
+    S57::PaintMutIterator it = pd.find(t);
+    while (it != pd.end() && it.key() == t) {
+      func(it, prio);
+      it = pd.erase(it);
+    }
+  };
+
+  auto handleLine = [this] (const S57::PaintMutIterator& it, int prio) {
+    auto p = dynamic_cast<S57::Globalizer*>(it.value());
+    auto pn = p->globalize(m_staticVertexOffset + m_updatedVertices.size());
+    m_updatedVertices += p->vertices();
+    delete p;
+    m_updatedPaintData[prio].insert(pn->type(), pn);
+  };
+
+  auto mergeSymbols = [this, sf, &symbols] (S57::PaintMutIterator it, int prio) {
+    auto s = dynamic_cast<S57::SymbolMerger*>(it.value());
+    if (symbols[prio].contains(s->key())) {
+      auto s0 = dynamic_cast<S57::SymbolMerger*>(symbols[prio][s->key()]);
+      s0->merge(s, sf);
+    } else {
+      s->merge(nullptr, sf);
+      symbols[prio][s->key()] = it.value();
+    }
+  };
 
   for (ObjectLookup& d: m_lookups) {
     // check bbox & scale
@@ -763,31 +810,36 @@ void S57Chart::updatePaintData(const QRectF &viewArea, quint32 scale) {
       continue;
     }
 
+    const int prio = d.lookup->priority();
     // handle the local arrays
+    parseLocals(S57::PaintData::Type::SolidLineLocal, pd, prio, handleLine);
+    parseLocals(S57::PaintData::Type::DashedLineLocal, pd, prio, handleLine);
 
-    S57::PaintMutIterator it = pd.find(S57::PaintData::Type::SolidLineLocal);
-    while (it != pd.end() && it.key() == S57::PaintData::Type::SolidLineLocal) {
-      auto p = dynamic_cast<S57::SolidLineLocalData*>(it.value());
-      auto pn = p->createArrayData(m_staticVertexOffset + m_updatedVertices.size());
-      m_updatedVertices += p->vertices();
-      delete p;
-      pd.erase(it);
-      m_updatedPaintData[d.lookup->priority()].insert(pn->type(), pn);
-    }
+    // merge symbols & patterns
+    parseLocals(S57::PaintData::Type::RasterSymbolElements, pd, prio, mergeSymbols);
+    parseLocals(S57::PaintData::Type::RasterPatterns, pd, prio, mergeSymbols);
 
-    it = pd.find(S57::PaintData::Type::DashedLineLocal);
-    while (it != pd.end() && it.key() == S57::PaintData::Type::DashedLineLocal) {
-      auto p = dynamic_cast<S57::DashedLineLocalData*>(it.value());
-      auto pn = p->createArrayData(m_staticVertexOffset + m_updatedVertices.size());
-      m_updatedVertices += p->vertices();
-      delete p;
-      pd.erase(it);
-      m_updatedPaintData[d.lookup->priority()].insert(pn->type(), pn);
-    }
-
-    m_updatedPaintData[d.lookup->priority()] += pd;
+    m_updatedPaintData[prio] += pd;
 
   }
+
+  // move merged symbols & patterns back to paintdatamap
+  for (int i = 0; i < S52::Lookup::PriorityCount; i++) {
+    SymbolMap merged = symbols[i];
+    for (SymbolMutIterator it = merged.begin(); it != merged.end(); ++it) {
+      auto r = dynamic_cast<S57::RasterData*>(it.value());
+      r->getPivots(m_updatedPivots);
+      m_updatedPaintData[i].insert(it.value()->type(), it.value());
+    }
+  }
+}
+
+qreal S57Chart::scaleFactor(const QRectF &va, quint32 scale) {
+  const WGS84Point p1 = m_nativeProj->toWGS84(va.center());
+  const WGS84Point p2 = m_nativeProj->toWGS84(QPoint(.5 * (va.left() + va.right()), va.bottom()));
+
+  // ratio of screen pixel height and viewarea height
+  return 2000. * (p2 - p1).meters() / scale * dots_per_mm_y / va.height();
 }
 
 
@@ -919,7 +971,7 @@ void S57Chart::drawAreas(const Camera* cam, int prio) {
   prog->setDepth(prio);
 
 
-  auto gl = QOpenGLContext::currentContext()->extraFunctions();
+  auto f = QOpenGLContext::currentContext()->extraFunctions();
 
   const S57::PaintIterator end = m_paintData[prio].constEnd();
 
@@ -930,7 +982,7 @@ void S57Chart::drawAreas(const Camera* cam, int prio) {
     d->setUniforms();
     d->setVertexOffset();
     for (const S57::ElementData& e: d->elements()) {
-      gl->glDrawArrays(e.mode, e.offset, e.count);
+      f->glDrawArrays(e.mode, e.offset, e.count);
     }
     ++arr;
   }
@@ -942,50 +994,46 @@ void S57Chart::drawAreas(const Camera* cam, int prio) {
     d->setUniforms();
     d->setVertexOffset();
     for (const S57::ElementData& e: d->elements()) {
-      gl->glDrawElements(e.mode, e.count, GL_UNSIGNED_INT,
-                         reinterpret_cast<const void*>(e.offset));
+      f->glDrawElements(e.mode, e.count, GL_UNSIGNED_INT,
+                        reinterpret_cast<const void*>(e.offset));
     }
     ++elem;
   }
 
   // stencil pattern areas
 
-  gl->glEnable(GL_STENCIL_TEST);
-  gl->glDisable(GL_DEPTH_TEST);
-  gl->glStencilMask(0xff);
-  gl->glStencilFunc(GL_ALWAYS, 1, 0xff);
-  gl->glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-  gl->glColorMask(false, false, false, false);
+  f->glEnable(GL_STENCIL_TEST);
+  f->glDisable(GL_DEPTH_TEST);
+  f->glStencilMask(0xff);
+  f->glStencilFunc(GL_ALWAYS, 1, 0xff);
+  f->glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+  f->glColorMask(false, false, false, false);
 
-  arr = m_paintData[prio].constFind(S57::PaintData::Type::RasterPatternArrays);
+  arr = m_paintData[prio].constFind(S57::PaintData::Type::RasterPatterns);
 
-  while (arr != end && arr.key() == S57::PaintData::Type::RasterPatternArrays) {
-    auto d = dynamic_cast<const S57::RasterPatternArrayData*>(arr.value());
-    d->setAreaUniforms();
-    d->setAreaVertexOffset();
-    for (const S57::ElementData& e: d->areaElements()) {
-      gl->glDrawArrays(e.mode, e.offset, e.count);
+  using Data = S57::RasterPatternData::AreaData;
+  while (arr != end && arr.key() == S57::PaintData::Type::RasterPatterns) {
+    auto d = dynamic_cast<const S57::RasterPatternData*>(arr.value());
+    for (const Data& rd: d->areaArrays()) {
+      d->setAreaVertexOffset(rd.vertexOffset);
+      for (const S57::ElementData& e: rd.elements) {
+        f->glDrawArrays(e.mode, e.offset, e.count);
+      }
+    }
+    for (const Data& rd: d->areaElements()) {
+      d->setAreaVertexOffset(rd.vertexOffset);
+      for (const S57::ElementData& e: rd.elements) {
+        f->glDrawElements(e.mode, e.count, GL_UNSIGNED_INT,
+                          reinterpret_cast<const void*>(e.offset));
+      }
     }
     ++arr;
   }
 
-  elem = m_paintData[prio].constFind(S57::PaintData::Type::RasterPatternElements);
-
-  while (elem != end && elem.key() == S57::PaintData::Type::RasterPatternElements) {
-    auto d = dynamic_cast<const S57::RasterPatternElemData*>(elem.value());
-    d->setAreaUniforms();
-    d->setAreaVertexOffset();
-    for (const S57::ElementData& e: d->areaElements()) {
-      gl->glDrawElements(e.mode, e.count, GL_UNSIGNED_INT,
-                         reinterpret_cast<const void*>(e.offset));
-    }
-    ++elem;
-  }
-
-  gl->glDisable(GL_STENCIL_TEST);
-  gl->glEnable(GL_DEPTH_TEST);
-  gl->glStencilMask(0x00);
-  gl->glColorMask(true, true, true, true);
+  f->glDisable(GL_STENCIL_TEST);
+  f->glEnable(GL_DEPTH_TEST);
+  f->glStencilMask(0x00);
+  f->glColorMask(true, true, true, true);
 }
 
 void S57Chart::drawSolidLines(const Camera* cam, int prio) {
@@ -1099,6 +1147,7 @@ void S57Chart::drawText(const Camera* cam, int prio) {
 
 void S57Chart::drawRasterSymbols(const Camera* cam, int prio) {
 
+
   RasterSymbolManager::instance()->bind();
 
   auto prog = GL::RasterSymbolShader::instance();
@@ -1113,17 +1162,23 @@ void S57Chart::drawRasterSymbols(const Camera* cam, int prio) {
   S57::PaintIterator elem = m_paintData[prio].constFind(S57::PaintData::Type::RasterSymbolElements);
 
   while (elem != end && elem.key() == S57::PaintData::Type::RasterSymbolElements) {
-    auto d = dynamic_cast<const S57::RasterSymbolElemData*>(elem.value());
+    auto d = dynamic_cast<const S57::RasterSymbolData*>(elem.value());
     d->setUniforms();
+    m_pivotBuffer.bind();
     d->setVertexOffset();
-    f->glDrawElements(d->elements().mode, d->elements().count, GL_UNSIGNED_INT,
-                      reinterpret_cast<const void*>(d->elements().offset));
+    auto e = d->elements();
+    f->glDrawElementsInstanced(e.mode,
+                               e.count,
+                               GL_UNSIGNED_INT,
+                               reinterpret_cast<const void*>(e.offset),
+                               d->count());
     ++elem;
   }
 }
 
 
 void S57Chart::drawPatterns(const Camera *cam) {
+
   RasterSymbolManager::instance()->bind();
 
   auto prog = GL::RasterSymbolShader::instance();
@@ -1137,68 +1192,31 @@ void S57Chart::drawPatterns(const Camera *cam) {
   f->glStencilFunc(GL_EQUAL, 1, 0xff);
   f->glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 
-  const qreal s = .5 * cam->heightMM() * m_dots_per_mm_y * cam->projection()(1, 1);
-
-  auto createPivots = [s] (const QRectF bbox, const PatternAdvance& adv) {
-    QVector<QPointF> pivots;
-    const qreal X = adv.x / s;
-    const qreal Y = adv.xy.y() / s;
-    const qreal xs = adv.xy.x() / s;
-
-    const int ny = std::floor(bbox.top() / Y);
-    //const int my = std::ceil(bbox.bottom() / Y) + 1;
-    const int my = ny + 2;
-
-    for (int ky = ny; ky < my; ky++) {
-      const qreal x1 = ky % 2 == 0 ? 0. : xs;
-      const int nx = std::floor((bbox.left() - x1) / X);
-      //const int mx = std::ceil((bbox.right() - x1) / X) + 1;
-      const int mx = nx + 2;
-      for (int kx = nx; kx < mx; kx++) {
-        pivots.append(QPoint(kx * X + x1, ky * Y));
-      }
-    }
-
-    return pivots;
-  };
-
   for (int prio = 0; prio < S52::Lookup::PriorityCount; prio++) {
     S57::PaintIterator end = m_paintData[prio].constEnd();
 
     prog->setDepth(prio);
 
-    S57::PaintIterator arr = m_paintData[prio].constFind(S57::PaintData::Type::RasterPatternArrays);
-    while (arr != end && arr.key() == S57::PaintData::Type::RasterPatternArrays) {
-      auto d = dynamic_cast<const S57::RasterPatternArrayData*>(arr.value());
+    S57::PaintIterator arr = m_paintData[prio].constFind(S57::PaintData::Type::RasterPatterns);
+    while (arr != end && arr.key() == S57::PaintData::Type::RasterPatterns) {
+      auto d = dynamic_cast<const S57::RasterPatternData*>(arr.value());
       d->setUniforms();
+      m_pivotBuffer.bind();
       d->setVertexOffset();
 
-      for (const QPointF& p: createPivots(d->bbox(), d->advance())) {
-        d->setPivot(p);
-        f->glDrawElements(d->elements().mode, d->elements().count, GL_UNSIGNED_INT,
-                           reinterpret_cast<const void*>(d->elements().offset));
-      }
+      auto e = d->elements();
+      f->glDrawElementsInstanced(e.mode,
+                                 e.count,
+                                 GL_UNSIGNED_INT,
+                                 reinterpret_cast<const void*>(e.offset),
+                                 d->count());
       ++arr;
     }
-
-//    S57::PaintIterator elem = m_paintData[prio].constFind(S57::PaintData::Type::RasterPatternElements);
-//    while (elem != end && elem.key() == S57::PaintData::Type::RasterPatternElements) {
-//      auto d = dynamic_cast<const S57::RasterPatternElemData*>(elem.value());
-//      d->setUniforms();
-//      d->setVertexOffset();
-
-//      for (const QPointF& p: createPivots(d->bbox(), d->advance())) {
-//        d->setPivot(p);
-//        gl->glDrawElements(d->elements().mode, d->elements().count, GL_UNSIGNED_INT,
-//                           reinterpret_cast<const void*>(d->elements().offset));
-//      }
-//      ++elem;
-//    }
   }
 
   f->glDisable(GL_STENCIL_TEST);
-  f->glStencilMask(0x00);
   f->glClear(GL_STENCIL_BUFFER_BIT);
+  f->glStencilMask(0x00);
 }
 
 static GLsizei addIndices(GLuint first, GLuint mid1, GLuint mid2, bool reversed, S57Chart::IndexVector& indices) {

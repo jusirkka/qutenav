@@ -51,9 +51,5 @@ private:
   QOpenGLBuffer m_coordBuffer;
   QOpenGLBuffer m_indexBuffer;
 
-  const float m_dots_per_mm_y;
-  const float m_dots_per_mm_x;
-
-
 };
 

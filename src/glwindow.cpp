@@ -85,8 +85,6 @@ void GLWindow::resizeGL(int w, int h) {
   emit updateViewport(m_mode->camera());
   qDebug() << "WxH (mm) =" << widthMM() << "x" << heightMM();
   qDebug() << "WxH (pixels) =" << width() << "x" << height();
-  qDebug() << "WxH (pixels / mm) =" << QGuiApplication::primaryScreen()->physicalDotsPerInchX() / 25.4 << "x" << QGuiApplication::primaryScreen()->physicalDotsPerInchY() / 25.4;
-  qDebug() << "WxH (pixels / mm) =" << static_cast<float>(width()) / widthMM() << "x" << static_cast<float>(height()) / heightMM();
 }
 
 void GLWindow::paintGL() {

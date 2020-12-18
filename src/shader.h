@@ -10,7 +10,7 @@ class TriangleData;
 class SolidLineData;
 class DashedLineData;
 class TextElemData;
-class RasterSymbolElemData;
+class RasterData;
 class RasterPatternData;
 }
 
@@ -50,6 +50,7 @@ protected:
 class AreaShader: public Shader {
 
   friend class S57::TriangleData;
+  friend class S57::RasterData;
   friend class S57::RasterPatternData;
 
 public:
@@ -85,9 +86,6 @@ private:
     int lineWidth;
     int base_color;
   } m_locations;
-
-  const float m_dots_per_mm_y;
-
 };
 
 
@@ -115,9 +113,6 @@ private:
     int patlen;
     int factor;
   } m_locations;
-
-  const float m_dots_per_mm_y;
-
 };
 
 class TextShader: public Shader {
@@ -143,15 +138,11 @@ private:
     int offset;
     int base_color;
   } m_locations;
-
-  const float m_dots_per_mm_y;
-
 };
 
 class RasterSymbolShader: public Shader {
 
-  friend class S57::RasterSymbolElemData;
-  friend class S57::RasterPatternData;
+  friend class S57::RasterData;
 
 public:
   static RasterSymbolShader* instance();
@@ -165,12 +156,8 @@ private:
     int m_p;
     int tr;
     int windowScale;
-    int pivot;
     int offset;
   } m_locations;
-
-  const float m_dots_per_mm_y;
-
 };
 
 class TextureShader: public Shader {

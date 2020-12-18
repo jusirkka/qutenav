@@ -1,12 +1,12 @@
 #version 450 core
 layout (location = 0) in vec2 vertex;
 layout (location = 1) in vec2 texin;
+layout (location = 2) in vec2 pivot;
 
 uniform mat4 m_p;
 uniform float depth;
 uniform float windowScale;
 uniform vec2 tr;
-uniform vec2 pivot;
 uniform vec2 offset;
 
 

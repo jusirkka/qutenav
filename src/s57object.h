@@ -197,8 +197,7 @@ public:
     DashedLineLocal,
     TextElements,
     RasterSymbolElements,
-    RasterPatternElements,
-    RasterPatternArrays,
+    RasterPatterns,
   };
 
   virtual void setUniforms() const = 0;
@@ -306,20 +305,27 @@ public:
   DashedLineArrayData(const ElementDataVector& elem, GLsizei offset, const QColor& c, GLfloat width, uint pattern);
 };
 
-class SolidLineLocalData: public SolidLineData {
+class Globalizer {
+public:
+  virtual PaintData* globalize(GLsizei offset) const = 0;
+  virtual const VertexVector& vertices() const = 0;
+  virtual ~Globalizer() = default;
+};
+
+class SolidLineLocalData: public SolidLineData, public Globalizer {
 public:
   SolidLineLocalData(const VertexVector& vertices, const ElementDataVector& elem, const QColor& c, GLfloat width);
-  SolidLineArrayData* createArrayData(GLsizei offset) const;
-  const VertexVector& vertices() const {return m_vertices;}
+  PaintData* globalize(GLsizei offset) const override;
+  const VertexVector& vertices() const override {return m_vertices;}
 private:
   VertexVector m_vertices;
 };
 
-class DashedLineLocalData: public DashedLineData {
+class DashedLineLocalData: public DashedLineData, public Globalizer {
 public:
   DashedLineLocalData(const VertexVector& vertices, const ElementDataVector& elem, const QColor& c, GLfloat width, uint pattern);
-  DashedLineArrayData* createArrayData(GLsizei offset) const;
-  const VertexVector& vertices() const {return m_vertices;}
+  PaintData* globalize(GLsizei offset) const override;
+  const VertexVector& vertices() const override {return m_vertices;}
 private:
   VertexVector m_vertices;
 };
@@ -353,82 +359,95 @@ protected:
 
 };
 
-
-class RasterSymbolElemData: public PaintData {
+class SymbolMerger {
 public:
+  virtual void merge(const SymbolMerger* other, qreal scale) = 0;
+  virtual SymbolKey key() const = 0;
+
+  virtual ~SymbolMerger() = default;
+};
+
+class RasterData: public PaintData {
+public:
+  using PivotVector = QVector<GLfloat>;
+
   void setUniforms() const override;
   void setVertexOffset() const override;
 
-  RasterSymbolElemData(const QPointF& pivot,
-                       const QPoint& pivotOffset,
-                       const ElementData& elems,
-                       quint32 index);
-
+  GLsizei count() const {return m_instanceCount;}
   const ElementData& elements() const {return m_elements;}
+  void getPivots(PivotVector& pivots);
+
 
 protected:
 
+  RasterData(Type t,
+             const QPoint& offset,
+             const ElementData& elems,
+             quint32 index);
+
+  QPoint m_offset;
   ElementData m_elements;
-  QPointF m_pivot;
-  QPoint m_pivotOffset;
   quint32 m_index;
+  GLsizei m_pivotOffset;
+  GLsizei m_instanceCount;
+
+  PivotVector m_pivots;
+
 };
 
-class RasterPatternData: public PaintData {
+class RasterSymbolData: public RasterData, public SymbolMerger {
 public:
-  void setUniforms() const override;
-  void setVertexOffset() const override;
 
-  void setAreaUniforms() const;
-  void setAreaVertexOffset() const;
-  void setPivot(const QPointF& p) const;
+  void merge(const SymbolMerger* other, qreal /*scale*/) override;
+  SymbolKey key() const override;
 
-  RasterPatternData(Type t,
-                    const ElementDataVector& aelems,
+  RasterSymbolData(const QPointF& pivot,
+                   const QPoint& offset,
+                   const ElementData& elems,
+                   quint32 index);
+};
+
+class RasterPatternData: public RasterData, public SymbolMerger {
+public:
+
+  void merge(const SymbolMerger* other, qreal scale) override;
+  SymbolKey key() const override;
+
+  void setAreaVertexOffset(GLsizei off) const;
+
+  RasterPatternData(const ElementDataVector& aelems,
                     GLsizei aoffset,
+                    bool indexed,
                     const QRectF& bbox,
                     const QPoint& offset,
                     const PatternAdvance& advance,
                     const ElementData& elem,
                     quint32 index);
 
-  const ElementData& elements() const {return m_elements;}
-  const ElementDataVector& areaElements() const {return m_areaElements;}
-  const QRectF& bbox() const {return m_bbox;}
-  const PatternAdvance& advance() const {return m_advance;}
+  struct AreaData {
+    ElementDataVector elements;
+    GLsizei vertexOffset;
+    QRectF bbox;
+  };
 
-protected:
+  using AreaDataVector = QVector<AreaData>;
 
-  ElementDataVector m_areaElements;
-  GLsizei m_areaVertexOffset;
-  QRectF m_bbox;
-  QPoint m_offset;
+  const AreaDataVector& areaElements() const {return m_areaElements;}
+  const AreaDataVector& areaArrays() const {return m_areaArrays;}
+
+
+private:
+
+  void createPivots(const QRectF& bbox, qreal scale);
+
+  AreaDataVector m_areaElements;
+  AreaDataVector m_areaArrays;
+
   PatternAdvance m_advance;
-  ElementData m_elements;
-  quint32 m_index;
+
 };
 
-class RasterPatternElemData: public RasterPatternData {
-public:
-  RasterPatternElemData(const ElementDataVector& aelems,
-                        GLsizei aoffset,
-                        const QRectF& bbox,
-                        const QPoint& offset,
-                        const PatternAdvance& advance,
-                        const ElementData& elem,
-                        quint32 index);
-};
-
-class RasterPatternArrayData: public RasterPatternData {
-public:
-  RasterPatternArrayData(const ElementDataVector& aelems,
-                         GLsizei aoffset,
-                         const QRectF& bbox,
-                         const QPoint& offset,
-                         const PatternAdvance& advance,
-                         const ElementData& elem,
-                         quint32 index);
-};
 
 
 using PaintDataMap = QMultiMap<PaintData::Type, PaintData*>;

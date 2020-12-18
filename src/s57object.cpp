@@ -3,6 +3,7 @@
 #include <QDebug>
 #include "shader.h"
 #include "s52presentation.h"
+#include "platform.h"
 
 
 
@@ -220,7 +221,7 @@ S57::SolidLineLocalData::SolidLineLocalData(const VertexVector& vertices, const 
   , m_vertices(vertices)
 {}
 
-S57::SolidLineArrayData* S57::SolidLineLocalData::createArrayData(GLsizei offset) const {
+S57::PaintData* S57::SolidLineLocalData::globalize(GLsizei offset) const {
   return new SolidLineArrayData(m_elements, offset, m_color, m_lineWidth);
 }
 
@@ -230,7 +231,7 @@ S57::DashedLineLocalData::DashedLineLocalData(const VertexVector& vertices, cons
   , m_vertices(vertices)
 {}
 
-S57::DashedLineArrayData* S57::DashedLineLocalData::createArrayData(GLsizei offset) const {
+S57::PaintData* S57::DashedLineLocalData::globalize(GLsizei offset) const {
   return new DashedLineArrayData(m_elements, offset, m_color, m_lineWidth, m_pattern);
 }
 
@@ -256,9 +257,9 @@ S57::TextElemData::TextElemData(const QPointF& pivot,
 void S57::TextElemData::setUniforms() const {
   auto prog = GL::TextShader::instance();
   prog->prog()->setUniformValue(prog->m_locations.base_color, m_color);
-  prog->prog()->setUniformValue(prog->m_locations.textScale, m_scaleMM * prog->m_dots_per_mm_y);
+  prog->prog()->setUniformValue(prog->m_locations.textScale, static_cast<GLfloat>(m_scaleMM * dots_per_mm_y));
   prog->prog()->setUniformValue(prog->m_locations.pivot, m_pivot);
-  prog->prog()->setUniformValue(prog->m_locations.offset, m_shiftMM * prog->m_dots_per_mm_y);
+  prog->prog()->setUniformValue(prog->m_locations.offset, m_shiftMM * dots_per_mm_y);
 }
 
 void S57::TextElemData::setVertexOffset() const {
@@ -270,108 +271,129 @@ void S57::TextElemData::setVertexOffset() const {
 }
 
 
-S57::RasterSymbolElemData::RasterSymbolElemData(const QPointF& pivot,
-                                                const QPoint& pivotOffset,
-                                                const ElementData& elems,
-                                                quint32 index)
-  : PaintData(Type::RasterSymbolElements)
+S57::RasterData::RasterData(Type t,
+                            const QPoint& offset,
+                            const ElementData& elems,
+                            quint32 index)
+  : PaintData(t)
+  , m_offset(offset)
   , m_elements(elems)
-  , m_pivot(pivot)
-  , m_pivotOffset(pivotOffset)
   , m_index(index)
-{}
-
-
-void S57::RasterSymbolElemData::setUniforms() const {
-  auto prog = GL::RasterSymbolShader::instance();
-  prog->prog()->setUniformValue(prog->m_locations.pivot, m_pivot);
-  prog->prog()->setUniformValue(prog->m_locations.offset, m_pivotOffset);
+  , m_instanceCount(1)
+  , m_pivots()
+{
 }
 
-void S57::RasterSymbolElemData::setVertexOffset() const {
-  // noop
+void S57::RasterData::getPivots(PivotVector &pivots) {
+  m_pivotOffset = pivots.size() * sizeof(GLfloat);
+  pivots.append(m_pivots);
+  m_pivots.clear();
 }
 
-
-void S57::RasterPatternData::setUniforms() const {
+void S57::RasterData::setUniforms() const {
   auto prog = GL::RasterSymbolShader::instance();
   prog->prog()->setUniformValue(prog->m_locations.offset, m_offset);
 }
 
-void S57::RasterPatternData::setVertexOffset() const {
-  // noop
+void S57::RasterData::setVertexOffset() const {
+  auto prog = GL::RasterSymbolShader::instance()->prog();
+  prog->setAttributeBuffer(2, GL_FLOAT, m_pivotOffset, 2, 0);
 }
 
-void S57::RasterPatternData::setAreaUniforms() const {
-  // noop
+S57::RasterSymbolData::RasterSymbolData(const QPointF &pivot,
+                                        const QPoint &offset,
+                                        const ElementData &elems,
+                                        quint32 index)
+  : RasterData(Type::RasterSymbolElements, offset, elems, index)
+{
+  m_pivots << pivot.x() << pivot.y();
 }
 
-void S57::RasterPatternData::setAreaVertexOffset() const {
-  auto prog = GL::AreaShader::instance()->prog();
-  prog->setAttributeBuffer(0, GL_FLOAT, m_areaVertexOffset, 2, 0);
+SymbolKey S57::RasterSymbolData::key() const {
+  return SymbolKey(m_index, S52::SymbolType::Single);
 }
 
-void S57::RasterPatternData::setPivot(const QPointF& p) const {
-  auto prog = GL::RasterSymbolShader::instance();
-  prog->prog()->setUniformValue(prog->m_locations.pivot, p);
+void S57::RasterSymbolData::merge(const SymbolMerger *other, qreal) {
+  if (other == nullptr) return;
+  auto r = dynamic_cast<const RasterSymbolData*>(other);
+  Q_ASSERT(r->m_pivots.size() == 2);
+  m_pivots.append(r->m_pivots);
+  m_instanceCount += 1;
 }
 
-
-S57::RasterPatternData::RasterPatternData(Type t,
-                                          const ElementDataVector& aelems,
+S57::RasterPatternData::RasterPatternData(const ElementDataVector& aelems,
                                           GLsizei aoffset,
+                                          bool indexed,
                                           const QRectF& bbox,
                                           const QPoint& offset,
                                           const PatternAdvance& advance,
                                           const ElementData& elem,
                                           quint32 index)
-  : PaintData(t)
-  , m_areaElements(aelems)
-  , m_areaVertexOffset(aoffset)
-  , m_bbox(bbox)
-  , m_offset(offset)
+  : RasterData(Type::RasterPatterns, offset, elem, index)
+  , m_areaElements()
+  , m_areaArrays()
   , m_advance(advance)
-  , m_elements(elem)
-  , m_index(index)
-{}
+{
+  AreaData d;
+  d.elements = aelems;
+  d.vertexOffset = aoffset;
+  d.bbox = bbox;
+  if (indexed) {
+    m_areaElements.append(d);
+  } else {
+    m_areaArrays.append(d);
+  }
+}
 
-S57::RasterPatternElemData::RasterPatternElemData(const ElementDataVector& aelems,
-                                                  GLsizei aoffset,
-                                                  const QRectF& bbox,
-                                                  const QPoint& offset,
-                                                  const PatternAdvance& advance,
-                                                  const ElementData& elem,
-                                                  quint32 index)
-  : RasterPatternData(Type::RasterPatternElements,
-                      aelems,
-                      aoffset,
-                      bbox,
-                      offset,
-                      advance,
-                      elem,
-                      index)
-{}
+SymbolKey S57::RasterPatternData::key() const {
+  return SymbolKey(m_index, S52::SymbolType::Pattern);
+}
 
+void S57::RasterPatternData::merge(const SymbolMerger *other, qreal scale) {
+  if (other == nullptr) {
+    Q_ASSERT(m_areaElements.size() + m_areaArrays.size() == 1);
+    for (const AreaData& a: m_areaElements) {
+      createPivots(a.bbox, scale);
+    }
+    for (const AreaData& a: m_areaArrays) {
+      createPivots(a.bbox, scale);
+    }
+  } else {
+    auto r = dynamic_cast<const RasterPatternData*>(other);
 
-S57::RasterPatternArrayData::RasterPatternArrayData(const ElementDataVector& aelems,
-                                                    GLsizei aoffset,
-                                                    const QRectF& bbox,
-                                                    const QPoint& offset,
-                                                    const PatternAdvance& advance,
-                                                    const ElementData& elem,
-                                                    quint32 index)
-  : RasterPatternData(Type::RasterPatternArrays,
-                      aelems,
-                      aoffset,
-                      bbox,
-                      offset,
-                      advance,
-                      elem,
-                      index)
-{}
+    Q_ASSERT(r->m_areaElements.size() + r->m_areaArrays.size() == 1);
+    for (const AreaData& a: r->m_areaElements) {
+      createPivots(a.bbox, scale);
+    }
+    for (const AreaData& a: r->m_areaArrays) {
+      createPivots(a.bbox, scale);
+    }
+    m_areaArrays.append(r->m_areaArrays);
+    m_areaElements.append(r->m_areaElements);
+  }
+  m_instanceCount = m_pivots.size() / 2;
+}
 
+void S57::RasterPatternData::createPivots(const QRectF &bbox, qreal scale) {
+  const qreal X = m_advance.x / scale;
+  const qreal Y = m_advance.xy.y() / scale;
+  const qreal xs = m_advance.xy.x() / scale;
 
+  const int ny = std::floor(bbox.top() / Y);
+  const int my = std::ceil(bbox.bottom() / Y) + 1;
 
+  for (int ky = ny; ky < my; ky++) {
+    const qreal x1 = ky % 2 == 0 ? 0. : xs;
+    const int nx = std::floor((bbox.left() - x1) / X);
+    const int mx = std::ceil((bbox.right() - x1) / X) + 1;
+    for (int kx = nx; kx < mx; kx++) {
+      m_pivots << kx * X + x1 << ky * Y;
+    }
+  }
+}
 
-
+void S57::RasterPatternData::setAreaVertexOffset(GLsizei off) const {
+  auto prog = GL::AreaShader::instance()->prog();
+  prog->setAttributeBuffer(0, GL_FLOAT, off, 2, 0);
+}
 

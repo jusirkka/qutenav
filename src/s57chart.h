@@ -210,10 +210,17 @@ private:
   using LocationHash = QMultiHash<WGS84Point, const S57::Object*>;
   using LocationIterator = LocationHash::const_iterator;
 
+  using SymbolMap = QHash<SymbolKey, S57::PaintData*>;
+  using SymbolIterator = QHash<SymbolKey, S57::PaintData*>::const_iterator;
+  using SymbolMutIterator = QHash<SymbolKey, S57::PaintData*>::iterator;
+  using SymbolPriorityVector = QVector<SymbolMap>;
+
   static void triangulate(const S57::ElementDataVector& lelems,
                           S57::ElementDataVector& telems,
                           const VertexVector& vertices,
                           IndexVector& indices);
+
+  qreal scaleFactor(const QRectF& vp, quint32 scale);
 
   Extent m_extent;
   GeoProjection* m_nativeProj;
@@ -224,14 +231,14 @@ private:
   PaintPriorityVector m_paintData;
   PaintPriorityVector m_updatedPaintData;
   VertexVector m_updatedVertices;
+  VertexVector m_updatedPivots;
   quint32 m_id;
   Settings* m_settings;
   QOpenGLBuffer m_coordBuffer;
   QOpenGLBuffer m_indexBuffer;
+  QOpenGLBuffer m_pivotBuffer;
   GLsizei m_staticVertexOffset;
   GLsizei m_staticElemOffset;
-
-  const float m_dots_per_mm_y;
 
 };
 

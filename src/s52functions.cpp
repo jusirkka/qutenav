@@ -33,7 +33,7 @@ S57::PaintDataMap S52::AreaPattern::execute(const QVector<QVariant>& vals,
   const SymbolData s = RasterSymbolManager::instance()->symbolData(index, S52::SymbolType::Pattern);
 
   if (!s.isValid()) {
-//    qWarning() << "Missing raster pattern. Vector patterns not implemented";
+    qWarning() << "Missing raster pattern. Vector patterns not implemented";
     return S57::PaintDataMap();
   }
 
@@ -47,32 +47,21 @@ S57::PaintDataMap S52::AreaPattern::execute(const QVector<QVariant>& vals,
 
   const QMetaType::Type t = static_cast<QMetaType::Type>(vals[1].type());
   Q_ASSERT(t == QMetaType::Float || t == QMetaType::Double);
-  if (vals[1].toDouble() > 0.) {
-//    qWarning() << "Rotations not implemented" << vals[1].toDouble();
+  if (vals[1].toDouble() != 0.) {
+    qWarning() << "Rotations not implemented (" << vals[1].toDouble() << ")";
   }
 
   auto geom = dynamic_cast<const S57::Geometry::Area*>(obj->geometry());
   Q_ASSERT(geom != nullptr);
 
-  S57::PaintData* p;
-
-  if (geom->indexed()) {
-    p = new S57::RasterPatternElemData(geom->triangleElements(),
-                                       geom->vertexOffset(),
-                                       obj->boundingBox(),
-                                       s.offset(),
-                                       s.advance(),
-                                       s.elements(),
-                                       index);
-  } else {
-    p = new S57::RasterPatternArrayData(geom->triangleElements(),
-                                        geom->vertexOffset(),
-                                        obj->boundingBox(),
-                                        s.offset(),
-                                        s.advance(),
-                                        s.elements(),
-                                        index);
-  }
+  auto p = new S57::RasterPatternData(geom->triangleElements(),
+                                      geom->vertexOffset(),
+                                      geom->indexed(),
+                                      obj->boundingBox(),
+                                      s.offset(),
+                                      s.advance(),
+                                      s.elements(),
+                                      index);
 
   return S57::PaintDataMap{{p->type(), p}};
 }
@@ -160,7 +149,7 @@ S57::PaintDataMap S52::LineSimple::linesFromPoint(const QVector<QVariant> &vals,
 
 S57::PaintDataMap S52::LineComplex::execute(const QVector<QVariant>& /*vals*/,
                                             const S57::Object* /*obj*/) {
-//  qWarning() << "LC: not implemented";
+  qWarning() << "LC: not implemented";
   return S57::PaintDataMap(); // invalid paint data
 }
 
@@ -170,8 +159,8 @@ S57::PaintDataMap S52::PointSymbol::execute(const QVector<QVariant>& vals,
 
   const QMetaType::Type t = static_cast<QMetaType::Type>(vals[1].type());
   Q_ASSERT(t == QMetaType::Float || t == QMetaType::Double);
-  if (vals[1].toDouble() > 0.) {
-//    qWarning() << "Rotations not implemented" << vals[1].toDouble();
+  if (vals[1].toDouble() != 0.) {
+    qWarning() << "Rotations not implemented (" << vals[1].toDouble() << ")";
   }
 
   quint32 index = vals[0].toUInt();
@@ -184,14 +173,14 @@ S57::PaintDataMap S52::PointSymbol::execute(const QVector<QVariant>& vals,
   // }
 
   if (!s.isValid()) {
-//    qDebug() << "Missing raster symbol. Vector symbols not implemented";
+    qWarning() << "Missing raster symbol. Vector symbols not implemented";
     return S57::PaintDataMap();
   }
 
-  S57::PaintData* p = new S57::RasterSymbolElemData(obj->geometry()->center(),
-                                                    s.offset(),
-                                                    s.elements(),
-                                                    index);
+  auto p = new S57::RasterSymbolData(obj->geometry()->center(),
+                                     s.offset(),
+                                     s.elements(),
+                                     index);
 
   return S57::PaintDataMap{{p->type(), p}};
 }
@@ -207,7 +196,7 @@ S57::PaintDataMap S52::Text::execute(const QVector<QVariant>& vals,
 
   const quint8 group = vals[8].toUInt();
   if (!Settings::instance()->textGrouping().contains(group)) {
-//    qWarning() << "skipping TX in group" << group;
+    qDebug() << "skipping TX in group" << group;
     return S57::PaintDataMap();
   }
 
@@ -221,7 +210,7 @@ S57::PaintDataMap S52::Text::execute(const QVector<QVariant>& vals,
 
   auto space = as_enum<TXT::Space>(vals[3].toUInt(), TXT::AllSpaces);
   if (space != TXT::Space::Standard/* && space != TXT::Space::Wrapped*/) {
-//    qWarning() << "TX: text spacing type" << as_numeric(space)<< "not implemented";
+    qWarning() << "TX: text spacing type" << as_numeric(space)<< "not implemented";
     return S57::PaintDataMap();
   }
 
@@ -280,13 +269,15 @@ S57::PaintDataMap S52::TextExtended::execute(const QVector<QVariant>& vals,
     case QMetaType::Int:
       sprintf(buf, format, vals[2 + i].toInt());
       break;
+    case QMetaType::UnknownType: // Empty QVariant
+      return S57::PaintDataMap();
     default:
-//      qWarning() << "TE: Unhandled attribute value" << vals[2 + i];
-//      qWarning() << "[Class]" << S52::GetClassInfo(obj->classCode());
-//      qWarning() << "[Location]" << obj->geometry()->centerLL().print();
-//      for (auto k: obj->attributes().keys()) {
-//        qWarning() << GetAttributeInfo(k, obj);
-//      }
+      qWarning() << "TE: Unhandled attribute value" << vals[2 + i];
+      //      qWarning() << "[Class]" << S52::GetClassInfo(obj->classCode());
+      //      qWarning() << "[Location]" << obj->geometry()->centerLL().print();
+      //      for (auto k: obj->attributes().keys()) {
+      //        qWarning() << GetAttributeInfo(k, obj);
+      //      }
       return S57::PaintDataMap();
     }
     strcpy(format, buf);
@@ -394,7 +385,7 @@ S57::PaintDataMap S52::CSDepthArea01::execute(const QVector<QVariant>&,
 
 S57::PaintDataMap S52::CSResArea02::execute(const QVector<QVariant>&,
                                             const S57::Object* /*obj*/) {
-//  qWarning() << "RESARE02: not implemented";
+  qWarning() << "RESARE02: not implemented";
   return S57::PaintDataMap(); // invalid paint data
 }
 
@@ -411,13 +402,13 @@ S57::PaintDataMap S52::CSDataCov01::execute(const QVector<QVariant>&,
 
 S57::PaintDataMap S52::CSDepthArea02::execute(const QVector<QVariant>&,
                                             const S57::Object* /*obj*/) {
-//  qWarning() << "DEPARE02: not implemented";
+  qWarning() << "DEPARE02: not implemented";
   return S57::PaintDataMap(); // invalid paint data
 }
 
 S57::PaintDataMap S52::CSDepthContours02::execute(const QVector<QVariant>&,
                                             const S57::Object* /*obj*/) {
-//  qWarning() << "DEPCNT02: not implemented";
+  qWarning() << "DEPCNT02: not implemented";
   return S57::PaintDataMap(); // invalid paint data
 }
 
@@ -606,7 +597,7 @@ S57::PaintDataMap S52::CSLights05::execute(const QVector<QVariant>&,
 
 S57::PaintDataMap S52::CSObstruction04::execute(const QVector<QVariant>&,
                                                 const S57::Object* /*obj*/) {
-//  qWarning() << "OBSTRN04: not implemented";
+  qWarning() << "OBSTRN04: not implemented";
   return S57::PaintDataMap(); // invalid paint data
 }
 
@@ -834,7 +825,7 @@ S57::PaintDataMap S52::CSShorelineQualOfPos03::execute(const QVector<QVariant>&,
 
 S57::PaintDataMap S52::CSEntrySoundings02::execute(const QVector<QVariant>&,
                                                    const S57::Object* /*obj*/) {
-//  qWarning() << "SOUNDG02: not implemented";
+  qWarning() << "SOUNDG02: not implemented";
   return S57::PaintDataMap(); // invalid paint data
 }
 
@@ -918,7 +909,7 @@ S57::PaintDataMap S52::CSTopmarks01::execute(const QVector<QVariant>&,
         } else {
           topmrk = m_tmardef2;
         }
-//        qDebug() << "TOPMRK01: floating";
+        //        qDebug() << "TOPMRK01: floating";
         break;
       }
       if (isRigid(it.value())) {
@@ -927,7 +918,7 @@ S57::PaintDataMap S52::CSTopmarks01::execute(const QVector<QVariant>&,
         } else {
           topmrk = m_tmardef1;
         }
-//        qDebug() << "TOPMRK01: rigid";
+        //        qDebug() << "TOPMRK01: rigid";
         break;
       }
     }
@@ -951,7 +942,7 @@ bool S52::CSTopmarks01::isRigid(const S57::Object *obj) const {
 
 S57::PaintDataMap S52::CSWrecks02::execute(const QVector<QVariant>&,
                                             const S57::Object* /*obj*/) {
-//  qWarning() << "WRECKS02: not implemented";
+  qWarning() << "WRECKS02: not implemented";
   return S57::PaintDataMap(); // invalid paint data
 }
 

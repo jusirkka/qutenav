@@ -34,5 +34,4 @@ qreal Camera::distance(const QRectF &r) const {
   d = qMin(d, b.top() - r.top());
   auto p = m_geoprojection->toWGS84(QPoint(0., d));
   return (p - eye()).meters();
-  return d;
 }

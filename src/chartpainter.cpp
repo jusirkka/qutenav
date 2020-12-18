@@ -11,6 +11,7 @@
 #include "glcontext.h"
 #include <QVector>
 #include "orthocam.h"
+#include "platform.h"
 
 ChartPainter::ChartPainter(QObject* parent)
   : Drawable(parent)
@@ -20,8 +21,6 @@ ChartPainter::ChartPainter(QObject* parent)
   , m_fbo(nullptr)
   , m_coordBuffer(QOpenGLBuffer::VertexBuffer)
   , m_indexBuffer(QOpenGLBuffer::IndexBuffer)
-  , m_dots_per_mm_y(QGuiApplication::primaryScreen()->physicalDotsPerInchY() / 25.4)
-  , m_dots_per_mm_x(QGuiApplication::primaryScreen()->physicalDotsPerInchX() / 25.4)
 {}
 
 ChartPainter::~ChartPainter() {
@@ -100,7 +99,7 @@ void ChartPainter::updateCharts(const Camera* cam, const QRectF& viewArea) {
   m_viewArea = viewArea;
 
   auto bufCam = createBufferCamera(cam, viewArea.size());
-  qreal scale = .5 * bufCam->heightMM() * m_dots_per_mm_y * bufCam->projection()(1, 1);
+  qreal scale = .5 * bufCam->heightMM() * dots_per_mm_y * bufCam->projection()(1, 1);
 
   const QSizeF bufSize(viewArea.width() * scale, viewArea.height() * scale);
   if (m_bufSize != bufSize) {
@@ -169,8 +168,8 @@ void ChartPainter::updateCharts(const Camera* cam, const QRectF& viewArea) {
   m_fbo->bindDefault();
 
   f->glViewport(0, 0,
-                cam->heightMM() * cam->aspect() * m_dots_per_mm_x,
-                cam->heightMM() * m_dots_per_mm_y);
+                cam->heightMM() * cam->aspect() * dots_per_mm_x,
+                cam->heightMM() * dots_per_mm_y);
 
   delete bufCam;
 }
