@@ -110,7 +110,7 @@ void ChartPainter::updateCharts(const Camera* cam, const QRectF& viewArea) {
     m_fbo = new QOpenGLFramebufferObject(bufSize.toSize(), fmt);
   }
 
-  qDebug() << "updateCharts:" << bufSize << viewArea.size();
+  // qDebug() << "updateCharts:" << bufSize << viewArea.size();
 
   m_fbo->bind();
 

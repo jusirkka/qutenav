@@ -105,9 +105,6 @@ using GlyphBinPtr = QSharedPointer<GlyphBin>;
 
 namespace GL {
 
-using VertexVector = QVector<GLfloat>;
-using IndexVector = QVector<GLuint>;
-
 struct Mesh {
   VertexVector vertices;
   IndexVector indices;

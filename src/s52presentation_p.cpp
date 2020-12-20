@@ -6,14 +6,8 @@
 #include "conf_marinerparams.h"
 #include "s52instr_parser.h"
 #define YYLTYPE Private::LocationType
-#define YYSTYPE Private::Instr_ValueType
+#define YYSTYPE Private::ValueType
 #include "s52instr_scanner.h"
-
-void s52hpgl_error(Private::LocationType* loc,
-                   Private::Presentation* p,
-                   yyscan_t scanner, const char*  msg) {
-  s52instr_error(loc, p, 0, scanner, msg);
-}
 
 void s52instr_error(Private::LocationType* loc,
                     Private::Presentation*,
@@ -378,22 +372,6 @@ void Private::Presentation::readLookups(QXmlStreamReader& reader) {
   }
 }
 
-S52::ColorRef Private::Presentation::parseColorRef(QXmlStreamReader& reader) {
-  S52::ColorRef ref;
-  const QString src = reader.readElementText();
-  int index = 0;
-  while (index < src.length()) {
-    const char key = src.mid(index, 1).front().toLatin1();
-    index += 1;
-    const QString cref = src.mid(index, 5);
-    if (names.contains(cref)) {
-      ref[key] = names[cref];
-    }
-    index += 5;
-  }
-  return ref;
-}
-
 void Private::Presentation::readSymbolNames(QXmlStreamReader& reader) {
   const QMap<QString, S52::SymbolType> typeLookup {
     {"line-style", S52::SymbolType::LineStyle},
@@ -437,7 +415,6 @@ void Private::Presentation::init() {
 
   for (LUPTableIterator tables(lookupTable.cbegin()); tables != lookupTable.cend(); ++tables) {
     const LookupHash& classes = tables.value();
-    LUPHashIterator cl(classes.cbegin());
     for (LUPHashIterator cl(classes.cbegin()); cl != classes.cend(); ++cl) {
       LookupVector lups = cl.value();
       for (S52::Lookup* lup: lups) {

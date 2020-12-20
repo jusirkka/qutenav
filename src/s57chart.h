@@ -162,9 +162,6 @@ class S57Chart: public QObject {
 
 public:
 
-  using VertexVector = QVector<GLfloat>;
-  using IndexVector = QVector<GLuint>;
-
   S57Chart(quint32 id, const QString& path);
 
   void drawAreas(const Camera* cam, int prio);
@@ -215,11 +212,6 @@ private:
   using SymbolMutIterator = QHash<SymbolKey, S57::PaintData*>::iterator;
   using SymbolPriorityVector = QVector<SymbolMap>;
 
-  static void triangulate(const S57::ElementDataVector& lelems,
-                          S57::ElementDataVector& telems,
-                          const VertexVector& vertices,
-                          IndexVector& indices);
-
   qreal scaleFactor(const QRectF& vp, quint32 scale);
 
   Extent m_extent;
@@ -230,8 +222,8 @@ private:
   LocationHash m_locations;
   PaintPriorityVector m_paintData;
   PaintPriorityVector m_updatedPaintData;
-  VertexVector m_updatedVertices;
-  VertexVector m_updatedPivots;
+  GL::VertexVector m_updatedVertices;
+  GL::VertexVector m_updatedPivots;
   quint32 m_id;
   Settings* m_settings;
   QOpenGLBuffer m_coordBuffer;

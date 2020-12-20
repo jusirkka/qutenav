@@ -8,33 +8,32 @@
 #include "symboldata.h"
 
 
-class QOpenGLTexture;
 class QXmlStreamReader;
 
 
-class RasterSymbolManager {
+class VectorSymbolManager {
 
 public:
 
-  RasterSymbolManager();
+  VectorSymbolManager();
 
-  static RasterSymbolManager* instance();
+  static VectorSymbolManager* instance();
   void createSymbols();
 
   SymbolData symbolData(quint32 index, S52::SymbolType type) const;
 
   void bind();
 
-  ~RasterSymbolManager();
+  ~VectorSymbolManager();
 
 
 private:
 
   struct ParseData {
     QPoint offset;
+    QPoint pivot;
     QSize size;
     int minDist;
-    S57::ElementData elements;
   };
 
   using SymbolMap = QHash<SymbolKey, SymbolData>;
@@ -46,12 +45,10 @@ private:
 
   void parseSymbolData(QXmlStreamReader& reader,
                        ParseData& d,
-                       GL::VertexVector& vertices,
-                       GL::IndexVector& indices);
+                       QString& src);
 
   SymbolMap m_symbolMap;
   SymbolData m_invalid;
   QOpenGLBuffer m_coordBuffer;
   QOpenGLBuffer m_indexBuffer;
-  QOpenGLTexture* m_symbolTexture;
 };

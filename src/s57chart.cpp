@@ -7,8 +7,6 @@
 #include "s57object.h"
 #include "s52presentation.h"
 #include "drawable.h"
-#include "earcut.hpp"
-#include "triangleoptimizer.h"
 #include <QDate>
 #include "settings.h"
 #include "shader.h"
@@ -192,16 +190,16 @@ public:
 
 }
 
-static GLsizei addIndices(GLuint first, GLuint mid1, GLuint mid2, bool reversed, S57Chart::IndexVector& indices);
-static GLuint addAdjacent(GLuint base, GLuint next, S57::VertexVector& vertices);
+static GLsizei addIndices(GLuint first, GLuint mid1, GLuint mid2, bool reversed, GL::IndexVector& indices);
+static GLuint addAdjacent(GLuint base, GLuint next, GL::VertexVector& vertices);
 static QRectF computeBBox(const S57::ElementDataVector &elems,
-                          const S57Chart::VertexVector& vertices,
-                          const S57Chart::IndexVector& indices);
+                          const GL::VertexVector& vertices,
+                          const GL::IndexVector& indices);
 static QPointF computeLineCenter(const S57::ElementDataVector &elems,
-                                 const S57Chart::VertexVector& vertices,
-                                 const S57Chart::IndexVector& indices);
+                                 const GL::VertexVector& vertices,
+                                 const GL::IndexVector& indices);
 static QPointF computeAreaCenter(const S57::ElementDataVector &elems,
-                                 const S57Chart::VertexVector& vertices, GLsizei offset);
+                                 const GL::VertexVector& vertices, GLsizei offset);
 
 S57Chart::S57Chart(quint32 id, const QString& path)
   : QObject()
@@ -231,7 +229,7 @@ S57Chart::S57Chart(quint32 id, const QString& path)
 
   struct TrianglePatch {
     GLenum mode;
-    VertexVector vertices;
+    GL::VertexVector vertices;
   };
 
   using LineHandle = QVector<int>;
@@ -255,8 +253,8 @@ S57Chart::S57Chart(quint32 id, const QString& path)
   QMap<int, int> connMap;
   QMap<int, EdgeExtent> edgeMap;
 
-  VertexVector vertices;
-  IndexVector indices;
+  GL::VertexVector vertices;
+  GL::IndexVector indices;
 
 
   const QMap<SencRecordType, Handler*> handlers {
@@ -647,74 +645,6 @@ S57Chart::~S57Chart() {
 }
 
 
-void S57Chart::triangulate(const S57::ElementDataVector& lelems,
-                           S57::ElementDataVector& telems,
-                           const VertexVector& vertices,
-                           IndexVector& indices) {
-
-  // The number type to use for tessellation
-  using Coord = GLfloat;
-
-  // The index type. Defaults to uint32_t, but you can also pass uint16_t if you know that your
-  // data won't have more than 65536 vertices.
-  using N = GLuint;
-
-  // Create array
-  using Point = std::array<Coord, 2>;
-
-
-
-  // Fill polygon structure with actual data. Any winding order works.
-  // The first polyline defines the main polygon.
-
-  // adjacency: extra initial index, two extras at the end
-  int last = indices.size() - 3;
-  int first;
-  for (int k = lelems.size() - 1; k >= 0; k--) {
-    first = last - lelems[k].count + 4;
-    std::vector<Point> ring;
-    for (int i = first; i <= last; i++) {
-      const int index = indices[i];
-      const Point p{vertices[2 * index], vertices[2 * index + 1]};
-      ring.push_back(p);
-    }
-    std::vector<std::vector<Point>> polygon;
-    polygon.push_back(ring);
-    // qDebug() << "number of vertices" << ring.size();
-
-    // Run tessellation
-    // Returns array of indices that refer to the vertices of the input polygon.
-    // Three subsequent indices form a triangle. Output triangles are clockwise.
-    std::vector<N> earcuts = mapbox::earcut<N>(polygon);
-
-    QVector<N> triangles;
-    const GLsizei triCount = earcuts.size() / 3;
-    // add triangle indices in ccw order
-    for (int i = 0; i < triCount; i++)  {
-      const N i0 = indices[first + earcuts[3 * i]];
-      const N i1 = indices[first + earcuts[3 * i + 1]];
-      const N i2 = indices[first + earcuts[3 * i + 2]];
-      triangles.append(i0);
-      triangles.append(i2);
-      triangles.append(i1);
-    }
-    // qDebug() << "number of triangles" << triangles.size() / 3;
-
-    AC::TriangleOptimizer stripper(triangles);
-
-    for (const QVector<N>& strip: stripper.strips()) {
-      S57::ElementData e;
-      e.mode = GL_TRIANGLE_STRIP;
-      e.count = strip.size();
-      e.offset = indices.size() * sizeof(GLuint);
-      indices.append(strip);
-      telems.append(e);
-    }
-
-    last -= lelems[k].count;
-  }
-
-}
 
 
 void S57Chart::finalizePaintData() {
@@ -845,8 +775,8 @@ qreal S57Chart::scaleFactor(const QRectF &va, quint32 scale) {
 
 
 static QRectF computeBBox(const S57::ElementDataVector &elems,
-                          const S57Chart::VertexVector& vertices,
-                          const S57Chart::IndexVector& indices) {
+                          const GL::VertexVector& vertices,
+                          const GL::IndexVector& indices) {
 
   QPointF ur(-1.e15, -1.e15);
   QPointF ll(1.e15, 1.e15);
@@ -866,8 +796,8 @@ static QRectF computeBBox(const S57::ElementDataVector &elems,
 }
 
 static QPointF computeLineCenter(const S57::ElementDataVector &elems,
-                                 const S57Chart::VertexVector& vertices,
-                                 const S57Chart::IndexVector& indices) {
+                                 const GL::VertexVector& vertices,
+                                 const GL::IndexVector& indices) {
   int first = elems[0].offset / sizeof(GLuint) + 1; // account adjacency
   int last = first + elems[0].count - 3; // account adjacency
   if (elems.size() > 1 || indices[first] == indices[last]) {
@@ -912,7 +842,7 @@ static QPointF computeLineCenter(const S57::ElementDataVector &elems,
 }
 
 static QPointF computeAreaCenter(const S57::ElementDataVector &elems,
-                                 const S57Chart::VertexVector& vertices,
+                                 const GL::VertexVector& vertices,
                                  GLsizei offset) {
   float area = 0;
   QPoint s(0, 0);
@@ -1219,7 +1149,7 @@ void S57Chart::drawPatterns(const Camera *cam) {
   f->glStencilMask(0x00);
 }
 
-static GLsizei addIndices(GLuint first, GLuint mid1, GLuint mid2, bool reversed, S57Chart::IndexVector& indices) {
+static GLsizei addIndices(GLuint first, GLuint mid1, GLuint mid2, bool reversed, GL::IndexVector& indices) {
   indices.append(first);
   if (!reversed) {
     for (uint i = mid1; i <= mid2; i++) {
@@ -1233,7 +1163,7 @@ static GLsizei addIndices(GLuint first, GLuint mid1, GLuint mid2, bool reversed,
   return 1 + mid2 - mid1 + 1;
 }
 
-static GLuint addAdjacent(GLuint base, GLuint next, S57::VertexVector& vertices) {
+static GLuint addAdjacent(GLuint base, GLuint next, GL::VertexVector& vertices) {
   const float x1 = vertices[2 * base];
   const float y1 = vertices[2 * base + 1];
   const float x2 = vertices[2 * next];

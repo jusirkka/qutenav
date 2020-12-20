@@ -6,9 +6,7 @@
 #include "types.h"
 
 #define S52INSTR_LTYPE Private::LocationType
-#define S52INSTR_STYPE Private::Instr_ValueType
-#define S52HPGL_LTYPE Private::LocationType
-#define S52HPGL_STYPE Private::HPGL_ValueType
+#define S52INSTR_STYPE Private::ValueType
 
 #ifndef YY_TYPEDEF_YY_SCANNER_T
 #define YY_TYPEDEF_YY_SCANNER_T
@@ -25,23 +23,19 @@ using yyscan_t = void *;
 
 namespace Private {
 
-// parser location and value types
+// flex/bison location and value types
 struct LocationType {
   int prev_pos;
   int pos;
 };
 
-struct Instr_ValueType {
+struct ValueType {
   QString v_string;
   char v_char;
   int v_int;
   float v_float;
 };
 
-struct HPGL_ValueType {
-  char v_char;
-  int v_int;
-};
 
 class Presentation: public QObject {
 
@@ -62,8 +56,6 @@ private:
   void readColorTables(QXmlStreamReader& reader);
   void readLookups(QXmlStreamReader& reader);
   void readSymbolNames(QXmlStreamReader& reader);
-
-  S52::ColorRef parseColorRef(QXmlStreamReader &reader);
 
   int parseInstruction(S52::Lookup* lup);
 
@@ -168,9 +160,6 @@ public:
 } // namespace Private
 
 
-void s52hpgl_error(Private::LocationType*,
-                   Private::Presentation*,
-                   yyscan_t, const char*);
 
 void s52instr_error(Private::LocationType*,
                     Private::Presentation*,

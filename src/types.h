@@ -4,6 +4,8 @@
 #include <cmath>
 #include <QVector2D>
 #include <QVector>
+#include <QOpenGLFunctions>
+#include <glm/vec2.hpp>
 
 class NotImplementedError {
 public:
@@ -212,6 +214,36 @@ namespace S52 {
 
 enum class SymbolType: quint8 {Single = 1, LineStyle = 2, Pattern = 3};
 static const inline QVector<quint8> AllSymbols {1, 2, 3};
+
+enum class Alpha: quint8 {P0 = 0, P25 = 1, P50 = 2, P75 = 3, P100 = 4, Unset = 5};
+static const inline QVector<quint8> AllAlphas {0, 1, 2, 3, 4, 5};
+
+struct Color {
+  Color(quint32 i = 0, Alpha a = Alpha::Unset) : index(i), alpha(a) {}
+  quint32 index;
+  Alpha alpha;
+};
+
+inline bool operator== (const Color& k1, const Color& k2) {
+  if (k1.index != k2.index) return false;
+  return k1.alpha == k2.alpha;
+}
+
+inline uint qHash(const Color& key, uint seed) {
+  return qHash(qMakePair(key.index, as_numeric(key.alpha)), seed);
+}
+
+
+}
+
+
+namespace GL {
+using IndexVector = QVector<GLuint>;
+using VertexVector = QVector<GLfloat>;
+
+inline glm::vec2 Vec2(const QPointF& p) {
+  return glm::vec2(p.x(), p.y());
+}
 
 }
 

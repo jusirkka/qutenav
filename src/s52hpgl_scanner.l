@@ -1,6 +1,6 @@
 %{
 
-#include "s52presentation_p.h"
+#include "hpglparser.h"
 #define YY_NO_UNPUT
 #include "s52hpgl_parser.h"
 
@@ -29,7 +29,7 @@
 
 
 dig            [0-9]
-unum           {dig}+
+num             [-+]?{dig}+
 
 singlechar     [;,]
 
@@ -38,7 +38,7 @@ colorname      [@A-Z\[\\\]\^_\`a-z\{\|\}~]
 
 %%
 
-{unum}              yylval->v_int = static_cast<int>(strtol(yytext, NULL, 0)); return INT;
+{num}              yylval->v_int = static_cast<int>(strtol(yytext, NULL, 0)); return INT;
 
 "SP"                return SP;
 "ST"                return ST;
@@ -49,6 +49,7 @@ colorname      [@A-Z\[\\\]\^_\`a-z\{\|\}~]
 "PM"                return PM;
 "EP"                return EP;
 "FP"                return FP;
+"AA"                return AA;
 
 {colorname}         yylval->v_char = *yytext; return COLOR;
 {singlechar}        yylval->v_char = *yytext; return *yytext;

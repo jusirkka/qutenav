@@ -74,6 +74,7 @@ target_sources(qopencpn
     src/glthread.cpp
     src/glwindow.cpp
     src/glyphmanager.cpp
+    src/hpglparser.cpp
     src/main.cpp
     src/mainwindow.cpp
     src/orthocam.cpp
@@ -88,10 +89,12 @@ target_sources(qopencpn
     src/s57object.cpp
     src/settings.cpp
     src/shader.cpp
+    src/symboldata.cpp
     src/textmanager.cpp
     src/tiny_sdf.cpp
     src/triangleoptimizer.cpp
     src/types.cpp
+    src/vectorsymbolmanager.cpp
     src/wfreader.cpp
     src/GeographicLib/Geodesic.cpp
     src/GeographicLib/GeodesicLine.cpp

@@ -216,7 +216,7 @@ S57::DashedLineArrayData::DashedLineArrayData(const ElementDataVector& elem, GLs
   : DashedLineData(Type::DashedLineArrays, elem, offset, c, width, pattern)
 {}
 
-S57::SolidLineLocalData::SolidLineLocalData(const VertexVector& vertices, const ElementDataVector& elem, const QColor& c, GLfloat width)
+S57::SolidLineLocalData::SolidLineLocalData(const GL::VertexVector& vertices, const ElementDataVector& elem, const QColor& c, GLfloat width)
   : SolidLineData(Type::SolidLineLocal, elem, 0, c, width)
   , m_vertices(vertices)
 {}
@@ -226,7 +226,7 @@ S57::PaintData* S57::SolidLineLocalData::globalize(GLsizei offset) const {
 }
 
 
-S57::DashedLineLocalData::DashedLineLocalData(const VertexVector& vertices, const ElementDataVector& elem, const QColor& c, GLfloat width, uint pattern)
+S57::DashedLineLocalData::DashedLineLocalData(const GL::VertexVector& vertices, const ElementDataVector& elem, const QColor& c, GLfloat width, uint pattern)
   : DashedLineData(Type::DashedLineLocal, elem, 0, c, width, pattern)
   , m_vertices(vertices)
 {}

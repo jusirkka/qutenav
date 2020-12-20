@@ -8,6 +8,7 @@
 #include "chartmanager.h"
 #include "textmanager.h"
 #include "rastersymbolmanager.h"
+#include "vectorsymbolmanager.h"
 #include "glcontext.h"
 #include <QGuiApplication>
 #include <QScreen>
@@ -59,6 +60,7 @@ void GLWindow::initializeGL() {
     ChartManager::instance()->createThreads(context());
     TextManager::instance()->createBuffers();
     RasterSymbolManager::instance()->createSymbols();
+    VectorSymbolManager::instance()->createSymbols();
   }
   m_vao.bind();
 

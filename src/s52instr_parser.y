@@ -4,7 +4,7 @@
 #include <QDebug>
 #include "types.h"
 
-int s52instr_lex(Private::Instr_ValueType*, Private::LocationType*, yyscan_t);
+int s52instr_lex(Private::ValueType*, Private::LocationType*, yyscan_t);
 
 namespace S52 {
 class ByteCoder {
@@ -28,7 +28,7 @@ public:
 
 %define api.prefix {s52instr_}
 %define api.pure full
-%define api.value.type {Private::Instr_ValueType}
+%define api.value.type {Private::ValueType}
 
 %parse-param {Private::Presentation* reader}
 %parse-param {S52::Lookup* lookup}

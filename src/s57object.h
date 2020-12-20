@@ -178,10 +178,6 @@ private:
 
 } // namespace Geometry
 
-
-
-using VertexVector = QVector<GLfloat>;
-
 class PaintData {
 public:
 
@@ -308,26 +304,26 @@ public:
 class Globalizer {
 public:
   virtual PaintData* globalize(GLsizei offset) const = 0;
-  virtual const VertexVector& vertices() const = 0;
+  virtual const GL::VertexVector& vertices() const = 0;
   virtual ~Globalizer() = default;
 };
 
 class SolidLineLocalData: public SolidLineData, public Globalizer {
 public:
-  SolidLineLocalData(const VertexVector& vertices, const ElementDataVector& elem, const QColor& c, GLfloat width);
+  SolidLineLocalData(const GL::VertexVector& vertices, const ElementDataVector& elem, const QColor& c, GLfloat width);
   PaintData* globalize(GLsizei offset) const override;
-  const VertexVector& vertices() const override {return m_vertices;}
+  const GL::VertexVector& vertices() const override {return m_vertices;}
 private:
-  VertexVector m_vertices;
+  GL::VertexVector m_vertices;
 };
 
 class DashedLineLocalData: public DashedLineData, public Globalizer {
 public:
-  DashedLineLocalData(const VertexVector& vertices, const ElementDataVector& elem, const QColor& c, GLfloat width, uint pattern);
+  DashedLineLocalData(const GL::VertexVector& vertices, const ElementDataVector& elem, const QColor& c, GLfloat width, uint pattern);
   PaintData* globalize(GLsizei offset) const override;
-  const VertexVector& vertices() const override {return m_vertices;}
+  const GL::VertexVector& vertices() const override {return m_vertices;}
 private:
-  VertexVector m_vertices;
+  GL::VertexVector m_vertices;
 };
 
 

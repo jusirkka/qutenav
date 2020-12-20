@@ -29,20 +29,19 @@ S57::PaintDataMap S52::AreaColor::execute(const QVector<QVariant>& vals,
 S57::PaintDataMap S52::AreaPattern::execute(const QVector<QVariant>& vals,
                                             const S57::Object* obj) {
 
-  const quint32 index = vals[0].toUInt();
-  const SymbolData s = RasterSymbolManager::instance()->symbolData(index, S52::SymbolType::Pattern);
-
-  if (!s.isValid()) {
-    qWarning() << "Missing raster pattern. Vector patterns not implemented";
-    return S57::PaintDataMap();
-  }
-
   // qDebug() << "[Class]" << S52::GetClassInfo(obj->classCode());
   // qDebug() << "[Symbol]" << S52::GetSymbolInfo(index, S52::SymbolType::Pattern);
   // qDebug() << "[Location]" << obj->geometry()->centerLL().print();
   // for (auto k: obj->attributes().keys()) {
   //   qDebug() << GetAttributeInfo(k, obj);
   // }
+
+  const quint32 index = vals[0].toUInt();
+  const SymbolData s = RasterSymbolManager::instance()->symbolData(index, S52::SymbolType::Pattern);
+  if (!s.isValid()) {
+    qWarning() << "Missing raster pattern. Vector patterns not implemented";
+    return S57::PaintDataMap();
+  }
   // qDebug() << "[Pattern]" << s.size() << s.advance().x << s.advance().xy;
 
   const QMetaType::Type t = static_cast<QMetaType::Type>(vals[1].type());
@@ -60,7 +59,7 @@ S57::PaintDataMap S52::AreaPattern::execute(const QVector<QVariant>& vals,
                                       obj->boundingBox(),
                                       s.offset(),
                                       s.advance(),
-                                      s.elements(),
+                                      s.element(),
                                       index);
 
   return S57::PaintDataMap{{p->type(), p}};
@@ -117,7 +116,7 @@ S57::PaintDataMap S52::LineSimple::linesFromPoint(const QVector<QVariant> &vals,
   S57::ElementDataVector elements;
   elements.append(e);
 
-  S57::VertexVector vertices;
+  GL::VertexVector vertices;
   const GLfloat x1 = point->points()[0];
   const GLfloat y1 = point->points()[1];
   const GLfloat x2 = x1 - valnmr * sin(orient);
@@ -156,6 +155,18 @@ S57::PaintDataMap S52::LineComplex::execute(const QVector<QVariant>& /*vals*/,
 
 S57::PaintDataMap S52::PointSymbol::execute(const QVector<QVariant>& vals,
                                             const S57::Object* obj) {
+  // qDebug() << "[Class]" << S52::GetClassInfo(obj->classCode());
+  // qDebug() << "[Symbol]" << S52::GetSymbolInfo(index, S52::SymbolType::Single);
+  // for (auto k: obj->attributes().keys()) {
+  //   qDebug() << GetAttributeInfo(k, obj);
+  // }
+
+  quint32 index = vals[0].toUInt();
+  const SymbolData s = RasterSymbolManager::instance()->symbolData(index, S52::SymbolType::Single);
+  if (!s.isValid()) {
+    qWarning() << "Missing raster symbol. Vector symbols not implemented";
+    return S57::PaintDataMap();
+  }
 
   const QMetaType::Type t = static_cast<QMetaType::Type>(vals[1].type());
   Q_ASSERT(t == QMetaType::Float || t == QMetaType::Double);
@@ -163,23 +174,9 @@ S57::PaintDataMap S52::PointSymbol::execute(const QVector<QVariant>& vals,
     qWarning() << "Rotations not implemented (" << vals[1].toDouble() << ")";
   }
 
-  quint32 index = vals[0].toUInt();
-  const SymbolData s = RasterSymbolManager::instance()->symbolData(index, S52::SymbolType::Single);
-
-  // qDebug() << "[Class]" << S52::GetClassInfo(obj->classCode());
-  // qDebug() << "[Symbol]" << S52::GetSymbolInfo(index, S52::SymbolType::Single);
-  // for (auto k: obj->attributes().keys()) {
-  //   qDebug() << GetAttributeInfo(k, obj);
-  // }
-
-  if (!s.isValid()) {
-    qWarning() << "Missing raster symbol. Vector symbols not implemented";
-    return S57::PaintDataMap();
-  }
-
   auto p = new S57::RasterSymbolData(obj->geometry()->center(),
                                      s.offset(),
-                                     s.elements(),
+                                     s.element(),
                                      index);
 
   return S57::PaintDataMap{{p->type(), p}};
@@ -290,7 +287,7 @@ S57::PaintDataMap S52::TextExtended::execute(const QVector<QVariant>& vals,
     txVals.append(vals[numAttrs + 2 + i]);
   }
 
-  return S52::FindFunction("TX")->execute(vals, obj);
+  return S52::FindFunction("TX")->execute(txVals, obj);
 }
 
 

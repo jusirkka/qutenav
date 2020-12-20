@@ -87,8 +87,6 @@ private:
 
 };
 
-using ColorRef = QMap<char, quint32>;
-
 Lookup* FindLookup(const S57::Object* obj);
 Function* FindFunction(quint32 index);
 Function* FindFunction(const QString& name);
@@ -98,6 +96,7 @@ QVariant GetAttribute(const QString& name, const S57::Object* obj);
 S57::Attribute::Type GetAttributeType(quint32 index);
 QString GetAttributeName(quint32 index);
 quint32 FindIndex(const QString& name);
+quint32 FindIndex(const QString& name, bool* ok);
 void InitPresentation();
 QString FindPath(const QString& filename);
 QString GetRasterFileName();

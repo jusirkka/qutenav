@@ -5,24 +5,6 @@
 #include <QXmlStreamReader>
 #include <QDebug>
 
-SymbolData::SymbolData(const QPoint& off, const QSize& size, int mnd, bool st, const S57::ElementData& elems)
-  : d(new SymbolSharedData) {
-
-  d->offset = off;
-  d->size = size;
-  d->elements = elems;
-
-  // check if pivot is outside of the rect(offset, w, h) and enlarge
-  // note: inverted y-axis
-  const QPointF origin(off.x(), off.y() - size.height());
-  const QRectF rtest(origin, size);
-  auto r1 = rtest.united(QRectF(QPointF(0, 0), QSizeF(.1, .1)));
-  const int x0 = r1.width() + mnd;
-  const int y0 = r1.height() + mnd;
-  const int x1 = st ? .5 * x0 : 0.;
-  d->advance = PatternAdvance(x0, y0, x1);
-}
-
 
 RasterSymbolManager::RasterSymbolManager()
   : m_invalid()
@@ -66,14 +48,14 @@ void RasterSymbolManager::createSymbols() {
   reader.readNextStartElement();
   Q_ASSERT(reader.name() == "chartsymbols");
 
-  VertexVector vertices;
-  IndexVector indices;
+  GL::VertexVector vertices;
+  GL::IndexVector indices;
   // Note: there exists no raster line styles
   while (reader.readNextStartElement()) {
     if (reader.name() == "patterns") {
-      parsePatterns(reader, vertices, indices);
+      parseSymbols(reader, vertices, indices, S52::SymbolType::Pattern);
     } else if (reader.name() == "symbols") {
-      parseSymbols(reader, vertices, indices);
+      parseSymbols(reader, vertices, indices, S52::SymbolType::Single);
     } else {
       reader.skipCurrentElement();
     }
@@ -93,79 +75,43 @@ void RasterSymbolManager::createSymbols() {
   m_indexBuffer.allocate(indices.constData(), sizeof(GLuint) * indices.size());
 }
 
-void RasterSymbolManager::parsePatterns(QXmlStreamReader &reader, VertexVector &vertices, IndexVector &indices) {
+void RasterSymbolManager::parseSymbols(QXmlStreamReader &reader,
+                                       GL::VertexVector &vertices,
+                                       GL::IndexVector &indices,
+                                       S52::SymbolType t) {
+
+  const QString itemName = t == S52::SymbolType::Single ? "symbol" : "pattern";
+
   while (reader.readNextStartElement()) {
-    Q_ASSERT(reader.name() == "pattern");
-
-    QString patternName;
-    SymbolSharedData d;
-    bool staggered;
-    int minDist;
-
-    while (reader.readNextStartElement()) {
-      if (reader.name() == "name") {
-        patternName = reader.readElementText();
-      } else if (reader.name() == "filltype") {
-        staggered = reader.readElementText() != "L";
-      } else if (reader.name() == "bitmap") {
-        parseSymbolData(reader, d, minDist, vertices, indices);
-        break;
-      } else {
-        reader.skipCurrentElement();
-      }
-    }
-    if (d.size.isValid()) {
-      // bitmap data found: skip rest of the element
-      reader.skipCurrentElement();
-    } else {
-      continue;
-    }
-
-    SymbolData s(d.offset, d.size, minDist, staggered, d.elements);
-
-    const SymbolKey key(S52::FindIndex(patternName), S52::SymbolType::Pattern);
-    if (m_symbolMap.contains(key)) {
-      if (s != m_symbolMap[key]) {
-        qWarning() << "multiple raster pattern definitions for" << patternName << ", skipping latest";
-      }
-      continue;
-    }
-    m_symbolMap.insert(key, s);
-
-  }
-}
-
-void RasterSymbolManager::parseSymbols(QXmlStreamReader &reader, VertexVector &vertices, IndexVector &indices) {
-  while (reader.readNextStartElement()) {
-    Q_ASSERT(reader.name() == "symbol");
+    Q_ASSERT(reader.name() == itemName);
 
     QString symbolName;
-    SymbolSharedData d;
-    int minDist;
+    ParseData d;
+    bool staggered;
+    bool skip = false;
 
     while (reader.readNextStartElement()) {
       if (reader.name() == "name") {
         symbolName = reader.readElementText();
+      } else if (reader.name() == "filltype") {
+        staggered = reader.readElementText() != "L";
       } else if (reader.name() == "bitmap") {
-        parseSymbolData(reader, d, minDist, vertices, indices);
-        break;
+        parseSymbolData(reader, d, vertices, indices);
+      } else if (reader.name() == "prefer-bitmap") {
+        skip = reader.readElementText() == "no";
       } else {
         reader.skipCurrentElement();
       }
     }
-    if (d.size.isValid()) {
-      // bitmap data found: skip rest of the element
-      reader.skipCurrentElement();
-    } else {
-      continue;
-    }
 
-    SymbolData s(d.offset, d.size, 0, false, d.elements);
+    if (skip || !d.size.isValid()) continue;
 
-    const SymbolKey key(S52::FindIndex(symbolName), S52::SymbolType::Single);
+    SymbolData s(d.offset, d.size, d.minDist, staggered, d.elements);
+
+    const SymbolKey key(S52::FindIndex(symbolName), t);
     if (m_symbolMap.contains(key)) {
       if (s != m_symbolMap[key]) {
-        qWarning() << "multiple raster symbol definitions for" << symbolName << ", skipping latest";
+        qWarning() << "multiple raster symbol/pattern definitions for" << symbolName << ", skipping latest";
       }
       continue;
     }
@@ -174,7 +120,10 @@ void RasterSymbolManager::parseSymbols(QXmlStreamReader &reader, VertexVector &v
 }
 
 
-void RasterSymbolManager::parseSymbolData(QXmlStreamReader &reader, SymbolSharedData &d, int& minDist, VertexVector &vertices, IndexVector &indices) {
+void RasterSymbolManager::parseSymbolData(QXmlStreamReader &reader,
+                                          ParseData &d,
+                                          GL::VertexVector &vertices,
+                                          GL::IndexVector &indices) {
   Q_ASSERT(reader.name() == "bitmap");
 
   int w = reader.attributes().value("width").toInt();
@@ -190,7 +139,7 @@ void RasterSymbolManager::parseSymbolData(QXmlStreamReader &reader, SymbolShared
 
   while (reader.readNextStartElement()) {
     if (reader.name() == "distance") {
-      minDist = reader.attributes().value("min").toInt();
+      d.minDist = reader.attributes().value("min").toInt();
       reader.skipCurrentElement();
     } else if (reader.name() == "pivot") {
       p = QPoint(reader.attributes().value("x").toInt(),

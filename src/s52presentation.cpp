@@ -114,6 +114,16 @@ quint32 S52::FindIndex(const QString &name) {
   return p->names[name];
 }
 
+quint32 S52::FindIndex(const QString &name, bool* ok) {
+  const Private::Presentation* p = Private::Presentation::instance();
+  if (p->names.contains(name)) {
+    if (ok != nullptr) *ok = true;
+    return p->names[name];
+  }
+  if (ok != nullptr) *ok = false;
+  return 0;
+}
+
 void S52::InitPresentation() {
   Private::Presentation* p = Private::Presentation::instance();
   p->init();
