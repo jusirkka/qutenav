@@ -34,6 +34,7 @@ private:
     QPoint offset;
     QSize size;
     int minDist;
+    int maxDist;
     S57::ElementData elements;
   };
 

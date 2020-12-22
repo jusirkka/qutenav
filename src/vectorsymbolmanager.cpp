@@ -129,6 +129,9 @@ void VectorSymbolManager::parseSymbols(QXmlStreamReader& reader,
       }
     }
 
+    if (d.maxDist < d.minDist) {
+      qWarning() << "maxdist larger than mindist in" << symbolName;
+    }
     SymbolData s(d.offset, d.size, d.minDist, staggered, elems, colors);
 
     const SymbolKey key(S52::FindIndex(symbolName), t);
@@ -156,6 +159,7 @@ void VectorSymbolManager::parseSymbolData(QXmlStreamReader &reader,
   while (reader.readNextStartElement()) {
     if (reader.name() == "distance") {
       d.minDist = reader.attributes().value("min").toInt();
+      d.maxDist = reader.attributes().value("max").toInt();
       reader.skipCurrentElement();
     } else if (reader.name() == "pivot") {
       d.pivot = QPoint(reader.attributes().value("x").toInt(),

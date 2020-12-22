@@ -102,6 +102,7 @@ QString FindPath(const QString& filename);
 QString GetRasterFileName();
 QString GetSymbolInfo(quint32 index, S52::SymbolType t);
 QString GetAttributeInfo(quint32 index, const S57::Object* obj);
-QString GetClassInfo(quint32 index);
+QString GetClassInfo(quint32 code);
+bool IsMetaClass(quint32 code);
 
 } // namespace S52

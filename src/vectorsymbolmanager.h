@@ -34,6 +34,7 @@ private:
     QPoint pivot;
     QSize size;
     int minDist;
+    int maxDist;
   };
 
   using SymbolMap = QHash<SymbolKey, SymbolData>;

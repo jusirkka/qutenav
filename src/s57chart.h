@@ -170,7 +170,8 @@ public:
   void drawDashedLines(const Camera* cam, int prio);
   void drawRasterSymbols(const Camera* cam, int prio);
   void drawVectorSymbols(const Camera* cam, int prio);
-  void drawPatterns(const Camera* cam);
+  void drawVectorPatterns(const Camera* cam);
+  void drawRasterPatterns(const Camera* cam);
 
   const GeoProjection* geoProjection() const {return m_nativeProj;}
 

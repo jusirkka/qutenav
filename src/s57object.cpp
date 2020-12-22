@@ -508,6 +508,9 @@ void S57::VectorPatternPaintData::setColor(const QColor& c) const {
 }
 
 void S57::VectorPatternPaintData::createPivots(const QRectF& bbox, qreal scale) {
+
+  scale *= 200 / dots_per_mm_y;
+
   const qreal X = m_advance.x / scale;
   const qreal Y = m_advance.xy.y() / scale;
   const qreal xs = m_advance.xy.x() / scale;

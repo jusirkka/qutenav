@@ -14,6 +14,7 @@ Settings::Settings(QObject *parent)
   , m_shallowContour(Conf::MarinerParams::shallowContour())
   , m_simplifiedSymbols(Conf::MarinerParams::simplifiedSymbols())
   , m_plainBoundaries(Conf::MarinerParams::plainBoundaries())
+  , m_showMeta(Conf::MarinerParams::showMeta())
   , m_colorTable(Conf::MarinerParams::colorTable())
 {
   const QMap<Conf::MarinerParams::EnumMaxCategory::type, S52::Lookup::Category> cats{
@@ -38,6 +39,7 @@ Settings::~Settings() {
   Conf::MarinerParams::setSimplifiedSymbols(m_simplifiedSymbols);
   Conf::MarinerParams::setPlainBoundaries(m_plainBoundaries);
   Conf::MarinerParams::setColorTable(m_colorTable);
+  Conf::MarinerParams::setShowMeta(m_showMeta);
 
   const QMap<S52::Lookup::Category, Conf::MarinerParams::EnumMaxCategory::type> cats{
     {S52::Lookup::Category::Base, Conf::MarinerParams::EnumMaxCategory::Base},

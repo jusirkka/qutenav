@@ -68,6 +68,10 @@ S57::PaintDataMap S52::AreaPattern::execute(const QVector<QVariant>& vals,
     qDebug() << "[VectorPattern:Class]" << S52::GetClassInfo(obj->classCode());
     qDebug() << "[VectorPattern:Symbol]" << S52::GetSymbolInfo(index, S52::SymbolType::Pattern);
     qDebug() << "[VectorPattern:Location]" << obj->geometry()->centerLL().print();
+    qDebug() << s.advance().x << s.advance().xy;
+    qDebug() << s.size();
+
+
     for (auto k: obj->attributes().keys()) {
       qDebug() << GetAttributeInfo(k, obj);
     }
@@ -241,7 +245,7 @@ S57::PaintDataMap S52::Text::execute(const QVector<QVariant>& vals,
 
   const quint8 group = vals[8].toUInt();
   if (!Settings::instance()->textGrouping().contains(group)) {
-    qDebug() << "skipping TX in group" << group;
+    // qDebug() << "skipping TX in group" << group;
     return S57::PaintDataMap();
   }
 

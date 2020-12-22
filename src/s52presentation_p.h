@@ -76,14 +76,16 @@ public:
   using IdentifierHash = QHash<QString, quint32>;
 
   struct ClassDescription {
-    ClassDescription(const QString& c, const QString& d)
+    ClassDescription(const QString& c, const QString& d, bool meta)
       : code(c)
-      , description(d) {}
+      , description(d)
+      , isMeta(meta) {}
 
     ClassDescription() = default;
 
     QString code;
     QString description;
+    bool isMeta;
   };
 
   using ClassHash = QHash<quint32, ClassDescription>;

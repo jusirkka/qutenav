@@ -203,10 +203,10 @@ QString S52::GetAttributeInfo(quint32 index, const S57::Object* obj) {
 }
 
 
-QString S52::GetClassInfo(quint32 index) {
+QString S52::GetClassInfo(quint32 code) {
   const Private::Presentation* p = Private::Presentation::instance();
-  if (!p->classes.contains(index)) return QString();
-  auto cl = p->classes[index];
+  if (!p->classes.contains(code)) return QString();
+  auto cl = p->classes[code];
   return cl.code + ": " + cl.description;
 }
 
@@ -221,3 +221,10 @@ QString S52::GetAttributeName(quint32 index) {
   if (!p->attributes.contains(index)) return QString();
   return p->attributes[index].code;
 }
+
+bool S52::IsMetaClass(quint32 code) {
+  const Private::Presentation* p = Private::Presentation::instance();
+  Q_ASSERT(p->classes.contains(code));
+  return p->classes[code].isMeta;
+}
+

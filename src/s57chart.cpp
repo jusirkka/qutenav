@@ -16,6 +16,7 @@
 #include "rastersymbolmanager.h"
 #include "vectorsymbolmanager.h"
 #include "platform.h"
+#include <unistd.h>
 
 using Buffer = QVector<char>;
 using HandlerFunc = std::function<bool (const Buffer&)>;
@@ -635,7 +636,7 @@ S57Chart::S57Chart(quint32 id, const QString& path)
   m_transformBuffer.create();
   m_transformBuffer.setUsagePattern(QOpenGLBuffer::DynamicDraw);
   m_transformBuffer.bind();
-  // 3K raster symbol/pattern instances
+  // 3K vector symbol/pattern instances
   m_transformBuffer.allocate(3000 * 4 * sizeof(GLfloat));
 
 }
@@ -708,8 +709,11 @@ void S57Chart::updatePaintData(const QRectF &viewArea, quint32 scale) {
   m_updatedPivots.clear();
   m_updatedTransforms.clear();
 
-  auto maxcat = as_numeric(m_settings->maxCategory());
-  auto today = QDate::currentDate();
+  const auto maxcat = as_numeric(m_settings->maxCategory());
+  const auto today = QDate::currentDate();
+  const bool showMeta = m_settings->showMetaObjects();
+  const quint32 qualClass = S52::FindIndex("M_QUAL");
+  const quint32 unknownClass = S52::FindIndex("######");
 
   const qreal sf = scaleFactor(viewArea, scale);
 
@@ -758,12 +762,27 @@ void S57Chart::updatePaintData(const QRectF &viewArea, quint32 scale) {
     // check bbox & scale
     if (!d.object->canPaint(viewArea, scale, today)) continue;
 
+    // Meta-object filter
+    if (S52::IsMetaClass(d.object->classCode())) {
+      // Filter out unknown meta classes
+      if (d.lookup->classCode() == unknownClass) {
+        qDebug() << "Filtering out" << S52::GetClassInfo(d.object->classCode());
+        continue;
+      }
+      if (!showMeta && d.object->classCode() != qualClass) {
+        continue;
+      }
+    }
+
     S57::PaintDataMap pd = d.lookup->execute(d.object);
 
     // check category
     if (pd.contains(S57::PaintData::Type::CategoryOverride)) {
       pd.remove(S57::PaintData::Type::CategoryOverride);
     } else if (as_numeric(d.lookup->category()) > maxcat) {
+      for (S57::PaintMutIterator it = pd.begin(); it != pd.end(); ++it) {
+        delete it.value();
+      }
       continue;
     }
 
@@ -968,47 +987,6 @@ void S57Chart::drawAreas(const Camera* cam, int prio) {
     ++elem;
   }
 
-  // stencil pattern areas
-
-  f->glEnable(GL_STENCIL_TEST);
-  f->glDisable(GL_DEPTH_TEST);
-  f->glStencilMask(0xff);
-  f->glStencilFunc(GL_ALWAYS, 1, 0xff);
-  f->glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-  f->glColorMask(false, false, false, false);
-
-
-  using Data = S57::PatternPaintData::AreaData;
-
-  auto stencilPatterns = [this, prio, f, end] (S57::PaintData::Type t) {
-    S57::PaintIterator arr = m_paintData[prio].constFind(t);
-    while (arr != end && arr.key() == t) {
-      auto d = dynamic_cast<const S57::PatternPaintData*>(arr.value());
-      for (const Data& rd: d->areaArrays()) {
-        d->setAreaVertexOffset(rd.vertexOffset);
-        for (const S57::ElementData& e: rd.elements) {
-          f->glDrawArrays(e.mode, e.offset, e.count);
-        }
-      }
-      for (const Data& rd: d->areaElements()) {
-        d->setAreaVertexOffset(rd.vertexOffset);
-        for (const S57::ElementData& e: rd.elements) {
-          f->glDrawElements(e.mode, e.count, GL_UNSIGNED_INT,
-                            reinterpret_cast<const void*>(e.offset));
-        }
-      }
-      ++arr;
-    }
-
-  };
-  // stencilPatterns(S57::PaintData::Type::RasterPatterns);
-  stencilPatterns(S57::PaintData::Type::VectorPatterns);
-
-
-  f->glDisable(GL_STENCIL_TEST);
-  f->glEnable(GL_DEPTH_TEST);
-  f->glStencilMask(0x00);
-  f->glColorMask(true, true, true, true);
 }
 
 void S57Chart::drawSolidLines(const Camera* cam, int prio) {
@@ -1184,63 +1162,145 @@ void S57Chart::drawVectorSymbols(const Camera* cam, int prio) {
   }
 }
 
-void S57Chart::drawPatterns(const Camera *cam) {
+void S57Chart::drawRasterPatterns(const Camera *cam) {
+
+  const QPointF p = cam->geoprojection()->fromWGS84(geoProjection()->reference());
 
   auto f = QOpenGLContext::currentContext()->extraFunctions();
   f->glEnable(GL_STENCIL_TEST);
-  f->glStencilMask(0xff);
-  f->glStencilFunc(GL_EQUAL, 1, 0xff);
-  f->glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+  f->glDisable(GL_DEPTH_TEST);
 
-//  GL::Shader* prog = GL::RasterSymbolShader::instance();
-//  prog->initializePaint();
-
-//  RasterSymbolManager::instance()->bind();
-
-//  const QPointF p = cam->geoprojection()->fromWGS84(geoProjection()->reference());
-//  prog->setGlobals(cam, p);
-
-//  for (int prio = 0; prio < S52::Lookup::PriorityCount; prio++) {
-//    S57::PaintIterator end = m_paintData[prio].constEnd();
-
-//    prog->setDepth(prio);
-
-//    S57::PaintIterator arr = m_paintData[prio].constFind(S57::PaintData::Type::RasterPatterns);
-//    while (arr != end && arr.key() == S57::PaintData::Type::RasterPatterns) {
-//      auto d = dynamic_cast<const S57::RasterPatternPaintData*>(arr.value());
-//      d->setUniforms();
-//      m_pivotBuffer.bind();
-//      d->setVertexOffset();
-
-//      auto e = d->element();
-//      f->glDrawElementsInstanced(e.mode,
-//                                 e.count,
-//                                 GL_UNSIGNED_INT,
-//                                 reinterpret_cast<const void*>(e.offset),
-//                                 d->count());
-//      ++arr;
-//    }
-//  }
-
-  auto prog = GL::VectorSymbolShader::instance();
-  prog->initializePaint();
-
-  VectorSymbolManager::instance()->bind();
-
-  const QPointF p = cam->geoprojection()->fromWGS84(geoProjection()->reference());
-  prog->setGlobals(cam, p);
+  const auto t = S57::PaintData::Type::RasterPatterns;
+  using Data = S57::PatternPaintData::AreaData;
 
   for (int prio = 0; prio < S52::Lookup::PriorityCount; prio++) {
     S57::PaintIterator end = m_paintData[prio].constEnd();
+    S57::PaintIterator elem = m_paintData[prio].constFind(t);
 
-    prog->setDepth(prio);
+    while (elem != end && elem.key() == t) {
 
-    S57::PaintIterator arr = m_paintData[prio].constFind(S57::PaintData::Type::VectorPatterns);
-    while (arr != end && arr.key() == S57::PaintData::Type::VectorPatterns) {
-      auto d = dynamic_cast<const S57::VectorPatternPaintData*>(arr.value());
+      // stencil pattern areas
+      m_coordBuffer.bind();
+      m_indexBuffer.bind();
+      GL::Shader* prog = GL::AreaShader::instance();
+      prog->initializePaint();
+      prog->setDepth(prio);
+      prog->setGlobals(cam, p);
+
+      f->glStencilFunc(GL_ALWAYS, 1, 0xff);
+      f->glStencilOp(GL_KEEP, GL_REPLACE, GL_REPLACE);
+      f->glColorMask(false, false, false, false);
+      f->glDepthMask(false);
+
+      auto d = dynamic_cast<const S57::RasterPatternPaintData*>(elem.value());
+      for (const Data& rd: d->areaArrays()) {
+        d->setAreaVertexOffset(rd.vertexOffset);
+        for (const S57::ElementData& e: rd.elements) {
+          f->glDrawArrays(e.mode, e.offset, e.count);
+        }
+      }
+      for (const Data& rd: d->areaElements()) {
+        d->setAreaVertexOffset(rd.vertexOffset);
+        for (const S57::ElementData& e: rd.elements) {
+          f->glDrawElements(e.mode, e.count, GL_UNSIGNED_INT,
+                            reinterpret_cast<const void*>(e.offset));
+        }
+      }
+
+      f->glStencilFunc(GL_EQUAL, 1, 0xff);
+      f->glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+      f->glDepthMask(true);
+      f->glColorMask(true, true, true, true);
+
+      RasterSymbolManager::instance()->bind();
+      prog = GL::RasterSymbolShader::instance();
+      prog->initializePaint();
+      prog->setDepth(prio);
+      prog->setGlobals(cam, p);
+
+      d->setUniforms();
+      m_pivotBuffer.bind();
+      d->setVertexOffset();
+
+      auto e = d->element();
+      f->glDrawElementsInstanced(e.mode,
+                                 e.count,
+                                 GL_UNSIGNED_INT,
+                                 reinterpret_cast<const void*>(e.offset),
+                                 d->count());
+
+
+      f->glClear(GL_STENCIL_BUFFER_BIT);
+
+      ++elem;
+    }
+  }
+
+  f->glEnable(GL_DEPTH_TEST);
+  f->glDisable(GL_STENCIL_TEST);
+}
+
+
+void S57Chart::drawVectorPatterns(const Camera *cam) {
+
+  const QPointF p = cam->geoprojection()->fromWGS84(geoProjection()->reference());
+
+  auto f = QOpenGLContext::currentContext()->extraFunctions();
+  f->glEnable(GL_STENCIL_TEST);
+  f->glDisable(GL_DEPTH_TEST);
+
+  const auto t = S57::PaintData::Type::VectorPatterns;
+  using Data = S57::PatternPaintData::AreaData;
+
+  for (int prio = 0; prio < S52::Lookup::PriorityCount; prio++) {
+    S57::PaintIterator end = m_paintData[prio].constEnd();
+    S57::PaintIterator elem = m_paintData[prio].constFind(t);
+
+    while (elem != end && elem.key() == t) {
+
+      // stencil pattern areas
+      m_coordBuffer.bind();
+      m_indexBuffer.bind();
+      GL::Shader* prog = GL::AreaShader::instance();
+      prog->initializePaint();
+      prog->setDepth(prio);
+      prog->setGlobals(cam, p);
+
+      f->glStencilFunc(GL_ALWAYS, 1, 0xff);
+      f->glStencilOp(GL_KEEP, GL_REPLACE, GL_REPLACE);
+      f->glDepthMask(false);
+      f->glColorMask(false, false, false, false);
+
+      auto d = dynamic_cast<const S57::VectorPatternPaintData*>(elem.value());
+      for (const Data& rd: d->areaArrays()) {
+        d->setAreaVertexOffset(rd.vertexOffset);
+        for (const S57::ElementData& e: rd.elements) {
+          f->glDrawArrays(e.mode, e.offset, e.count);
+        }
+      }
+      for (const Data& rd: d->areaElements()) {
+        d->setAreaVertexOffset(rd.vertexOffset);
+        for (const S57::ElementData& e: rd.elements) {
+          f->glDrawElements(e.mode, e.count, GL_UNSIGNED_INT,
+                            reinterpret_cast<const void*>(e.offset));
+        }
+      }
+
+      f->glStencilFunc(GL_EQUAL, 1, 0xff);
+      f->glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+      f->glDepthMask(true);
+      f->glColorMask(true, true, true, true);
+
+      VectorSymbolManager::instance()->bind();
+      prog = GL::VectorSymbolShader::instance();
+      prog->initializePaint();
+      prog->setDepth(prio);
+      prog->setGlobals(cam, p);
+
       d->setUniforms();
       m_transformBuffer.bind();
       d->setVertexOffset();
+
       for (const S57::ColorElementData& e: d->elements()) {
         d->setColor(e.color);
         f->glDrawElementsInstanced(e.element.mode,
@@ -1249,15 +1309,16 @@ void S57Chart::drawPatterns(const Camera *cam) {
                                    reinterpret_cast<const void*>(e.element.offset),
                                    d->count());
       }
-      ++arr;
+
+      f->glClear(GL_STENCIL_BUFFER_BIT);
+
+      ++elem;
     }
   }
 
   f->glDisable(GL_STENCIL_TEST);
-  f->glClear(GL_STENCIL_BUFFER_BIT);
-  f->glStencilMask(0x00);
+  f->glEnable(GL_DEPTH_TEST);
 }
-
 
 static GLsizei addIndices(GLuint first, GLuint mid1, GLuint mid2, bool reversed, GL::IndexVector& indices) {
   indices.append(first);

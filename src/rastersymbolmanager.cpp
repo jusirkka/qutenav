@@ -106,6 +106,9 @@ void RasterSymbolManager::parseSymbols(QXmlStreamReader &reader,
 
     if (skip || !d.size.isValid()) continue;
 
+    if (d.maxDist < d.minDist) {
+      qWarning() << "maxdist larger than mindist in" << symbolName;
+    }
     SymbolData s(d.offset, d.size, d.minDist, staggered, d.elements);
 
     const SymbolKey key(S52::FindIndex(symbolName), t);
@@ -140,6 +143,7 @@ void RasterSymbolManager::parseSymbolData(QXmlStreamReader &reader,
   while (reader.readNextStartElement()) {
     if (reader.name() == "distance") {
       d.minDist = reader.attributes().value("min").toInt();
+      d.maxDist = reader.attributes().value("max").toInt();
       reader.skipCurrentElement();
     } else if (reader.name() == "pivot") {
       p = QPoint(reader.attributes().value("x").toInt(),

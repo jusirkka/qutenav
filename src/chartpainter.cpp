@@ -12,6 +12,7 @@
 #include <QVector>
 #include "orthocam.h"
 #include "platform.h"
+#include <QOpenGLDebugLogger>
 
 ChartPainter::ChartPainter(QObject* parent)
   : Drawable(parent)
@@ -21,6 +22,7 @@ ChartPainter::ChartPainter(QObject* parent)
   , m_fbo(nullptr)
   , m_coordBuffer(QOpenGLBuffer::VertexBuffer)
   , m_indexBuffer(QOpenGLBuffer::IndexBuffer)
+  , m_logger(nullptr)
 {}
 
 ChartPainter::~ChartPainter() {
@@ -68,6 +70,11 @@ void ChartPainter::initializeGL() {
     m_indexBuffer.bind();
     m_indexBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
     m_indexBuffer.allocate(indices.constData(), sizeof(GLuint) * indices.size());
+
+    m_logger = new QOpenGLDebugLogger(this);
+    if (!m_logger->initialize()) {
+      qWarning() << "OpenGL logging not available";
+    }
   }
 }
 
@@ -134,15 +141,23 @@ void ChartPainter::updateCharts(const Camera* cam, const QRectF& viewArea) {
     for (S57Chart* chart: m_manager->charts()) {
       chart->drawVectorSymbols(bufCam, i);
     }
+    for (const QOpenGLDebugMessage& message: m_logger->loggedMessages()) {
+      qDebug() << message;
+    }
     m_solidShader->initializePaint();
     for (S57Chart* chart: m_manager->charts()) {
       chart->drawSolidLines(bufCam, i);
+    }
+    for (const QOpenGLDebugMessage& message: m_logger->loggedMessages()) {
+      qDebug() << message;
     }
     m_areaShader->initializePaint();
     for (S57Chart* chart: m_manager->charts()) {
       chart->drawAreas(bufCam, i);
     }
-
+    for (const QOpenGLDebugMessage& message: m_logger->loggedMessages()) {
+      qDebug() << message;
+    }
   }
 
   f->glEnable(GL_BLEND);
@@ -153,19 +168,35 @@ void ChartPainter::updateCharts(const Camera* cam, const QRectF& viewArea) {
     for (S57Chart* chart: m_manager->charts()) {
       chart->drawDashedLines(bufCam, i);
     }
+    for (const QOpenGLDebugMessage& message: m_logger->loggedMessages()) {
+      qDebug() << message;
+    }
     m_rasterShader->initializePaint();
     for (S57Chart* chart: m_manager->charts()) {
       chart->drawRasterSymbols(bufCam, i);
+    }
+    for (const QOpenGLDebugMessage& message: m_logger->loggedMessages()) {
+      qDebug() << message;
     }
     m_textShader->initializePaint();
     for (S57Chart* chart: m_manager->charts()) {
       chart->drawText(bufCam, i);
     }
+    for (const QOpenGLDebugMessage& message: m_logger->loggedMessages()) {
+      qDebug() << message;
+    }
   }
 
   // draw stencilled objects
   for (S57Chart* chart: m_manager->charts()) {
-    chart->drawPatterns(bufCam);
+    chart->drawRasterPatterns(bufCam);
+    for (const QOpenGLDebugMessage& message: m_logger->loggedMessages()) {
+      qDebug() << message;
+    }
+    chart->drawVectorPatterns(bufCam);
+    for (const QOpenGLDebugMessage& message: m_logger->loggedMessages()) {
+      qDebug() << message;
+    }
   }
 
   f->glDisable(GL_BLEND);

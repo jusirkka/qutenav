@@ -20,6 +20,7 @@ public:
   double deepContour() const {return m_deepContour;}
   double shallowContour() const {return m_shallowContour;}
   const TextGrouping& textGrouping() const {return m_textGrouping;}
+  bool showMetaObjects() {return m_showMeta;}
 
   enum ColorTable {
     DayBright,
@@ -48,6 +49,7 @@ private:
   S52::Lookup::Category m_maxCat;
   bool m_simplifiedSymbols;
   bool m_plainBoundaries;
+  bool m_showMeta;
   ColorTable m_colorTable;
   TextGrouping m_textGrouping;
 

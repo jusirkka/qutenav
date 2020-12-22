@@ -57,5 +57,9 @@
         <choice name="Mariners"/>
       </choices>
     </entry>
+    <entry name="ShowMeta" key="show_meta" type="Bool">
+      <label>Show meta-objects.</label>
+      <default>true</default>
+    </entry>
   </group>
 </kcfg>

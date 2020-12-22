@@ -144,9 +144,7 @@ void HPGLParser::movePen(const RawPoints &ps) {
 void HPGLParser::drawLineString(const RawPoints &ps) {
   if (ps.isEmpty()) {
     // draw a single point
-    pushSketch();
     drawPoint();
-    fillSketch();
     m_penDown = true;
     return;
   }
@@ -173,18 +171,20 @@ void HPGLParser::drawLineString(const RawPoints &ps) {
 }
 
 void HPGLParser::drawPoint() {
+  pushSketch();
   // opaque fill
   m_currentSketch.color.alpha = S52::Alpha::P0;
   const int lw = m_currentSketch.lineWidth == 0 ?
         line_width_multiplier : m_currentSketch.lineWidth;
-  QPointF q = .5 * QPointF(lw, lw);
-  QPointF p = .5 * QPointF(lw, -lw);
+  const QPointF q = .6 * QPointF(lw, lw);
+  const QPointF p = .6 * QPointF(lw, -lw);
   m_currentSketch.parts.last().closed = true;
   m_currentSketch.parts.last().points.append(m_pen - q);
   m_currentSketch.parts.last().points.append(m_pen + p);
   m_currentSketch.parts.last().points.append(m_pen + q);
   m_currentSketch.parts.last().points.append(m_pen - p);
   m_currentSketch.parts.last().points.append(m_pen - q);
+  fillSketch();
 }
 
 
@@ -194,7 +194,7 @@ void HPGLParser::drawCircle(int r) {
   const int lw = m_currentSketch.lineWidth == 0 ?
         line_width_multiplier : m_currentSketch.lineWidth;
 
-  auto n = qMax(90, 3 + 4 * r / lw);
+  auto n = qMin(90, 3 + 4 * r / lw);
   for (int i = 0; i <= n; i++) {
     const qreal a = 2 * i * M_PI / n;
     const QPointF p = m_pen + QPointF(r * cos(a), r * sin(a));
@@ -218,7 +218,7 @@ void HPGLParser::drawArc(int x, int y, int a0) {
   const QPointF c = makePoint(x, y);
   const QPointF d = m_pen - c;
   const qreal r = sqrt(QPointF::dotProduct(d, d));
-  const int n = qMax(90., std::ceil((3. + 4 * r / lw) * a0 / 360.));
+  const int n = qMin(90., std::ceil((3. + 4 * r / lw) * a0 / 360.));
   for (int i = 0; i <= n; i++) {
     const qreal a = a0 / 180. * i  * M_PI / n;
     const qreal ca = cos(a);

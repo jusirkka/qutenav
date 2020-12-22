@@ -108,14 +108,14 @@ void Private::Presentation::readObjectClasses() {
     }
     description.replace("\"", "");
     const QString className = parts[i + 1];
-
     if (names.contains(className)) {
       qWarning() << className << "already parsed";
       continue;
     }
+    bool meta = parts[parts.length() - 2] == "M";
 
     names[className] = classCode;
-    classes[classCode] = ClassDescription(className, description);
+    classes[classCode] = ClassDescription(className, description, meta);
 
   }
 
@@ -123,7 +123,7 @@ void Private::Presentation::readObjectClasses() {
   const quint32 unknownCode = 666666;
   const QString unknownClass("######");
   names[unknownClass] = unknownCode;
-  classes[unknownCode] = ClassDescription(unknownClass, "Unknown object class");
+  classes[unknownCode] = ClassDescription(unknownClass, "Unknown object class", false);
 
   file.close();
 }
