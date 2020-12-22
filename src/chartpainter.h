@@ -15,6 +15,7 @@ class SolidLineShader;
 class DashedLineShader;
 class TextShader;
 class RasterSymbolShader;
+class VectorSymbolShader;
 class TextureShader;
 }
 
@@ -40,6 +41,7 @@ private:
   GL::DashedLineShader* m_dashedShader;
   GL::TextShader* m_textShader;
   GL::RasterSymbolShader* m_rasterShader;
+  GL::VectorSymbolShader* m_vectorShader;
   GL::TextureShader* m_textureShader;
 
   bool m_initialized;

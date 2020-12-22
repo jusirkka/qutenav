@@ -142,6 +142,15 @@ void HPGLParser::movePen(const RawPoints &ps) {
 }
 
 void HPGLParser::drawLineString(const RawPoints &ps) {
+  if (ps.isEmpty()) {
+    // draw a single point
+    pushSketch();
+    drawPoint();
+    fillSketch();
+    m_penDown = true;
+    return;
+  }
+
   if (ps.size() % 2 != 0) {
     qWarning() << ps << "contains odd number of coordinates";
     m_ok = false;
@@ -161,6 +170,21 @@ void HPGLParser::drawLineString(const RawPoints &ps) {
 
   m_pen = m_currentSketch.parts.last().points.last();
   m_penDown = true;
+}
+
+void HPGLParser::drawPoint() {
+  // opaque fill
+  m_currentSketch.color.alpha = S52::Alpha::P0;
+  const int lw = m_currentSketch.lineWidth == 0 ?
+        line_width_multiplier : m_currentSketch.lineWidth;
+  QPointF q = .5 * QPointF(lw, lw);
+  QPointF p = .5 * QPointF(lw, -lw);
+  m_currentSketch.parts.last().closed = true;
+  m_currentSketch.parts.last().points.append(m_pen - q);
+  m_currentSketch.parts.last().points.append(m_pen + p);
+  m_currentSketch.parts.last().points.append(m_pen + q);
+  m_currentSketch.parts.last().points.append(m_pen - p);
+  m_currentSketch.parts.last().points.append(m_pen - q);
 }
 
 
@@ -234,10 +258,12 @@ void HPGLParser::fillSketch() {
     triangulate(part.points, d);
   }
   // merge storage
-  if (m_storage.contains(d.color)) {
-    mergeData(m_storage[d.color], d);
-  } else {
-    m_storage.insert(d.color, d);
+  if (!d.vertices.isEmpty()) {
+    if (m_storage.contains(d.color)) {
+      mergeData(m_storage[d.color], d);
+    } else {
+      m_storage.insert(d.color, d);
+    }
   }
   // pop sketch
   if (!m_sketches.isEmpty()) {
@@ -259,10 +285,12 @@ void HPGLParser::edgeSketch() {
     thickerlines(part, lw, d);
   }
   // merge storage
-  if (m_storage.contains(d.color)) {
-    mergeData(m_storage[d.color], d);
-  } else {
-    m_storage.insert(d.color, d);
+  if (!d.vertices.isEmpty()) {
+    if (m_storage.contains(d.color)) {
+      mergeData(m_storage[d.color], d);
+    } else {
+      m_storage.insert(d.color, d);
+    }
   }
   // pop sketch
   if (!m_sketches.isEmpty()) {

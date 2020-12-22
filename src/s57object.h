@@ -192,8 +192,11 @@ public:
     SolidLineLocal,
     DashedLineLocal,
     TextElements,
-    RasterSymbolElements,
+    RasterSymbols,
     RasterPatterns,
+    VectorSymbols,
+    VectorPatterns,
+    VectorLineStyles,
   };
 
   virtual void setUniforms() const = 0;
@@ -209,6 +212,7 @@ protected:
   Type m_type;
 
 };
+
 
 class TriangleData: public PaintData {
 public:
@@ -236,6 +240,7 @@ class TriangleElemData: public TriangleData {
 public:
   TriangleElemData(const ElementDataVector& elem, GLsizei offset, const QColor& c);
 };
+
 
 class LineData: public PaintData {
 public:
@@ -355,71 +360,125 @@ protected:
 
 };
 
-class SymbolMerger {
+class SymbolHelper {
 public:
-  virtual void merge(const SymbolMerger* other, qreal scale) = 0;
-  virtual SymbolKey key() const = 0;
-
-  virtual ~SymbolMerger() = default;
+  virtual void setSymbolOffset(const QPoint& off) const = 0;
+  virtual void setVertexBufferOffset(GLsizei off) const = 0;
+  virtual void setColor(const QColor& color) const = 0;
+  virtual ~SymbolHelper() = default;
 };
 
-class RasterData: public PaintData {
+
+class RasterHelper: public SymbolHelper {
 public:
-  using PivotVector = QVector<GLfloat>;
+  RasterHelper() = default;
+  void setSymbolOffset(const QPoint& off) const override;
+  void setVertexBufferOffset(GLsizei off) const override;
+  void setColor(const QColor& color) const override;
+};
+
+class VectorHelper: public SymbolHelper {
+public:
+  VectorHelper() = default;
+  void setSymbolOffset(const QPoint& off) const override;
+  void setVertexBufferOffset(GLsizei off) const override;
+  void setColor(const QColor& color) const override;
+};
+
+class SymbolPaintDataBase: public PaintData {
+
+public:
 
   void setUniforms() const override;
   void setVertexOffset() const override;
 
+  virtual void merge(const SymbolPaintDataBase* other, qreal scale) = 0;
+  SymbolKey key() const {return SymbolKey(m_index, m_type);}
+  void getPivots(GL::VertexVector& pivots);
   GLsizei count() const {return m_instanceCount;}
-  const ElementData& elements() const {return m_elements;}
-  void getPivots(PivotVector& pivots);
 
+  virtual ~SymbolPaintDataBase();
 
 protected:
 
-  RasterData(Type t,
-             const QPoint& offset,
-             const ElementData& elems,
-             quint32 index);
+  SymbolPaintDataBase(Type t,
+                      S52::SymbolType s,
+                      quint32 index,
+                      const QPoint& offset,
+                      SymbolHelper* helper);
+
+  S52::SymbolType m_type;
+  quint32 m_index;
 
   QPoint m_offset;
-  ElementData m_elements;
-  quint32 m_index;
+
+  SymbolHelper* m_helper;
+
   GLsizei m_pivotOffset;
+  GL::VertexVector m_pivots;
+
   GLsizei m_instanceCount;
 
-  PivotVector m_pivots;
-
 };
 
-class RasterSymbolData: public RasterData, public SymbolMerger {
-public:
 
-  void merge(const SymbolMerger* other, qreal /*scale*/) override;
-  SymbolKey key() const override;
 
-  RasterSymbolData(const QPointF& pivot,
-                   const QPoint& offset,
-                   const ElementData& elems,
-                   quint32 index);
+class SymbolPaintData: public SymbolPaintDataBase {
+
+protected:
+
+  SymbolPaintData(Type t,
+                  quint32 index,
+                  const QPoint& offset,
+                  SymbolHelper* helper,
+                  const QPointF& pivot);
 };
 
-class RasterPatternData: public RasterData, public SymbolMerger {
+class RasterSymbolPaintData: public SymbolPaintData {
 public:
+  void merge(const SymbolPaintDataBase* other, qreal /*scale*/) override;
+  RasterSymbolPaintData(quint32 index,
+                        const QPoint& offset,
+                        const QPointF& pivot,
+                        const ElementData& elem);
 
-  void merge(const SymbolMerger* other, qreal scale) override;
-  SymbolKey key() const override;
+  const ElementData& element() const {return m_elem;}
+
+private:
+
+  const ElementData& m_elem;
+};
+
+
+struct ColorElementData {
+  QColor color;
+  ElementData element;
+};
+
+using ColorElementVector = QVector<ColorElementData>;
+
+class VectorSymbolPaintData: public SymbolPaintData {
+public:
+  void merge(const SymbolPaintDataBase* other, qreal /*scale*/) override;
+  VectorSymbolPaintData(quint32 index,
+                        const QPointF& pivot,
+                        const Angle& rot,
+                        const QT::ColorVector& colors,
+                        const ElementDataVector& elems);
+
+  const ColorElementVector& elements() const {return m_elems;}
+  void setColor(const QColor& c) const;
+
+private:
+  ColorElementVector m_elems;
+};
+
+
+class PatternPaintData: public SymbolPaintDataBase {
+public:
 
   void setAreaVertexOffset(GLsizei off) const;
-
-  RasterPatternData(const ElementDataVector& aelems,
-                    GLsizei aoffset,
-                    bool indexed,
-                    const QRectF& bbox,
-                    const QPoint& offset,
-                    const PatternAdvance& advance,
-                    const ElementData& elem,
-                    quint32 index);
+  void merge(const SymbolPaintDataBase* other, qreal scale) override;
 
   struct AreaData {
     ElementDataVector elements;
@@ -432,10 +491,21 @@ public:
   const AreaDataVector& areaElements() const {return m_areaElements;}
   const AreaDataVector& areaArrays() const {return m_areaArrays;}
 
+  ~PatternPaintData() = default;
 
-private:
+protected:
 
-  void createPivots(const QRectF& bbox, qreal scale);
+  PatternPaintData(Type t,
+                   quint32 index,
+                   const QPoint& offset,
+                   SymbolHelper* helper,
+                   const ElementDataVector& aelems,
+                   GLsizei aoffset,
+                   bool indexed,
+                   const QRectF& bbox,
+                   const PatternAdvance& advance);
+
+  virtual void createPivots(const QRectF& bbox, qreal scale) = 0;
 
   AreaDataVector m_areaElements;
   AreaDataVector m_areaArrays;
@@ -444,6 +514,55 @@ private:
 
 };
 
+class RasterPatternPaintData: public PatternPaintData {
+public:
+  RasterPatternPaintData(quint32 index,
+                         const QPoint& offset,
+                         const ElementDataVector& aelems,
+                         GLsizei aoffset,
+                         bool indexed,
+                         const QRectF& bbox,
+                         const PatternAdvance& advance,
+                         const ElementData& elem);
+
+  const ElementData& element() const {return m_elem;}
+
+protected:
+
+  void createPivots(const QRectF& bbox, qreal scale) override;
+
+private:
+
+  const ElementData& m_elem;
+
+};
+
+class VectorPatternPaintData: public PatternPaintData {
+public:
+  VectorPatternPaintData(quint32 index,
+                         const ElementDataVector& aelems,
+                         GLsizei aoffset,
+                         bool indexed,
+                         const QRectF& bbox,
+                         const PatternAdvance& advance,
+                         const Angle& rot,
+                         const QT::ColorVector& colors,
+                         const ElementDataVector& elems);
+
+  const ColorElementVector& elements() const {return m_elems;}
+  void setColor(const QColor& c) const;
+
+protected:
+
+  void createPivots(const QRectF& bbox, qreal scale) override;
+
+private:
+
+  ColorElementVector m_elems;
+  qreal m_c;
+  qreal m_s;
+
+};
 
 
 using PaintDataMap = QMultiMap<PaintData::Type, PaintData*>;

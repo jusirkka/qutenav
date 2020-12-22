@@ -39,6 +39,7 @@ public:
   static Angle ATan2(double, double);
 
   bool valid() const {return m_valid;}
+  bool isZero() const {return std::abs(radians) < 1.e-10;}
   double cos() const {return std::cos(radians);}
   double sin() const {return std::sin(radians);}
 
@@ -224,6 +225,8 @@ struct Color {
   Alpha alpha;
 };
 
+using ColorVector = QVector<Color>;
+
 inline bool operator== (const Color& k1, const Color& k2) {
   if (k1.index != k2.index) return false;
   return k1.alpha == k2.alpha;
@@ -236,6 +239,9 @@ inline uint qHash(const Color& key, uint seed) {
 
 }
 
+namespace QT {
+using ColorVector = QVector<QColor>;
+}
 
 namespace GL {
 using IndexVector = QVector<GLuint>;

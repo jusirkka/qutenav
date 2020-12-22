@@ -46,6 +46,8 @@ public:
 
   HPGLParser(const QString& src, const QString& colors, const QPoint& pivot);
 
+  using RawPoints = QVector<int>;
+
   struct Data {
     S52::Color color;
     GL::IndexVector indices;
@@ -71,10 +73,8 @@ private:
 
 private: // bison interface
 
-  // FIXME this seems too much given that there are instructions like CI31
-  const int line_width_multiplier = 30;
+  const int line_width_multiplier = 20;
 
-  using RawPoints = QVector<int>;
 
   void setColor(char c);
   void setAlpha(int a);
@@ -87,6 +87,7 @@ private: // bison interface
   void endSketch();
   void fillSketch();
   void edgeSketch();
+  void drawPoint();
 
   using PointList = QVector<QPointF>;
 

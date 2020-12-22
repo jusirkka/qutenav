@@ -150,6 +150,8 @@ void GL::TextShader::initializePaint() {
   m_program->bind();
   m_program->enableAttributeArray(0);
   m_program->enableAttributeArray(1);
+  auto f = QOpenGLContext::currentContext()->extraFunctions();
+  f->glVertexAttribDivisor(1, 0);
 }
 
 
@@ -168,9 +170,6 @@ void GL::RasterSymbolShader::setGlobals(const Camera *cam, const QPointF &tr) {
   const int stride = 4 * sizeof(GLfloat);
   m_program->setAttributeBuffer(0, GL_FLOAT, 0, 2, stride);
   m_program->setAttributeBuffer(1, GL_FLOAT, texOffset, 2, stride);
-
-  auto f = QOpenGLContext::currentContext()->extraFunctions();
-  f->glVertexAttribDivisor(2, 1);
 }
 
 
@@ -189,6 +188,44 @@ void GL::RasterSymbolShader::initializePaint() {
   m_program->enableAttributeArray(0);
   m_program->enableAttributeArray(1);
   m_program->enableAttributeArray(2);
+  auto f = QOpenGLContext::currentContext()->extraFunctions();
+  f->glVertexAttribDivisor(1, 0);
+  f->glVertexAttribDivisor(2, 1);
+}
+
+GL::VectorSymbolShader* GL::VectorSymbolShader::instance() {
+  static auto shader = new GL::VectorSymbolShader;
+  return shader;
+}
+
+void GL::VectorSymbolShader::setGlobals(const Camera *cam, const QPointF &tr) {
+  m_program->setUniformValue(m_locations.m_p, cam->projection());
+  m_program->setUniformValue(m_locations.tr, tr);
+
+  // Vector symbol data specified in .01 mm units
+  const float s = 100 * cam->heightMM() * cam->projection()(1, 1);
+  m_program->setUniformValue(m_locations.windowScale, s);
+
+  m_program->setAttributeBuffer(0, GL_FLOAT, 0, 2, 0);
+}
+
+
+GL::VectorSymbolShader::VectorSymbolShader()
+  : Shader({{QOpenGLShader::Vertex, ":/shaders/chartpainter-vectorsymbol.vert"},
+            {QOpenGLShader::Fragment, ":/shaders/chartpainter.frag"}}, .03)
+{
+  m_locations.m_p = m_program->uniformLocation("m_p");
+  m_locations.tr = m_program->uniformLocation("tr");
+  m_locations.base_color = m_program->uniformLocation("base_color");
+  m_locations.windowScale = m_program->uniformLocation("windowScale");
+}
+
+void GL::VectorSymbolShader::initializePaint() {
+  m_program->bind();
+  m_program->enableAttributeArray(0);
+  m_program->enableAttributeArray(1);
+  auto f = QOpenGLContext::currentContext()->extraFunctions();
+  f->glVertexAttribDivisor(1, 1);
 }
 
 
@@ -251,7 +288,7 @@ void GL::TextureShader::setUniforms(const Camera* cam,
 
 GL::TextureShader::TextureShader()
   : Shader({{QOpenGLShader::Vertex, ":/shaders/chartpainter-texture.vert"},
-            {QOpenGLShader::Fragment, ":/shaders/chartpainter-texture.frag"}}, .03)
+            {QOpenGLShader::Fragment, ":/shaders/chartpainter-texture.frag"}}, .0)
 {
   m_locations.m_pv = m_program->uniformLocation("m_pv");
   m_locations.scale_tex = m_program->uniformLocation("scale_tex");
@@ -264,4 +301,6 @@ void GL::TextureShader::initializePaint() {
   m_program->bind();
   m_program->enableAttributeArray(0);
   m_program->enableAttributeArray(1);
+  auto f = QOpenGLContext::currentContext()->extraFunctions();
+  f->glVertexAttribDivisor(1, 0);
 }

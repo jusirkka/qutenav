@@ -6,6 +6,7 @@
 #include "types.h"
 #include "textmanager.h"
 #include "rastersymbolmanager.h"
+#include "vectorsymbolmanager.h"
 
 S57::PaintDataMap S52::AreaColor::execute(const QVector<QVariant>& vals,
                                           const S57::Object* obj) {
@@ -29,40 +30,67 @@ S57::PaintDataMap S52::AreaColor::execute(const QVector<QVariant>& vals,
 S57::PaintDataMap S52::AreaPattern::execute(const QVector<QVariant>& vals,
                                             const S57::Object* obj) {
 
-  // qDebug() << "[Class]" << S52::GetClassInfo(obj->classCode());
-  // qDebug() << "[Symbol]" << S52::GetSymbolInfo(index, S52::SymbolType::Pattern);
-  // qDebug() << "[Location]" << obj->geometry()->centerLL().print();
-  // for (auto k: obj->attributes().keys()) {
-  //   qDebug() << GetAttributeInfo(k, obj);
-  // }
-
-  const quint32 index = vals[0].toUInt();
-  const SymbolData s = RasterSymbolManager::instance()->symbolData(index, S52::SymbolType::Pattern);
-  if (!s.isValid()) {
-    qWarning() << "Missing raster pattern. Vector patterns not implemented";
-    return S57::PaintDataMap();
+  SymbolData s;
+  quint32 index = vals[0].toUInt();
+  // rotations are specified clockwise
+  const Angle rot = Angle::fromDegrees(- vals[1].toDouble());
+  bool raster = false;
+  if (!rot.isZero()) {
+    s = VectorSymbolManager::instance()->symbolData(index, S52::SymbolType::Pattern);
+  } else {
+    s = RasterSymbolManager::instance()->symbolData(index, S52::SymbolType::Pattern);
+    if (!s.isValid()) {
+      s = VectorSymbolManager::instance()->symbolData(index, S52::SymbolType::Pattern);
+    } else {
+      raster = true;
+    }
   }
-  // qDebug() << "[Pattern]" << s.size() << s.advance().x << s.advance().xy;
 
-  const QMetaType::Type t = static_cast<QMetaType::Type>(vals[1].type());
-  Q_ASSERT(t == QMetaType::Float || t == QMetaType::Double);
-  if (vals[1].toDouble() != 0.) {
-    qWarning() << "Rotations not implemented (" << vals[1].toDouble() << ")";
+  if (!s.isValid()) {
+    qWarning() << "Missing pattern" << S52::GetSymbolInfo(index, S52::SymbolType::Pattern);
+    return S57::PaintDataMap();
   }
 
   auto geom = dynamic_cast<const S57::Geometry::Area*>(obj->geometry());
   Q_ASSERT(geom != nullptr);
 
-  auto p = new S57::RasterPatternData(geom->triangleElements(),
-                                      geom->vertexOffset(),
-                                      geom->indexed(),
-                                      obj->boundingBox(),
-                                      s.offset(),
-                                      s.advance(),
-                                      s.element(),
-                                      index);
+  S57::PaintData* p;
+  if (raster) {
+    p = new S57::RasterPatternPaintData(index,
+                                        s.offset(),
+                                        geom->triangleElements(),
+                                        geom->vertexOffset(),
+                                        geom->indexed(),
+                                        obj->boundingBox(),
+                                        s.advance(),
+                                        s.element());
+  } else {
+    qDebug() << "[VectorPattern:Class]" << S52::GetClassInfo(obj->classCode());
+    qDebug() << "[VectorPattern:Symbol]" << S52::GetSymbolInfo(index, S52::SymbolType::Pattern);
+    qDebug() << "[VectorPattern:Location]" << obj->geometry()->centerLL().print();
+    for (auto k: obj->attributes().keys()) {
+      qDebug() << GetAttributeInfo(k, obj);
+    }
+
+    QT::ColorVector colors;
+    for (const S52::Color& c: s.colors()) {
+      auto color = S52::GetColor(c.index);
+      color.setAlpha(255 - as_numeric(c.alpha) * 255 / 4);
+      colors.append(color);
+    }
+    p = new S57::VectorPatternPaintData(index,
+                                        geom->triangleElements(),
+                                        geom->vertexOffset(),
+                                        geom->indexed(),
+                                        obj->boundingBox(),
+                                        s.advance(),
+                                        rot,
+                                        colors,
+                                        s.elements());
+  }
 
   return S57::PaintDataMap{{p->type(), p}};
+
 }
 
 S52::LineSimple::LineSimple(quint32 index)
@@ -155,29 +183,49 @@ S57::PaintDataMap S52::LineComplex::execute(const QVector<QVariant>& /*vals*/,
 
 S57::PaintDataMap S52::PointSymbol::execute(const QVector<QVariant>& vals,
                                             const S57::Object* obj) {
-  // qDebug() << "[Class]" << S52::GetClassInfo(obj->classCode());
-  // qDebug() << "[Symbol]" << S52::GetSymbolInfo(index, S52::SymbolType::Single);
-  // for (auto k: obj->attributes().keys()) {
-  //   qDebug() << GetAttributeInfo(k, obj);
-  // }
 
+  SymbolData s;
   quint32 index = vals[0].toUInt();
-  const SymbolData s = RasterSymbolManager::instance()->symbolData(index, S52::SymbolType::Single);
+  // rotations are specified clockwise
+  const Angle rot = Angle::fromDegrees(- vals[1].toDouble());
+  bool raster = false;
+  if (!rot.isZero()) {
+    s = VectorSymbolManager::instance()->symbolData(index, S52::SymbolType::Single);
+  } else {
+    s = RasterSymbolManager::instance()->symbolData(index, S52::SymbolType::Single);
+    if (!s.isValid()) {
+      s = VectorSymbolManager::instance()->symbolData(index, S52::SymbolType::Single);
+    } else {
+      raster = true;
+    }
+  }
+
   if (!s.isValid()) {
-    qWarning() << "Missing raster symbol. Vector symbols not implemented";
+    qWarning() << "Missing symbol" << S52::GetSymbolInfo(index, S52::SymbolType::Single);
     return S57::PaintDataMap();
   }
 
-  const QMetaType::Type t = static_cast<QMetaType::Type>(vals[1].type());
-  Q_ASSERT(t == QMetaType::Float || t == QMetaType::Double);
-  if (vals[1].toDouble() != 0.) {
-    qWarning() << "Rotations not implemented (" << vals[1].toDouble() << ")";
-  }
+  S57::PaintData* p;
+  if (raster) {
+    p = new S57::RasterSymbolPaintData(index,
+                                       s.offset(),
+                                       obj->geometry()->center(),
+                                       s.element());
+  } else {
 
-  auto p = new S57::RasterSymbolData(obj->geometry()->center(),
-                                     s.offset(),
-                                     s.element(),
-                                     index);
+    QT::ColorVector colors;
+    for (const S52::Color& c: s.colors()) {
+      auto color = S52::GetColor(c.index);
+      color.setAlpha(255 - as_numeric(c.alpha) * 255 / 4);
+      colors.append(color);
+    }
+
+    p = new S57::VectorSymbolPaintData(index,
+                                       obj->geometry()->center(),
+                                       rot,
+                                       colors,
+                                       s.elements());
+  }
 
   return S57::PaintDataMap{{p->type(), p}};
 }
@@ -477,7 +525,7 @@ S57::PaintDataMap S52::CSLights05::execute(const QVector<QVariant>&,
   }
 
   quint32 lightSymbol;
-  if (cols == m_set_wr || cols == m_set_w) {
+  if (cols == m_set_wr || cols == m_set_r) {
     lightSymbol = m_lights11;
   } else if (cols == m_set_wg || cols == m_set_g) {
     lightSymbol = m_lights12;

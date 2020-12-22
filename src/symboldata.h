@@ -10,14 +10,12 @@ class SymbolDataPrivate;
 class SymbolData {
 public:
 
-  using ColorVector = QVector<S52::Color>;
-
   SymbolData(SymbolDataPrivate *d);
   SymbolData();
   SymbolData(const QPoint& off, const QSize& size, int mnd, bool st,
              const S57::ElementData& elem);
   SymbolData(const QPoint& off, const QSize& size, int mnd, bool st,
-             const S57::ElementDataVector& elems, const ColorVector& colors);
+             const S57::ElementDataVector& elems, const S52::ColorVector& colors);
   SymbolData(const SymbolData& s);
 
   SymbolData& operator=(const SymbolData& s);
@@ -34,7 +32,7 @@ public:
   const PatternAdvance& advance() const;
   const S57::ElementData& element() const;
   const S57::ElementDataVector& elements() const;
-  const ColorVector& colors() const;
+  const S52::ColorVector& colors() const;
 
 private:
 

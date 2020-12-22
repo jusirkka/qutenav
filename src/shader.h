@@ -10,8 +10,8 @@ class TriangleData;
 class SolidLineData;
 class DashedLineData;
 class TextElemData;
-class RasterData;
-class RasterPatternData;
+class RasterHelper;
+class VectorHelper;
 }
 
 
@@ -50,8 +50,6 @@ protected:
 class AreaShader: public Shader {
 
   friend class S57::TriangleData;
-  friend class S57::RasterData;
-  friend class S57::RasterPatternData;
 
 public:
   static AreaShader* instance();
@@ -142,7 +140,7 @@ private:
 
 class RasterSymbolShader: public Shader {
 
-  friend class S57::RasterData;
+  friend class S57::RasterHelper;
 
 public:
   static RasterSymbolShader* instance();
@@ -157,6 +155,26 @@ private:
     int tr;
     int windowScale;
     int offset;
+  } m_locations;
+};
+
+class VectorSymbolShader: public Shader {
+
+  friend class S57::VectorHelper;
+
+public:
+  static VectorSymbolShader* instance();
+  void setGlobals(const Camera* cam, const QPointF& t0) override;
+  void initializePaint() override;
+
+private:
+  VectorSymbolShader();
+
+  struct _locations {
+    int m_p;
+    int tr;
+    int base_color;
+    int windowScale;
   } m_locations;
 };
 

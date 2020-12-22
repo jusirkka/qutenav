@@ -82,43 +82,48 @@ commands:
 
 
 command: SP COLOR {
-  if (!parent->ok()) ABORT(parent, scanner);
   HPGLHelper h;
   h.setColor(parent, $2);
+  if (!parent->ok()) ABORT(parent, scanner);
 };
 
 command: ST INT {
-  if (!parent->ok()) ABORT(parent, scanner);
   HPGLHelper h;
   h.setAlpha(parent, $2);
+  if (!parent->ok()) ABORT(parent, scanner);
 };
 
 command: SW INT {
-  if (!parent->ok()) ABORT(parent, scanner);
   HPGLHelper h;
   h.setWidth(parent, $2);
+  if (!parent->ok()) ABORT(parent, scanner);
 };
 
 command: PU points {
-  if (!parent->ok()) ABORT(parent, scanner);
   HPGLHelper h;
   h.movePen(parent, $2);
+  if (!parent->ok()) ABORT(parent, scanner);
 };
 
 command: PD points {
-  if (!parent->ok()) ABORT(parent, scanner);
   HPGLHelper h;
   h.drawLineString(parent, $2);
+  if (!parent->ok()) ABORT(parent, scanner);
+};
+
+command: PD /*empty*/ {
+  HPGLHelper h;
+  h.drawLineString(parent, HPGLParser::RawPoints());
+  if (!parent->ok()) ABORT(parent, scanner);
 };
 
 command: CI INT {
-  if (!parent->ok()) ABORT(parent, scanner);
   HPGLHelper h;
   h.drawCircle(parent, $2);
+  if (!parent->ok()) ABORT(parent, scanner);
 };
 
 command: PM INT {
-  if (!parent->ok()) ABORT(parent, scanner);
   HPGLHelper h;
   if ($2 == 0) {
     h.pushSketch(parent);
@@ -127,25 +132,26 @@ command: PM INT {
   } else {
     qWarning() << "PM: unsupported parameter" << $2;
     h.setError(parent);
-    }
+  }
+  if (!parent->ok()) ABORT(parent, scanner);
 };
 
 command: EP {
-  if (!parent->ok()) ABORT(parent, scanner);
   HPGLHelper h;
   h.edgeSketch(parent);
+  if (!parent->ok()) ABORT(parent, scanner);
 };
 
 command: FP {
-  if (!parent->ok()) ABORT(parent, scanner);
   HPGLHelper h;
   h.fillSketch(parent);
+  if (!parent->ok()) ABORT(parent, scanner);
 };
 
 command: AA INT ',' INT ',' INT {
-  if (!parent->ok()) ABORT(parent, scanner);
   HPGLHelper h;
   h.drawArc(parent, $2, $4, $6);
+  if (!parent->ok()) ABORT(parent, scanner);
 };
 
 points: INT {

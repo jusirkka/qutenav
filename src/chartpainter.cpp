@@ -39,6 +39,7 @@ void ChartPainter::initializeGL() {
     m_dashedShader = GL::DashedLineShader::instance();
     m_textShader = GL::TextShader::instance();
     m_rasterShader = GL::RasterSymbolShader::instance();
+    m_vectorShader = GL::VectorSymbolShader::instance();
     m_textureShader = GL::TextureShader::instance();
 
     const QVector<GLuint> indices {0, 1, 2, 0, 2, 3};
@@ -129,6 +130,10 @@ void ChartPainter::updateCharts(const Camera* cam, const QRectF& viewArea) {
 
   // draw opaque objects nearest (highest priority) first
   for (int i = S52::Lookup::PriorityCount - 1; i >= 0; i--) {
+    m_vectorShader->initializePaint();
+    for (S57Chart* chart: m_manager->charts()) {
+      chart->drawVectorSymbols(bufCam, i);
+    }
     m_solidShader->initializePaint();
     for (S57Chart* chart: m_manager->charts()) {
       chart->drawSolidLines(bufCam, i);
@@ -137,6 +142,7 @@ void ChartPainter::updateCharts(const Camera* cam, const QRectF& viewArea) {
     for (S57Chart* chart: m_manager->charts()) {
       chart->drawAreas(bufCam, i);
     }
+
   }
 
   f->glEnable(GL_BLEND);
@@ -158,7 +164,6 @@ void ChartPainter::updateCharts(const Camera* cam, const QRectF& viewArea) {
   }
 
   // draw stencilled objects
-  m_rasterShader->initializePaint();
   for (S57Chart* chart: m_manager->charts()) {
     chart->drawPatterns(bufCam);
   }

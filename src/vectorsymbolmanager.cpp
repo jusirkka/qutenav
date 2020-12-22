@@ -111,7 +111,7 @@ void VectorSymbolManager::parseSymbols(QXmlStreamReader& reader,
     }
 
     S57::ElementDataVector elems;
-    SymbolData::ColorVector colors;
+    S52::ColorVector colors;
 
     for (const HPGLParser::Data& item: parser.data()) {
       colors.append(item.color);

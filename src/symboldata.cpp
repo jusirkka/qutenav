@@ -32,7 +32,7 @@ SymbolData::SymbolData(const QPoint &off,
                        int mnd,
                        bool st,
                        const S57::ElementDataVector &elems,
-                       const ColorVector &colors)
+                       const S52::ColorVector &colors)
   : d(new SymbolDataPrivate)
 {
   d->offset = off;
@@ -69,7 +69,7 @@ const S57::ElementDataVector& SymbolData::elements() const {
   return d->elements;
 }
 
-const SymbolData::ColorVector& SymbolData::colors() const {
+const S52::ColorVector& SymbolData::colors() const {
   return d->colors;
 }
 

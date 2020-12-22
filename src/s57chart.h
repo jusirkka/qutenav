@@ -169,6 +169,7 @@ public:
   void drawText(const Camera* cam, int prio);
   void drawDashedLines(const Camera* cam, int prio);
   void drawRasterSymbols(const Camera* cam, int prio);
+  void drawVectorSymbols(const Camera* cam, int prio);
   void drawPatterns(const Camera* cam);
 
   const GeoProjection* geoProjection() const {return m_nativeProj;}
@@ -224,11 +225,13 @@ private:
   PaintPriorityVector m_updatedPaintData;
   GL::VertexVector m_updatedVertices;
   GL::VertexVector m_updatedPivots;
+  GL::VertexVector m_updatedTransforms;
   quint32 m_id;
   Settings* m_settings;
   QOpenGLBuffer m_coordBuffer;
   QOpenGLBuffer m_indexBuffer;
   QOpenGLBuffer m_pivotBuffer;
+  QOpenGLBuffer m_transformBuffer;
   GLsizei m_staticVertexOffset;
   GLsizei m_staticElemOffset;
 
