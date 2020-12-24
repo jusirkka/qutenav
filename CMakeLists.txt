@@ -75,6 +75,7 @@ target_sources(qopencpn
     src/glwindow.cpp
     src/glyphmanager.cpp
     src/hpglparser.cpp
+    src/linecalculator.cpp
     src/main.cpp
     src/mainwindow.cpp
     src/orthocam.cpp

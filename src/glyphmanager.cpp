@@ -319,8 +319,8 @@ GL::Mesh* Font::shapeText(const HB::Text &txt, hb_buffer_t *buf, bool* newGlyphs
     mesh->vertices << p1.x() << p1.y() << t1.x() << t1.y();
     mesh->vertices << p0.x() << p1.y() << t0.x() << t1.y();
 
-    for (GLuint i: triangles) {
-      mesh->indices << ioffset + i;
+    for (GLuint t: triangles) {
+      mesh->indices << ioffset + t;
     }
     ioffset += 4;
 

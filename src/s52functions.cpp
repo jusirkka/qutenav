@@ -65,16 +65,12 @@ S57::PaintDataMap S52::AreaPattern::execute(const QVector<QVariant>& vals,
                                         s.advance(),
                                         s.element());
   } else {
-    qDebug() << "[VectorPattern:Class]" << S52::GetClassInfo(obj->classCode());
-    qDebug() << "[VectorPattern:Symbol]" << S52::GetSymbolInfo(index, S52::SymbolType::Pattern);
-    qDebug() << "[VectorPattern:Location]" << obj->geometry()->centerLL().print();
-    qDebug() << s.advance().x << s.advance().xy;
-    qDebug() << s.size();
-
-
-    for (auto k: obj->attributes().keys()) {
-      qDebug() << GetAttributeInfo(k, obj);
-    }
+    //    qDebug() << "[VectorPattern:Class]" << S52::GetClassInfo(obj->classCode());
+    //    qDebug() << "[VectorPattern:Symbol]" << S52::GetSymbolInfo(index, S52::SymbolType::Pattern);
+    //    qDebug() << "[VectorPattern:Location]" << obj->geometry()->centerLL().print();
+    //    for (auto k: obj->attributes().keys()) {
+    //      qDebug() << GetAttributeInfo(k, obj);
+    //    }
 
     QT::ColorVector colors;
     for (const S52::Color& c: s.colors()) {
@@ -178,10 +174,44 @@ S57::PaintDataMap S52::LineSimple::linesFromPoint(const QVector<QVariant> &vals,
 }
 
 
-S57::PaintDataMap S52::LineComplex::execute(const QVector<QVariant>& /*vals*/,
-                                            const S57::Object* /*obj*/) {
-  qWarning() << "LC: not implemented";
-  return S57::PaintDataMap(); // invalid paint data
+S57::PaintDataMap S52::LineComplex::execute(const QVector<QVariant>& vals,
+                                            const S57::Object* obj) {
+
+  quint32 index = vals[0].toUInt();
+  SymbolData s = VectorSymbolManager::instance()->symbolData(index, S52::SymbolType::LineStyle);
+
+  if (!s.isValid()) {
+    qWarning() << "Missing linestyle" << S52::GetSymbolInfo(index, S52::SymbolType::LineStyle);
+    return S57::PaintDataMap();
+  }
+
+  auto geom = dynamic_cast<const S57::Geometry::Line*>(obj->geometry());
+  Q_ASSERT(geom != nullptr);
+
+  // qDebug() << "[LineStyle:Class]" << S52::GetClassInfo(obj->classCode()) << obj->classCode();
+  // qDebug() << "[LineStyle:Symbol]" << S52::GetSymbolInfo(index, S52::SymbolType::LineStyle) << index;
+  // for (auto k: obj->attributes().keys()) {
+  //   qDebug() << GetAttributeInfo(k, obj);
+  // }
+  // for (const S57::ElementData& e: geom->lineElements()) {
+  //   qDebug() << "LineElements:" << obj->name() << e.mode << e.count << e.offset;
+  // }
+
+  QT::ColorVector colors;
+  for (const S52::Color& c: s.colors()) {
+    auto color = S52::GetColor(c.index);
+    color.setAlpha(255 - as_numeric(c.alpha) * 255 / 4);
+    colors.append(color);
+  }
+  auto p = new S57::LineStylePaintData(index,
+                                       geom->lineElements(),
+                                       0,
+                                       obj->boundingBox(),
+                                       s.advance(),
+                                       colors,
+                                       s.elements());
+
+  return S57::PaintDataMap{{p->type(), p}};
 }
 
 

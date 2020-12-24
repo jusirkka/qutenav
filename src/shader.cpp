@@ -17,7 +17,7 @@ GL::Shader::Shader(const QVector<Source>& sources, GLfloat ds)
   }
 
   if (!m_program->link()) {
-    qFatal("Failed to link the outliner program: %s", m_program->log().toUtf8().data());
+    qFatal("Failed to link the program: %s", m_program->log().toUtf8().data());
   }
 
   m_program->bind();

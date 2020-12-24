@@ -176,8 +176,8 @@ void HPGLParser::drawPoint() {
   m_currentSketch.color.alpha = S52::Alpha::P0;
   const int lw = m_currentSketch.lineWidth == 0 ?
         line_width_multiplier : m_currentSketch.lineWidth;
-  const QPointF q = .6 * QPointF(lw, lw);
-  const QPointF p = .6 * QPointF(lw, -lw);
+  const QPointF q = .67 * QPointF(lw, lw);
+  const QPointF p = .67 * QPointF(lw, -lw);
   m_currentSketch.parts.last().closed = true;
   m_currentSketch.parts.last().points.append(m_pen - q);
   m_currentSketch.parts.last().points.append(m_pen + p);

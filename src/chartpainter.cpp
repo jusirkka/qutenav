@@ -75,6 +75,8 @@ void ChartPainter::initializeGL() {
     if (!m_logger->initialize()) {
       qWarning() << "OpenGL logging not available";
     }
+    m_logger->disableMessages(QOpenGLDebugMessage::APISource,
+                              QOpenGLDebugMessage::PerformanceType);
   }
 }
 

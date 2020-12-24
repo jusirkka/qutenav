@@ -691,6 +691,20 @@ void S57Chart::finalizePaintData() {
 
   m_pivotBuffer.write(0, m_updatedPivots.constData(), dataLen);
 
+  // LC updates to the transform buffer
+  for (int prio = 0; prio < S52::Lookup::PriorityCount; prio++) {
+    const S57::PaintMutIterator end = m_paintData[prio].end();
+    S57::PaintMutIterator elem = m_paintData[prio].find(S57::PaintData::Type::VectorLineStyles);
+    while (elem != end && elem.key() == S57::PaintData::Type::VectorLineStyles) {
+      auto d = dynamic_cast<S57::LineStylePaintData*>(elem.value());
+      d->createTransforms(m_updatedTransforms,
+                          m_coordBuffer,
+                          m_indexBuffer,
+                          m_staticVertexOffset);
+      ++elem;
+    }
+  }
+
   // update transform buffer
   m_transformBuffer.bind();
   dataLen = sizeof(GLfloat) * m_updatedTransforms.size();
@@ -738,13 +752,13 @@ void S57Chart::updatePaintData(const QRectF &viewArea, quint32 scale) {
     m_updatedPaintData[prio].insert(pn->type(), pn);
   };
 
-  auto mergeSymbols = [sf] (SymbolPriorityVector& symbols, S57::PaintMutIterator it, int prio) {
+  auto mergeSymbols = [sf, viewArea] (SymbolPriorityVector& symbols, S57::PaintMutIterator it, int prio) {
     auto s = dynamic_cast<S57::SymbolPaintDataBase*>(it.value());
     if (symbols[prio].contains(s->key())) {
       auto s0 = dynamic_cast<S57::SymbolPaintDataBase*>(symbols[prio][s->key()]);
-      s0->merge(s, sf);
+      s0->merge(s, sf, viewArea);
     } else {
-      s->merge(nullptr, sf);
+      s->merge(nullptr, sf, viewArea);
       symbols[prio][s->key()] = it.value();
     }
   };
@@ -1100,7 +1114,6 @@ void S57Chart::drawText(const Camera* cam, int prio) {
 
 void S57Chart::drawRasterSymbols(const Camera* cam, int prio) {
 
-
   RasterSymbolManager::instance()->bind();
 
   auto prog = GL::RasterSymbolShader::instance();
@@ -1143,10 +1156,27 @@ void S57Chart::drawVectorSymbols(const Camera* cam, int prio) {
   auto f = QOpenGLContext::currentContext()->extraFunctions();
 
   const S57::PaintIterator end = m_paintData[prio].constEnd();
-  S57::PaintIterator elem = m_paintData[prio].constFind(S57::PaintData::Type::VectorSymbols);
 
+  S57::PaintIterator elem = m_paintData[prio].constFind(S57::PaintData::Type::VectorSymbols);
   while (elem != end && elem.key() == S57::PaintData::Type::VectorSymbols) {
     auto d = dynamic_cast<const S57::VectorSymbolPaintData*>(elem.value());
+    d->setUniforms();
+    m_transformBuffer.bind();
+    d->setVertexOffset();
+    for (const S57::ColorElementData& e: d->elements()) {
+      d->setColor(e.color);
+      f->glDrawElementsInstanced(e.element.mode,
+                                 e.element.count,
+                                 GL_UNSIGNED_INT,
+                                 reinterpret_cast<const void*>(e.element.offset),
+                                 d->count());
+    }
+    ++elem;
+  }
+
+  elem = m_paintData[prio].constFind(S57::PaintData::Type::VectorLineStyles);
+  while (elem != end && elem.key() == S57::PaintData::Type::VectorLineStyles) {
+    auto d = dynamic_cast<const S57::LineStylePaintData*>(elem.value());
     d->setUniforms();
     m_transformBuffer.bind();
     d->setVertexOffset();

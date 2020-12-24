@@ -4,7 +4,7 @@
 #include "shader.h"
 #include "s52presentation.h"
 #include "platform.h"
-
+#include "linecalculator.h"
 
 
 bool S57::Attribute::matches(const Attribute &constraint) const {
@@ -352,7 +352,7 @@ S57::RasterSymbolPaintData::RasterSymbolPaintData(quint32 index,
   , m_elem(elem)
 {}
 
-void S57::RasterSymbolPaintData::merge(const SymbolPaintDataBase* other, qreal /*scale*/) {
+void S57::RasterSymbolPaintData::merge(const SymbolPaintDataBase* other, qreal, const QRectF&) {
   if (other == nullptr) return;
   auto r = dynamic_cast<const RasterSymbolPaintData*>(other);
   Q_ASSERT(r->m_pivots.size() == 2);
@@ -376,7 +376,7 @@ S57::VectorSymbolPaintData::VectorSymbolPaintData(quint32 index,
   }
 }
 
-void S57::VectorSymbolPaintData::merge(const SymbolPaintDataBase* other, qreal /*scale*/) {
+void S57::VectorSymbolPaintData::merge(const SymbolPaintDataBase* other, qreal, const QRectF&) {
   if (other == nullptr) return;
   auto s = dynamic_cast<const VectorSymbolPaintData*>(other);
   Q_ASSERT(s->m_pivots.size() == 4);
@@ -421,24 +421,24 @@ void S57::PatternPaintData::setAreaVertexOffset(GLsizei off) const {
   prog->setAttributeBuffer(0, GL_FLOAT, off, 2, 0);
 }
 
-void S57::PatternPaintData::merge(const SymbolPaintDataBase *other, qreal scale) {
+void S57::PatternPaintData::merge(const SymbolPaintDataBase *other, qreal scale, const QRectF& va) {
   if (other == nullptr) {
     Q_ASSERT(m_areaElements.size() + m_areaArrays.size() == 1);
     for (const AreaData& a: m_areaElements) {
-      createPivots(a.bbox, scale);
+      createPivots(a.bbox.intersected(va), scale);
     }
     for (const AreaData& a: m_areaArrays) {
-      createPivots(a.bbox, scale);
+      createPivots(a.bbox.intersected(va), scale);
     }
   } else {
     auto r = dynamic_cast<const PatternPaintData*>(other);
 
     Q_ASSERT(r->m_areaElements.size() + r->m_areaArrays.size() == 1);
     for (const AreaData& a: r->m_areaElements) {
-      createPivots(a.bbox, scale);
+      createPivots(a.bbox.intersected(va), scale);
     }
     for (const AreaData& a: r->m_areaArrays) {
-      createPivots(a.bbox, scale);
+      createPivots(a.bbox.intersected(va), scale);
     }
     m_areaArrays.append(r->m_areaArrays);
     m_areaElements.append(r->m_areaElements);
@@ -527,4 +527,76 @@ void S57::VectorPatternPaintData::createPivots(const QRectF& bbox, qreal scale) 
     }
   }
 }
+
+
+S57::LineStylePaintData::LineStylePaintData(quint32 index,
+                                            const ElementDataVector& lelems,
+                                            GLsizei loffset,
+                                            const QRectF& bbox,
+                                            const PatternAdvance& advance,
+                                            const QT::ColorVector& colors,
+                                            const ElementDataVector& elems)
+  : SymbolPaintDataBase(Type::VectorLineStyles, S52::SymbolType::LineStyle, index, QPoint(), new VectorHelper)
+  , m_lineElements()
+  , m_advance(advance.x)
+  , m_viewArea()
+{
+  LineData d;
+  d.elements = lelems;
+  d.vertexOffset = loffset;
+  d.bbox = bbox;
+  m_lineElements.append(d);
+
+  for (int i = 0; i < colors.size(); i++) {
+    ColorElementData c;
+    c.color = colors[i];
+    c.element = elems[i];
+    m_elems.append(c);
+  }
+}
+
+void S57::LineStylePaintData::merge(const SymbolPaintDataBase* other, qreal scale, const QRectF& va) {
+  if (other == nullptr) {
+    scale *= 200 / dots_per_mm_y;
+    m_advance /= scale;
+    m_viewArea = va;
+    Q_ASSERT(m_lineElements.size() == 1);
+  } else {
+    auto r = dynamic_cast<const LineStylePaintData*>(other);
+    Q_ASSERT(r->m_lineElements.size() == 1);
+    m_lineElements.append(r->m_lineElements);
+  }
+}
+
+void S57::LineStylePaintData::createTransforms(GL::VertexVector& transforms,
+                                               const QOpenGLBuffer& coordBuffer,
+                                               const QOpenGLBuffer& indexBuffer,
+                                               GLsizei maxCoordOffset) {
+  m_pivotOffset = transforms.size() * sizeof(GLfloat);
+
+  auto lc = GL::LineCalculator::instance();
+  using BufferData = GL::LineCalculator::BufferData;
+  BufferData vs;
+  vs.buffer = coordBuffer;
+  BufferData is;
+  is.buffer = indexBuffer;
+  for (LineData& d: m_lineElements) {
+    vs.offset = d.vertexOffset / sizeof(GLfloat) / 2;
+    vs.count = (maxCoordOffset - d.vertexOffset) / sizeof(GLfloat) / 2;
+    const QRectF va = d.bbox.intersected(m_viewArea);
+    for (S57::ElementData elem: d.elements) {
+      // account adjacency
+      is.offset = elem.offset / sizeof(GLuint) + 1;
+      is.count = elem.count - 2;
+      lc->calculate(transforms, m_advance, va, vs, is);
+    }
+  }
+
+  m_instanceCount = (transforms.size() - m_pivotOffset / sizeof(GLfloat)) / 4;
+}
+
+void S57::LineStylePaintData::setColor(const QColor& c) const {
+  m_helper->setColor(c);
+}
+
 

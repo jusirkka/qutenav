@@ -9,6 +9,8 @@
 #include <QDebug>
 #include "geoprojection.h"
 
+class QOpenGLBuffer;
+
 namespace S57 {
 
 class Attribute {
@@ -392,7 +394,7 @@ public:
   void setUniforms() const override;
   void setVertexOffset() const override;
 
-  virtual void merge(const SymbolPaintDataBase* other, qreal scale) = 0;
+  virtual void merge(const SymbolPaintDataBase* other, qreal scale, const QRectF& va) = 0;
   SymbolKey key() const {return SymbolKey(m_index, m_type);}
   void getPivots(GL::VertexVector& pivots);
   GLsizei count() const {return m_instanceCount;}
@@ -436,7 +438,7 @@ protected:
 
 class RasterSymbolPaintData: public SymbolPaintData {
 public:
-  void merge(const SymbolPaintDataBase* other, qreal /*scale*/) override;
+  void merge(const SymbolPaintDataBase* other, qreal, const QRectF&) override;
   RasterSymbolPaintData(quint32 index,
                         const QPoint& offset,
                         const QPointF& pivot,
@@ -459,7 +461,7 @@ using ColorElementVector = QVector<ColorElementData>;
 
 class VectorSymbolPaintData: public SymbolPaintData {
 public:
-  void merge(const SymbolPaintDataBase* other, qreal /*scale*/) override;
+  void merge(const SymbolPaintDataBase* other, qreal, const QRectF& va) override;
   VectorSymbolPaintData(quint32 index,
                         const QPointF& pivot,
                         const Angle& rot,
@@ -478,7 +480,7 @@ class PatternPaintData: public SymbolPaintDataBase {
 public:
 
   void setAreaVertexOffset(GLsizei off) const;
-  void merge(const SymbolPaintDataBase* other, qreal scale) override;
+  void merge(const SymbolPaintDataBase* other, qreal scale, const QRectF& va) override;
 
   struct AreaData {
     ElementDataVector elements;
@@ -563,6 +565,48 @@ private:
   qreal m_s;
 
 };
+
+
+class LineStylePaintData: public SymbolPaintDataBase {
+public:
+  LineStylePaintData(quint32 index,
+                     const ElementDataVector& lelems,
+                     GLsizei loffset,
+                     const QRectF& bbox,
+                     const PatternAdvance& advance,
+                     const QT::ColorVector& colors,
+                     const ElementDataVector& elems);
+
+  void merge(const SymbolPaintDataBase* other, qreal scale, const QRectF& va) override;
+
+  void createTransforms(GL::VertexVector& transforms,
+                        const QOpenGLBuffer& coordBuffer,
+                        const QOpenGLBuffer& indexBuffer,
+                        GLsizei maxCoordOffset);
+
+  const ColorElementVector& elements() const {return m_elems;}
+  void setColor(const QColor& c) const;
+
+  struct LineData {
+    ElementDataVector elements;
+    GLsizei vertexOffset;
+    QRectF bbox;
+  };
+
+  using LineDataVector = QVector<LineData>;
+  const LineDataVector& lineElements() const {return m_lineElements;}
+
+  ~LineStylePaintData() = default;
+
+private:
+
+  ColorElementVector m_elems;
+  LineDataVector m_lineElements;
+  qreal m_advance;
+  QRectF m_viewArea;
+
+};
+
 
 
 using PaintDataMap = QMultiMap<PaintData::Type, PaintData*>;
