@@ -21,6 +21,7 @@ public:
   double shallowContour() const {return m_shallowContour;}
   const TextGrouping& textGrouping() const {return m_textGrouping;}
   bool showMetaObjects() {return m_showMeta;}
+  bool fullLengthLightSectors() {return m_fullSectors;}
 
   enum ColorTable {
     DayBright,
@@ -50,6 +51,7 @@ private:
   bool m_simplifiedSymbols;
   bool m_plainBoundaries;
   bool m_showMeta;
+  bool m_fullSectors;
   ColorTable m_colorTable;
   TextGrouping m_textGrouping;
 

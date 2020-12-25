@@ -61,5 +61,9 @@
       <label>Show meta-objects.</label>
       <default>true</default>
     </entry>
+    <entry name="FullLengthSectors" key="full_length_sectors" type="Bool">
+      <label>Show light sectors in their nominal length.</label>
+      <default>false</default>
+    </entry>
   </group>
 </kcfg>

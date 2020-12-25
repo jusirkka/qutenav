@@ -744,10 +744,10 @@ void S57Chart::updatePaintData(const QRectF &viewArea, quint32 scale) {
     }
   };
 
-  auto handleLine = [this] (const S57::PaintMutIterator& it, int prio) {
+  auto handleLine = [this, sf] (const S57::PaintMutIterator& it, int prio) {
     auto p = dynamic_cast<S57::Globalizer*>(it.value());
-    auto pn = p->globalize(m_staticVertexOffset + m_updatedVertices.size());
-    m_updatedVertices += p->vertices();
+    auto pn = p->globalize(m_staticVertexOffset + m_updatedVertices.size() * sizeof(GLfloat));
+    m_updatedVertices += p->vertices(sf);
     delete p;
     m_updatedPaintData[prio].insert(pn->type(), pn);
   };

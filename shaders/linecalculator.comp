@@ -34,11 +34,19 @@ const uint BOTTOM = 4;
 const uint TOP = 8;
 
 uint locationCode(const in vec2 v) {
-  if (v.y > viewArea.w) return TOP;
-  if (v.y < viewArea.y) return BOTTOM;
-  if (v.x > viewArea.z) return RIGHT;
-  if (v.x < viewArea.x) return LEFT;
-  return 0;
+  uint code = 0;
+  if (v.y > viewArea.w) {
+    code |= TOP;
+  } else if (v.y < viewArea.y) {
+    code |= BOTTOM;
+  }
+
+  if (v.x > viewArea.z) {
+    code |= RIGHT;
+  } else if (v.x < viewArea.x) {
+    code |= LEFT;
+  }
+  return code;
 }
 
 // Cohen-Sutherland test

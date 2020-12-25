@@ -250,9 +250,11 @@ public:
 
 protected:
 
-  LineData(Type t, const ElementDataVector& elems);
+  LineData(Type t, const ElementDataVector& elems, GLfloat lw);
 
   ElementDataVector m_elements;
+  GLfloat m_lineWidth;
+  const GLfloat m_conv;
 };
 
 class SolidLineData: public LineData {
@@ -263,11 +265,14 @@ public:
 
 protected:
 
-  SolidLineData(Type t, const ElementDataVector& elems, GLsizei offset, const QColor& c, GLfloat width);
+  SolidLineData(Type t,
+                const ElementDataVector& elems,
+                GLsizei offset,
+                const QColor& c,
+                GLfloat width);
 
   GLsizei m_vertexOffset;
   QColor m_color;
-  GLfloat m_lineWidth;
 
 };
 
@@ -279,58 +284,95 @@ public:
 
 protected:
 
-  DashedLineData(Type t, const ElementDataVector& elems, GLsizei offset, const QColor& c, GLfloat width, uint patt);
+  DashedLineData(Type t, const
+                 ElementDataVector& elems,
+                 GLsizei offset,
+                 const QColor& c,
+                 GLfloat width,
+                 uint patt);
 
   GLsizei m_vertexOffset;
   QColor m_color;
-  GLfloat m_lineWidth;
   GLuint m_pattern;
 };
 
 class SolidLineElemData: public SolidLineData {
 public:
-  SolidLineElemData(const ElementDataVector& elem, GLsizei offset, const QColor& c, GLfloat width);
+  SolidLineElemData(const ElementDataVector& elem,
+                    GLsizei offset,
+                    const QColor& c,
+                    GLfloat width);
 };
 
 
 class SolidLineArrayData: public SolidLineData {
 public:
-  SolidLineArrayData(const ElementDataVector& elem, GLsizei offset, const QColor& c, GLfloat width);
+  SolidLineArrayData(const ElementDataVector& elem,
+                     GLsizei offset,
+                     const QColor& c,
+                     GLfloat width);
 };
 
 class DashedLineElemData: public DashedLineData {
 public:
-  DashedLineElemData(const ElementDataVector& elem, GLsizei offset, const QColor& c, GLfloat width, uint pattern);
+  DashedLineElemData(const ElementDataVector& elem,
+                     GLsizei offset,
+                     const QColor& c,
+                     GLfloat width,
+                     uint pattern);
 };
 
 class DashedLineArrayData: public DashedLineData {
 public:
-  DashedLineArrayData(const ElementDataVector& elem, GLsizei offset, const QColor& c, GLfloat width, uint pattern);
+  DashedLineArrayData(const ElementDataVector& elem,
+                      GLsizei offset,
+                      const QColor& c,
+                      GLfloat width,
+                      uint pattern);
 };
 
 class Globalizer {
 public:
   virtual PaintData* globalize(GLsizei offset) const = 0;
-  virtual const GL::VertexVector& vertices() const = 0;
+  virtual GL::VertexVector vertices(qreal scale) = 0;
   virtual ~Globalizer() = default;
 };
 
 class SolidLineLocalData: public SolidLineData, public Globalizer {
 public:
-  SolidLineLocalData(const GL::VertexVector& vertices, const ElementDataVector& elem, const QColor& c, GLfloat width);
+  SolidLineLocalData(const GL::VertexVector& vertices,
+                     const ElementDataVector& elem,
+                     const QColor& c,
+                     GLfloat width,
+                     bool displayUnits,
+                     const QPointF& pivot);
+
   PaintData* globalize(GLsizei offset) const override;
-  const GL::VertexVector& vertices() const override {return m_vertices;}
+  GL::VertexVector vertices(qreal scale) override;
+
 private:
   GL::VertexVector m_vertices;
+  bool m_displayUnits;
+  QPointF m_pivot;
 };
 
 class DashedLineLocalData: public DashedLineData, public Globalizer {
 public:
-  DashedLineLocalData(const GL::VertexVector& vertices, const ElementDataVector& elem, const QColor& c, GLfloat width, uint pattern);
+  DashedLineLocalData(const GL::VertexVector& vertices,
+                      const ElementDataVector& elem,
+                      const QColor& c,
+                      GLfloat width,
+                      uint pattern,
+                      bool displayUnits,
+                      const QPointF& pivot);
+
   PaintData* globalize(GLsizei offset) const override;
-  const GL::VertexVector& vertices() const override {return m_vertices;}
+  GL::VertexVector vertices(qreal scale) override;
+
 private:
   GL::VertexVector m_vertices;
+  bool m_displayUnits;
+  QPointF m_pivot;
 };
 
 

@@ -6,6 +6,7 @@
 #include <QVector>
 #include <QOpenGLFunctions>
 #include <glm/vec2.hpp>
+#include "platform.h"
 
 class NotImplementedError {
 public:
@@ -218,6 +219,17 @@ static const inline QVector<quint8> AllSymbols {1, 2, 3};
 
 enum class Alpha: quint8 {P0 = 0, P25 = 1, P50 = 2, P75 = 3, P100 = 4, Unset = 5};
 static const inline QVector<quint8> AllAlphas {0, 1, 2, 3, 4, 5};
+
+enum class LineType: uint {Solid = 0x3ffff, Dashed = 0x3ffc0, Dotted = 0x30c30};
+static const inline QVector<uint> AllLineTypes {0x3ffff, 0x3ffc0, 0x30c30};
+
+inline GLfloat LineWidthMM(GLfloat lw) {
+  return lw * 0.3;
+}
+
+inline GLfloat LineWidthDots(GLfloat lw) {
+  return lw * 0.3 * dots_per_mm_y;
+}
 
 struct Color {
   Color(quint32 i = 0, Alpha a = Alpha::Unset) : index(i), alpha(a) {}

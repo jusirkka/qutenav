@@ -151,16 +151,17 @@ S57::TriangleElemData::TriangleElemData(const ElementDataVector& elem, GLsizei o
   : TriangleData(Type::TriangleElements, elem, offset, c)
 {}
 
-S57::LineData::LineData(Type t, const ElementDataVector& elems)
+S57::LineData::LineData(Type t, const ElementDataVector& elems, GLfloat lw)
   : PaintData(t)
   , m_elements(elems)
+  , m_lineWidth(lw)
+  , m_conv(1. / S52::LineWidthDots(1))
 {}
 
 void S57::SolidLineData::setUniforms() const {
   auto prog = GL::SolidLineShader::instance();
   prog->prog()->setUniformValue(prog->m_locations.base_color, m_color);
-  // FIXME too thick lines without correction factor
-  prog->prog()->setUniformValue(prog->m_locations.lineWidth, .5f * m_lineWidth);
+  prog->prog()->setUniformValue(prog->m_locations.lineWidth, m_conv * m_lineWidth);
 }
 
 void S57::SolidLineData::setVertexOffset() const {
@@ -169,19 +170,21 @@ void S57::SolidLineData::setVertexOffset() const {
 }
 
 
-S57::SolidLineData::SolidLineData(Type t, const ElementDataVector& elems, GLsizei offset, const QColor& c, GLfloat width)
-  : LineData(t, elems)
+S57::SolidLineData::SolidLineData(Type t,
+                                  const ElementDataVector& elems,
+                                  GLsizei offset,
+                                  const QColor& c,
+                                  GLfloat width)
+  : LineData(t, elems, width)
   , m_vertexOffset(offset)
   , m_color(c)
-  , m_lineWidth(width)
 {}
 
 
 void S57::DashedLineData::setUniforms() const {
   auto prog = GL::DashedLineShader::instance();
   prog->prog()->setUniformValue(prog->m_locations.base_color, m_color);
-  // FIXME too thick lines without correction factor
-  prog->prog()->setUniformValue(prog->m_locations.lineWidth, .5f * m_lineWidth);
+  prog->prog()->setUniformValue(prog->m_locations.lineWidth, m_conv * m_lineWidth);
   prog->prog()->setUniformValue(prog->m_locations.pattern, m_pattern);
 }
 
@@ -191,11 +194,15 @@ void S57::DashedLineData::setVertexOffset() const {
 }
 
 
-S57::DashedLineData::DashedLineData(Type t, const ElementDataVector& elems, GLsizei offset, const QColor& c, GLfloat width, uint patt)
-  : LineData(t, elems)
+S57::DashedLineData::DashedLineData(Type t, const
+                                    ElementDataVector& elems,
+                                    GLsizei offset,
+                                    const QColor& c,
+                                    GLfloat width,
+                                    uint patt)
+  : LineData(t, elems, width)
   , m_vertexOffset(offset)
   , m_color(c)
-  , m_lineWidth(width)
   , m_pattern(patt)
 {}
 
@@ -216,23 +223,65 @@ S57::DashedLineArrayData::DashedLineArrayData(const ElementDataVector& elem, GLs
   : DashedLineData(Type::DashedLineArrays, elem, offset, c, width, pattern)
 {}
 
-S57::SolidLineLocalData::SolidLineLocalData(const GL::VertexVector& vertices, const ElementDataVector& elem, const QColor& c, GLfloat width)
+S57::SolidLineLocalData::SolidLineLocalData(const GL::VertexVector& vertices,
+                                            const ElementDataVector& elem,
+                                            const QColor& c,
+                                            GLfloat width,
+                                            bool dispU,
+                                            const QPointF& p)
   : SolidLineData(Type::SolidLineLocal, elem, 0, c, width)
   , m_vertices(vertices)
+  , m_displayUnits(dispU)
+  , m_pivot(p)
 {}
 
 S57::PaintData* S57::SolidLineLocalData::globalize(GLsizei offset) const {
   return new SolidLineArrayData(m_elements, offset, m_color, m_lineWidth);
 }
 
+GL::VertexVector S57::SolidLineLocalData::vertices(qreal scale) {
+  if (m_displayUnits) {
+    GL::VertexVector vs;
+    scale *= 2 / dots_per_mm_y;
+    for (int i = 0; i < m_vertices.size() / 2; i++) {
+      const QPointF p1(m_vertices[2 * i], m_vertices[2 * i + 1]);
+      const QPointF p = m_pivot + (p1 - m_pivot) / scale;
+      vs << p.x() << p.y();
+    }
+    return vs;
+  }
+  return m_vertices;
+}
 
-S57::DashedLineLocalData::DashedLineLocalData(const GL::VertexVector& vertices, const ElementDataVector& elem, const QColor& c, GLfloat width, uint pattern)
+S57::DashedLineLocalData::DashedLineLocalData(const GL::VertexVector& vertices,
+                                              const ElementDataVector& elem,
+                                              const QColor& c,
+                                              GLfloat width,
+                                              uint pattern,
+                                              bool dispU,
+                                              const QPointF& p)
   : DashedLineData(Type::DashedLineLocal, elem, 0, c, width, pattern)
   , m_vertices(vertices)
+  , m_displayUnits(dispU)
+  , m_pivot(p)
 {}
 
 S57::PaintData* S57::DashedLineLocalData::globalize(GLsizei offset) const {
   return new DashedLineArrayData(m_elements, offset, m_color, m_lineWidth, m_pattern);
+}
+
+GL::VertexVector S57::DashedLineLocalData::vertices(qreal scale) {
+  if (m_displayUnits) {
+    GL::VertexVector vs;
+    scale *= 2 / dots_per_mm_y;
+    for (int i = 0; i < m_vertices.size() / 2; i++) {
+      const QPointF p1(m_vertices[2 * i], m_vertices[2 * i + 1]);
+      const QPointF p = m_pivot + (p1 - m_pivot) / scale;
+      vs << p.x() << p.y();
+    }
+    return vs;
+  }
+  return m_vertices;
 }
 
 

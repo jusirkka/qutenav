@@ -15,6 +15,7 @@ Settings::Settings(QObject *parent)
   , m_simplifiedSymbols(Conf::MarinerParams::simplifiedSymbols())
   , m_plainBoundaries(Conf::MarinerParams::plainBoundaries())
   , m_showMeta(Conf::MarinerParams::showMeta())
+  , m_fullSectors(Conf::MarinerParams::fullLengthSectors())
   , m_colorTable(Conf::MarinerParams::colorTable())
 {
   const QMap<Conf::MarinerParams::EnumMaxCategory::type, S52::Lookup::Category> cats{

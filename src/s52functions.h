@@ -55,16 +55,11 @@ public:
 
 class LineSimple: public Function {
 public:
-  LineSimple(quint32 index);
+  LineSimple(quint32 index)
+    : Function("LS", index) {}
 
   S57::PaintDataMap execute(const QVector<QVariant>& vals, const S57::Object* obj) override;
 
-private:
-
-  S57::PaintDataMap linesFromPoint(const QVector<QVariant>& vals, const S57::Object* obj);
-
-  const quint32 m_valnmr;
-  const quint32 m_orient;
 };
 
 class LineComplex: public Function {
@@ -202,6 +197,13 @@ private:
   const quint32 m_sectr2;
   const quint32 m_orient;
   const quint32 m_quesmrk1;
+  const quint32 m_litvis;
+  const quint32 m_outlw;
+  const quint32 m_litrd;
+  const quint32 m_litgn;
+  const quint32 m_lityw;
+  const quint32 m_chmgd;
+  const quint32 m_valnmr;
 
   const QSet<int> m_set_wyo;
   const QSet<int> m_set_wr;
@@ -211,6 +213,17 @@ private:
   const QSet<int> m_set_o;
   const QSet<int> m_set_y;
   const QSet<int> m_set_w;
+
+  const QSet<int> m_set_faint;
+
+  S57::PaintDataMap drawDirection(const S57::Object* obj) const;
+  S57::PaintDataMap drawSectors(const S57::Object* obj) const;
+  S57::PaintDataMap drawArc(const S57::Object* obj,
+                            float radius,
+                            uint lineWidth,
+                            S52::LineType lineType,
+                            quint32 color);
+
 };
 
 class CSObstruction04: public Function {
