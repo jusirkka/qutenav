@@ -99,7 +99,7 @@ S57::PaintDataMap S52::LineSimple::execute(const QVector<QVariant>& vals,
 
   S57::PaintData* p;
 
-  auto pattern = static_cast<S52::LineType>(vals[0].toUInt());
+  auto pattern = as_enum<S52::LineType>(vals[0].toUInt(), S52::AllLineTypes);
   auto width = vals[1].toUInt();
   auto color = S52::GetColor(vals[2].toUInt());
 
@@ -224,12 +224,13 @@ S57::PaintDataMap S52::Text::execute(const QVector<QVariant>& vals,
   auto weight = as_enum<TXT::Weight>(chars.mid(1, 1).toUInt(), TXT::AllWeights);
 
   auto space = as_enum<TXT::Space>(vals[3].toUInt(), TXT::AllSpaces);
-  if (space != TXT::Space::Standard/* && space != TXT::Space::Wrapped*/) {
+  if (space != TXT::Space::Standard && space != TXT::Space::Wrapped) {
     qWarning() << "TX: text spacing type" << as_numeric(space)<< "not implemented";
     return S57::PaintDataMap();
   }
-
-  const TextData d = TextManager::instance()->textData(txt, weight/*, space*/);
+  // we do not actually wrap although TXT::Space::Wrapped is accepted
+  Q_ASSERT(txt.length() < 132);
+  const TextData d = TextManager::instance()->textData(txt, weight);
   if (!d.isValid()) {
     return S57::PaintDataMap();
   }
@@ -449,6 +450,10 @@ S52::CSLights05::CSLights05(quint32 index)
   , m_lityw(S52::FindIndex("LITYW"))
   , m_chmgd(S52::FindIndex("CHMGD"))
   , m_valnmr(S52::FindIndex("VALNMR"))
+  , m_litchr(S52::FindIndex("LITCHR"))
+  , m_siggrp(S52::FindIndex("SIGGRP"))
+  , m_sigper(S52::FindIndex("SIGPER"))
+  , m_height(S52::FindIndex("HEIGHT"))
   , m_set_wyo({1, 6, 11})
   , m_set_wr({1, 3})
   , m_set_r({3})
@@ -458,18 +463,87 @@ S52::CSLights05::CSLights05(quint32 index)
   , m_set_y({6})
   , m_set_w({1})
   , m_set_faint({3, 7, 8})
+  , m_abbrev{{1, "F"}, {2, "Fl"}, {3, "LFl"}, {4, "Q"}, {5, "VQ"}, {6, "UQ"},
+             {7, "Iso"}, {8, "Oc"}, {9, "IQ"}, {10, "IVQ"}, {11, "IUQ"},
+             {12, "Mo"}, {13, "FFl"}, {14, "Fl+LFl"}, {15, "OcFl"}, {16, "FLFl"},
+             {17, "AlOc"}, {18, "AlLFl"}, {19, "AlFl"}, {20, "Al"}, {25, "Q+LFl"},
+             {26, "VQ+LFl"}, {27, "UQ+LFl"}, {28, "Al"}, {29, "AlF Fl"}}
 {}
 
-static QString litdsn01(const S57::Object* /*obj*/) {
-  return "FIXME";
+QString S52::CSLights05::litdsn01(const S57::Object* obj) const {
+
+  QString ret;
+  // Light Characteristic
+  if (obj->attributeValue(m_litchr).isValid()) {
+    uint litchr = obj->attributeValue(m_litchr).toUInt();
+    if (m_abbrev.contains(litchr)) {
+      ret += m_abbrev[litchr];
+    }
+  }
+  // Signal Group
+  bool sig = false;
+  if (obj->attributeValue(m_siggrp).isValid()) {
+    QString siggrp = obj->attributeValue(m_siggrp).toString();
+    if (siggrp.length() > 2) {
+      QStringList groups;
+      for (int i = 1; i < siggrp.length(); i += 3) {
+        // assuming less than 10 groups
+        groups << siggrp.mid(i, 1);
+      }
+      if (groups.length() > 1 || groups.first() != "1") {
+        ret += "(" + groups.join("+") + ")";
+        sig = true;
+      }
+    }
+  }
+  if (!sig) {
+    ret += " ";
+  }
+
+  // Colour
+  if (!obj->attributeValue(m_sectr1).isValid() && obj->attributeValue(m_colour).isValid()) {
+    auto items = obj->attributeValue(m_colour).toList();
+    for (auto i: items) {
+      switch (i.toInt()) {
+      case 1: ret += "W"; break;
+      case 3: ret += "R"; break;
+      case 4: ret += "G"; break;
+      case 6: ret += "Y"; break;
+      default:  /* noop */ ;
+      }
+    }
+    ret += " ";
+  }
+
+  auto addValue = [&ret, obj] (const QString& fmt, quint32 v) {
+    if (obj->attributeValue(v).isValid()) {
+      const double x = obj->attributeValue(v).toDouble();
+      const int prec = x - floor(x) > 0. ? 1 : 0;
+      ret += fmt.arg(x, 0, 'f', prec);
+    }
+  };
+
+  // Signal Period
+  addValue("%1s", m_sigper);
+  // Height
+  addValue("%1m", m_height);
+  // Range
+  addValue("%1M", m_valnmr);
+
+  return ret;
 }
 
-static bool overlaps_and_smaller(float s1, float s2, const QVariant& v1, const QVariant& v2) {
+static bool overlaps_and_smaller(float s1, float s2,
+                                 const QVariant& v1, const QVariant& v2,
+                                 float& smin) {
   const bool isSector = v1.isValid() && v2.isValid();
   if (!isSector) return false;
   float s3 = v1.toFloat();
   float s4 = v2.toFloat();
   while (s4 < s3) s4 += 360.;
+
+  if (s3 < smin) smin = s3;
+
   auto r1 = QRectF(QPointF(s1, 0.), QPointF(s2, 1.));
   auto r2 = QRectF(QPointF(s3, 0.), QPointF(s4, 1.));
   return r1.intersects(r2) && s4 - s3 > s2 - s1;
@@ -477,10 +551,10 @@ static bool overlaps_and_smaller(float s1, float s2, const QVariant& v1, const Q
 
 S57::PaintDataMap S52::CSLights05::execute(const QVector<QVariant>&,
                                            const S57::Object* obj) {
-  qDebug() << "[CSLights05:Class]" << S52::GetClassInfo(obj->classCode()) << obj->classCode();
-  for (auto k: obj->attributes().keys()) {
-    qDebug() << GetAttributeInfo(k, obj);
-  }
+  // qDebug() << "[CSLights05:Class]" << S52::GetClassInfo(obj->classCode()) << obj->classCode();
+  // for (auto k: obj->attributes().keys()) {
+  //   qDebug() << GetAttributeInfo(k, obj);
+  //}
 
   QSet<int> catlit;
   auto items = obj->attributeValue(m_catlit).toList();
@@ -619,14 +693,37 @@ S57::PaintDataMap S52::CSLights05::execute(const QVector<QVariant>&,
   auto ps = drawSectors(obj);
 
   float arc_radius = 20;
+
+  float smin = 360;
   S57::Object::LocationIterator it = obj->others();
   for (; it != obj->othersEnd() && it.key() == obj->geometry()->centerLL(); ++it) {
-    if (it.value() == obj) continue;
-    if (overlaps_and_smaller(s1, s2, it.value()->attributeValue(m_sectr1), it.value()->attributeValue(m_sectr2))) {
+    if (it.value() == obj) {
+      smin = s1;
+      continue;
+    }
+    auto v1 = it.value()->attributeValue(m_sectr1);
+    auto v2 = it.value()->attributeValue(m_sectr2);
+    if (overlaps_and_smaller(s1, s2, v1, v2, smin)) {
       qDebug() << "Extended radius";
       arc_radius = 25;
       break;
     }
+  }
+
+  // show text for only one sector
+  if (s1 == smin) {
+    QVector<QVariant> vals;
+    vals.clear();
+    vals.append(QVariant::fromValue(litdsn01(obj)));
+    vals.append(QVariant::fromValue(3));
+    vals.append(QVariant::fromValue(2));
+    vals.append(QVariant::fromValue(3));
+    vals.append(QVariant::fromValue(QString("15110")));
+    vals.append(QVariant::fromValue(2));
+    vals.append(QVariant::fromValue(0));
+    vals.append(QVariant::fromValue(m_chblk));
+    vals.append(QVariant::fromValue(23));
+    ps += S52::FindFunction("TX")->execute(vals, obj);
   }
 
   // draw sector arc

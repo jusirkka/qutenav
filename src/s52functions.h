@@ -175,6 +175,9 @@ class CSLights05: public Function {
 public:
   CSLights05(quint32 index);
   S57::PaintDataMap execute(const QVector<QVariant>&, const S57::Object* obj) override;
+
+  QString litdsn01(const S57::Object* obj) const;
+
 private:
   static const uint floodlight = 8;
   static const uint spotlight = 11;
@@ -204,6 +207,10 @@ private:
   const quint32 m_lityw;
   const quint32 m_chmgd;
   const quint32 m_valnmr;
+  const quint32 m_litchr;
+  const quint32 m_siggrp;
+  const quint32 m_sigper;
+  const quint32 m_height;
 
   const QSet<int> m_set_wyo;
   const QSet<int> m_set_wr;
@@ -215,6 +222,8 @@ private:
   const QSet<int> m_set_w;
 
   const QSet<int> m_set_faint;
+
+  const QMap<int, QString> m_abbrev;
 
   S57::PaintDataMap drawDirection(const S57::Object* obj) const;
   S57::PaintDataMap drawSectors(const S57::Object* obj) const;

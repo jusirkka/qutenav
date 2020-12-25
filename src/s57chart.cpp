@@ -780,7 +780,7 @@ void S57Chart::updatePaintData(const QRectF &viewArea, quint32 scale) {
     if (S52::IsMetaClass(d.object->classCode())) {
       // Filter out unknown meta classes
       if (d.lookup->classCode() == unknownClass) {
-        qDebug() << "Filtering out" << S52::GetClassInfo(d.object->classCode());
+        // qDebug() << "Filtering out" << S52::GetClassInfo(d.object->classCode());
         continue;
       }
       if (!showMeta && d.object->classCode() != qualClass) {
