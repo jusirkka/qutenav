@@ -12,7 +12,8 @@
 #include <QOpenGLContext>
 #include "glthread.h"
 #include "glcontext.h"
-
+#include "chartfilereader.h"
+#include <QDate>
 
 ChartManager::Database::Database() {
   m_DB = QSqlDatabase::addDatabase("QSQLITE");
@@ -336,6 +337,8 @@ void ChartManager::updateDB() {
     return;
   }
 
+  ChartFileReader* reader = ChartFileReader::reader("osenc");
+
   SimpleMercator p;
   for (const QString& loc: locs) {
     QDirIterator it(loc, QStringList() << "*.S57", QDir::Files | QDir::Readable,
@@ -343,7 +346,8 @@ void ChartManager::updateDB() {
     while (it.hasNext()) {
       try {
         const QString path = it.next();
-        S57ChartOutline ch(path);
+        S57ChartOutline ch = reader->readOutline(path);
+
         QSqlQuery r = m_db.prepare("select id, published, modified from charts where path=?");
         r.bindValue(0, QVariant::fromValue(path));
         m_db.exec(r);

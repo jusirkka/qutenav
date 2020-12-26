@@ -174,6 +174,33 @@ WGS84Bearing operator- (const WGS84Point& a, const WGS84Point& b);
 WGS84Bearing operator- (const WGS84Bearing& a);
 
 
+class Extent {
+public:
+
+  Extent() = default;
+  Extent(const Extent& e) = default;
+  Extent& operator=(const Extent&) = default;
+
+  Extent(const WGS84Point& sw,
+         const WGS84Point& se,
+         const WGS84Point& ne,
+         const WGS84Point& nw)
+    : m_wgs84Points()
+  {
+    m_wgs84Points << sw << se << ne << nw;
+  }
+
+  const WGS84PointVector& corners() const {return m_wgs84Points;}
+  WGS84Point sw() const {return m_wgs84Points[0];}
+  WGS84Point se() const {return m_wgs84Points[1];}
+  WGS84Point ne() const {return m_wgs84Points[2];}
+  WGS84Point nw() const {return m_wgs84Points[3];}
+
+private:
+
+  WGS84PointVector m_wgs84Points;
+};
+
 template <typename Enumeration>
 auto as_numeric(Enumeration const value) {
   return static_cast<typename std::underlying_type<Enumeration>::type>(value);

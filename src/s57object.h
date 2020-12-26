@@ -667,11 +667,11 @@ public:
   using LocationIterator = LocationHash::const_iterator;
 
 
-  Object(quint32 fid, quint32 ftype, const LocationHash& others)
+  Object(quint32 fid, quint32 ftype)
     : m_feature_id(fid)
     , m_feature_type_code(ftype)
     , m_geometry(nullptr)
-    , m_others(others) {}
+    , m_others(nullptr) {}
 
   ~Object();
 
@@ -683,8 +683,8 @@ public:
   const AttributeMap& attributes() const {return m_attributes;}
   QVariant attributeValue(quint32 attr) const;
   const QRectF& boundingBox() const {return m_bbox;}
-  LocationIterator others() const {return m_others.find(m_geometry->centerLL());}
-  LocationIterator othersEnd() const {return m_others.cend();}
+  LocationIterator others() const {return m_others->find(m_geometry->centerLL());}
+  LocationIterator othersEnd() const {return m_others->cend();}
 
   bool canPaint(const QRectF& viewArea, quint32 scale, const QDate& today) const;
 
@@ -702,7 +702,7 @@ private:
   AttributeMap m_attributes;
   Geometry::Base* m_geometry;
   QRectF m_bbox;
-  const LocationHash& m_others;
+  LocationHash* m_others;
 
 };
 

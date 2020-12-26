@@ -63,6 +63,7 @@ target_sources(qopencpn
     shaders.qrc
     files.qrc
     src/camera.cpp
+    src/chartfilereader.cpp
     src/chartmanager.cpp
     src/chartmode.cpp
     src/chartpainter.cpp
@@ -79,6 +80,7 @@ target_sources(qopencpn
     src/main.cpp
     src/mainwindow.cpp
     src/orthocam.cpp
+    src/osencreader.cpp
     src/outlinemode.cpp
     src/outliner.cpp
     src/perscam.cpp
@@ -87,6 +89,7 @@ target_sources(qopencpn
     src/s52presentation.cpp
     src/s52presentation_p.cpp
     src/s57chart.cpp
+    src/s57chartoutline.cpp
     src/s57object.cpp
     src/settings.cpp
     src/shader.cpp
