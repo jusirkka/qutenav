@@ -106,4 +106,13 @@ void OrthoCam::pan(QPointF /*dragStart*/, QPointF dragAmount) {
   doReset();
 }
 
+WGS84Point OrthoCam::location(const QPointF &cp) const {
+  const QVector4D q(cp.x() / m_projection(0, 0),
+                    cp.y() / m_projection(1, 1),
+                    0.,
+                    1.);
+  const QVector4D p = m_view.transposed() * q;
+  return m_geoprojection->toWGS84(QPointF(p.x(), p.y()));
+}
+
 

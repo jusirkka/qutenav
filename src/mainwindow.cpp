@@ -7,6 +7,7 @@
 #include <QApplication>
 #include "conf_mainwindow.h"
 #include <QCloseEvent>
+#include <QStatusBar>
 
 MainWindow::MainWindow()
   : KXmlGuiWindow()
@@ -15,6 +16,9 @@ MainWindow::MainWindow()
   setWindowTitle(qAppName());
 
   setCentralWidget(QWidget::createWindowContainer(m_GLWindow, this));
+  connect(m_GLWindow, &GLWindow::pointerChanged, this, [this] (const WGS84Point& p) {
+    statusBar()->showMessage(p.print());
+  });
   addActions();
   setupGUI();
   QMetaObject::connectSlotsByName(this);

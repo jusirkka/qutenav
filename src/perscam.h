@@ -9,6 +9,7 @@ public:
 
   PersCam(float wmm, float hmm, GeoProjection* p);
   void pan(QPointF dragStart, QPointF dragAmount) override;
+  WGS84Point location(const QPointF &cp) const override;
   void rotateEye(Angle a) override;
   void setScale(quint32 scale) override;
   void resize(float wmm, float hmm) override;

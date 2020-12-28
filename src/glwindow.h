@@ -41,6 +41,7 @@ protected:
 signals:
 
   void updateViewport(const Camera* cam, bool force = false);
+  void pointerChanged(const WGS84Point& loc);
 
 private slots:
 

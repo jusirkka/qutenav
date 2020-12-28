@@ -215,4 +215,24 @@ void PersCam::pan(QPointF dragStart, QPointF dragAmount) {
   m_view = m_rot * m_view;
 }
 
+WGS84Point PersCam::location(const QPointF &cp) const {
+  const QVector3D k3 = QVector3D(
+        m_projection(3, 2) / m_projection(0, 0) * cp.x(),
+        m_projection(3, 2) / m_projection(1, 1) * cp.y(),
+        1.);
+
+  const QVector4D k4 = m_rot.transposed() * QVector4D(k3, 1.);
+  const QVector3D k = k4.toVector3D();
+
+  const qreal K2 = k.lengthSquared();
+  const qreal a = QVector3D::dotProduct(m_eye, k);
+  const qreal D = a * a + (1 - m_eye.lengthSquared()) * K2 ;
+  if (D < 0) return WGS84Point();
+
+  const QVector3D p = m_eye + (- a + sqrt(D)) / K2 * k;
+
+  const float lng = atan2(p[1], p[0]);
+  const float lat = asin(p[2]);
+  return WGS84Point::fromLLRadians(lng, lat);
+}
 

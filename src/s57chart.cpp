@@ -34,7 +34,6 @@ public:
 
 S57Chart::S57Chart(quint32 id, const QString& path)
   : QObject()
-  , m_nativeProj(new SimpleMercator)
   , m_paintData(S52::Lookup::PriorityCount)
   , m_updatedPaintData(S52::Lookup::PriorityCount)
   , m_id(id)
@@ -62,6 +61,7 @@ S57Chart::S57Chart(quint32 id, const QString& path)
     throw ChartFileError(QString("%1 is not a supported chart file").arg(path));
   }
 
+  m_nativeProj = GeoProjection::CreateProjection(reader->geoprojection()->className());
   m_nativeProj->setReference(outline.reference());
 
   S57::ObjectVector objects;

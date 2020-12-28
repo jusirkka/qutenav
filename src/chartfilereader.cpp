@@ -1,8 +1,9 @@
 #include "chartfilereader.h"
 #include "osencreader.h"
+#include "cm93reader.h"
 
 QVector<ChartFileReader*> ChartFileReader::readers() {
-  static QVector<ChartFileReader*> all{new OsencReader()};
+  static QVector<ChartFileReader*> all{new OsencReader(), new CM93Reader()};
   return all;
 }
 

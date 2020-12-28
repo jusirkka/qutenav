@@ -20,7 +20,7 @@ private:
 class Camera {
 public:
 
-  // drag start & end in normalized device coordinates
+  // drag start & end in clip coordinates
   virtual void pan(QPointF dragStart, QPointF dragAmount) = 0;
   virtual void rotateEye(Angle angle) = 0;
   virtual void setScale(quint32 scale) = 0;
@@ -31,6 +31,8 @@ public:
   virtual Angle northAngle() const = 0;
   virtual quint32 maxScale() const = 0;
   virtual quint32 minScale() const = 0;
+  // map from clip space to WGS84
+  virtual WGS84Point location(const QPointF& cp) const = 0;
 
   const QMatrix4x4& projection() const {return m_projection;}
   const QMatrix4x4& view() const {return m_view;}

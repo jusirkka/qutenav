@@ -67,6 +67,7 @@ target_sources(qopencpn
     src/chartmanager.cpp
     src/chartmode.cpp
     src/chartpainter.cpp
+    src/cm93reader.cpp
     src/detailmode.cpp
     src/drawable.cpp
     src/geoprojection.cpp
@@ -161,12 +162,10 @@ target_link_libraries(qopencpn
 install(TARGETS qopencpn)
 
 #
-# .. wait, there's more!
+# subdirectories
 #
 
 add_subdirectory(triglobe)
-
-
 
 
 feature_summary(WHAT ALL INCLUDE_QUIET_PACKAGES FATAL_ON_MISSING_REQUIRED_PACKAGES)

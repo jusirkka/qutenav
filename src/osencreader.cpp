@@ -11,8 +11,13 @@ const QString& OsencReader::name() const {
   return m_name;
 }
 
+const GeoProjection* OsencReader::geoprojection() const {
+  return m_proj;
+}
+
 OsencReader::OsencReader()
   : m_name("osenc")
+  , m_proj(GeoProjection::CreateProjection("SimpleMercator"))
 {}
 
 using Buffer = QVector<char>;
@@ -24,7 +29,7 @@ struct Handler {
   ~Handler() = default;
 };
 
-S57ChartOutline OsencReader::readOutline(const QString& path) {
+S57ChartOutline OsencReader::readOutline(const QString& path) const {
 
   QFile file(path);
   if (!file.open(QFile::ReadOnly)) {
@@ -199,7 +204,7 @@ void OsencReader::readChart(GL::VertexVector& vertices,
                             GL::IndexVector& indices,
                             S57::ObjectVector& objects,
                             const QString& path,
-                            const GeoProjection* proj) {
+                            const GeoProjection* proj) const {
 
   QFile file(path);
   file.open(QFile::ReadOnly);

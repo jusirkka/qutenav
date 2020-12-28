@@ -11,6 +11,7 @@ public:
   OrthoCam(const QSizeF& vp, const WGS84Point& eye, quint32 scale, GeoProjection* proj);
 
   void pan(QPointF dragStart, QPointF dragAmount) override;
+  WGS84Point location(const QPointF &cp) const override;
   void rotateEye(Angle a) override;
   void setScale(quint32 scale) override;
   void resize(float wmm, float hmm) override;

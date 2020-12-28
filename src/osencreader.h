@@ -7,21 +7,24 @@ class OsencReader: public  ChartFileReader {
 
 public:
 
-  S57ChartOutline readOutline(const QString& path) override;
+  S57ChartOutline readOutline(const QString& path) const override;
 
   void readChart(GL::VertexVector& vertices,
                  GL::IndexVector& indices,
                  S57::ObjectVector& objects,
                  const QString& path,
-                 const GeoProjection* proj) override;
+                 const GeoProjection* proj) const override;
 
   const QString& name() const override;
+
+  const GeoProjection* geoprojection() const override;
 
 private:
 
   OsencReader();
 
   QString m_name;
+  GeoProjection* m_proj;
 
 };
 

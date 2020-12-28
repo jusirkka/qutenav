@@ -145,9 +145,9 @@ void GLWindow::mouseReleaseEvent(QMouseEvent*) {
 
 }
 
-
-
 void GLWindow::mouseMoveEvent(QMouseEvent* event) {
+  const QPointF p(2. * event->x() / width() - 1., 1. - 2. * event->y() / height());
+  emit pointerChanged(m_mode->camera()->location(p));
   if (m_timer->isActive()) return;
   m_diff = event->pos() - m_lastPos;
 
