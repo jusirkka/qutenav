@@ -41,16 +41,14 @@ private:
   using Offsets = QVector<uintptr_t>;
   using Sizes = QVector<GLsizei>;
 
-  struct StripData {
+  struct ElementData {
     uintptr_t offset;
     size_t size;
   };
 
-  using Strips = QVector<StripData>;
-
   struct _layer_data {
     QColor color;
-    Strips strips;
+    ElementData elem;
     size_t offset;
   } m_layerData[LAYERS];
 

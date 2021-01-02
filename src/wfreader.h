@@ -2,7 +2,6 @@
 
 #include <QVector>
 #include <GL/gl.h>
-#include "triangleoptimizer.h"
 
 #define WAVEFRONT_LTYPE WF::LocationType
 #define WAVEFRONT_STYPE WF::ValueType
@@ -93,10 +92,9 @@ public:
   void reset();
 
   using Indices = QVector<GLuint>;
-  using Strips = QVector<Indices>;
   using Mesh = QVector<GLfloat>;
 
-  const Strips& strips() const {return m_stripper.strips();}
+  const Indices& triangles() const {return m_triangles;}
   const Mesh& vertices() const {return m_vertices;}
 
   // Grammar interface
@@ -110,7 +108,6 @@ private:
 
   Indices m_triangles;
   Mesh m_vertices;
-  AC::TriangleOptimizer m_stripper;
 
   WF::ModelError m_error;
   yyscan_t m_scanner;

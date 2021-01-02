@@ -52,17 +52,12 @@ Globe::Globe(QObject *parent)
 
     m_layerData[i].offset = offset;
 
-    int stripSize = 0;
-    for (const Indices& strip: p.strips()) {
-      StripData s;
-      s.offset = elemSize + stripSize;
-      s.size = strip.size();
-      m_layerData[i].strips.append(s);
-      stripSize += strip.size() * sizeof(GLuint);
-      m_strips.append(strip);
-    }
+    m_layerData[i].elem.offset = elemSize;
+    m_layerData[i].elem.size = p.triangles().size();
 
-    elemSize += stripSize;
+    m_strips.append(p.triangles());
+
+    elemSize += p.triangles().size() * sizeof(GLuint);
     offset += p.vertices().size() * sizeof(GLfloat);
 
     p.reset();
@@ -130,7 +125,7 @@ void Globe::paintGL(const Camera *cam) {
   gl->glEnable(GL_DEPTH_TEST);
   gl->glEnable(GL_STENCIL_TEST);
   gl->glEnable(GL_CULL_FACE);
-  gl->glFrontFace(GL_CCW);
+  gl->glFrontFace(GL_CW);
   gl->glCullFace(GL_BACK);
   gl->glStencilFunc(GL_EQUAL, 0, 0xff);
   gl->glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
@@ -148,14 +143,12 @@ void Globe::paintGL(const Camera *cam) {
 
   for (int i = LAYERS - 1; i >= 0; i--) {
     auto layer = m_layerData[i];
-    if (layer.strips.isEmpty()) continue;
+    ElementData e = layer.elem;
+    if (e.size == 0) continue;
     m_program->setUniformValue(m_locations.base_color, layer.color);
     m_program->setAttributeBuffer(0, GL_FLOAT, layer.offset, 3, 0);
-    // FIXME: use multidrawelements
-    for (const StripData& s: layer.strips) {
-      gl->glDrawElements(GL_TRIANGLE_STRIP, s.size, GL_UNSIGNED_INT,
-                         reinterpret_cast<const void*>(s.offset));
-    }
+    gl->glDrawElements(GL_TRIANGLES, e.size, GL_UNSIGNED_INT,
+                       reinterpret_cast<const void*>(e.offset));
   }
 }
 
@@ -164,31 +157,31 @@ void Globe::initLayers() {
   // sea
   m_layerData[0].color = QColor("#d4eaee");
   m_layerData[0].offset = 0;
-  m_layerData[0].strips = Strips();
+  m_layerData[0].elem.size = 0;
   // continents
   m_layerData[1].color = QColor("#faf1a4");
   m_layerData[1].offset = 0;
-  m_layerData[1].strips = Strips();
+  m_layerData[1].elem.size = 0;
   // lakes
   m_layerData[2].color = QColor("#9fc7fd");
   m_layerData[2].offset = 0;
-  m_layerData[2].strips = Strips();
+  m_layerData[2].elem.size = 0;
   // isles
   m_layerData[3].color = QColor("#faf1a4");
   m_layerData[3].offset = 0;
-  m_layerData[3].strips = Strips();
+  m_layerData[3].elem.size = 0;
   // ponds
   m_layerData[4].color = QColor("#9fc7fd");
   m_layerData[4].offset = 0;
-  m_layerData[4].strips = Strips();
+  m_layerData[4].elem.size = 0;
   // antarctica/ice
   m_layerData[5].color = QColor("#dddddd");
   m_layerData[5].offset = 0;
-  m_layerData[5].strips = Strips();
+  m_layerData[5].elem.size = 0;
   // antarctica/ground
   m_layerData[6].color = QColor("#84b496");
   m_layerData[6].offset = 0;
-  m_layerData[6].strips = Strips();
+  m_layerData[6].elem.size = 0;
 }
 
 

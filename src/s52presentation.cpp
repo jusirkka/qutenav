@@ -72,6 +72,7 @@ S52::Lookup* S52::FindLookup(const S57::Object* obj) {
     }
   }
   // symbology for unknowns
+  qDebug() << "No match for" << S52::GetClassInfo(code) << obj->name();
   return p->lookupTable[t][p->names["######"]][0];
 }
 

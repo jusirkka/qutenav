@@ -2,7 +2,6 @@
 
 #include <QString>
 #include <cmath>
-#include <QVector2D>
 #include <QVector>
 #include <QOpenGLFunctions>
 #include <glm/vec2.hpp>
@@ -190,11 +189,32 @@ public:
     m_wgs84Points << sw << se << ne << nw;
   }
 
+  Extent(const WGS84Point& sw,
+         const WGS84Point& ne)
+    : m_wgs84Points()
+  {
+    WGS84Point se = WGS84Point::fromLL(ne.lng(), sw.lat());
+    WGS84Point nw = WGS84Point::fromLL(sw.lng(), ne.lat());
+    m_wgs84Points << sw << se << ne << nw;
+  }
+
   const WGS84PointVector& corners() const {return m_wgs84Points;}
-  WGS84Point sw() const {return m_wgs84Points[0];}
-  WGS84Point se() const {return m_wgs84Points[1];}
-  WGS84Point ne() const {return m_wgs84Points[2];}
-  WGS84Point nw() const {return m_wgs84Points[3];}
+  WGS84Point sw() const {
+    if (m_wgs84Points.size() < 1) return WGS84Point();
+    return m_wgs84Points[0];
+  }
+  WGS84Point se() const {
+    if (m_wgs84Points.size() < 2) return WGS84Point();
+    return m_wgs84Points[1];
+  }
+  WGS84Point ne() const {
+    if (m_wgs84Points.size() < 3) return WGS84Point();
+    return m_wgs84Points[2];
+  }
+  WGS84Point nw() const {
+    if (m_wgs84Points.size() < 4) return WGS84Point();
+    return m_wgs84Points[3];
+  }
 
 private:
 

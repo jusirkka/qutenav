@@ -63,6 +63,7 @@ S57Chart::S57Chart(quint32 id, const QString& path)
 
   m_nativeProj = GeoProjection::CreateProjection(reader->geoprojection()->className());
   m_nativeProj->setReference(outline.reference());
+  m_nativeProj->setScaling(outline.scaling());
 
   S57::ObjectVector objects;
   GL::VertexVector vertices;

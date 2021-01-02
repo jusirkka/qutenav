@@ -259,15 +259,15 @@ command: LS '(' pstyle ',' INT ',' COLOR ')' {
 };
 
 pstyle: SOLID {
-  $$ = as_numeric(S52::Lookup::Line::Solid);
+  $$ = as_numeric(S52::LineType::Solid);
 };
 
 pstyle: DASHED {
-  $$ = as_numeric(S52::Lookup::Line::Dashed);
+  $$ = as_numeric(S52::LineType::Dashed);
 };
 
 pstyle: DOTTED {
-  $$ = as_numeric(S52::Lookup::Line::Dotted);
+  $$ = as_numeric(S52::LineType::Dotted);
 };
 
 command: LC '(' SYMBOL ')' {

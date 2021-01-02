@@ -178,6 +178,7 @@ public:
   }
   bool setGeometry(S57::Object* obj, S57::Geometry::Base* g, const QRectF& bb) const {
     if (obj->m_geometry != nullptr) {
+      // qDebug() << as_numeric(obj->m_geometry->type());
       return false;
     }
     obj->m_geometry = g;
@@ -188,16 +189,17 @@ public:
 
 }
 
-static GLsizei addIndices(GLuint first, GLuint mid1, GLuint mid2, bool reversed, GL::IndexVector& indices);
-static GLuint addAdjacent(GLuint base, GLuint next, GL::VertexVector& vertices);
-static QRectF computeBBox(const S57::ElementDataVector &elems,
-                          const GL::VertexVector& vertices,
-                          const GL::IndexVector& indices);
-static QPointF computeLineCenter(const S57::ElementDataVector &elems,
-                                 const GL::VertexVector& vertices,
-                                 const GL::IndexVector& indices);
+static GLsizei addIndices(GLuint first,
+                          GLuint mid1,
+                          GLuint mid2,
+                          bool reversed,
+                          GL::IndexVector& indices);
+static GLuint addAdjacent(GLuint endp,
+                          GLuint nbor,
+                          GL::VertexVector& vertices);
 static QPointF computeAreaCenter(const S57::ElementDataVector &elems,
-                                 const GL::VertexVector& vertices, GLsizei offset);
+                                 const GL::VertexVector& vertices,
+                                 GLsizei offset);
 
 
 void OsencReader::readChart(GL::VertexVector& vertices,
@@ -495,39 +497,23 @@ void OsencReader::readChart(GL::VertexVector& vertices,
         np = 3 * i + 2;
         i++;
       }
-      if (i < cnt) {
-        const GLuint last = connMap[geom[3 * i - 1]];
-        // account adjacency
-        const int adj = e.offset / sizeof(GLuint);
-        const GLuint first = indices[adj + 1];
-        if (last == first) {
-          indices[adj] = indices.last(); // prev
-          indices.append(last); // last real index
-          indices.append(indices[adj + 2]); // adjacent = next of first
-        } else {
-          indices[adj] = addAdjacent(first, indices[adj + 2], vertices);
-          indices.append(last);
-          indices.append(addAdjacent(last, indices.last(), vertices));
-        }
-        e.count += 2;
+      const GLuint last = connMap[geom[3 * i - 1]];
+      // account adjacency
+      const int adj = e.offset / sizeof(GLuint);
+      const GLuint first = indices[adj + 1];
+      if (last == first) {
+        indices[adj] = indices.last(); // prev
+        indices.append(last); // last real index
+        indices.append(indices[adj + 2]); // adjacent = next of first
+      } else {
+        auto prev = indices.last();
+        indices.append(last);
+        indices.append(addAdjacent(last, prev, vertices));
+        indices[adj] = addAdjacent(first, indices[adj + 2], vertices);
       }
+      e.count += 2;
       elems.append(e);
     }
-    const GLuint last = connMap[geom[geom.size() - 1]];
-    // account adjacency
-    const int adj = elems.last().offset / sizeof(GLuint);
-    const GLuint first = indices[adj + 1];
-    if (last == first) {
-      indices[adj] = indices.last(); // prev
-      indices.append(last); // last real index
-      indices.append(indices[adj + 2]); // adjacent = next of first
-    } else {
-      indices.append(last); // adjacent = same as last
-      indices[adj] = addAdjacent(first, indices[adj + 2], vertices);
-      indices.append(last);
-      indices.append(addAdjacent(last, indices.last(), vertices));
-    }
-    elems.last().count += 2;
   };
 
   auto triangleGeometry = [&vertices] (const TriangleHandle& geom, S57::ElementDataVector& elems) {
@@ -580,72 +566,31 @@ void OsencReader::readChart(GL::VertexVector& vertices,
 }
 
 
-static QRectF computeBBox(const S57::ElementDataVector &elems,
-                          const GL::VertexVector& vertices,
-                          const GL::IndexVector& indices) {
 
-  QPointF ur(-1.e15, -1.e15);
-  QPointF ll(1.e15, 1.e15);
-
-  for (const S57::ElementData& elem: elems) {
-    const int first = elem.offset / sizeof(GLuint);
-    for (uint i = 0; i < elem.count; i++) {
-      const int index = indices[first + i];
-      QPointF q(vertices[2 * index], vertices[2 * index + 1]);
-      ur.setX(qMax(ur.x(), q.x()));
-      ur.setY(qMax(ur.y(), q.y()));
-      ll.setX(qMin(ll.x(), q.x()));
-      ll.setY(qMin(ll.y(), q.y()));
+static GLsizei addIndices(GLuint first, GLuint mid1, GLuint mid2, bool reversed, GL::IndexVector& indices) {
+  indices.append(first);
+  if (!reversed) {
+    for (uint i = mid1; i <= mid2; i++) {
+      indices.append(i);
+    }
+  } else {
+    for (int i = mid2; i >= static_cast<int>(mid1); i--) {
+      indices.append(i);
     }
   }
-  return QRectF(ll, ur); // inverted y-axis
+  return 1 + mid2 - mid1 + 1;
 }
 
-static QPointF computeLineCenter(const S57::ElementDataVector &elems,
-                                 const GL::VertexVector& vertices,
-                                 const GL::IndexVector& indices) {
-  int first = elems[0].offset / sizeof(GLuint) + 1; // account adjacency
-  int last = first + elems[0].count - 3; // account adjacency
-  if (elems.size() > 1 || indices[first] == indices[last]) {
-    // several lines or closed loops: compute center of gravity
-    QPointF s(0, 0);
-    int n = 0;
-    for (auto& elem: elems) {
-      first = elem.offset / sizeof(GLuint) + 1; // account adjacency
-      last = first + elem.count - 3; // account adjacency
-      for (int i = first; i <= last; i++) {
-        const int index = indices[i];
-        s.rx() += vertices[2 * index + 0];
-        s.ry() += vertices[2 * index + 1];
-      }
-      n += elem.count - 2;
-    }
-    return s / n;
-  }
-  // single open line: compute mid point of running length
-  QVector<float> lengths;
-  float len = 0;
-  for (int i = first; i < last; i++) {
-    const int i1 = indices[i + 1];
-    const int i0 = indices[i];
-    const QPointF d(vertices[2 * i1] - vertices[2 * i0], vertices[2 * i1 + 1] - vertices[2 * i0 + 1]);
-    lengths.append(sqrt(QPointF::dotProduct(d, d)));
-    len += lengths.last();
-  }
-  const float halfLen = len / 2;
-  len = 0;
-  int i = 0;
-  while (i < lengths.size() && len < halfLen) {
-    len += lengths[i];
-    i++;
-  }
-  const int i1 = indices[first + i];
-  const int i0 = indices[first + i - 1];
-  const QPointF p1(vertices[2 * i1], vertices[2 * i1 + 1]);
-  const QPointF p0(vertices[2 * i0], vertices[2 * i0 + 1]);
-  return p0 + (len - halfLen) * (p1 - p0);
-
+static GLuint addAdjacent(GLuint endp, GLuint nbor, GL::VertexVector& vertices) {
+  const float x1 = vertices[2 * endp];
+  const float y1 = vertices[2 * endp + 1];
+  const float x2 = vertices[2 * nbor];
+  const float y2 = vertices[2 * nbor + 1];
+  vertices.append(2 * x1 - x2);
+  vertices.append(2 * y1 - y2);
+  return (vertices.size() - 1) / 2;
 }
+
 
 static QPointF computeAreaCenter(const S57::ElementDataVector &elems,
                                  const GL::VertexVector& vertices,
@@ -694,27 +639,5 @@ static QPointF computeAreaCenter(const S57::ElementDataVector &elems,
   return s / area;
 }
 
-static GLsizei addIndices(GLuint first, GLuint mid1, GLuint mid2, bool reversed, GL::IndexVector& indices) {
-  indices.append(first);
-  if (!reversed) {
-    for (uint i = mid1; i <= mid2; i++) {
-      indices.append(i);
-    }
-  } else {
-    for (int i = mid2; i >= static_cast<int>(mid1); i--) {
-      indices.append(i);
-    }
-  }
-  return 1 + mid2 - mid1 + 1;
-}
 
-static GLuint addAdjacent(GLuint base, GLuint next, GL::VertexVector& vertices) {
-  const float x1 = vertices[2 * base];
-  const float y1 = vertices[2 * base + 1];
-  const float x2 = vertices[2 * next];
-  const float y2 = vertices[2 * next + 1];
-  vertices.append(2 * x1 - x2);
-  vertices.append(2 * y1 - y2);
-  return (vertices.size() - 1) / 2;
-}
 

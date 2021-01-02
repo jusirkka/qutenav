@@ -22,10 +22,29 @@ S57ChartOutline::S57ChartOutline(const WGS84Point& sw,
   d->center = WGS84Point::fromLL(.5 * (nw.lng() + se.lng()),
                                  .5 * (nw.lat() + se.lat()));
 
+  d->scaling = QSizeF(1., 1.);
   d->scale = scale;
   d->pub = pub;
   d->mod = mod;
 }
+
+S57ChartOutline::S57ChartOutline(const WGS84Point& sw,
+                                 const WGS84Point& ne,
+                                 const WGS84Point& ref,
+                                 const QSizeF& scaling,
+                                 quint32 scale,
+                                 const QDate& pub,
+                                 const QDate& mod)
+  : d(new S57ChartOutlinePrivate)
+{
+  d->extent = Extent(sw, ne);
+  d->center = ref;
+  d->scaling = scaling;
+  d->scale = scale;
+  d->pub = pub;
+  d->mod = mod;
+}
+
 
 S57ChartOutline::S57ChartOutline(const S57ChartOutline& s)
   : d(s.d)
@@ -45,6 +64,10 @@ const Extent& S57ChartOutline::extent() const {
 
 const WGS84Point& S57ChartOutline::reference() const {
   return d->center;
+}
+
+const QSizeF& S57ChartOutline::scaling() const {
+  return d->scaling;
 }
 
 quint32 S57ChartOutline::scale() const {

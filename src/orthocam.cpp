@@ -1,4 +1,5 @@
 #include "orthocam.h"
+#include <QVector2D>
 
 OrthoCam::OrthoCam(float wmm, float hmm, GeoProjection* p)
   : Camera(p, hmm) {

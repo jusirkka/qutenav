@@ -68,6 +68,7 @@ target_sources(qopencpn
     src/chartmode.cpp
     src/chartpainter.cpp
     src/cm93reader.cpp
+    src/cm93presentation.cpp
     src/detailmode.cpp
     src/drawable.cpp
     src/geoprojection.cpp
@@ -97,7 +98,6 @@ target_sources(qopencpn
     src/symboldata.cpp
     src/textmanager.cpp
     src/tiny_sdf.cpp
-    src/triangleoptimizer.cpp
     src/types.cpp
     src/vectorsymbolmanager.cpp
     src/wfreader.cpp

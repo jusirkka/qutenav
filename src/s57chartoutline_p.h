@@ -15,12 +15,14 @@ struct S57ChartOutlinePrivate: public QSharedData {
     : QSharedData(d)
     , extent(d.extent.sw(), d.extent.se(), d.extent.nw(), d.extent.ne())
     , center(d.center)
+    , scaling(d.scaling)
     , scale(d.scale)
     , pub(d.pub)
     , mod(d.mod) {}
 
   Extent extent;
   WGS84Point center;
+  QSizeF scaling;
   quint32 scale;
   QDate pub;
   QDate mod;

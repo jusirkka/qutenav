@@ -11,6 +11,10 @@
 
 class QOpenGLBuffer;
 
+namespace CM93 {
+class ObjectBuilder;
+}
+
 namespace S57 {
 
 class Attribute {
@@ -160,7 +164,12 @@ private:
 
 class Area: public Line {
 public:
-  Area(const ElementDataVector& lelems, const QPointF& c, const ElementDataVector& telems, GLsizei vo, bool indexed, const GeoProjection* proj)
+  Area(const ElementDataVector& lelems,
+       const QPointF& c,
+       const ElementDataVector& telems,
+       GLsizei vo,
+       bool indexed,
+       const GeoProjection* proj)
     : Line(lelems, c, vo, proj)
     , m_triangleElements(telems)
     , m_indexed(indexed)
@@ -657,9 +666,11 @@ using PaintMutIterator = QMultiMap<PaintData::Type, PaintData*>::iterator;
 
 class ObjectBuilder;
 
+
 class Object {
 
-  friend class ObjectBuilder;
+  friend class S57::ObjectBuilder;
+  friend class CM93::ObjectBuilder;
 
 public:
 

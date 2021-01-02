@@ -36,9 +36,6 @@ void WFReader::parse(const QString &path) {
     qWarning() << e.msg() << e.row() << e.col();
   }
 
-  m_stripper = AC::TriangleOptimizer(m_triangles);
-
-
 }
 
 void WFReader::reset() {

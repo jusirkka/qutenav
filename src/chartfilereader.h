@@ -24,5 +24,15 @@ public:
   virtual const GeoProjection* geoprojection() const = 0;
 
   virtual ~ChartFileReader() = default;
+
+protected:
+  static QRectF computeBBox(const S57::ElementDataVector &elems,
+                            const GL::VertexVector& vertices,
+                            const GL::IndexVector& indices);
+
+  static QPointF computeLineCenter(const S57::ElementDataVector &elems,
+                                   const GL::VertexVector& vertices,
+                                   const GL::IndexVector& indices);
+
 };
 
