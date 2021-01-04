@@ -501,7 +501,7 @@ S57ChartOutline CM93Reader::readOutline(const QString& path) const {
   // records with class _m_sor have user offsets and publish dates
   while (true) {
     auto classCode = read_and_decode<quint8>(stream);
-    qDebug() << "[class]" << CM93::GetClassInfo(classCode);
+    // qDebug() << "[class]" << CM93::GetClassInfo(classCode);
     auto objCode = read_and_decode<quint8>(stream);
     auto n_bytes = read_and_decode<quint16>(stream);
     if (classCode != m_m_sor) {
@@ -606,7 +606,6 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
   // 3d point table: n_p3d_records * 2 = number of pts in a record
   // + n_p3d_record_points * 6 = total number of 3d points
   auto n_p3d_records = read_and_decode<quint16>(stream);
-  // n_p3d_record_points
 
   // auto n_p3d_record_points = read_and_decode<quint32>(stream);
   // auto m_54 = read_and_decode<quint32>(stream);
@@ -620,7 +619,7 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
   // qDebug() << "m_5a" << m_5a;
   // auto m_5c = read_and_decode<quint16>(stream);
   // qDebug() << "m_5c" << m_5c;
-  stream.skipRawData(8);
+  stream.skipRawData(4);
 
   auto n_feat_records = read_and_decode<quint16>(stream);
 
@@ -803,7 +802,8 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
       n_bytes -= 2;
       break;
     }
-    default: /* noop */ ;
+    default:
+      helper.setGeometry(object, new S57::Geometry::Meta(), QRectF());
     }
 
     if (geoFlags & RelatedBit1) {

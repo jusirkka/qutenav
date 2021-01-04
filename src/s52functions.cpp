@@ -203,7 +203,7 @@ S57::PaintDataMap S52::PointSymbol::execute(const QVector<QVariant>& vals,
 S57::PaintDataMap S52::Text::execute(const QVector<QVariant>& vals,
                                      const S57::Object* obj) {
 
-  const QString txt = vals[0].toString();
+  QString txt = vals[0].toString();
   if (txt.isEmpty()) {
     return S57::PaintDataMap();
   }
@@ -228,8 +228,11 @@ S57::PaintDataMap S52::Text::execute(const QVector<QVariant>& vals,
     qWarning() << "TX: text spacing type" << as_numeric(space)<< "not implemented";
     return S57::PaintDataMap();
   }
-  // we do not actually wrap although TXT::Space::Wrapped is accepted
-  Q_ASSERT(txt.length() < 132);
+  // TODO: we do not actually wrap although TXT::Space::Wrapped is accepted
+  if (txt.length() > 80) {
+    qWarning() << "Cutting long text" << txt;
+    txt = txt.mid(80);
+  }
   const TextData d = TextManager::instance()->textData(txt, weight);
   if (!d.isValid()) {
     return S57::PaintDataMap();

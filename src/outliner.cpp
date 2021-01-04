@@ -11,42 +11,48 @@
 
 Outliner::Outliner(QObject* parent)
   : Drawable(parent)
+  , m_coordBuffer(QOpenGLBuffer::VertexBuffer)
+  , m_program(nullptr)
   , m_manager(ChartManager::instance())
 {}
 
 void Outliner::initializeGL() {
-  m_program = new QOpenGLShaderProgram(this);
+  if (m_program == nullptr) {
+    m_program = new QOpenGLShaderProgram(this);
 
-  struct Source {
-    QOpenGLShader::ShaderTypeBit stype;
-    QString fname;
-  };
-  const QVector<Source> sources{
-    {QOpenGLShader::Vertex, ":/shaders/outliner.vert"},
-    {QOpenGLShader::Geometry, ":/shaders/outliner.geom"},
-    {QOpenGLShader::Fragment, ":/shaders/outliner.frag"},
-  };
+    struct Source {
+      QOpenGLShader::ShaderTypeBit stype;
+      QString fname;
+    };
+    const QVector<Source> sources{
+      {QOpenGLShader::Vertex, ":/shaders/outliner.vert"},
+      {QOpenGLShader::Geometry, ":/shaders/outliner.geom"},
+      {QOpenGLShader::Fragment, ":/shaders/outliner.frag"},
+    };
 
-  for (const Source& s: sources) {
-    if (!m_program->addCacheableShaderFromSourceFile(s.stype, s.fname)) {
-      qFatal("Failed to compile %s: %s", s.fname.toUtf8().data(), m_program->log().toUtf8().data());
+    for (const Source& s: sources) {
+      if (!m_program->addCacheableShaderFromSourceFile(s.stype, s.fname)) {
+        qFatal("Failed to compile %s: %s", s.fname.toUtf8().data(), m_program->log().toUtf8().data());
+      }
     }
-  }
 
-  if (!m_program->link()) {
-    qFatal("Failed to link the outliner program: %s", m_program->log().toUtf8().data());
+    if (!m_program->link()) {
+      qFatal("Failed to link the outliner program: %s", m_program->log().toUtf8().data());
+    }
+
+    m_coordBuffer.create();
+    m_coordBuffer.setUsagePattern(QOpenGLBuffer::DynamicDraw);
+
+    // locations
+    m_program->bind();
+    m_locations.base_color = m_program->uniformLocation("base_color");
+    m_locations.m_pv = m_program->uniformLocation("m_pv");
+    m_locations.center = m_program->uniformLocation("center");
+    m_locations.angle = m_program->uniformLocation("angle");
+
   }
 
   updateBuffers();
-
-  // locations
-  m_program->bind();
-  m_locations.base_color = m_program->uniformLocation("base_color");
-  m_locations.m_pv = m_program->uniformLocation("m_pv");
-  m_locations.center = m_program->uniformLocation("center");
-  m_locations.angle = m_program->uniformLocation("angle");
-
-
 }
 
 void Outliner::updateCharts(const Camera* /*cam*/, const QRectF& /*viewArea*/) {
@@ -87,10 +93,6 @@ void Outliner::paintGL(const Camera* cam) {
 
 
 void Outliner::updateBuffers() {
-  if (!m_coordBuffer.isCreated()) {
-    m_coordBuffer.create();
-    m_coordBuffer.setUsagePattern(QOpenGLBuffer::DynamicDraw);
-  }
   m_coordBuffer.bind();
 
   const int cnt = m_manager->outlines().size() / 8;

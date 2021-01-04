@@ -5,6 +5,7 @@
 #include "s57object.h"
 #include "s52presentation.h"
 #include <QOpenGLBuffer>
+#include <QMatrix4x4>
 
 
 
@@ -20,6 +21,8 @@ class S57Chart: public QObject {
 public:
 
   S57Chart(quint32 id, const QString& path);
+
+  void updateModelTransform(const Camera* cam);
 
   void drawAreas(const Camera* cam, int prio);
   void drawSolidLines(const Camera* cam, int prio);
@@ -87,6 +90,8 @@ private:
   QOpenGLBuffer m_transformBuffer;
   GLsizei m_staticVertexOffset;
   GLsizei m_staticElemOffset;
+
+  QMatrix4x4 m_modelMatrix;
 
 };
 

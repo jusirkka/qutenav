@@ -137,6 +137,10 @@ void ChartPainter::updateCharts(const Camera* cam, const QRectF& viewArea) {
 
   f->glViewport(0, 0, bufSize.width(), bufSize.height());
 
+  for (S57Chart* chart: m_manager->charts()) {
+    chart->updateModelTransform(bufCam);
+  }
+
   // draw opaque objects nearest (highest priority) first
   for (int i = S52::Lookup::PriorityCount - 1; i >= 0; i--) {
     m_vectorShader->initializePaint();

@@ -43,9 +43,9 @@ GL::AreaShader* GL::AreaShader::instance() {
   return shader;
 }
 
-void GL::AreaShader::setGlobals(const Camera *cam, const QPointF &tr) {
+void GL::AreaShader::setGlobals(const Camera *cam, const QMatrix4x4 &mt) {
   m_program->setUniformValue(m_locations.m_p, cam->projection());
-  m_program->setUniformValue(m_locations.tr, tr);
+  m_program->setUniformValue(m_locations.m_model, mt);
 }
 
 
@@ -55,7 +55,7 @@ GL::AreaShader::AreaShader()
 {
   m_locations.base_color = m_program->uniformLocation("base_color");
   m_locations.m_p = m_program->uniformLocation("m_p");
-  m_locations.tr = m_program->uniformLocation("tr");
+  m_locations.m_model = m_program->uniformLocation("m_model");
 }
 
 GL::SolidLineShader* GL::SolidLineShader::instance() {
@@ -63,9 +63,9 @@ GL::SolidLineShader* GL::SolidLineShader::instance() {
   return shader;
 }
 
-void GL::SolidLineShader::setGlobals(const Camera *cam, const QPointF &tr) {
+void GL::SolidLineShader::setGlobals(const Camera *cam, const QMatrix4x4 &mt) {
   m_program->setUniformValue(m_locations.m_p, cam->projection());
-  m_program->setUniformValue(m_locations.tr, tr);
+  m_program->setUniformValue(m_locations.m_model, mt);
   const float s = .5 * cam->heightMM() * dots_per_mm_y * cam->projection()(1, 1);
   m_program->setUniformValue(m_locations.windowScale, s);
 }
@@ -77,7 +77,7 @@ GL::SolidLineShader::SolidLineShader()
             {QOpenGLShader::Fragment, ":/shaders/chartpainter.frag"}}, .02)
 {
   m_locations.m_p = m_program->uniformLocation("m_p");
-  m_locations.tr = m_program->uniformLocation("tr");
+  m_locations.m_model = m_program->uniformLocation("m_model");
   m_locations.windowScale = m_program->uniformLocation("windowScale");
   m_locations.lineWidth = m_program->uniformLocation("lineWidth");
   m_locations.base_color = m_program->uniformLocation("base_color");
@@ -90,9 +90,9 @@ GL::DashedLineShader* GL::DashedLineShader::instance() {
 }
 
 
-void GL::DashedLineShader::setGlobals(const Camera *cam, const QPointF &tr) {
+void GL::DashedLineShader::setGlobals(const Camera *cam, const QMatrix4x4 &mt) {
   m_program->setUniformValue(m_locations.m_p, cam->projection());
-  m_program->setUniformValue(m_locations.tr, tr);
+  m_program->setUniformValue(m_locations.m_model, mt);
   const float s = .5 * cam->heightMM() * dots_per_mm_y * cam->projection()(1, 1);
   m_program->setUniformValue(m_locations.windowScale, s);
   m_program->setUniformValue(m_locations.patlen, linePatlen);
@@ -106,7 +106,7 @@ GL::DashedLineShader::DashedLineShader()
             {QOpenGLShader::Fragment, ":/shaders/chartpainter-dashed.frag"}}, .02)
 {
   m_locations.m_p = m_program->uniformLocation("m_p");
-  m_locations.tr = m_program->uniformLocation("tr");
+  m_locations.m_model = m_program->uniformLocation("m_model");
   m_locations.windowScale = m_program->uniformLocation("windowScale");
   m_locations.lineWidth = m_program->uniformLocation("lineWidth");
   m_locations.base_color = m_program->uniformLocation("base_color");
@@ -121,9 +121,9 @@ GL::TextShader* GL::TextShader::instance() {
   return shader;
 }
 
-void GL::TextShader::setGlobals(const Camera *cam, const QPointF &tr) {
+void GL::TextShader::setGlobals(const Camera *cam, const QMatrix4x4 &mt) {
   m_program->setUniformValue(m_locations.m_p, cam->projection());
-  m_program->setUniformValue(m_locations.tr, tr);
+  m_program->setUniformValue(m_locations.m_model, mt);
   const float s = .5 * cam->heightMM() * dots_per_mm_y * cam->projection()(1, 1);
   m_program->setUniformValue(m_locations.windowScale, s);
   m_program->setUniformValue(m_locations.w_atlas, TextManager::instance()->atlasWidth());
@@ -136,7 +136,7 @@ GL::TextShader::TextShader()
             {QOpenGLShader::Fragment, ":/shaders/chartpainter-text.frag"}}, .04)
 {
   m_locations.m_p = m_program->uniformLocation("m_p");
-  m_locations.tr = m_program->uniformLocation("tr");
+  m_locations.m_model = m_program->uniformLocation("m_model");
   m_locations.w_atlas = m_program->uniformLocation("w_atlas");
   m_locations.h_atlas = m_program->uniformLocation("h_atlas");
   m_locations.windowScale = m_program->uniformLocation("windowScale");
@@ -160,9 +160,9 @@ GL::RasterSymbolShader* GL::RasterSymbolShader::instance() {
   return shader;
 }
 
-void GL::RasterSymbolShader::setGlobals(const Camera *cam, const QPointF &tr) {
+void GL::RasterSymbolShader::setGlobals(const Camera *cam, const QMatrix4x4 &mt) {
   m_program->setUniformValue(m_locations.m_p, cam->projection());
-  m_program->setUniformValue(m_locations.tr, tr);
+  m_program->setUniformValue(m_locations.m_model, mt);
   const float s = .5 * cam->heightMM() * dots_per_mm_y * cam->projection()(1, 1);
   m_program->setUniformValue(m_locations.windowScale, s);
 
@@ -178,7 +178,7 @@ GL::RasterSymbolShader::RasterSymbolShader()
             {QOpenGLShader::Fragment, ":/shaders/chartpainter-texture.frag"}}, .03)
 {
   m_locations.m_p = m_program->uniformLocation("m_p");
-  m_locations.tr = m_program->uniformLocation("tr");
+  m_locations.m_model = m_program->uniformLocation("m_model");
   m_locations.windowScale = m_program->uniformLocation("windowScale");
   m_locations.offset = m_program->uniformLocation("offset");
 }
@@ -198,9 +198,9 @@ GL::VectorSymbolShader* GL::VectorSymbolShader::instance() {
   return shader;
 }
 
-void GL::VectorSymbolShader::setGlobals(const Camera *cam, const QPointF &tr) {
+void GL::VectorSymbolShader::setGlobals(const Camera *cam, const QMatrix4x4 &mt) {
   m_program->setUniformValue(m_locations.m_p, cam->projection());
-  m_program->setUniformValue(m_locations.tr, tr);
+  m_program->setUniformValue(m_locations.m_model, mt);
 
   // Vector symbol data specified in .01 mm units
   const float s = 100 * cam->heightMM() * cam->projection()(1, 1);
@@ -215,7 +215,7 @@ GL::VectorSymbolShader::VectorSymbolShader()
             {QOpenGLShader::Fragment, ":/shaders/chartpainter.frag"}}, .03)
 {
   m_locations.m_p = m_program->uniformLocation("m_p");
-  m_locations.tr = m_program->uniformLocation("tr");
+  m_locations.m_model = m_program->uniformLocation("m_model");
   m_locations.base_color = m_program->uniformLocation("base_color");
   m_locations.windowScale = m_program->uniformLocation("windowScale");
 }
@@ -234,7 +234,7 @@ GL::TextureShader* GL::TextureShader::instance() {
   return shader;
 }
 
-void GL::TextureShader::setGlobals(const Camera */*cam*/, const QPointF &/*tr*/) {
+void GL::TextureShader::setGlobals(const Camera */*cam*/, const QMatrix4x4 &/*mt*/) {
   // noop
 }
 

@@ -324,6 +324,16 @@ qreal S57Chart::scaleFactor(const WGS84Point &sw, const WGS84Point &ne,
   return 1000. * (nw - sw).meters() / scale * dots_per_mm_y / va.height();
 }
 
+void S57Chart::updateModelTransform(const Camera *cam) {
+  // TODO this works only for mercator projections.
+  // Do linear approximation in general case.
+  m_modelMatrix.setToIdentity();
+  const QPointF p = cam->geoprojection()->fromWGS84(geoProjection()->reference());
+  m_modelMatrix.translate(p.x(), p.y());
+  if (geoProjection()->className() == "CM93Mercator") {
+    m_modelMatrix.scale(CM93Mercator::scale, CM93Mercator::scale);
+  }
+}
 
 void S57Chart::drawAreas(const Camera* cam, int prio) {
 
@@ -332,8 +342,7 @@ void S57Chart::drawAreas(const Camera* cam, int prio) {
 
   auto prog = GL::AreaShader::instance();
 
-  const QPointF p = cam->geoprojection()->fromWGS84(geoProjection()->reference());
-  prog->setGlobals(cam, p);
+  prog->setGlobals(cam, m_modelMatrix);
   prog->setDepth(prio);
 
 
@@ -375,8 +384,7 @@ void S57Chart::drawSolidLines(const Camera* cam, int prio) {
 
   auto prog = GL::SolidLineShader::instance();
 
-  const QPointF p = cam->geoprojection()->fromWGS84(geoProjection()->reference());
-  prog->setGlobals(cam, p);
+  prog->setGlobals(cam, m_modelMatrix);
   prog->setDepth(prio);
 
 
@@ -416,8 +424,7 @@ void S57Chart::drawDashedLines(const Camera* cam, int prio) {
   m_indexBuffer.bind();
 
   auto prog = GL::DashedLineShader::instance();
-  const QPointF p = cam->geoprojection()->fromWGS84(geoProjection()->reference());
-  prog->setGlobals(cam, p);
+  prog->setGlobals(cam, m_modelMatrix);
   prog->setDepth(prio);
 
   auto f = QOpenGLContext::currentContext()->extraFunctions();
@@ -458,8 +465,7 @@ void S57Chart::drawText(const Camera* cam, int prio) {
 
   auto prog = GL::TextShader::instance();
 
-  const QPointF p = cam->geoprojection()->fromWGS84(geoProjection()->reference());
-  prog->setGlobals(cam, p);
+  prog->setGlobals(cam, m_modelMatrix);
   prog->setDepth(prio);
 
   auto f = QOpenGLContext::currentContext()->extraFunctions();
@@ -483,8 +489,7 @@ void S57Chart::drawRasterSymbols(const Camera* cam, int prio) {
 
   auto prog = GL::RasterSymbolShader::instance();
 
-  const QPointF p = cam->geoprojection()->fromWGS84(geoProjection()->reference());
-  prog->setGlobals(cam, p);
+  prog->setGlobals(cam, m_modelMatrix);
   prog->setDepth(prio);
 
   auto f = QOpenGLContext::currentContext()->extraFunctions();
@@ -514,8 +519,7 @@ void S57Chart::drawVectorSymbols(const Camera* cam, int prio) {
 
   auto prog = GL::VectorSymbolShader::instance();
 
-  const QPointF p = cam->geoprojection()->fromWGS84(geoProjection()->reference());
-  prog->setGlobals(cam, p);
+  prog->setGlobals(cam, m_modelMatrix);
   prog->setDepth(prio);
 
   auto f = QOpenGLContext::currentContext()->extraFunctions();
@@ -559,8 +563,6 @@ void S57Chart::drawVectorSymbols(const Camera* cam, int prio) {
 
 void S57Chart::drawRasterPatterns(const Camera *cam) {
 
-  const QPointF p = cam->geoprojection()->fromWGS84(geoProjection()->reference());
-
   auto f = QOpenGLContext::currentContext()->extraFunctions();
   f->glEnable(GL_STENCIL_TEST);
   f->glDisable(GL_DEPTH_TEST);
@@ -580,7 +582,7 @@ void S57Chart::drawRasterPatterns(const Camera *cam) {
       GL::Shader* prog = GL::AreaShader::instance();
       prog->initializePaint();
       prog->setDepth(prio);
-      prog->setGlobals(cam, p);
+      prog->setGlobals(cam, m_modelMatrix);
 
       f->glStencilFunc(GL_ALWAYS, 1, 0xff);
       f->glStencilOp(GL_KEEP, GL_REPLACE, GL_REPLACE);
@@ -611,7 +613,7 @@ void S57Chart::drawRasterPatterns(const Camera *cam) {
       prog = GL::RasterSymbolShader::instance();
       prog->initializePaint();
       prog->setDepth(prio);
-      prog->setGlobals(cam, p);
+      prog->setGlobals(cam, m_modelMatrix);
 
       d->setUniforms();
       m_pivotBuffer.bind();
@@ -638,8 +640,6 @@ void S57Chart::drawRasterPatterns(const Camera *cam) {
 
 void S57Chart::drawVectorPatterns(const Camera *cam) {
 
-  const QPointF p = cam->geoprojection()->fromWGS84(geoProjection()->reference());
-
   auto f = QOpenGLContext::currentContext()->extraFunctions();
   f->glEnable(GL_STENCIL_TEST);
   f->glDisable(GL_DEPTH_TEST);
@@ -659,7 +659,7 @@ void S57Chart::drawVectorPatterns(const Camera *cam) {
       GL::Shader* prog = GL::AreaShader::instance();
       prog->initializePaint();
       prog->setDepth(prio);
-      prog->setGlobals(cam, p);
+      prog->setGlobals(cam, m_modelMatrix);
 
       f->glStencilFunc(GL_ALWAYS, 1, 0xff);
       f->glStencilOp(GL_KEEP, GL_REPLACE, GL_REPLACE);
@@ -690,7 +690,7 @@ void S57Chart::drawVectorPatterns(const Camera *cam) {
       prog = GL::VectorSymbolShader::instance();
       prog->initializePaint();
       prog->setDepth(prio);
-      prog->setGlobals(cam, p);
+      prog->setGlobals(cam, m_modelMatrix);
 
       d->setUniforms();
       m_transformBuffer.bind();

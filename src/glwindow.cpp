@@ -12,6 +12,7 @@
 #include "glcontext.h"
 #include <QGuiApplication>
 #include <QScreen>
+#include "conf_mainwindow.h"
 
 GLWindow::GLWindow()
   : QOpenGLWindow()
@@ -69,6 +70,10 @@ void GLWindow::initializeGL() {
   }
   m_vao.bind();
 
+  if (ChartManager::instance()->outlines().isEmpty()) {
+    ChartManager::instance()->setChartSet(Conf::MainWindow::chartset(),
+                                          m_mode->camera()->geoprojection());
+  }
 
   for (Drawable* chart: m_mode->drawables()) {
     chart->initializeGL();

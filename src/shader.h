@@ -24,7 +24,7 @@ public:
   QOpenGLShaderProgram* prog() {return m_program;}
   void setDepth(int prio);
 
-  virtual void setGlobals(const Camera* cam, const QPointF& tr) = 0;
+  virtual void setGlobals(const Camera* cam, const QMatrix4x4& mt) = 0;
   virtual void initializePaint();
 
   virtual ~Shader();
@@ -53,14 +53,14 @@ class AreaShader: public Shader {
 
 public:
   static AreaShader* instance();
-  void setGlobals(const Camera* cam, const QPointF& tr) override;
+  void setGlobals(const Camera* cam, const QMatrix4x4& mt) override;
 
 private:
   AreaShader();
 
   struct _locations {
     int m_p;
-    int tr;
+    int m_model;
     int base_color;
   } m_locations;
 
@@ -72,14 +72,14 @@ class SolidLineShader: public Shader {
 
 public:
   static SolidLineShader* instance();
-  void setGlobals(const Camera* cam, const QPointF& t0) override;
+  void setGlobals(const Camera* cam, const QMatrix4x4& mt) override;
 
 private:
   SolidLineShader();
 
   struct _locations {
     int m_p;
-    int tr;
+    int m_model;
     int windowScale;
     int lineWidth;
     int base_color;
@@ -93,7 +93,7 @@ class DashedLineShader: public Shader {
 
 public:
   static DashedLineShader* instance();
-  void setGlobals(const Camera* cam, const QPointF& t0) override;
+  void setGlobals(const Camera* cam, const QMatrix4x4& mt) override;
 
 private:
   DashedLineShader();
@@ -103,7 +103,7 @@ private:
 
   struct _locations {
     int m_p;
-    int tr;
+    int m_model;
     int windowScale;
     int lineWidth;
     int base_color;
@@ -119,7 +119,7 @@ class TextShader: public Shader {
 
 public:
   static TextShader* instance();
-  void setGlobals(const Camera* cam, const QPointF& t0) override;
+  void setGlobals(const Camera* cam, const QMatrix4x4& mt) override;
   void initializePaint() override;
 
 private:
@@ -127,7 +127,7 @@ private:
 
   struct _locations {
     int m_p;
-    int tr;
+    int m_model;
     int w_atlas;
     int h_atlas;
     int windowScale;
@@ -144,7 +144,7 @@ class RasterSymbolShader: public Shader {
 
 public:
   static RasterSymbolShader* instance();
-  void setGlobals(const Camera* cam, const QPointF& t0) override;
+  void setGlobals(const Camera* cam, const QMatrix4x4& mt) override;
   void initializePaint() override;
 
 private:
@@ -152,7 +152,7 @@ private:
 
   struct _locations {
     int m_p;
-    int tr;
+    int m_model;
     int windowScale;
     int offset;
   } m_locations;
@@ -164,7 +164,7 @@ class VectorSymbolShader: public Shader {
 
 public:
   static VectorSymbolShader* instance();
-  void setGlobals(const Camera* cam, const QPointF& t0) override;
+  void setGlobals(const Camera* cam, const QMatrix4x4& mt) override;
   void initializePaint() override;
 
 private:
@@ -172,7 +172,7 @@ private:
 
   struct _locations {
     int m_p;
-    int tr;
+    int m_model;
     int base_color;
     int windowScale;
   } m_locations;
@@ -183,7 +183,7 @@ class TextureShader: public Shader {
 
 public:
   static TextureShader* instance();
-  void setGlobals(const Camera* cam, const QPointF& t0) override;
+  void setGlobals(const Camera* cam, const QMatrix4x4& mt) override;
   void initializePaint() override;
   void setUniforms(const Camera *cam,
                    const WGS84Point& ref,

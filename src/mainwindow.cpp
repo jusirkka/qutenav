@@ -10,6 +10,7 @@
 #include <QStatusBar>
 #include <QMenu>
 #include "chartmanager.h"
+#include <QMenuBar>
 
 MainWindow::MainWindow()
   : KXmlGuiWindow()
@@ -26,11 +27,19 @@ MainWindow::MainWindow()
   QMetaObject::connectSlotsByName(this);
   readSettings();
 
-  auto chartmenu = actionCollection()->action("charts")->menu();
+  QList<QAction*>::const_iterator p = std::find_if(menuBar()->actions().cbegin(),
+                                                   menuBar()->actions().cend(),
+                                                   [] (const QAction* a) {
+    return a->objectName() == "charts";
+  });
+  auto chartmenu = (*p)->menu();
+
   auto chartgroup = new QActionGroup(this);
   auto chartsets = ChartManager::instance()->chartSets();
   for (auto s: chartsets) {
     auto a = new QAction(this);
+    a->setText(s);
+    a->setCheckable(true);
     chartgroup->addAction(a);
     chartmenu->addAction(a);
     actionCollection()->addAction(s, a);
@@ -44,6 +53,9 @@ MainWindow::MainWindow()
     auto sel = Conf::MainWindow::chartset();
     if (!chartsets.contains(sel)) sel = chartsets.first();
     actionCollection()->action(sel)->setChecked(true);
+    // save the chart set name for initialization in glwindow
+    Conf::MainWindow::setChartset(sel);
+    Conf::MainWindow::self()->save();
   }
 }
 

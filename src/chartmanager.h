@@ -159,7 +159,7 @@ private:
     WGS84Point ref;
   };
 
-  void createOutline(const GeoProjection* p, const ChartInfo& info);
+  void createOutline(const WGS84Point& sw, const WGS84Point& ne);
 
   using ChartInfoVector = QVector<ChartInfo>;
   using IDVector = QVector<quint32>;

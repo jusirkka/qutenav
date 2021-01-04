@@ -39,7 +39,7 @@ float_3         {num}[Ee]{num}
 float           {float_1}|{float_2}|{float_3}
 singlechar      [\(\);,=]
 
-classname      [A-Za-z$][A-Za-z$_0-9]{5}
+classname      [A-Za-z$_][A-Za-z$_0-9]{5}
 symbolname     {classname}[A-Za-z$_0-9][0-9]
 colorname      [A-Za-z$][A-Za-z$_0-9]{4}
 charspec       \'[1-2][4-6][0-2][0-9]+\'

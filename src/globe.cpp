@@ -14,6 +14,7 @@ Globe::Globe(QObject *parent)
   : Drawable(parent)
   , m_coordBuffer(QOpenGLBuffer::VertexBuffer)
   , m_indexBuffer(QOpenGLBuffer::IndexBuffer)
+  , m_program(nullptr)
 {
 
   QStringList charts;
@@ -65,6 +66,8 @@ Globe::Globe(QObject *parent)
 }
 
 void Globe::initializeGL() {
+  if (m_program != nullptr) return;
+
   m_program = new QOpenGLShaderProgram(this);
 
   struct Source {

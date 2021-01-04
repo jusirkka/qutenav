@@ -61,6 +61,8 @@ public:
   // From opencpn / cm93.h
   static constexpr double zC = 6378388.0;
 
+  static constexpr double scale = WGS84Point::semimajor_axis * 0.9996 / zC;
+
 private:
 
 

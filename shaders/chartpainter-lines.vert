@@ -2,8 +2,8 @@
 layout (location = 0) in vec2 vertex;
 
 uniform float depth;
-uniform vec2 tr;
+uniform mat4 m_model;
 
 void main(void) {
-  gl_Position = vec4(vertex + tr, depth, 1.);
+  gl_Position = m_model * vec4(vertex, depth, 1.);
 }
