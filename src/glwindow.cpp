@@ -204,15 +204,10 @@ void GLWindow::zoomIn() {
   const qint32 i = qint32((log10(s/s_min)) * div + .5) - 1;
   const quint32 scale = s_min * exp10(i / div);
 
-  if (i < 0) {
-    initializeChartMode();
-  }
-
-  if (ChartManager::instance()->isValidScale(m_mode->camera(), scale)) {
+  if (scale > m_mode->camera()->minScale()) {
     m_mode->camera()->setScale(scale);
     emit updateViewport(m_mode->camera());
   }
-
   update();
 }
 
@@ -221,10 +216,6 @@ void GLWindow::zoomOut() {
   const float div = 10;
   const quint32 i = quint32((log10(m_mode->camera()->scale() / s_min)) * div + .5) + 1;
   const float scale = s_min * exp10(i / div);
-
-  if (scale > m_mode->camera()->maxScale()) {
-    finalizeChartMode();
-  }
 
   if (scale < m_mode->camera()->maxScale()) {
     m_mode->camera()->setScale(scale);
@@ -235,6 +226,7 @@ void GLWindow::zoomOut() {
 }
 
 void GLWindow::initializeChartMode() {
+  qDebug() << "Initialize chart mode";
   DetailMode* mode = m_mode->smallerScaleMode();
   if (mode == nullptr) return;
   delete m_mode;
@@ -242,9 +234,11 @@ void GLWindow::initializeChartMode() {
   makeCurrent();
   initializeGL();
   doneCurrent();
+  emit updateViewport(m_mode->camera());
 }
 
 void GLWindow::finalizeChartMode() {
+  qDebug() << "Finalize chart mode";
   DetailMode* mode = m_mode->largerScaleMode();
   if (mode == nullptr) return;
   delete m_mode;
@@ -252,6 +246,7 @@ void GLWindow::finalizeChartMode() {
   makeCurrent();
   initializeGL();
   doneCurrent();
+  emit updateViewport(m_mode->camera());
 }
 
 void GLWindow::northUp() {

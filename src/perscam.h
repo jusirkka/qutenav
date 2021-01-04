@@ -19,6 +19,7 @@ public:
   Angle northAngle() const override;
   quint32 maxScale() const override;
   quint32 minScale() const override;
+  QRectF boundingBox() const override;
 
   ~PersCam() = default;
 

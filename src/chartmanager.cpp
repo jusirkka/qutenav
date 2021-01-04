@@ -37,8 +37,10 @@ ChartManager::Database::Database() {
              "id integer primary key autoincrement, "
              "chartset integer not null, "
              "scale integer not null, "
-             "sw text not null, "
-             "ne text not null, "
+             "swx real not null, "
+             "swy real not null, "
+             "nex real not null, "
+             "ney real not null, "
              "published int not null, " // Julian day
              "modified int not null, "  // Julian day
              "path text not null unique)");
@@ -157,6 +159,125 @@ ChartFileReader* ChartManager::createReader(const QString &name) const {
   return nullptr;
 }
 
+void ChartManager::fillChartsTable() {
+
+  QStringList locs;
+  for (const QString& loc: QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation)) {
+    locs << QString("%1/qopencpn/charts/%2").arg(loc).arg(m_reader->name());
+  }
+
+  QSqlQuery r1 = m_db.prepare("select id "
+                              "from chartsets "
+                              "where name=?");
+  r1.bindValue(0, QVariant::fromValue(m_reader->name()));
+  m_db.exec(r1);
+  uint setid = 0;
+  while (r1.next()) {
+    setid = r1.value(0).toUInt();
+  }
+
+
+  QVector<quint32> oldCharts;
+  QSqlQuery r2 = m_db.prepare("select id "
+                              "from charts "
+                              "where chartset=?");
+  r2.bindValue(0, QVariant::fromValue(setid));
+  m_db.exec(r2);
+  while (r2.next()) {
+    oldCharts.append(r2.value(0).toUInt());
+  }
+
+  if (!m_db.transaction()) {
+    qWarning() << "Cannot create db transaction, not updating";
+    return;
+  }
+
+  for (const QString& loc: locs) {
+    QDirIterator it(loc, m_filters[m_reader->name()], QDir::Files | QDir::Readable,
+                    QDirIterator::FollowSymlinks | QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+      try {
+        const QString path = it.next();
+        S57ChartOutline ch = m_reader->readOutline(path);
+        // skip large scale maps
+        if (ch.extent().nw().lat() - ch.extent().sw().lat() > 9.) {
+          qDebug() << "Skipping" << ch.extent().sw().print() << ch.extent().ne().print();
+          continue;
+        }
+
+        QSqlQuery s = m_db.prepare("select id, published, modified from charts where path=?");
+        s.bindValue(0, QVariant::fromValue(path));
+        m_db.exec(s);
+        if (!s.first()) {
+          // insert
+          QSqlQuery t = m_db.prepare("insert into charts"
+                                     "(chartset, scale, swx, swy, nex, ney, "
+                                     " published, modified, path) "
+                                     "values(?, ?, ?, ?, ?, ?, ?, ?, ?)");
+          // chartset, scale (0, 1)
+          t.bindValue(0, QVariant::fromValue(setid));
+          t.bindValue(1, QVariant::fromValue(ch.scale()));
+          // sw, ne (2, 3, 4, 5)
+          t.bindValue(2, QVariant::fromValue(ch.extent().sw().lng()));
+          t.bindValue(3, QVariant::fromValue(ch.extent().sw().lat()));
+          t.bindValue(4, QVariant::fromValue(ch.extent().ne().lng()));
+          t.bindValue(5, QVariant::fromValue(ch.extent().ne().lat()));
+          // published, modified, path (6, 7, 8)
+          t.bindValue(6, QVariant::fromValue(ch.published().toJulianDay()));
+          t.bindValue(7, QVariant::fromValue(ch.modified().toJulianDay()));
+          t.bindValue(8, QVariant::fromValue(path));
+
+          m_db.exec(t);
+        } else {
+          oldCharts.removeOne(s.value(0).toInt());
+          if (ch.published().toJulianDay() == s.value(1).toInt() &&
+              ch.modified().toJulianDay() == s.value(2).toInt()) {
+            continue;
+          }
+          // update
+          QSqlQuery t = m_db.prepare("update charts set "
+                                     "scale=?, swx=?, swy=?, nex=?, ney=?, "
+                                     "published=?, modified=? "
+                                     "where id=?");
+          // scale (0)
+          t.bindValue(0, QVariant::fromValue(ch.scale()));
+          // sw, ne (1, 2, 3, 4)
+          t.bindValue(1, QVariant::fromValue(ch.extent().sw().lng()));
+          t.bindValue(2, QVariant::fromValue(ch.extent().sw().lat()));
+          t.bindValue(3, QVariant::fromValue(ch.extent().ne().lng()));
+          t.bindValue(4, QVariant::fromValue(ch.extent().ne().lat()));
+          // published, modified, path (5, 6)
+          t.bindValue(5, QVariant::fromValue(ch.published().toJulianDay()));
+          t.bindValue(6, QVariant::fromValue(ch.modified().toJulianDay()));
+          // id (7)
+          t.bindValue(7, s.value(0));
+
+          m_db.exec(t);
+        }
+      } catch (ChartFileError& e) {
+        qWarning() << "Chart file error:" << e.msg() << ", skipping";
+      }
+    }
+  }
+
+  // remove old rows
+  if (!oldCharts.isEmpty()) {
+    QString sql = "delete from charts where id in (";
+    sql += QString("?,").repeated(oldCharts.size());
+    sql = sql.replace(sql.length() - 1, 1, ")");
+    QSqlQuery s = m_db.prepare(sql);
+    for (int i = 0; i < oldCharts.size(); i++) {
+      s.bindValue(i, QVariant::fromValue(oldCharts[i]));
+    }
+    m_db.exec(s);
+  }
+
+  if (!m_db.commit()) {
+    qWarning() << "DB commit failed!";
+  }
+}
+
+
 QStringList ChartManager::chartSets() const {
   return m_chartSets.keys();
 }
@@ -178,7 +299,7 @@ void ChartManager::setChartSet(const QString &name, const GeoProjection* vproj) 
   m_ref = vproj->reference();
 
   // check & fill charts table
-  QSqlQuery r = m_db.prepare("select c.id, c.scale, c.sw, c.ne "
+  QSqlQuery r = m_db.prepare("select c.id, c.scale, c.swx, c.swy, c.nex, c.ney "
                              "from charts c "
                              "join chartsets s "
                              "on c.chartset=s.id "
@@ -198,8 +319,8 @@ void ChartManager::setChartSet(const QString &name, const GeoProjection* vproj) 
     ChartInfo info;
     info.id = r.value(0).toInt();
     info.scale = r.value(1).toInt();
-    auto sw = WGS84Point::parseISO6709(r.value(2).toString());
-    auto ne = WGS84Point::parseISO6709(r.value(3).toString());
+    auto sw = WGS84Point::fromLL(r.value(2).toDouble(), r.value(3).toDouble());
+    auto ne = WGS84Point::fromLL(r.value(4).toDouble(), r.value(5).toDouble());
     info.ref = sw + .5 * (ne - sw);
     p->setReference(info.ref);
     info.bbox = QRectF(p->fromWGS84(sw), p->fromWGS84(ne));
@@ -274,14 +395,10 @@ void ChartManager::updateCharts(const Camera *cam, bool force) {
   m_ref = cam->eye();
 
   const QRectF vp = cam->boundingBox();
+  if (!vp.isValid()) return;
+  // qDebug() << "ChartManager::updateCharts" << vp;
 
-  const auto margin = QMarginsF(vp.width(), vp.height(), vp.width(), vp.height());
-  bool vpok = m_viewport.contains(vp) && !m_viewport.contains(vp + margin);
-
-  // qDebug() << "viewport distance =" << cam->distance(m_viewport);
-
-  if (vpok && cam->scale() == m_scale && !force) return;
-  // qDebug() << "camera FOV =" << cam->scale() * cam->heightMM() / 2000.;
+  if (m_viewport.contains(vp) && cam->scale() == m_scale && !force) return;
 
   m_scale = cam->scale();
 
@@ -393,7 +510,10 @@ void ChartManager::updateCharts(const Camera *cam, bool force) {
     }
   }
 
-  if (noCharts && m_hadCharts) emit idle();
+  if (noCharts && m_hadCharts) {
+    qDebug() << "ChartManager::updateCharts: idle";
+    emit idle();
+  }
 }
 
 bool ChartManager::isValidScale(const Camera* cam, quint32 scale) const {
@@ -422,112 +542,6 @@ bool ChartManager::isValidScale(const Camera* cam, quint32 scale) const {
   return false;
 }
 
-void ChartManager::fillChartsTable() {
-
-  QStringList locs;
-  for (const QString& loc: QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation)) {
-    locs << QString("%1/qopencpn/charts/%2").arg(loc).arg(m_reader->name());
-  }
-
-  QSqlQuery r1 = m_db.prepare("select id "
-                              "from chartsets "
-                              "where name=?");
-  r1.bindValue(0, QVariant::fromValue(m_reader->name()));
-  m_db.exec(r1);
-  uint setid = 0;
-  while (r1.next()) {
-    setid = r1.value(0).toUInt();
-  }
-
-
-  QVector<quint32> oldCharts;
-  QSqlQuery r2 = m_db.prepare("select id "
-                              "from charts "
-                              "where chartset=?");
-  r2.bindValue(0, QVariant::fromValue(setid));
-  m_db.exec(r2);
-  while (r2.next()) {
-    oldCharts.append(r2.value(0).toUInt());
-  }
-
-  if (!m_db.transaction()) {
-    qWarning() << "Cannot create db transaction, not updating";
-    return;
-  }
-
-  for (const QString& loc: locs) {
-    QDirIterator it(loc, m_filters[m_reader->name()], QDir::Files | QDir::Readable,
-                    QDirIterator::FollowSymlinks | QDirIterator::Subdirectories);
-    while (it.hasNext()) {
-      try {
-        const QString path = it.next();
-        S57ChartOutline ch = m_reader->readOutline(path);
-
-        QSqlQuery s = m_db.prepare("select id, published, modified from charts where path=?");
-        s.bindValue(0, QVariant::fromValue(path));
-        m_db.exec(s);
-        if (!s.first()) {
-          // insert
-          QSqlQuery t = m_db.prepare("insert into charts"
-                                     "(chartset, scale, sw, ne, published, modified, path) "
-                                     "values(?, ?, ?, ?, ?, ?, ?)");
-          // chartset, scale (0, 1)
-          t.bindValue(0, QVariant::fromValue(setid));
-          t.bindValue(1, QVariant::fromValue(ch.scale()));
-          // sw, ne (2, 3)
-          t.bindValue(2, QVariant::fromValue(ch.extent().sw().toISO6709()));
-          t.bindValue(3, QVariant::fromValue(ch.extent().ne().toISO6709()));
-          // published, modified, path (4, 5, 6)
-          t.bindValue(4, QVariant::fromValue(ch.published().toJulianDay()));
-          t.bindValue(5, QVariant::fromValue(ch.modified().toJulianDay()));
-          t.bindValue(6, QVariant::fromValue(path));
-
-          m_db.exec(t);
-        } else {
-          oldCharts.removeOne(s.value(0).toInt());
-          if (ch.published().toJulianDay() == s.value(1).toInt() &&
-              ch.modified().toJulianDay() == s.value(2).toInt()) {
-            continue;
-          }
-          // update
-          QSqlQuery t = m_db.prepare("update charts set "
-                                     "scale=?, sw=?, ne=?, published=?, modified=? "
-                                     "where id=?");
-          // scale (0)
-          t.bindValue(0, QVariant::fromValue(ch.scale()));
-          // sw, ne (1, 2)
-          t.bindValue(1, QVariant::fromValue(ch.extent().sw().toISO6709()));
-          t.bindValue(2, QVariant::fromValue(ch.extent().ne().toISO6709()));
-          // published, modified, path (3, 4)
-          t.bindValue(3, QVariant::fromValue(ch.published().toJulianDay()));
-          t.bindValue(4, QVariant::fromValue(ch.modified().toJulianDay()));
-          // id (5)
-          t.bindValue(5, s.value(0));
-
-          m_db.exec(t);
-        }
-      } catch (ChartFileError& e) {
-        qWarning() << "Chart file error:" << e.msg() << ", skipping";
-      }
-    }
-  }
-
-  // remove old rows
-  if (!oldCharts.isEmpty()) {
-    QString sql = "delete from charts where id in (";
-    sql += QString("?,").repeated(oldCharts.size());
-    sql = sql.replace(sql.length() - 1, 1, ")");
-    QSqlQuery s = m_db.prepare(sql);
-    for (int i = 0; i < oldCharts.size(); i++) {
-      s.bindValue(i, QVariant::fromValue(oldCharts[i]));
-    }
-    m_db.exec(s);
-  }
-
-  if (!m_db.commit()) {
-    qWarning() << "DB commit failed!";
-  }
-}
 
 void ChartManager::manageThreads(S57Chart* chart) {
   // qDebug() << "chartmanager: manageThreads";
@@ -564,8 +578,10 @@ void ChartManager::manageThreads(S57Chart* chart) {
 
   if (m_idleStack.size() == m_workers.size()) {
     if (!m_hadCharts) {
+      qDebug() << "chartmanager: manageThreads: active";
       emit active();
     } else {
+      qDebug() << "chartmanager: manageThreads: charts updated";
       emit chartsUpdated(m_viewArea);
     }
   }

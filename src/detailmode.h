@@ -17,6 +17,7 @@ public:
   DrawableVector& drawables() {return m_drawables;}
   virtual DetailMode* largerScaleMode() const = 0;
   virtual DetailMode* smallerScaleMode() const = 0;
+  virtual bool hasCharts() const = 0;
   virtual ~DetailMode() = default;
 
   void saveState() const;

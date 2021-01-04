@@ -890,8 +890,8 @@ void CM93Reader::triangulate(S57::ElementDataVector &elems,
     }
     polygon.push_back(ring);
 
-    if (polygon.size() > 50) {
-      qWarning() << "Temporary hack: limiting inner polygons to 50";
+    if (polygon.size() > 150) {
+      qWarning() << "Temporary hack: limiting inner polygons to 150";
       break;
     }
   }

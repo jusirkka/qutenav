@@ -29,3 +29,7 @@ DetailMode* ChartMode::largerScaleMode() const {
   outlines->camera()->reset(m_camera->eye(), m_camera->northAngle());
   return outlines;
 }
+
+bool ChartMode::hasCharts() const {
+  return true;
+}

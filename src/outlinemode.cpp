@@ -30,3 +30,7 @@ DetailMode* OutlineMode::smallerScaleMode() const {
   charts->camera()->reset(m_camera->eye(), m_camera->northAngle());
   return charts;
 }
+
+bool OutlineMode::hasCharts() const {
+  return false;
+}

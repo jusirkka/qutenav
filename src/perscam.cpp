@@ -236,3 +236,23 @@ WGS84Point PersCam::location(const QPointF &cp) const {
   return WGS84Point::fromLLRadians(lng, lat);
 }
 
+QRectF PersCam::boundingBox() const {
+
+  const QVector<QPointF> ps {QPointF(-1, -1), QPointF(-1, 1), QPointF(1, -1), QPointF(1, 1)};
+
+  QPointF ur(-1.e15, -1.e15);
+  QPointF ll(1.e15, 1.e15);
+
+  for (const QPointF& p: ps) {
+    auto w = location(p);
+    if (!w.valid()) return QRectF();
+    const QPointF q = geoprojection()->fromWGS84(w);
+
+    ur.setX(qMax(ur.x(), q.x()));
+    ur.setY(qMax(ur.y(), q.y()));
+    ll.setX(qMin(ll.x(), q.x()));
+    ll.setY(qMin(ll.y(), q.y()));
+  }
+  return QRectF(ll, ur); // inverted y-axis
+
+}
