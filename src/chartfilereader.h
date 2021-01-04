@@ -7,10 +7,6 @@
 class ChartFileReader {
 public:
 
-  static QVector<ChartFileReader*> readers();
-  static ChartFileReader* reader(const QString& name);
-  static QStringList names();
-
   virtual S57ChartOutline readOutline(const QString& path) const = 0;
 
   virtual void readChart(GL::VertexVector& vertices,

@@ -12,6 +12,9 @@
       <Separator/>
       <Action name="quit"/>
     </Menu>
+    <Menu name="charts">
+      <text>Charts</text>
+    </Menu>
     <Menu name="view">
       <text>View</text>
       <Action name="fullScreen"/>

@@ -34,7 +34,7 @@ public:
 
   quint32 id() const {return m_id;}
 
-  void updatePaintData(const QRectF& viewArea, quint32 scale);
+  void updatePaintData(const WGS84Point& sw, const WGS84Point& ne, quint32 scale);
   void finalizePaintData();
 
   ~S57Chart();
@@ -68,7 +68,8 @@ private:
   using SymbolMutIterator = QHash<SymbolKey, S57::PaintData*>::iterator;
   using SymbolPriorityVector = QVector<SymbolMap>;
 
-  qreal scaleFactor(const QRectF& vp, quint32 scale);
+  qreal scaleFactor(const WGS84Point &sw, const WGS84Point &ne,
+                    const QRectF& va, quint32 scale) const;
 
   GeoProjection* m_nativeProj;
   ObjectLookupVector m_lookups;

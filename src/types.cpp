@@ -266,4 +266,10 @@ WGS84Bearing operator- (const WGS84Point& p2, const WGS84Point& p1) {
   return WGS84Bearing::fromMeters(s12, Angle::fromDegrees(azi1));
 }
 
+WGS84Bearing operator* (double s, const WGS84Bearing& b) {
+  if (s < 0){
+    return WGS84Bearing::fromMeters( - s * b.meters(), Angle::fromRadians(b.radians() + M_PI));
+  }
+  return WGS84Bearing::fromMeters(s * b.meters(), Angle::fromRadians(b.radians()));
+}
 

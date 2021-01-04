@@ -19,6 +19,8 @@ namespace GL {
 class Thread;
 }
 
+class ChartFileReader;
+
 class ChartUpdater: public QObject {
    Q_OBJECT
 
@@ -30,9 +32,10 @@ public:
 
 public slots:
 
-  void updateChart(S57Chart* chart, const QRectF& viewArea, quint32 scale);
-  void createChart(quint32 id, const QString& path, const WGS84Point& ref,
-                   QRectF viewArea, quint32 scale);
+  void updateChart(S57Chart* chart, quint32 scale,
+                   const WGS84Point& sw, const WGS84Point& ne);
+  void createChart(quint32 id, const QString& path, quint32 scale,
+                   const WGS84Point& sw, const WGS84Point& ne);
 
 signals:
 
@@ -56,14 +59,18 @@ public:
 
   using ChartVector = QVector<S57Chart*>;
   using OutlineVector = QVector<GLfloat>;
+  using ChartReaderVector = QVector<ChartFileReader*>;
 
   static ChartManager* instance();
   void createThreads(QOpenGLContext* ctx);
 
   bool isValidScale(const Camera* cam, quint32 scale) const;
+  QStringList chartSets() const;
+  void setChartSet(const QString& charts, const GeoProjection* vproj);
 
   const ChartVector& charts() const {return m_charts;}
   const OutlineVector& outlines() const {return m_outlines;}
+  const ChartReaderVector& readers() const {return m_readers;}
 
   ~ChartManager();
 
@@ -85,29 +92,32 @@ private:
 
   struct ChartData {
 
-    ChartData(S57Chart* c, const QRectF& v, quint32 s)
+    ChartData(S57Chart* c,
+              quint32 s, const WGS84Point& sw0, const WGS84Point& ne0)
       : chart(c)
-      , viewArea(v)
-      , scale(s)
       , id(0)
       , path()
-      , ref() {}
-
-    ChartData(quint32 i, const QString& pth, const WGS84Point& r,
-              const QRectF& v, quint32 s)
-      : chart(nullptr)
-      , viewArea(v)
       , scale(s)
+      , sw(sw0)
+      , ne(ne0)
+    {}
+
+    ChartData(quint32 i, const QString& pth,
+              quint32 s, const WGS84Point& sw0, const WGS84Point& ne0)
+      : chart(nullptr)
       , id(i)
       , path(pth)
-      , ref(r) {}
+      , scale(s)
+      , sw(sw0)
+      , ne(ne0)
+    {}
 
     S57Chart* chart;
-    QRectF viewArea;
-    quint32 scale;
     quint32 id;
     QString path;
-    WGS84Point ref;
+    quint32 scale;
+    WGS84Point sw;
+    WGS84Point ne;
 
     ChartData() = default;
     ChartData(const ChartData&) = default;
@@ -138,7 +148,8 @@ private:
     QSqlQuery m_Query;
   };
 
-  void updateDB();
+  void fillChartsTable();
+  void fillChartsetsTable();
 
   class ChartInfo {
   public:
@@ -148,7 +159,7 @@ private:
     WGS84Point ref;
   };
 
-  void createOutline(GeoProjection* p, const ChartInfo& info);
+  void createOutline(const GeoProjection* p, const ChartInfo& info);
 
   using ChartInfoVector = QVector<ChartInfo>;
   using IDVector = QVector<quint32>;
@@ -175,7 +186,7 @@ private:
   OutlineVector m_outlines;
   Database m_db;
   LocationAreaVector m_locationAreas;
-  GeoProjection* m_proj;
+  WGS84Point m_ref;
   QRectF m_viewport;
   QRectF m_viewArea;
   quint32 m_scale;
@@ -185,6 +196,16 @@ private:
   ThreadVector m_threads;
   IDStack m_idleStack;
   ChartDataStack m_pendingStack;
+
+  using ChartsetNameMap = QMap<QString, int>;
+  using FilterMap = QMap<QString, QStringList>;
+
+  ChartFileReader* createReader(const QString& name) const;
+
+  ChartsetNameMap m_chartSets;
+  ChartReaderVector m_readers;
+  ChartFileReader* m_reader;
+  const FilterMap m_filters;
 
   bool m_hadCharts;
 };

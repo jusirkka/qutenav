@@ -37,7 +37,7 @@ float_2         \.{unum}([Ee]{num})?
 float_3         {num}[Ee]{num}
 
 float           {float_1}|{float_2}|{float_3}
-singlechar      [\(\);,]
+singlechar      [\(\);,=]
 
 classname      [A-Za-z$][A-Za-z$_0-9]{5}
 symbolname     {classname}[A-Za-z$_0-9][0-9]

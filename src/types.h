@@ -171,6 +171,8 @@ WGS84Point operator+ (const WGS84Point& a, const WGS84Bearing& b);
 WGS84Point operator- (const WGS84Point& a, const WGS84Bearing& b);
 WGS84Bearing operator- (const WGS84Point& a, const WGS84Point& b);
 WGS84Bearing operator- (const WGS84Bearing& a);
+WGS84Bearing operator* (double s, const WGS84Bearing& b);
+WGS84Bearing operator* (const WGS84Bearing& b, double s);
 
 
 class Extent {

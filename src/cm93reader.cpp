@@ -595,59 +595,56 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
   // vector record table: n_vec_records * 2 = number of pts in a record
   // + n_vec_record_points  * 4 = byte size of all vertices
   auto n_vec_records = read_and_decode<quint16>(stream);
-  auto n_vec_record_points = read_and_decode<quint32>(stream);
 
-  auto m_46 = read_and_decode<quint32>(stream);
-  qDebug() << "m_46" << m_46;
-  auto m_4a = read_and_decode<quint32>(stream);
-  qDebug() << "m_4a" << m_4a;
+  // auto n_vec_record_points = read_and_decode<quint32>(stream);
+  // auto m_46 = read_and_decode<quint32>(stream);
+  // qDebug() << "m_46" << m_46;
+  // auto m_4a = read_and_decode<quint32>(stream);
+  // qDebug() << "m_4a" << m_4a;
+  stream.skipRawData(12);
 
   // 3d point table: n_p3d_records * 2 = number of pts in a record
   // + n_p3d_record_points * 6 = total number of 3d points
   auto n_p3d_records = read_and_decode<quint16>(stream);
   // n_p3d_record_points
-  auto n_p3d_record_points = read_and_decode<quint32>(stream);
 
-  auto m_54 = read_and_decode<quint32>(stream);
-  qDebug() << "m_54" << m_54;
+  // auto n_p3d_record_points = read_and_decode<quint32>(stream);
+  // auto m_54 = read_and_decode<quint32>(stream);
+  // qDebug() << "m_54" << m_54;
+  stream.skipRawData(8);
 
   // 2d point table: n_p2d_records * 4 = total number of pts
   auto n_p2d_records = read_and_decode<quint16>(stream);
 
-  auto m_5a = read_and_decode<quint16>(stream);
-  qDebug() << "m_5a" << m_5a;
-  auto m_5c = read_and_decode<quint16>(stream);
-  qDebug() << "m_5c" << m_5c;
+  // auto m_5a = read_and_decode<quint16>(stream);
+  // qDebug() << "m_5a" << m_5a;
+  // auto m_5c = read_and_decode<quint16>(stream);
+  // qDebug() << "m_5c" << m_5c;
+  stream.skipRawData(8);
 
   auto n_feat_records = read_and_decode<quint16>(stream);
 
-  auto m_60 = read_and_decode<quint32>(stream);
-  qDebug() << "m_60" << m_60;
-  auto m_64 = read_and_decode<quint32>(stream);
-  qDebug() << "m_64" << m_64;
-  auto m_68 = read_and_decode<quint16>(stream);
-  qDebug() << "m_68" << m_68;
-  auto m_6a = read_and_decode<quint16>(stream);
-  qDebug() << "m_6a" << m_6a;
-  auto m_6c = read_and_decode<quint16>(stream);
-  qDebug() << "m_6c" << m_6c;
-
-  auto n_related = read_and_decode<quint32>(stream);
-  qDebug() << "num related" << n_related;
-
-  auto m_72 = read_and_decode<quint32>(stream);
-  qDebug() << "m_72" << m_72;
-  auto m_76 = read_and_decode<quint16>(stream);
-  qDebug() << "m_76" << m_76;
-  auto m_78 = read_and_decode<quint32>(stream);
-  qDebug() << "m_78" << m_78;
-  auto m_7c = read_and_decode<quint32>(stream);
-  qDebug() << "m_7c" << m_7c;
-
-  qDebug() << geom_table_len
-              - n_vec_records * 2 - n_vec_record_points * 4
-              - n_p3d_records * 2 - n_p3d_record_points * 6
-              - n_p2d_records * 4;
+  // auto m_60 = read_and_decode<quint32>(stream);
+  // qDebug() << "m_60" << m_60;
+  // auto m_64 = read_and_decode<quint32>(stream);
+  // qDebug() << "m_64" << m_64;
+  // auto m_68 = read_and_decode<quint16>(stream);
+  // qDebug() << "m_68" << m_68;
+  // auto m_6a = read_and_decode<quint16>(stream);
+  // qDebug() << "m_6a" << m_6a;
+  // auto m_6c = read_and_decode<quint16>(stream);
+  // qDebug() << "m_6c" << m_6c;
+  // auto n_related = read_and_decode<quint32>(stream);
+  // qDebug() << "num related" << n_related;
+  // auto m_72 = read_and_decode<quint32>(stream);
+  // qDebug() << "m_72" << m_72;
+  // auto m_76 = read_and_decode<quint16>(stream);
+  // qDebug() << "m_76" << m_76;
+  // auto m_78 = read_and_decode<quint32>(stream);
+  // qDebug() << "m_78" << m_78;
+  // auto m_7c = read_and_decode<quint32>(stream);
+  // qDebug() << "m_7c" << m_7c;
+  stream.skipRawData(32);
 
   // from this point on there are only 32 bit floats
   stream.setFloatingPointPrecision(QDataStream::SinglePrecision);
@@ -655,11 +652,12 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
   // vector record table
   int offset = 0;
   EdgeVector mesh;
+  // Apply scaling to avoid problems with non-uniform x/y scales
   for (int i = 0; i < n_vec_records; i++) {
     auto n_elems = read_and_decode<quint16>(stream);
     for (int v = 0; v < n_elems; v++) {
-      vertices << static_cast<GLfloat>(read_and_decode<quint16>(stream));
-      vertices << static_cast<GLfloat>(read_and_decode<quint16>(stream));
+      vertices << proj->scaling().width() * read_and_decode<quint16>(stream);
+      vertices << proj->scaling().height() * read_and_decode<quint16>(stream);
     }
     Edge e;
     e.count = n_elems;
@@ -674,8 +672,8 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
     auto n_vertices = read_and_decode<quint16>(stream);
     S57::Geometry::PointVector ss(n_vertices * 3);
     for (int v = 0; v < n_vertices; v++) {
-      ss << static_cast<double>(read_and_decode<quint16>(stream));
-      ss << static_cast<double>(read_and_decode<quint16>(stream));
+      ss << proj->scaling().width() * read_and_decode<quint16>(stream);
+      ss << proj->scaling().height() * read_and_decode<quint16>(stream);
       ss << static_cast<double>(read_and_decode<quint16>(stream));
     }
     soundings.append(ss);
@@ -684,11 +682,14 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
   // point table
   QVector<QPointF> points;
   for (int i = 0; i < n_p2d_records; i++) {
-    auto x = static_cast<qreal>(read_and_decode<quint16>(stream));
-    auto y = static_cast<qreal>(read_and_decode<quint16>(stream));
+    auto x = proj->scaling().width() * read_and_decode<quint16>(stream);
+    auto y = proj->scaling().height() * read_and_decode<quint16>(stream);
     points.append(QPointF(x, y));
   }
 
+  // projection without scaling
+  auto projSc = GeoProjection::CreateProjection(proj->className());
+  projSc->setReference(proj->reference());
   CM93::ObjectBuilder helper;
   // feature record table
   for (int featureId = 0; featureId < n_feat_records; featureId++) {
@@ -748,7 +749,7 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
                                                  triangles,
                                                  0,
                                                  true,
-                                                 proj),
+                                                 projSc),
                          bbox);
 
       n_bytes -= n_elems * 2 + 2;
@@ -772,7 +773,7 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
       const QPointF center = computeLineCenter(lines, vertices, indices);
       const QRectF bbox = computeBBox(lines, vertices, indices);
       helper.setGeometry(object,
-                         new S57::Geometry::Line(lines, center, 0, proj),
+                         new S57::Geometry::Line(lines, center, 0, projSc),
                          bbox);
       n_bytes -= n_elems * 2 + 2;
       break;
@@ -781,7 +782,7 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
       auto index = read_and_decode<quint16>(stream);
       auto p0 = points[index];
       QRectF bbox(p0 - QPointF(10, 10), QSizeF(20, 20));
-      helper.setGeometry(object, new S57::Geometry::Point(p0, proj), bbox);
+      helper.setGeometry(object, new S57::Geometry::Point(p0, projSc), bbox);
       n_bytes -= 2;
       break;
     }
@@ -798,7 +799,7 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
         ll.setX(qMin(ll.x(), q.x()));
         ll.setY(qMin(ll.y(), q.y()));
       }
-      helper.setGeometry(object, new S57::Geometry::Point(ps, proj), QRectF(ll, ur));
+      helper.setGeometry(object, new S57::Geometry::Point(ps, projSc), QRectF(ll, ur));
       n_bytes -= 2;
       break;
     }
@@ -889,8 +890,8 @@ void CM93Reader::triangulate(S57::ElementDataVector &elems,
     }
     polygon.push_back(ring);
 
-    if (polygon.size() > 0) {
-      // qWarning() << "Temporary hack: limiting inner polygons to 0";
+    if (polygon.size() > 50) {
+      qWarning() << "Temporary hack: limiting inner polygons to 50";
       break;
     }
   }
@@ -940,6 +941,7 @@ void CM93Reader::createLineElements(S57::ElementDataVector &elems,
     if (prevlast == start || forcePolygons) {
       // polygon
       if (prevlast != start) { // forcePolygons
+        qDebug() << "Force polygon";
         // add prevlast
         indices.append(getEndPointIndex(EP::Last, edges[i - 1]));
         e.count += 1;

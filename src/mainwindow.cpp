@@ -8,6 +8,8 @@
 #include "conf_mainwindow.h"
 #include <QCloseEvent>
 #include <QStatusBar>
+#include <QMenu>
+#include "chartmanager.h"
 
 MainWindow::MainWindow()
   : KXmlGuiWindow()
@@ -23,6 +25,26 @@ MainWindow::MainWindow()
   setupGUI();
   QMetaObject::connectSlotsByName(this);
   readSettings();
+
+  auto chartmenu = actionCollection()->action("charts")->menu();
+  auto chartgroup = new QActionGroup(this);
+  auto chartsets = ChartManager::instance()->chartSets();
+  for (auto s: chartsets) {
+    auto a = new QAction(this);
+    chartgroup->addAction(a);
+    chartmenu->addAction(a);
+    actionCollection()->addAction(s, a);
+  }
+
+  connect(chartmenu, &QMenu::triggered, this, [this] (QAction* a) {
+    m_GLWindow->setChartSet(a->objectName());
+  });
+
+  if (!chartsets.isEmpty()) {
+    auto sel = Conf::MainWindow::chartset();
+    if (!chartsets.contains(sel)) sel = chartsets.first();
+    actionCollection()->action(sel)->setChecked(true);
+  }
 }
 
 void MainWindow::on_quit_triggered() {
@@ -96,6 +118,9 @@ void MainWindow::writeSettings() {
     Conf::MainWindow::setLastGeom(m_fallbackGeom);
   }
   Conf::MainWindow::setFullScreen(action("fullScreen")->isChecked());
+  QList<QActionGroup*> groups = actionCollection()->actionGroups();
+  Q_ASSERT(groups.size() == 1);
+  Conf::MainWindow::setChartset(groups.first()->checkedAction()->objectName());
   Conf::MainWindow::self()->save();
 }
 

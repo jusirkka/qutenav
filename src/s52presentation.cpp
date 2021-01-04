@@ -34,6 +34,16 @@ S57::PaintDataMap S52::Lookup::execute(const S57::Object *obj) const {
       stack[stackPos++] = obj->attributeValue(m_references[refPos++]);
       break;
 
+    case Code::DefVar: {
+      QVariant v = obj->attributeValue(m_references[refPos++]);
+      QVariant d = m_immed[immedPos++];
+      if (v.isValid()) {
+        stack[stackPos++] = v;
+      } else {
+        stack[stackPos++] = d;
+      }
+      break;
+    }
     default:
       Q_ASSERT(false);
     }

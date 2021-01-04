@@ -19,9 +19,9 @@ public:
 
   const GeoProjection* geoprojection() const override;
 
-private:
-
   OsencReader();
+
+private:
 
   QString m_name;
   GeoProjection* m_proj;

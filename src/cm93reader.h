@@ -19,9 +19,9 @@ public:
 
   const GeoProjection* geoprojection() const override;
 
-private:
-
   CM93Reader();
+
+private:
 
   static const int coord_section_offset = 10;
   static const int size_section_offset = 74;
@@ -77,8 +77,8 @@ private:
   const int m_cscale;
   const int m_recdat;
 
-  QMap<QString, quint32> m_subst;
-  QMap<QString, QPair<quint32, S57::Attribute>> m_subst_attrs;
+  const QMap<QString, quint32> m_subst;
+  const QMap<QString, QPair<quint32, S57::Attribute>> m_subst_attrs;
 
   QString m_name;
   GeoProjection* m_proj;

@@ -12,6 +12,9 @@ GeoProjection* GeoProjection::CreateProjection(const QString& className) {
   return nullptr;
 }
 
+SimpleMercator::SimpleMercator()
+  : GeoProjection()
+{}
 
 void SimpleMercator::setReference(const WGS84Point &w) {
   GeoProjection::setReference(w);
@@ -33,6 +36,10 @@ WGS84Point SimpleMercator::toWGS84(const QPointF &p) const {
                                    2.0 * atan(exp((m_y30 + p.y()) / z0)) - M_PI_2);
 }
 
+
+CM93Mercator::CM93Mercator()
+  : GeoProjection()
+{}
 
 void CM93Mercator::setReference(const WGS84Point& w) {
   GeoProjection::setReference(w);

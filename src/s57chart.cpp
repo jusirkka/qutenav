@@ -14,6 +14,7 @@
 #include "platform.h"
 #include "chartfilereader.h"
 #include "camera.h"
+#include "chartmanager.h"
 
 
 //
@@ -46,7 +47,7 @@ S57Chart::S57Chart(quint32 id, const QString& path)
 
   ChartFileReader* reader = nullptr;
   S57ChartOutline outline;
-  for (ChartFileReader* candidate: ChartFileReader::readers()) {
+  for (ChartFileReader* candidate: ChartManager::instance()->readers()) {
     try {
       outline = candidate->readOutline(path);
     } catch (ChartFileError& e) {
@@ -70,6 +71,9 @@ S57Chart::S57Chart(quint32 id, const QString& path)
   GL::IndexVector indices;
 
   reader->readChart(vertices, indices, objects, path, m_nativeProj);
+
+  // Assume scaling has been applied in reader->readChart
+  m_nativeProj->setScaling(QSizeF(1., 1.));
 
   S57::ObjectBuilder builder;
   for (S57::Object* object: objects) {
@@ -189,7 +193,7 @@ void S57Chart::finalizePaintData() {
   m_transformBuffer.write(0, m_updatedTransforms.constData(), dataLen);
 }
 
-void S57Chart::updatePaintData(const QRectF &viewArea, quint32 scale) {
+void S57Chart::updatePaintData(const WGS84Point &sw, const WGS84Point &ne, quint32 scale) {
 
   // clear old updates
   for (S57::PaintDataMap& d: m_updatedPaintData) d.clear();
@@ -203,7 +207,10 @@ void S57Chart::updatePaintData(const QRectF &viewArea, quint32 scale) {
   const quint32 qualClass = S52::FindIndex("M_QUAL");
   const quint32 unknownClass = S52::FindIndex("######");
 
-  const qreal sf = scaleFactor(viewArea, scale);
+  const QRectF viewArea(m_nativeProj->fromWGS84(sw),
+                        m_nativeProj->fromWGS84(ne));
+
+  const qreal sf = scaleFactor(sw, ne, viewArea, scale);
 
   SymbolPriorityVector rastersymbols(S52::Lookup::PriorityCount);
   SymbolPriorityVector vectorsymbols(S52::Lookup::PriorityCount);
@@ -309,12 +316,12 @@ void S57Chart::updatePaintData(const QRectF &viewArea, quint32 scale) {
   updatePaintDatamap(vectorsymbols, m_updatedTransforms);
 }
 
-qreal S57Chart::scaleFactor(const QRectF &va, quint32 scale) {
-  const WGS84Point p1 = m_nativeProj->toWGS84(va.center());
-  const WGS84Point p2 = m_nativeProj->toWGS84(QPoint(.5 * (va.left() + va.right()), va.bottom()));
+qreal S57Chart::scaleFactor(const WGS84Point &sw, const WGS84Point &ne,
+                            const QRectF& va, quint32 scale) const {
+  const WGS84Point nw = WGS84Point::fromLL(sw.lng(), ne.lat());
 
   // ratio of screen pixel height and viewarea height
-  return 2000. * (p2 - p1).meters() / scale * dots_per_mm_y / va.height();
+  return 1000. * (nw - sw).meters() / scale * dots_per_mm_y / va.height();
 }
 
 

@@ -14,5 +14,9 @@
       <label>Fallback geometry in case the app was left in full screen.</label>
       <default code="true">QRect(50, 50, 800, 600)</default>
     </entry>
+    <entry name="Chartset" key="chartset" type="String">
+      <label>Currently selected chart set.</label>
+      <default>"None"</default>
+    </entry>
   </group>
 </kcfg>

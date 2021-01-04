@@ -25,6 +25,7 @@ public:
   void zoomOut();
   void compassPan(Angle bearing, float pixels = 1.);
   void rotateEye(Angle amount);
+  void setChartSet(const QString& s);
 
 protected:
 

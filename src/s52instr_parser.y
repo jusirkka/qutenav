@@ -18,8 +18,15 @@ public:
   void setRef(S52::Lookup* lup, quint32 v) {
     lup->m_references.append(v);
   }
+  void clear(S52::Lookup* lup) {
+    lup->m_code.clear();
+    lup->m_references.clear();
+    lup->m_immed.clear();
+  }
 };
 }
+
+#define ABORT do {S52::ByteCoder bc; bc.clear(lookup); YYERROR;} while (false)
 
 %}
 
@@ -43,7 +50,7 @@ public:
 %token <v_float> FLOAT
 %token <v_string> SYMBOL VARIABLE COLOR CHARSPEC
 
-%type <v_int> opttransparency varstring
+%type <v_int> opttransparency varstring varint
 %type <v_int> pstyle
 %type <v_string> string chars optrotation
 
@@ -56,22 +63,13 @@ input: commands;
 
 commands: command | commands ';' command;
 
-command: TX '(' varstring ',' INT ',' INT ',' INT ',' CHARSPEC ','
+command: TX '(' varstring ',' varint ',' varint ',' varint ',' CHARSPEC ','
          INT ',' INT ',' COLOR ',' INT ')' {
   auto fun = S52::FindFunction("TX");
-  bool ok = $3 && reader->names.contains($17);
+  bool ok = $3 && $5 && $7 && $9 && reader->names.contains($17);
   if (ok) {
     S52::ByteCoder bc;
 
-    // hjust
-    bc.setCode(lookup, S52::Lookup::Code::Immed);
-    bc.setImmed(lookup, QVariant::fromValue($5));
-    // vjust
-    bc.setCode(lookup, S52::Lookup::Code::Immed);
-    bc.setImmed(lookup, QVariant::fromValue($7));
-    // space
-    bc.setCode(lookup, S52::Lookup::Code::Immed);
-    bc.setImmed(lookup, QVariant::fromValue($9));
     // charspec
     bc.setCode(lookup, S52::Lookup::Code::Immed);
     bc.setImmed(lookup, QVariant::fromValue($11));
@@ -91,7 +89,8 @@ command: TX '(' varstring ',' INT ',' INT ',' INT ',' CHARSPEC ','
     bc.setCode(lookup, S52::Lookup::Code::Fun);
     bc.setRef(lookup, fun->index());
   } else {
-    qWarning() << "TX: unknown symbol, called with (attribute)" << $5 << $7 << $9 << $11 << $13 << $15 << $17 << $19;
+    qWarning() << "TX: unknown symbol, called with (variables)" << $11 << $13 << $15 << $17 << $19;
+    ABORT;
   }
 };
 
@@ -154,6 +153,7 @@ command: TE '(' string ',' string ',' INT ',' INT ',' INT ',' CHARSPEC ','
     bc.setRef(lookup, fun->index());
   } else {
     qWarning() << "TE: unknown symbols, called with" << $3 << $5 << $7 << $9 << $11 << $13 << $15 << $17 << $19 << $21;
+    ABORT;
   }
 
 };
@@ -192,6 +192,28 @@ chars: chars CHAR {
   $$.append($2);
 };
 
+varint: INT {
+  S52::ByteCoder bc;
+  bc.setCode(lookup, S52::Lookup::Code::Immed);
+  bc.setImmed(lookup, QVariant::fromValue($1));
+  $$ = true;
+};
+
+varint: VARIABLE '=' INT {
+  $$ = reader->names.contains($1);
+  if ($$) {
+    S52::ByteCoder bc;
+
+    bc.setCode(lookup, S52::Lookup::Code::DefVar);
+    bc.setRef(lookup, reader->names[$1]);
+    bc.setImmed(lookup, QVariant::fromValue($3));
+    // qDebug() << $1 << reader->names[$1];
+  } else {
+    qWarning() << "TX: attribute not found" << $1;
+  }
+};
+
+
 command: SY '(' SYMBOL optrotation ')' {
   auto fun = S52::FindFunction("SY");
   bool ok = reader->names.contains($3);
@@ -217,6 +239,7 @@ command: SY '(' SYMBOL optrotation ')' {
     bc.setRef(lookup, fun->index());
   } else {
     qWarning() << "SY: unknown symbol, called with " << $3 << $4;
+    ABORT;
   }
 };
 
@@ -255,6 +278,7 @@ command: LS '(' pstyle ',' INT ',' COLOR ')' {
     bc.setRef(lookup, fun->index());
   } else {
     qWarning() << "LS: unknown symbol, called with " << $3 << $5 << $7;
+    ABORT;
   }
 };
 
@@ -283,6 +307,7 @@ command: LC '(' SYMBOL ')' {
     bc.setRef(lookup, fun->index());
   } else {
     qWarning() << "LC: unknown symbol, called with " << $3;
+    ABORT;
   }
 };
 
@@ -302,6 +327,7 @@ command: AC '(' COLOR opttransparency ')' {
     bc.setRef(lookup, fun->index());
   } else {
     qWarning() << "AC: unknown symbol, called with " << $3 << $4;
+    ABORT;
   }
 };
 
@@ -338,6 +364,7 @@ command: AP '(' SYMBOL optrotation ')' {
     bc.setRef(lookup, fun->index());
   } else {
     qWarning() << "AP: unknown symbol, called with " << $3 << $4;
+    ABORT;
   }
 };
 
@@ -351,6 +378,7 @@ command: CS '(' SYMBOL ')' {
     bc.setRef(lookup, fun->index());
   } else {
     qWarning() << "CS: unknown symbol, called with " << $3;
+    ABORT;
   }
 };
 

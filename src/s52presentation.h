@@ -62,7 +62,7 @@ public:
   S57::PaintDataMap execute(const S57::Object* obj) const;
 
   // bytecode interface
-  enum class Code: quint8 {Immed, Var, Fun};
+  enum class Code: quint8 {Immed, Var, Fun, DefVar};
 
 private:
 

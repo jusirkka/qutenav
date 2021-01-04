@@ -37,6 +37,9 @@ GLWindow::GLWindow()
   });
 }
 
+void GLWindow::setChartSet(const QString &s) {
+  ChartManager::instance()->setChartSet(s, m_mode->camera()->geoprojection());
+}
 
 void GLWindow::saveState() {
   m_mode->saveState();

@@ -4,6 +4,8 @@
 #include <QTextStream>
 #include <QStringList>
 #include <QDebug>
+#include <QStandardPaths>
+#include <QDir>
 
 class Presentation {
 
@@ -60,12 +62,9 @@ Presentation* Presentation::instance() {
 }
 
 void Presentation::readObjectClasses(const QString &path) {
-  auto classpath = QString("%1/CM93OBJ.DIC").arg(path);
 
-  QFile file(classpath);
-  if (!file.open(QFile::ReadOnly)) {
-    throw ChartFileError(QString("Cannot open %1 for reading").arg(classpath));
-  }
+  QFile file(path);
+  file.open(QFile::ReadOnly);
   QTextStream s(&file);
 
   const QVector<char> geoms{'P', 'L', 'A', 'C', 'S'};
@@ -91,12 +90,9 @@ void Presentation::readObjectClasses(const QString &path) {
 }
 
 void Presentation::readAttributes(const QString &path) {
-  auto attrpath = QString("%1/CM93ATTR.DIC").arg(path);
 
-  QFile file(attrpath);
-  if (!file.open(QFile::ReadOnly)) {
-    throw ChartFileError(QString("Cannot open %1 for reading").arg(attrpath));
-  }
+  QFile file(path);
+  file.open(QFile::ReadOnly);
   QTextStream s(&file);
 
   const QMap<QString, CM93::DataType> datatypes
@@ -130,10 +126,37 @@ void Presentation::readAttributes(const QString &path) {
 
 }
 
-void CM93::InitPresentation(const QString &path) {
+static QString FindPath(const QString& s) {
+  QDir dataDir;
+  QStringList locs;
+  QString file;
+
+  for (const QString& loc: QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation)) {
+    locs << QString("%1/qopencpn/charts/cm93").arg(loc);
+  }
+
+  for (const QString& loc: locs) {
+    dataDir = QDir(loc);
+    const QStringList files = dataDir.entryList(QStringList() << s,
+                                                QDir::Files | QDir::Readable);
+    if (files.size() == 1) {
+      file = files.first();
+      break;
+    }
+  }
+
+  if (file.isEmpty()) {
+    qFatal("%s not found in any of the standard locations", s.toUtf8().constData());
+  }
+
+  return dataDir.absoluteFilePath(file);
+}
+
+
+void CM93::InitPresentation() {
   auto p = Presentation::instance();
-  p->readObjectClasses(path);
-  p->readAttributes(path);
+  p->readObjectClasses(FindPath("CM93OBJ.DIC"));
+  p->readAttributes(FindPath("CM93ATTR.DIC"));
 }
 
 
@@ -152,7 +175,7 @@ QString CM93::GetAttributeName(quint32 index) {
 
 quint32 CM93::FindIndex(const QString &name) {
   const Presentation* p = Presentation::instance();
-  // Q_ASSERT(p->names.contains(name));
+  Q_ASSERT(p->names.contains(name));
   return p->names[name];
 }
 

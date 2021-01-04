@@ -33,6 +33,7 @@ protected:
 
 class SimpleMercator: public GeoProjection {
 public:
+  SimpleMercator();
   WGS84Point toWGS84(const QPointF& p) const override;
   QPointF fromWGS84(const WGS84Point& p) const override;
   QString className() const {return "SimpleMercator";}
@@ -50,6 +51,7 @@ private:
 
 class CM93Mercator: public GeoProjection {
 public:
+  CM93Mercator();
   WGS84Point toWGS84(const QPointF& p) const override;
   QPointF fromWGS84(const WGS84Point& p) const override;
   QString className() const {return "CM93Mercator";}
