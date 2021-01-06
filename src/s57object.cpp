@@ -80,11 +80,14 @@ QVariant S57::Object::attributeValue(quint32 attr) const {
   return m_attributes[attr].value();
 }
 
-bool S57::Object::canPaint(const QRectF& viewArea, quint32 scale, const QDate& today) const {
+bool S57::Object::canPaint(const QRectF& viewArea, quint32 scale,
+                           const QDate& today, bool onlyViewArea) const {
   if (m_bbox.isValid() && !m_bbox.intersects(viewArea)) {
     // qDebug() << "no intersect" << m_bbox << viewArea << name();
     return false;
   }
+
+  if (onlyViewArea) return true;
 
   if (m_attributes.contains(scaminIndex)) {
     const quint32 mx = m_attributes[scaminIndex].value().toUInt();
@@ -117,6 +120,20 @@ bool S57::Object::canPaint(const QRectF& viewArea, quint32 scale, const QDate& t
   return true;
 }
 
+
+bool S57::Object::canPaint(quint32 scale) const {
+
+  if (m_attributes.contains(scaminIndex)) {
+    const quint32 mx = m_attributes[scaminIndex].value().toUInt();
+    if (scale > mx) {
+      // qDebug() << "scale too small" << scale << mx << name();
+      return false;
+    }
+  }
+
+  return true;
+}
+
 //
 // Paintdata
 //
@@ -125,6 +142,10 @@ S57::PaintData::PaintData(Type t)
   : m_type(t)
 {}
 
+S57::OverrideData::OverrideData(bool uw)
+  : PaintData(Type::Override)
+  , m_underwater(uw)
+{}
 
 void S57::TriangleData::setUniforms() const {
   auto prog = GL::AreaShader::instance();

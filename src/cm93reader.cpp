@@ -548,16 +548,16 @@ S57ChartOutline CM93Reader::readOutline(const QString& path) const {
 }
 
 
-namespace CM93 {
+namespace S57 {
 
 // Helper class to set Object's private data
 class ObjectBuilder {
 public:
-  void setGeometry(S57::Object* obj, S57::Geometry::Base* g, const QRectF& bb) const {
+  void cm93SetGeometry(S57::Object* obj, S57::Geometry::Base* g, const QRectF& bb) const {
     obj->m_geometry = g;
     obj->m_bbox = bb;
   }
-  void addAttribute(S57::Object* obj, quint16 acode, const S57::Attribute& a) const {
+  void cm93AddAttribute(S57::Object* obj, quint16 acode, const S57::Attribute& a) const {
     obj->m_attributes[acode] = a;
   }
 };
@@ -622,6 +622,7 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
   stream.skipRawData(4);
 
   auto n_feat_records = read_and_decode<quint16>(stream);
+  qDebug() << "Number of objects" << n_feat_records;
 
   // auto m_60 = read_and_decode<quint32>(stream);
   // qDebug() << "m_60" << m_60;
@@ -689,7 +690,7 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
   // projection without scaling
   auto projSc = GeoProjection::CreateProjection(proj->className());
   projSc->setReference(proj->reference());
-  CM93::ObjectBuilder helper;
+  S57::ObjectBuilder helper;
   // feature record table
   for (int featureId = 0; featureId < n_feat_records; featureId++) {
     auto classCode = read_and_decode<quint8>(stream);
@@ -712,9 +713,9 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
     auto object = new S57::Object(featureId, featureCode);
     objects.append(object);
     if (m_subst_attrs.contains(className)) {
-      helper.addAttribute(object,
-                          m_subst_attrs[className].first,
-                          m_subst_attrs[className].second);
+      helper.cm93AddAttribute(object,
+                              m_subst_attrs[className].first,
+                              m_subst_attrs[className].second);
     }
 
     auto geoType = as_enum<CM93::GeomType>(geoHeader & 0x0f, CM93::AllGeomTypes);
@@ -742,14 +743,14 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
 
       const QPointF center = computeAreaCenter(triangles, vertices, indices);
       const QRectF bbox = computeBBox(lines, vertices, indices);
-      helper.setGeometry(object,
-                         new S57::Geometry::Area(lines,
-                                                 center,
-                                                 triangles,
-                                                 0,
-                                                 true,
-                                                 projSc),
-                         bbox);
+      helper.cm93SetGeometry(object,
+                             new S57::Geometry::Area(lines,
+                                                     center,
+                                                     triangles,
+                                                     0,
+                                                     true,
+                                                     projSc),
+                             bbox);
 
       n_bytes -= n_elems * 2 + 2;
       break;
@@ -771,9 +772,9 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
 
       const QPointF center = computeLineCenter(lines, vertices, indices);
       const QRectF bbox = computeBBox(lines, vertices, indices);
-      helper.setGeometry(object,
-                         new S57::Geometry::Line(lines, center, 0, projSc),
-                         bbox);
+      helper.cm93SetGeometry(object,
+                             new S57::Geometry::Line(lines, center, 0, projSc),
+                             bbox);
       n_bytes -= n_elems * 2 + 2;
       break;
     }
@@ -781,7 +782,7 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
       auto index = read_and_decode<quint16>(stream);
       auto p0 = points[index];
       QRectF bbox(p0 - QPointF(10, 10), QSizeF(20, 20));
-      helper.setGeometry(object, new S57::Geometry::Point(p0, projSc), bbox);
+      helper.cm93SetGeometry(object, new S57::Geometry::Point(p0, projSc), bbox);
       n_bytes -= 2;
       break;
     }
@@ -798,24 +799,22 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
         ll.setX(qMin(ll.x(), q.x()));
         ll.setY(qMin(ll.y(), q.y()));
       }
-      helper.setGeometry(object, new S57::Geometry::Point(ps, projSc), QRectF(ll, ur));
+      helper.cm93SetGeometry(object, new S57::Geometry::Point(ps, projSc), QRectF(ll, ur));
       n_bytes -= 2;
       break;
     }
     default:
-      helper.setGeometry(object, new S57::Geometry::Meta(), QRectF());
+      helper.cm93SetGeometry(object, new S57::Geometry::Meta(), QRectF());
     }
 
     if (geoFlags & RelatedBit1) {
       auto n_elems = read_and_decode<quint8>(stream);
-      qDebug() << "skipping related offsets" << n_elems * 2 << "bytes";
       stream.skipRawData(n_elems * 2);
       n_bytes -= n_elems * 2 + 1;
     }
 
     if (geoFlags & RelatedBit2) {
-      auto n_elems = read_and_decode<quint16>(stream);
-      qDebug() << "number of related" << n_elems;
+      stream.skipRawData(2);
       n_bytes -= 2;
     }
 
@@ -849,7 +848,7 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
                      << a->value();
           continue;
         }
-        helper.addAttribute(object, acode, attr);
+        helper.cm93AddAttribute(object, acode, attr);
       }
     }
     Q_ASSERT(n_bytes == 0);
@@ -941,7 +940,7 @@ void CM93Reader::createLineElements(S57::ElementDataVector &elems,
     if (prevlast == start || forcePolygons) {
       // polygon
       if (prevlast != start) { // forcePolygons
-        qDebug() << "Force polygon";
+        // qDebug() << "Force polygon";
         // add prevlast
         indices.append(getEndPointIndex(EP::Last, edges[i - 1]));
         e.count += 1;

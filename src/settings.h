@@ -17,6 +17,7 @@ public:
   S52::Lookup::Category maxCategory() const {return m_maxCat;}
   bool twoShades() const {return m_twoShades;}
   double safetyContour() const {return m_safetyContour;}
+  double safetyDepth() const {return m_safetyDepth;}
   double deepContour() const {return m_deepContour;}
   double shallowContour() const {return m_shallowContour;}
   const TextGrouping& textGrouping() const {return m_textGrouping;}
@@ -47,6 +48,7 @@ private:
   double m_safetyContour;
   double m_deepContour;
   double m_shallowContour;
+  double m_safetyDepth;
   S52::Lookup::Category m_maxCat;
   bool m_simplifiedSymbols;
   bool m_plainBoundaries;

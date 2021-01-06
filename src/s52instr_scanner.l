@@ -48,6 +48,9 @@ charspec       \'[1-2][4-6][0-2][0-9]+\'
 
 %%
 
+"WRECKS02"          yylval->v_string = yytext; return OVERLING;
+"OBSTRN04"          yylval->v_string = yytext; return OVERLING;
+
 {symbolname}        yylval->v_string = yytext; return SYMBOL;
 {classname}         yylval->v_string = yytext; return VARIABLE;
 {colorname}         yylval->v_string = yytext; return COLOR;

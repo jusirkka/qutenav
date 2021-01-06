@@ -160,10 +160,10 @@ namespace S57 {
 // Helper class to set Object's private data
 class ObjectBuilder {
 public:
-  void addAttribute(S57::Object* obj, quint16 acode, const Attribute& a) const {
+  void osEncAddAttribute(S57::Object* obj, quint16 acode, const Attribute& a) const {
     obj->m_attributes[acode] = a;
   }
-  void addString(S57::Object* obj, quint16 acode, const QString& s) const {
+  void osEncAddString(S57::Object* obj, quint16 acode, const QString& s) const {
     if (S52::GetAttributeType(acode) == S57::Attribute::Type::IntegerList) {
       const QStringList tokens = s.split(",");
       QVariantList vs;
@@ -176,7 +176,7 @@ public:
       obj->m_attributes[acode] = S57::Attribute(s);
     }
   }
-  bool setGeometry(S57::Object* obj, S57::Geometry::Base* g, const QRectF& bb) const {
+  bool osEncSetGeometry(S57::Object* obj, S57::Geometry::Base* g, const QRectF& bb) const {
     if (obj->m_geometry != nullptr) {
       // qDebug() << as_numeric(obj->m_geometry->type());
       return false;
@@ -267,31 +267,31 @@ void OsencReader::readChart(GL::VertexVector& vertices,
         case S57::Attribute::Type::Integer: {
           int v;
           memcpy(&v, &p->attribute_data, sizeof(int));
-          helper.addAttribute(current,
-                              p->attribute_type_code,
-                              S57::Attribute(v));
+          helper.osEncAddAttribute(current,
+                                   p->attribute_type_code,
+                                   S57::Attribute(v));
           return true;
         }
         case S57::Attribute::Type::Real: {
           double v;
           memcpy(&v, &p->attribute_data, sizeof(double));
-          helper.addAttribute(current,
-                              p->attribute_type_code,
-                              S57::Attribute(v));
+          helper.osEncAddAttribute(current,
+                                   p->attribute_type_code,
+                                   S57::Attribute(v));
           return true;
         }
         case S57::Attribute::Type::String: {
           const char* s = &p->attribute_data; // null terminated string
           // handles strings and integer lists
-          helper.addString(current,
-                           p->attribute_type_code,
-                           QString::fromUtf8(s));
+          helper.osEncAddString(current,
+                                p->attribute_type_code,
+                                QString::fromUtf8(s));
           return true;
         }
         case S57::Attribute::Type::None: {
-          helper.addAttribute(current,
-                              p->attribute_type_code,
-                              S57::Attribute(S57::Attribute::Type::None));
+          helper.osEncAddAttribute(current,
+                                   p->attribute_type_code,
+                                   S57::Attribute(S57::Attribute::Type::None));
           return true;
         }
         default: return false;
@@ -307,7 +307,7 @@ void OsencReader::readChart(GL::VertexVector& vertices,
         auto p0 = proj->fromWGS84(WGS84Point::fromLL(p->lon, p->lat));
         objectHandle.last().type = S57::Geometry::Type::Point;
         QRectF bb(p0 - QPointF(10, 10), QSizeF(20, 20));
-        return helper.setGeometry(current, new S57::Geometry::Point(p0, proj), bb);
+        return helper.osEncSetGeometry(current, new S57::Geometry::Point(p0, proj), bb);
       })
     },
 
@@ -365,7 +365,7 @@ void OsencReader::readChart(GL::VertexVector& vertices,
           ll.setX(qMin(ll.x(), q.x()));
           ll.setY(qMin(ll.y(), q.y()));
         }
-        return helper.setGeometry(current, new S57::Geometry::Point(ps, proj), QRectF(ll, ur));
+        return helper.osEncSetGeometry(current, new S57::Geometry::Point(ps, proj), QRectF(ll, ur));
       })
     },
 
@@ -533,7 +533,7 @@ void OsencReader::readChart(GL::VertexVector& vertices,
 
     // setup meta, line and area geometries
     if (d.type == S57::Geometry::Type::Meta) {
-      helper.setGeometry(d.object, new S57::Geometry::Meta(), QRectF());
+      helper.osEncSetGeometry(d.object, new S57::Geometry::Meta(), QRectF());
     } else if (d.type == S57::Geometry::Type::Line) {
 
       S57::ElementDataVector elems;
@@ -541,9 +541,9 @@ void OsencReader::readChart(GL::VertexVector& vertices,
 
       const QPointF c = computeLineCenter(elems, vertices, indices);
       const QRectF bbox = computeBBox(elems, vertices, indices);
-      helper.setGeometry(d.object,
-                         new S57::Geometry::Line(elems, c, 0, proj),
-                         bbox);
+      helper.osEncSetGeometry(d.object,
+                              new S57::Geometry::Line(elems, c, 0, proj),
+                              bbox);
 
     } else if (d.type == S57::Geometry::Type::Area) {
 
@@ -556,9 +556,9 @@ void OsencReader::readChart(GL::VertexVector& vertices,
 
       const QPointF c = computeAreaCenter(telems, vertices, offset);
       const QRectF bbox = computeBBox(lelems, vertices, indices);
-      helper.setGeometry(d.object,
-                         new S57::Geometry::Area(lelems, c, telems, offset, false, proj),
-                         bbox);
+      helper.osEncSetGeometry(d.object,
+                              new S57::Geometry::Area(lelems, c, telems, offset, false, proj),
+                              bbox);
     }
 
     objects.append(d.object);

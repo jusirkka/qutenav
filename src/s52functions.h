@@ -249,6 +249,9 @@ public:
 
   S57::PaintDataMap execute(const QVector<QVariant>&, const S57::Object* obj) override;
 
+  S57::PaintDataMap lineData(const S57::Object* obj) const;
+  S57::PaintDataMap pointData(const S57::Object* obj) const;
+
 private:
 
   const quint32 m_quapos;
@@ -301,11 +304,41 @@ private:
 
 class CSEntrySoundings02: public Function {
 public:
-  CSEntrySoundings02(quint32 index)
-    : Function("SOUNDG02", index) {}
+  CSEntrySoundings02(quint32 index);
 
   S57::PaintDataMap execute(const QVector<QVariant>&, const S57::Object* obj) override;
+  S57::PaintDataMap symbols(double depth, int index, const S57::Object* obj) const;
+
+private:
+
+  const quint32 m_tecsou;
+  const quint32 m_soundsb1;
+  const quint32 m_soundgb1;
+  const quint32 m_soundsc2;
+  const quint32 m_soundgc2;
+  const quint32 m_soundsa1;
+  const quint32 m_quasou;
+  const quint32 m_quapos;
+
+  const QSet<int> m_doubtful_set;
+  const QSet<int> m_approximate_set;
+
+  const QVector<quint32> m_0;
+  const QVector<quint32> m_1;
+  const QVector<quint32> m_2;
+  const QVector<quint32> m_3;
+  const QVector<quint32> m_4;
+  const QVector<quint32> m_5;
+
+  const QVector<quint32> m_0_shallow;
+  const QVector<quint32> m_1_shallow;
+  const QVector<quint32> m_2_shallow;
+  const QVector<quint32> m_3_shallow;
+  const QVector<quint32> m_4_shallow;
+  const QVector<quint32> m_5_shallow;
+
 };
+
 
 class CSTopmarks01: public Function {
 public:
@@ -335,10 +368,30 @@ private:
 
 class CSWrecks02: public Function {
 public:
-  CSWrecks02(quint32 index)
-    : Function("WRECKS02", index) {}
+  CSWrecks02(quint32 index);
 
   S57::PaintDataMap execute(const QVector<QVariant>&, const S57::Object* obj) override;
+
+  S57::PaintDataMap dangerData(double depth, const S57::Object* obj) const;
+
+private:
+
+  const quint32 m_valsou;
+  const quint32 m_watlev;
+  const quint32 m_catwrk;
+  const quint32 m_danger01;
+  const quint32 m_danger02;
+  const quint32 m_wrecks01;
+  const quint32 m_wrecks04;
+  const quint32 m_wrecks05;
+  const quint32 m_chblk;
+  const quint32 m_cstln;
+  const quint32 m_chbrn;
+  const quint32 m_depit;
+  const quint32 m_depvs;
+  const quint32 m_drval1;
+  const quint32 m_drval2;
+  const quint32 m_isodgr01;
 };
 
 class Functions {

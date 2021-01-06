@@ -23,6 +23,9 @@ public:
     lup->m_references.clear();
     lup->m_immed.clear();
   }
+  void needsUnderling(S52::Lookup* lup) {
+    lup->m_needUnderling = true;
+  }
 };
 }
 
@@ -48,7 +51,7 @@ public:
 %token <v_char> CHAR
 %token <v_int> INT
 %token <v_float> FLOAT
-%token <v_string> SYMBOL VARIABLE COLOR CHARSPEC
+%token <v_string> SYMBOL VARIABLE COLOR CHARSPEC OVERLING
 
 %type <v_int> opttransparency varstring varint
 %type <v_int> pstyle
@@ -364,6 +367,21 @@ command: AP '(' SYMBOL optrotation ')' {
     bc.setRef(lookup, fun->index());
   } else {
     qWarning() << "AP: unknown symbol, called with " << $3 << $4;
+    ABORT;
+  }
+};
+
+command: CS '(' OVERLING ')' {
+  auto fun = S52::FindFunction($3);
+  if (fun != nullptr) {
+    S52::ByteCoder bc;
+
+    bc.needsUnderling(lookup);
+
+    bc.setCode(lookup, S52::Lookup::Code::Fun);
+    bc.setRef(lookup, fun->index());
+  } else {
+    qWarning() << "CS: unknown symbol, called with " << $3;
     ABORT;
   }
 };

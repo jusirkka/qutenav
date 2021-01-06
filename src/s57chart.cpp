@@ -255,7 +255,14 @@ void S57Chart::updatePaintData(const WGS84Point &sw, const WGS84Point &ne, quint
 
   for (ObjectLookup& d: m_lookups) {
     // check bbox & scale
-    if (!d.object->canPaint(viewArea, scale, today)) continue;
+    if (!d.object->canPaint(viewArea, scale, today, d.lookup->canOverride())) continue;
+
+    // check display category
+    if (!d.lookup->canOverride() &&
+        as_numeric(d.lookup->category()) > maxcat) {
+      qDebug() << "Skipping by category" << S52::GetClassInfo(d.object->classCode());
+      continue;
+    }
 
     // Meta-object filter
     if (S52::IsMetaClass(d.object->classCode())) {
@@ -271,17 +278,30 @@ void S57Chart::updatePaintData(const WGS84Point &sw, const WGS84Point &ne, quint
 
     S57::PaintDataMap pd = d.lookup->execute(d.object);
 
+    int prio = d.lookup->priority();
     // check category
-    if (pd.contains(S57::PaintData::Type::CategoryOverride)) {
-      pd.remove(S57::PaintData::Type::CategoryOverride);
-    } else if (as_numeric(d.lookup->category()) > maxcat) {
+    if (pd.contains(S57::PaintData::Type::Override)) {
+      auto ovr = pd.find(S57::PaintData::Type::Override);
+
+      auto p = dynamic_cast<const S57::OverrideData*>(ovr.value());
+      if (p->underwater()) {
+        prio = 8;
+      } else if (!d.object->canPaint(scale)) {
+        for (S57::PaintMutIterator it = pd.begin(); it != pd.end(); ++it) {
+          delete it.value();
+        }
+        continue;
+      }
+      delete p;
+      pd.erase(ovr);
+    } else if (as_numeric(d.lookup->category()) > maxcat || !d.object->canPaint(scale)) {
       for (S57::PaintMutIterator it = pd.begin(); it != pd.end(); ++it) {
         delete it.value();
       }
       continue;
     }
 
-    updates[d.lookup->priority()] += pd;
+    updates[prio] += pd;
   }
 
   for (int prio = 0; prio < S52::Lookup::PriorityCount; prio++) {

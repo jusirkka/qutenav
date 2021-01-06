@@ -40,6 +40,11 @@ GLWindow::GLWindow()
 
 void GLWindow::setChartSet(const QString &s) {
   ChartManager::instance()->setChartSet(s, m_mode->camera()->geoprojection());
+  makeCurrent();
+  initializeGL();
+  doneCurrent();
+  emit updateViewport(m_mode->camera(), true);
+  update();
 }
 
 void GLWindow::saveState() {
@@ -234,7 +239,8 @@ void GLWindow::initializeChartMode() {
   makeCurrent();
   initializeGL();
   doneCurrent();
-  emit updateViewport(m_mode->camera());
+  emit updateViewport(m_mode->camera(), true);
+  update();
 }
 
 void GLWindow::finalizeChartMode() {
@@ -246,7 +252,8 @@ void GLWindow::finalizeChartMode() {
   makeCurrent();
   initializeGL();
   doneCurrent();
-  emit updateViewport(m_mode->camera());
+  emit updateViewport(m_mode->camera(), true);
+  update();
 }
 
 void GLWindow::northUp() {

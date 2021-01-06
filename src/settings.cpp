@@ -12,6 +12,7 @@ Settings::Settings(QObject *parent)
   , m_safetyContour(Conf::MarinerParams::safetyContour())
   , m_deepContour(Conf::MarinerParams::deepContour())
   , m_shallowContour(Conf::MarinerParams::shallowContour())
+  , m_safetyDepth(Conf::MarinerParams::safetyDepth())
   , m_simplifiedSymbols(Conf::MarinerParams::simplifiedSymbols())
   , m_plainBoundaries(Conf::MarinerParams::plainBoundaries())
   , m_showMeta(Conf::MarinerParams::showMeta())
@@ -37,6 +38,7 @@ Settings::~Settings() {
   Conf::MarinerParams::setSafetyContour(m_safetyContour);
   Conf::MarinerParams::setDeepContour(m_deepContour);
   Conf::MarinerParams::setShallowContour(m_shallowContour);
+  Conf::MarinerParams::setSafetyDepth(m_safetyDepth);
   Conf::MarinerParams::setSimplifiedSymbols(m_simplifiedSymbols);
   Conf::MarinerParams::setPlainBoundaries(m_plainBoundaries);
   Conf::MarinerParams::setColorTable(m_colorTable);

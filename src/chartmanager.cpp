@@ -292,6 +292,9 @@ void ChartManager::setChartSet(const QString &name, const GeoProjection* vproj) 
     qDebug() << "Current chartset is already" << name;
     return;
   }
+
+  qDebug() << "Changing chartset" << name;
+
   m_reader = m_readers[m_chartSets[name]];
   m_locationAreas.clear();
   m_outlines.clear();
@@ -581,7 +584,7 @@ void ChartManager::manageThreads(S57Chart* chart) {
       qDebug() << "chartmanager: manageThreads: active";
       emit active();
     } else {
-      qDebug() << "chartmanager: manageThreads: charts updated";
+      // qDebug() << "chartmanager: manageThreads: charts updated";
       emit chartsUpdated(m_viewArea);
     }
   }

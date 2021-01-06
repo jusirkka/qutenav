@@ -47,7 +47,9 @@ public:
     , m_category(cat)
     , m_attributes(attrs)
     , m_description(comment)
-    , m_source(source) {}
+    , m_source(source)
+    , m_needUnderling(false)
+  {}
 
   Type type() const {return m_type;}
   int rcid() const {return m_rcid;}
@@ -58,6 +60,7 @@ public:
   const QString& description() const {return m_description;}
   const QString& source() const {return m_source;}
   bool byteCodeReady() const {return !m_code.isEmpty();}
+  bool canOverride() const {return m_needUnderling;}
 
   S57::PaintDataMap execute(const S57::Object* obj) const;
 
@@ -74,6 +77,8 @@ private:
   AttributeMap m_attributes;
   QString m_description;
   QString m_source;
+
+  bool m_needUnderling;
 
   // bytecode interface
   using CodeStack = QVector<Code>;

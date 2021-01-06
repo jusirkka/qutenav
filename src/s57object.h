@@ -121,7 +121,6 @@ public:
     : Base(Type::Point, p, proj->toWGS84(p)) {
     m_points.append(p.x());
     m_points.append(p.y());
-    m_points.append(0.);
   }
 
   Point(const PointVector& ps, const GeoProjection* proj)
@@ -193,7 +192,7 @@ class PaintData {
 public:
 
   enum class Type {
-    CategoryOverride, // For a CS procedure to change the display category
+    Override, // For a CS procedure to change the display settings
     TriangleElements,
     TriangleArrays,
     SolidLineElements,
@@ -224,6 +223,21 @@ protected:
 
 };
 
+
+class OverrideData: public PaintData {
+public:
+  void setUniforms() const override {/* noop */}
+  void setVertexOffset() const override {/* noop */}
+
+  OverrideData(bool uw);
+
+  bool underwater() const {return m_underwater;}
+
+protected:
+
+  bool m_underwater;
+
+};
 
 class TriangleData: public PaintData {
 public:
@@ -666,11 +680,14 @@ using PaintMutIterator = QMultiMap<PaintData::Type, PaintData*>::iterator;
 
 class ObjectBuilder;
 
+class Object;
+
+using ObjectVector = QVector<Object*>;
+using ObjectMap = QMap<quint32, Object*>;
 
 class Object {
 
-  friend class S57::ObjectBuilder;
-  friend class CM93::ObjectBuilder;
+  friend class ObjectBuilder;
 
 public:
 
@@ -682,7 +699,8 @@ public:
     : m_feature_id(fid)
     , m_feature_type_code(ftype)
     , m_geometry(nullptr)
-    , m_others(nullptr) {}
+    , m_others(nullptr)
+  {}
 
   ~Object();
 
@@ -696,8 +714,12 @@ public:
   const QRectF& boundingBox() const {return m_bbox;}
   LocationIterator others() const {return m_others->find(m_geometry->centerLL());}
   LocationIterator othersEnd() const {return m_others->cend();}
+  const ObjectVector& underlings() const {return m_underlings;}
 
-  bool canPaint(const QRectF& viewArea, quint32 scale, const QDate& today) const;
+  bool canPaint(const QRectF& viewArea, quint32 scale,
+                const QDate& today, bool onlyViewArea) const;
+  // for overridden checks
+  bool canPaint(quint32 scale) const;
 
 private:
 
@@ -708,16 +730,18 @@ private:
   static const int perstaIndex = 119;
   static const int perendIndex = 118;
 
+  using IndexVector = QVector<quint32>;
+
   const quint32 m_feature_id;
   const quint32 m_feature_type_code;
   AttributeMap m_attributes;
   Geometry::Base* m_geometry;
   QRectF m_bbox;
   LocationHash* m_others;
+  ObjectVector m_underlings;
 
 };
 
-using ObjectVector = QVector<Object*>;
 
 }
 
