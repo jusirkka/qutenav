@@ -60,7 +60,8 @@ public:
   const QString& description() const {return m_description;}
   const QString& source() const {return m_source;}
   bool byteCodeReady() const {return !m_code.isEmpty();}
-  bool canOverride() const {return m_needUnderling;}
+  bool canOverride() const {return m_canOverride;}
+  bool needUnderling() const {return m_needUnderling;}
 
   S57::PaintDataMap execute(const S57::Object* obj) const;
 
@@ -79,6 +80,7 @@ private:
   QString m_source;
 
   bool m_needUnderling;
+  bool m_canOverride;
 
   // bytecode interface
   using CodeStack = QVector<Code>;

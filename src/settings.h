@@ -21,8 +21,9 @@ public:
   double deepContour() const {return m_deepContour;}
   double shallowContour() const {return m_shallowContour;}
   const TextGrouping& textGrouping() const {return m_textGrouping;}
-  bool showMetaObjects() {return m_showMeta;}
-  bool fullLengthLightSectors() {return m_fullSectors;}
+  bool showMetaObjects() const {return m_showMeta;}
+  bool fullLengthLightSectors() const {return m_fullSectors;}
+  bool plainBoundaries() const {return m_plainBoundaries;}
 
   enum ColorTable {
     DayBright,
@@ -36,9 +37,9 @@ public:
 
 signals:
 
-  void simplifiedSymbols(bool);
-  void plainBoundaries(bool);
-  void colorTable(ColorTable t);
+  void simplifiedSymbolsChaged(bool);
+  void plainBoundariesChanged(bool);
+  void colorTableChanged(ColorTable t);
 
 private:
 

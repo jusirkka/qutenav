@@ -80,6 +80,16 @@ QVariant S57::Object::attributeValue(quint32 attr) const {
   return m_attributes[attr].value();
 }
 
+QSet<int> S57::Object::attributeSetValue(quint32 attr) const {
+  if (!m_attributes.contains(attr) || m_attributes[attr].type() != Attribute::Type::IntegerList) {
+    return QSet<int>();
+  }
+  auto vs = m_attributes[attr].value().toList();
+  QSet<int> rs;
+  for (auto v: vs) rs.insert(v.toInt());
+  return rs;
+}
+
 bool S57::Object::canPaint(const QRectF& viewArea, quint32 scale,
                            const QDate& today, bool onlyViewArea) const {
   if (m_bbox.isValid() && !m_bbox.intersects(viewArea)) {
@@ -134,6 +144,13 @@ bool S57::Object::canPaint(quint32 scale) const {
   return true;
 }
 
+double S57::Object::getSafetyContour(double c0) const {
+  for (auto c: *m_contours) {
+    if (c >= c0) return c;
+  }
+  return - 15.;
+}
+
 //
 // Paintdata
 //
@@ -142,9 +159,14 @@ S57::PaintData::PaintData(Type t)
   : m_type(t)
 {}
 
-S57::OverrideData::OverrideData(bool uw)
+S57::OverrideData::OverrideData(bool ovr)
   : PaintData(Type::Override)
-  , m_underwater(uw)
+  , m_override(ovr)
+{}
+
+S57::PriorityData::PriorityData(int prio)
+  : PaintData(Type::Priority)
+  , m_priority(prio)
 {}
 
 void S57::TriangleData::setUniforms() const {

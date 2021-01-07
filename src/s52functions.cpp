@@ -412,10 +412,177 @@ S57::PaintDataMap S52::CSDepthArea01::execute(const QVector<QVariant>&,
   return ps;
 }
 
+S52::CSResArea02::CSResArea02(quint32 index)
+  : Function("RESARE02", index)
+  , m_chmgd(FindIndex("CHMGD"))
+  , m_catrea(FindIndex("CATREA"))
+  , m_restrn(FindIndex("RESTRN"))
+  , m_entres51(FindIndex("ENTRES51"))
+  , m_entres61(FindIndex("ENTRES61"))
+  , m_entres71(FindIndex("ENTRES71"))
+  , m_achres51(FindIndex("ACHRES51"))
+  , m_achres61(FindIndex("ACHRES61"))
+  , m_achres71(FindIndex("ACHRES71"))
+  , m_fshres51(FindIndex("FSHRES51"))
+  , m_fshres61(FindIndex("FSHRES61"))
+  , m_fshres71(FindIndex("FSHRES71"))
+  , m_infare51(FindIndex("INFARE51"))
+  , m_rsrdef51(FindIndex("RSRDEF51"))
+  , m_ctyare51(FindIndex("CTYARE51"))
+  , m_ctyare71(FindIndex("CTYARE71"))
+  , m_anchor_set {1, 2}
+  , m_entry_set {7, 6, 14}
+  , m_fish_set {3, 4, 5, 6}
+  , m_sport_set {9, 10, 11, 12, 13}
+  , m_mil_set {1, 8, 9, 12, 14, 19, 21, 25}
+  , m_nat_set {4, 5, 6, 7, 10, 18, 20, 22, 23, 24}
+
+{}
+
 S57::PaintDataMap S52::CSResArea02::execute(const QVector<QVariant>&,
-                                            const S57::Object* /*obj*/) {
-  qWarning() << "RESARE02: not implemented";
-  return S57::PaintDataMap(); // invalid paint data
+                                            const S57::Object* obj) {
+  qDebug() << "[CSResArea02:Class]" << S52::GetClassInfo(obj->classCode());
+  for (auto k: obj->attributes().keys()) {
+    qDebug() << GetAttributeInfo(k, obj);
+  }
+
+  S57::PaintDataMap ps;
+
+  QSet<int> catrea = obj->attributeSetValue(m_catrea);
+  QSet<int> restrn = obj->attributeSetValue(m_restrn);
+  quint32 sym;
+
+  if (obj->attributeValue(m_restrn).isValid()) {
+    if (restrn.intersects(m_entry_set)) {
+      // continuation A
+      if (restrn.intersects(m_anchor_set) ||
+          restrn.intersects(m_fish_set) ||
+          catrea.intersects(m_mil_set)) {
+        sym = m_entres61;
+      } else if (restrn.intersects(m_sport_set) ||
+                 catrea.intersects(m_nat_set)) {
+        sym = m_entres71;
+      } else {
+        sym = m_entres51;
+      }
+
+      const QVector<QVariant> v0 {sym, 0.};
+      ps += S52::FindFunction("SY")->execute(v0, obj);
+
+      if (Settings::instance()->plainBoundaries()) {
+        const QVector<QVariant> vals {as_numeric(S52::LineType::Dashed), 2, m_chmgd};
+        ps += S52::FindFunction("LS")->execute(vals, obj);
+      } else {
+        const QVector<QVariant> vals {m_ctyare51};
+        ps += S52::FindFunction("LC")->execute(vals, obj);
+      }
+
+      auto p = new S57::PriorityData(6);
+      ps.insert(p->type(), p);
+
+      return ps;
+    }
+    if (restrn.intersects(m_anchor_set)) {
+      // continuation B
+      if (restrn.intersects(m_fish_set) ||
+          catrea.intersects(m_mil_set)) {
+        sym = m_achres61;
+      } else if (restrn.intersects(m_sport_set) ||
+                 catrea.intersects(m_nat_set)) {
+        sym = m_achres71;
+      } else {
+        sym = m_achres51;
+      }
+
+      const QVector<QVariant> v0 {sym, 0.};
+      ps += S52::FindFunction("SY")->execute(v0, obj);
+
+      if (Settings::instance()->plainBoundaries()) {
+        const QVector<QVariant> vals {as_numeric(S52::LineType::Dashed), 2, m_chmgd};
+        ps += S52::FindFunction("LS")->execute(vals, obj);
+      } else {
+        const QVector<QVariant> vals {m_achres51};
+        ps += S52::FindFunction("LC")->execute(vals, obj);
+      }
+
+      auto p = new S57::PriorityData(6);
+      ps.insert(p->type(), p);
+
+      return ps;
+    }
+
+    if (restrn.intersects(m_fish_set)) {
+      // continuation C
+      if (catrea.intersects(m_mil_set)) {
+        sym = m_fshres61;
+      } else if (restrn.intersects(m_sport_set) ||
+                 catrea.intersects(m_nat_set))
+      {
+        sym = m_fshres71;
+      } else {
+        sym = m_fshres51;
+      }
+
+      const QVector<QVariant> v0 {sym, 0.};
+      ps += S52::FindFunction("SY")->execute(v0, obj);
+
+      if (Settings::instance()->plainBoundaries()) {
+        const QVector<QVariant> vals {as_numeric(S52::LineType::Dashed), 2, m_chmgd};
+        ps += S52::FindFunction("LS")->execute(vals, obj);
+      } else {
+        const QVector<QVariant> vals {m_fshres51};
+        ps += S52::FindFunction("LC")->execute(vals, obj);
+      }
+
+      auto p = new S57::PriorityData(6);
+      ps.insert(p->type(), p);
+      return ps;
+    }
+
+    if (restrn.intersects(m_sport_set)) {
+      sym = m_infare51;
+    } else {
+      sym = m_rsrdef51;
+    }
+
+    const QVector<QVariant> v0 {sym, 0.};
+    ps += S52::FindFunction("SY")->execute(v0, obj);
+
+    if (Settings::instance()->plainBoundaries()) {
+      const QVector<QVariant> vals {as_numeric(S52::LineType::Dashed), 2, m_chmgd};
+      ps += S52::FindFunction("LS")->execute(vals, obj);
+    } else {
+      const QVector<QVariant> vals {m_ctyare51};
+      ps += S52::FindFunction("LC")->execute(vals, obj);
+    }
+
+    return ps;
+  }
+
+  // continuation D
+  sym = m_rsrdef51;
+  if (catrea.intersects(m_mil_set) &&
+      catrea.intersects(m_nat_set)) {
+    sym = m_ctyare71;
+  } else if (catrea.intersects(m_mil_set)) {
+    sym = m_ctyare51;
+  } else if (catrea.intersects(m_nat_set)) {
+    sym = m_infare51;
+  }
+
+  const QVector<QVariant> v0 {sym, 0.};
+  ps += S52::FindFunction("SY")->execute(v0, obj);
+
+  if (Settings::instance()->plainBoundaries()) {
+    const QVector<QVariant> vals {as_numeric(S52::LineType::Dashed), 2, m_chmgd};
+    ps += S52::FindFunction("LS")->execute(vals, obj);
+  } else {
+    const QVector<QVariant> vals {m_ctyare51};
+    ps += S52::FindFunction("LC")->execute(vals, obj);
+  }
+
+  return ps;
+
 }
 
 S52::CSDataCov01::CSDataCov01(quint32 index)
@@ -429,16 +596,60 @@ S57::PaintDataMap S52::CSDataCov01::execute(const QVector<QVariant>&,
   return S52::FindFunction("LC")->execute(vals, obj);
 }
 
-S57::PaintDataMap S52::CSDepthArea02::execute(const QVector<QVariant>&,
-                                            const S57::Object* /*obj*/) {
-  qWarning() << "DEPARE02: not implemented";
-  return S57::PaintDataMap(); // invalid paint data
+S57::PaintDataMap S52::CSDepthArea02::execute(const QVector<QVariant>& vals,
+                                              const S57::Object* obj) {
+  return S52::FindFunction("DEPARE01")->execute(vals, obj);
 }
 
+S52::CSDepthContours02::CSDepthContours02(quint32 index)
+  : Function("DEPCNT02", index)
+  , m_depare(FindIndex("DEPARE"))
+  , m_drval1(FindIndex("DRVAL1"))
+  , m_drval2(FindIndex("DRVAL2"))
+  , m_valdco(FindIndex("VALDCO"))
+  , m_quapos(FindIndex("QUAPOS"))
+  , m_depsc(FindIndex("DEPSC"))
+  , m_depcn(FindIndex("DEPCN"))
+{}
+
 S57::PaintDataMap S52::CSDepthContours02::execute(const QVector<QVariant>&,
-                                            const S57::Object* /*obj*/) {
-  qWarning() << "DEPCNT02: not implemented";
-  return S57::PaintDataMap(); // invalid paint data
+                                                  const S57::Object* obj) {
+  bool isSafetyContour = false;
+  const double sc = Settings::instance()->safetyContour();
+  if (obj->classCode() == m_depare && obj->geometry()->type() == S57::Geometry::Type::Line) {
+    const double d1 = obj->attributeValue(m_drval1).isValid() ? obj->attributeValue(m_drval1).toDouble() : 0.;
+    const double d2 = obj->attributeValue(m_drval2).isValid() ? obj->attributeValue(m_drval2).toDouble() : 0.;
+    isSafetyContour = d1 <= sc && sc <= d2;
+  } else {
+    // continuation A
+    const double v0 = obj->attributeValue(m_valdco).isValid() ? obj->attributeValue(m_valdco).toDouble() : 0.;
+    isSafetyContour = v0 == obj->getSafetyContour(sc);
+  }
+  // continuation B
+  S57::PaintDataMap ps;
+  const int quapos = obj->attributeValue(m_quapos).isValid() ? obj->attributeValue(m_quapos).toInt() : 0;
+  if (quapos > 1 && quapos < 10) {
+    if (isSafetyContour) {
+      const QVector<QVariant> vals {as_numeric(S52::LineType::Dashed), 2, m_depsc};
+      ps += S52::FindFunction("LS")->execute(vals, obj);
+      auto p = new S57::OverrideData(true);
+      ps.insert(p->type(), p);
+    } else {
+      const QVector<QVariant> vals {as_numeric(S52::LineType::Dashed), 1, m_depcn};
+      ps += S52::FindFunction("LS")->execute(vals, obj);
+    }
+  } else {
+    if (isSafetyContour) {
+      const QVector<QVariant> vals {as_numeric(S52::LineType::Solid), 2, m_depsc};
+      ps += S52::FindFunction("LS")->execute(vals, obj);
+      auto p = new S57::OverrideData(true);
+      ps.insert(p->type(), p);
+    } else {
+      const QVector<QVariant> vals {as_numeric(S52::LineType::Solid), 1, m_depcn};
+      ps += S52::FindFunction("LS")->execute(vals, obj);
+    }
+  }
+  return ps;
 }
 
 S52::CSLights05::CSLights05(quint32 index)
@@ -907,12 +1118,200 @@ S57::PaintDataMap S52::CSLights05::drawArc(const S57::Object *obj,
 
 
 
+S52::CSObstruction04::CSObstruction04(quint32 index)
+  : Function("OBSTRN04", index)
+  , m_watlev(FindIndex("WATLEV"))
+  , m_catobs(FindIndex("CATOBS"))
+  , m_valsou(FindIndex("VALSOU"))
+  , m_uwtroc(FindIndex("UWTROC"))
+  , m_uwtroc03(FindIndex("UWTROC03"))
+  , m_uwtroc04(FindIndex("UWTROC04"))
+  , m_danger01(FindIndex("DANGER01"))
+  , m_danger02(FindIndex("DANGER02"))
+  , m_danger03(FindIndex("DANGER03"))
+  , m_obstrn01(FindIndex("OBSTRN01"))
+  , m_obstrn03(FindIndex("OBSTRN03"))
+  , m_obstrn11(FindIndex("OBSTRN11"))
+  , m_quapos(FindIndex("QUAPOS"))
+  , m_lowacc31(FindIndex("LOWACC31"))
+  , m_lowacc41(FindIndex("LOWACC41"))
+  , m_foular01(FindIndex("FOULAR01"))
+  , m_chblk(FindIndex("CHBLK"))
+  , m_depvs(FindIndex("DEPVS"))
+  , m_chgrd(FindIndex("CHGRD"))
+  , m_chbrn(FindIndex("CHBRN"))
+  , m_cstln(FindIndex("CSTLN"))
+  , m_depit(FindIndex("DEPIT"))
+{}
 
 S57::PaintDataMap S52::CSObstruction04::execute(const QVector<QVariant>&,
-                                                const S57::Object* /*obj*/) {
-  qWarning() << "OBSTRN04: not implemented";
-  return S57::PaintDataMap(); // invalid paint data
+                                                const S57::Object* obj) {
+  S57::PaintDataMap ps;
+  double depth = - 15.; // always dry land
+
+  int watlev = 0;
+  if (obj->attributeValue(m_watlev).isValid()) {
+    watlev = obj->attributeValue(m_watlev).toInt();
+  }
+  int catobs = 0;
+  if (obj->attributeValue(m_catobs).isValid()) {
+    catobs = obj->attributeValue(m_catobs).toInt();
+  }
+
+  if (obj->attributeValue(m_valsou).isValid()) {
+    depth = obj->attributeValue(m_valsou).toDouble();
+  } else if (catobs == 6 || watlev == 3) {
+    depth = .01;
+  } else if (watlev == 5) {
+    depth = 0.;
+  }
+
+  auto wrecks = dynamic_cast<S52::CSWrecks02*>(S52::FindFunction("WRECKS02"));
+  auto p = wrecks->dangerData(depth, obj);
+  bool danger = p.size() == 2;
+  ps += p;
+
+  const auto t = obj->geometry()->type();
+  if (t == S57::Geometry::Type::Point) {
+    // continuation A
+    auto fqua = dynamic_cast<S52::CSQualOfPos01*>(S52::FindFunction("QUAPOS01"));
+    ps += fqua->pointData(obj);
+    if (danger) {
+      return ps;
+    }
+    quint32 sym;
+    bool doSnd = false;
+    if (obj->attributeValue(m_valsou).isValid()) {
+      if (depth <= 20.) {
+        if (obj->classCode() == m_uwtroc) {
+          if (watlev == 4 || watlev == 5) {
+            sym = m_uwtroc04;
+          } else {
+            doSnd = true;
+            sym = m_danger01;
+          }
+        } else {
+          if (watlev == 1 || watlev == 2) {
+            sym = m_obstrn11;
+          } else if (watlev == 4 || watlev == 5) {
+            doSnd = true;
+            sym = m_danger03;
+          } else {
+            doSnd = true;
+            sym = m_danger01;
+          }
+        }
+      } else {
+        sym = m_danger02;
+      }
+    } else {
+      if (obj->classCode() == m_uwtroc) {
+        if (watlev == 3) {
+          sym = m_uwtroc03;
+        } else {
+          sym = m_uwtroc04;
+        }
+      } else {
+        if (watlev == 1 || watlev == 2) {
+          sym = m_obstrn11;
+        } else if (watlev == 4 || watlev == 5) {
+          sym = m_obstrn03;
+        } else {
+          sym = m_obstrn01;
+        }
+      }
+    }
+
+    const QVector<QVariant> v0 {sym, 0.};
+    ps += S52::FindFunction("SY")->execute(v0, obj);
+
+    if (doSnd) {
+      auto soundings = dynamic_cast<S52::CSEntrySoundings02*>(S52::FindFunction("SOUNDG02"));
+      ps += soundings->symbols(depth, 0, obj);
+    }
+
+    return ps;
+  }
+
+  if (t == S57::Geometry::Type::Line) {
+    // continuation B
+    const int quapos = obj->attributeValue(m_quapos).isValid() ? obj->attributeValue(m_quapos).toInt() : 0;
+    if (quapos > 1 && quapos < 10) {
+      if (danger) {
+        const QVector<QVariant> v0 {m_lowacc41, 0.};
+        ps += S52::FindFunction("SY")->execute(v0, obj);
+      } else {
+        const QVector<QVariant> v0 {m_lowacc31, 0.};
+        ps += S52::FindFunction("SY")->execute(v0, obj);
+      }
+    } else if (obj->attributeValue(m_valsou).isValid() && depth > 20.) {
+      const QVector<QVariant> v0 {as_numeric(S52::LineType::Dashed), 2, m_chblk};
+      ps += S52::FindFunction("LS")->execute(v0, obj);
+    } else {
+      const QVector<QVariant> v0 {as_numeric(S52::LineType::Dotted), 2, m_chblk};
+      ps += S52::FindFunction("LS")->execute(v0, obj);
+    }
+    if (obj->attributeValue(m_valsou).isValid() && depth <= 20.) {
+      auto soundings = dynamic_cast<S52::CSEntrySoundings02*>(S52::FindFunction("SOUNDG02"));
+      ps += soundings->symbols(depth, 0, obj);
+    }
+    return ps;
+  }
+
+  // continuation C
+  auto fqua = dynamic_cast<S52::CSQualOfPos01*>(S52::FindFunction("QUAPOS01"));
+  ps += fqua->pointData(obj);
+  if (danger) {
+    const QVector<QVariant> v0 {m_depvs, 255};
+    ps += S52::FindFunction("AC")->execute(v0, obj);
+    const QVector<QVariant> v1 {m_foular01, 0.};
+    ps += S52::FindFunction("AP")->execute(v1, obj);
+    const QVector<QVariant> v2 {as_numeric(S52::LineType::Dotted), 2, m_chblk};
+    ps += S52::FindFunction("LS")->execute(v2, obj);
+    return ps;
+  }
+
+  if (obj->attributeValue(m_valsou).isValid()) {
+    if (depth <= 20.) {
+      const QVector<QVariant> v0 {as_numeric(S52::LineType::Dotted), 2, m_chblk};
+      ps += S52::FindFunction("LS")->execute(v0, obj);
+    } else {
+      const QVector<QVariant> v0 {as_numeric(S52::LineType::Dashed), 2, m_chgrd};
+      ps += S52::FindFunction("LS")->execute(v0, obj);
+    }
+    auto soundings = dynamic_cast<S52::CSEntrySoundings02*>(S52::FindFunction("SOUNDG02"));
+    ps += soundings->symbols(depth, 0, obj);
+
+    return ps;
+  }
+
+  if (watlev == 3 && catobs == 6) {
+    const QVector<QVariant> v0 {m_depvs, 255};
+    ps += S52::FindFunction("AC")->execute(v0, obj);
+    const QVector<QVariant> v1 {m_foular01, 0.};
+    ps += S52::FindFunction("AP")->execute(v1, obj);
+    const QVector<QVariant> v2 {as_numeric(S52::LineType::Dotted), 2, m_chblk};
+    ps += S52::FindFunction("LS")->execute(v2, obj);
+  } else if (watlev == 1 || watlev == 2) {
+    const QVector<QVariant> v0 {m_chbrn, 255};
+    ps += S52::FindFunction("AC")->execute(v0, obj);
+    const QVector<QVariant> v2 {as_numeric(S52::LineType::Solid), 2, m_cstln};
+    ps += S52::FindFunction("LS")->execute(v2, obj);
+  } else if (watlev == 4) {
+    const QVector<QVariant> v0 {m_depit, 255};
+    ps += S52::FindFunction("AC")->execute(v0, obj);
+    const QVector<QVariant> v2 {as_numeric(S52::LineType::Dashed), 2, m_cstln};
+    ps += S52::FindFunction("LS")->execute(v2, obj);
+  } else {
+    const QVector<QVariant> v0 {m_depvs, 255};
+    ps += S52::FindFunction("AC")->execute(v0, obj);
+    const QVector<QVariant> v2 {as_numeric(S52::LineType::Dotted), 2, m_chblk};
+    ps += S52::FindFunction("LS")->execute(v2, obj);
+  }
+
+  return ps;
 }
+
 
 S52::CSQualOfPos01::CSQualOfPos01(quint32 index)
   : S52::Function("QUAPOS01", index)
@@ -1530,10 +1929,6 @@ S52::CSWrecks02::CSWrecks02(quint32 index)
 
 S57::PaintDataMap S52::CSWrecks02::execute(const QVector<QVariant>&,
                                             const S57::Object* obj) {
-  qDebug() << "[CSWrecks02:Class]" << S52::GetClassInfo(obj->classCode());
-  for (auto k: obj->attributes().keys()) {
-    qDebug() << GetAttributeInfo(k, obj);
-  }
 
   S57::PaintDataMap ps;
   double depth = - 15.; // always dry land
@@ -1623,13 +2018,13 @@ S57::PaintDataMap S52::CSWrecks02::execute(const QVector<QVariant>&,
       ps += soundings->symbols(depth, 0, obj);
     }
   } else if (watlev == 1 || watlev == 2) {
-    QVector<QVariant> vals {m_chbrn};
+    QVector<QVariant> vals {m_chbrn, 255};
     ps += S52::FindFunction("AC")->execute(vals, obj);
   } else if (watlev == 4) {
-    QVector<QVariant> vals {m_depit};
+    QVector<QVariant> vals {m_depit, 255};
     ps += S52::FindFunction("AC")->execute(vals, obj);
   } else {
-    QVector<QVariant> vals {m_depvs};
+    QVector<QVariant> vals {m_depvs, 255};
     ps += S52::FindFunction("AC")->execute(vals, obj);
   }
 

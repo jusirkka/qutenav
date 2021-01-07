@@ -63,8 +63,9 @@ private:
 
   using PaintPriorityVector = QVector<S57::PaintDataMap>;
 
-  using LocationHash = QMultiHash<WGS84Point, const S57::Object*>;
-  using LocationIterator = LocationHash::const_iterator;
+  using LocationHash = S57::Object::LocationHash;
+  using LocationIterator = S57::Object::LocationIterator;
+  using ContourVector = S57::Object::ContourVector;
 
   using SymbolMap = QHash<SymbolKey, S57::PaintData*>;
   using SymbolIterator = QHash<SymbolKey, S57::PaintData*>::const_iterator;
@@ -77,6 +78,7 @@ private:
   GeoProjection* m_nativeProj;
   ObjectLookupVector m_lookups;
   LocationHash m_locations;
+  ContourVector m_contours;
   PaintPriorityVector m_paintData;
   PaintPriorityVector m_updatedPaintData;
   GL::VertexVector m_updatedVertices;

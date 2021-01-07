@@ -28,9 +28,9 @@ Private::Presentation::Presentation()
   readObjectClasses();
   readChartSymbols();
 
-  connect(settings, &Settings::colorTable, this, &Presentation::setColorTable);
-  connect(settings, &Settings::plainBoundaries, this, &Presentation::setPlainBoundaries);
-  connect(settings, &Settings::simplifiedSymbols, this, &Presentation::setSimplifiedSymbols);
+  connect(settings, &Settings::colorTableChanged, this, &Presentation::setColorTable);
+  connect(settings, &Settings::plainBoundariesChanged, this, &Presentation::setPlainBoundaries);
+  connect(settings, &Settings::simplifiedSymbolsChaged, this, &Presentation::setSimplifiedSymbols);
 
   setColorTable(Conf::MarinerParams::colorTable());
   setPlainBoundaries(Conf::MarinerParams::plainBoundaries());

@@ -26,6 +26,9 @@ public:
   void needsUnderling(S52::Lookup* lup) {
     lup->m_needUnderling = true;
   }
+  void canOverride(S52::Lookup* lup) {
+    lup->m_canOverride = true;
+  }
 };
 }
 
@@ -51,7 +54,7 @@ public:
 %token <v_char> CHAR
 %token <v_int> INT
 %token <v_float> FLOAT
-%token <v_string> SYMBOL VARIABLE COLOR CHARSPEC OVERLING
+%token <v_string> SYMBOL VARIABLE COLOR CHARSPEC OVERLING OVERRIDER
 
 %type <v_int> opttransparency varstring varint
 %type <v_int> pstyle
@@ -377,6 +380,22 @@ command: CS '(' OVERLING ')' {
     S52::ByteCoder bc;
 
     bc.needsUnderling(lookup);
+    bc.canOverride(lookup);
+
+    bc.setCode(lookup, S52::Lookup::Code::Fun);
+    bc.setRef(lookup, fun->index());
+  } else {
+    qWarning() << "CS: unknown symbol, called with " << $3;
+    ABORT;
+  }
+};
+
+command: CS '(' OVERRIDER ')' {
+  auto fun = S52::FindFunction($3);
+  if (fun != nullptr) {
+    S52::ByteCoder bc;
+
+    bc.canOverride(lookup);
 
     bc.setCode(lookup, S52::Lookup::Code::Fun);
     bc.setRef(lookup, fun->index());

@@ -141,10 +141,34 @@ private:
 
 class CSResArea02: public Function {
 public:
-  CSResArea02(quint32 index)
-    : Function("RESARE02", index) {}
+  CSResArea02(quint32 index);
 
   S57::PaintDataMap execute(const QVector<QVariant>&, const S57::Object* obj) override;
+private:
+
+  const quint32 m_chmgd;
+  const quint32 m_catrea;
+  const quint32 m_restrn;
+  const quint32 m_entres51;
+  const quint32 m_entres61;
+  const quint32 m_entres71;
+  const quint32 m_achres51;
+  const quint32 m_achres61;
+  const quint32 m_achres71;
+  const quint32 m_fshres51;
+  const quint32 m_fshres61;
+  const quint32 m_fshres71;
+  const quint32 m_infare51;
+  const quint32 m_rsrdef51;
+  const quint32 m_ctyare51;
+  const quint32 m_ctyare71;
+
+  const QSet<int> m_anchor_set;
+  const QSet<int> m_entry_set;
+  const QSet<int> m_fish_set;
+  const QSet<int> m_sport_set;
+  const QSet<int> m_mil_set;
+  const QSet<int> m_nat_set;
 };
 
 class CSDataCov01: public Function {
@@ -165,10 +189,20 @@ public:
 
 class CSDepthContours02: public Function {
 public:
-  CSDepthContours02(quint32 index)
-    : Function("DEPCNT02", index) {}
+  CSDepthContours02(quint32 index);
 
   S57::PaintDataMap execute(const QVector<QVariant>&, const S57::Object* obj) override;
+
+private:
+
+  const quint32 m_depare;
+  const quint32 m_drval1;
+  const quint32 m_drval2;
+  const quint32 m_valdco;
+  const quint32 m_quapos;
+  const quint32 m_depsc;
+  const quint32 m_depcn;
+
 };
 
 class CSLights05: public Function {
@@ -237,10 +271,35 @@ private:
 
 class CSObstruction04: public Function {
 public:
-  CSObstruction04(quint32 index)
-    : Function("OBSTRN04", index) {}
+  CSObstruction04(quint32 index);
 
   S57::PaintDataMap execute(const QVector<QVariant>&, const S57::Object* obj) override;
+
+private:
+
+  const quint32 m_watlev;
+  const quint32 m_catobs;
+  const quint32 m_valsou;
+  const quint32 m_uwtroc;
+  const quint32 m_uwtroc03;
+  const quint32 m_uwtroc04;
+  const quint32 m_danger01;
+  const quint32 m_danger02;
+  const quint32 m_danger03;
+  const quint32 m_obstrn01;
+  const quint32 m_obstrn03;
+  const quint32 m_obstrn11;
+  const quint32 m_quapos;
+  const quint32 m_lowacc31;
+  const quint32 m_lowacc41;
+  const quint32 m_foular01;
+  const quint32 m_chblk;
+  const quint32 m_depvs;
+  const quint32 m_chgrd;
+  const quint32 m_chbrn;
+  const quint32 m_cstln;
+  const quint32 m_depit;
+
 };
 
 class CSQualOfPos01: public Function {

@@ -26,8 +26,11 @@ namespace S57 {
 // Helper class to set Object's private data
 class ObjectBuilder {
 public:
-  void setOthers(S57::Object* obj, Object::LocationHash* others) const {
+  void setOthers(S57::Object* obj,
+                 Object::LocationHash* others,
+                 Object::ContourVector* contours) const {
     obj->m_others = others;
+    obj->m_contours = contours;
   }
 };
 
@@ -76,18 +79,30 @@ S57Chart::S57Chart(quint32 id, const QString& path)
   m_nativeProj->setScaling(QSizeF(1., 1.));
 
   S57::ObjectBuilder builder;
+  QSet<double> contours;
+  const quint32 depcnt = S52::FindIndex("DEPCNT");
+  const quint32 valdco = S52::FindIndex("VALDCO");
+
   for (S57::Object* object: objects) {
     // bind objects to lookup records
     S52::Lookup* lp = S52::FindLookup(object);
     m_lookups.append(ObjectLookup(object, lp));
 
-    builder.setOthers(object, &m_locations);
+    builder.setOthers(object, &m_locations, &m_contours);
     // sort point objects by their locations
     const WGS84Point p = object->geometry()->centerLL();
     if (p.valid()) {
       m_locations.insert(p, object);
     }
+    // add contour values - these are needed in CS(DEPCNT02)
+    if (object->classCode() == depcnt && object->attributeValue(valdco).isValid()) {
+      contours << object->attributeValue(valdco).toDouble();
+    }
   }
+  ContourVector sorted(contours.begin(), contours.end());
+  std::sort(sorted.begin(), sorted.end());
+  m_contours.append(sorted);
+
 
   // fill in the buffers
   if (!m_coordBuffer.create()) qFatal("No can do");
@@ -279,12 +294,12 @@ void S57Chart::updatePaintData(const WGS84Point &sw, const WGS84Point &ne, quint
     S57::PaintDataMap pd = d.lookup->execute(d.object);
 
     int prio = d.lookup->priority();
-    // check category
+    // check category overrides
     if (pd.contains(S57::PaintData::Type::Override)) {
       auto ovr = pd.find(S57::PaintData::Type::Override);
 
       auto p = dynamic_cast<const S57::OverrideData*>(ovr.value());
-      if (p->underwater()) {
+      if (p->override()) {
         prio = 8;
       } else if (!d.object->canPaint(scale)) {
         for (S57::PaintMutIterator it = pd.begin(); it != pd.end(); ++it) {
@@ -294,11 +309,21 @@ void S57Chart::updatePaintData(const WGS84Point &sw, const WGS84Point &ne, quint
       }
       delete p;
       pd.erase(ovr);
-    } else if (as_numeric(d.lookup->category()) > maxcat || !d.object->canPaint(scale)) {
+    } else if (d.lookup->canOverride() && // check overriddable objects
+               (as_numeric(d.lookup->category()) > maxcat || !d.object->canPaint(scale))) {
       for (S57::PaintMutIterator it = pd.begin(); it != pd.end(); ++it) {
         delete it.value();
       }
       continue;
+    }
+
+    // check priority changes
+    if (pd.contains(S57::PaintData::Type::Priority)) {
+      auto pr = pd.find(S57::PaintData::Type::Priority);
+      auto p = dynamic_cast<const S57::PriorityData*>(pr.value());
+      prio = p->priority();
+      delete p;
+      pd.erase(pr);
     }
 
     updates[prio] += pd;

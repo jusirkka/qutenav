@@ -192,7 +192,8 @@ class PaintData {
 public:
 
   enum class Type {
-    Override, // For a CS procedure to change the display settings
+    Override, // For a CS procedure to override the display settings
+    Priority, // For a CS procedure to change priority
     TriangleElements,
     TriangleArrays,
     SolidLineElements,
@@ -231,13 +232,29 @@ public:
 
   OverrideData(bool uw);
 
-  bool underwater() const {return m_underwater;}
+  bool override() const {return m_override;}
 
 protected:
 
-  bool m_underwater;
+  bool m_override;
 
 };
+
+class PriorityData: public PaintData {
+public:
+  void setUniforms() const override {/* noop */}
+  void setVertexOffset() const override {/* noop */}
+
+  PriorityData(int prio);
+
+  int priority() const {return m_priority;}
+
+protected:
+
+  int m_priority;
+
+};
+
 
 class TriangleData: public PaintData {
 public:
@@ -693,6 +710,7 @@ public:
 
   using LocationHash = QMultiHash<WGS84Point, const S57::Object*>;
   using LocationIterator = LocationHash::const_iterator;
+  using ContourVector = QVector<double>;
 
 
   Object(quint32 fid, quint32 ftype)
@@ -700,6 +718,7 @@ public:
     , m_feature_type_code(ftype)
     , m_geometry(nullptr)
     , m_others(nullptr)
+    , m_contours(nullptr)
   {}
 
   ~Object();
@@ -711,10 +730,12 @@ public:
   const Geometry::Base* geometry() const {return m_geometry;}
   const AttributeMap& attributes() const {return m_attributes;}
   QVariant attributeValue(quint32 attr) const;
+  QSet<int> attributeSetValue(quint32 attr) const;
   const QRectF& boundingBox() const {return m_bbox;}
   LocationIterator others() const {return m_others->find(m_geometry->centerLL());}
   LocationIterator othersEnd() const {return m_others->cend();}
   const ObjectVector& underlings() const {return m_underlings;}
+  double getSafetyContour(double c0) const;
 
   bool canPaint(const QRectF& viewArea, quint32 scale,
                 const QDate& today, bool onlyViewArea) const;
@@ -738,6 +759,7 @@ private:
   Geometry::Base* m_geometry;
   QRectF m_bbox;
   LocationHash* m_others;
+  ContourVector* m_contours;
   ObjectVector m_underlings;
 
 };
