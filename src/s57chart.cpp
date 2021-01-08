@@ -32,6 +32,10 @@ public:
     obj->m_others = others;
     obj->m_contours = contours;
   }
+  void addUnderling(S57::Object* obj,
+                    S57::Object* underling) const {
+    obj->m_underlings.append(underling);
+  }
 };
 
 }
@@ -82,6 +86,11 @@ S57Chart::S57Chart(quint32 id, const QString& path)
   QSet<double> contours;
   const quint32 depcnt = S52::FindIndex("DEPCNT");
   const quint32 valdco = S52::FindIndex("VALDCO");
+  const quint32 depare = S52::FindIndex("DEPARE");
+  const quint32 drgare = S52::FindIndex("DRGARE");
+
+  S57::ObjectVector underlings;
+  S57::ObjectVector overlings;
 
   for (S57::Object* object: objects) {
     // bind objects to lookup records
@@ -98,10 +107,21 @@ S57Chart::S57Chart(quint32 id, const QString& path)
     if (object->classCode() == depcnt && object->attributeValue(valdco).isValid()) {
       contours << object->attributeValue(valdco).toDouble();
     }
+
+    // underlings / overlings - needed for wrecks/obstructions
+    if (lp->needUnderling()) {
+      overlings.append(object);
+    } else if (object->classCode() == depare || object->classCode() == drgare) {
+      underlings.append(object);
+    }
   }
   ContourVector sorted(contours.begin(), contours.end());
   std::sort(sorted.begin(), sorted.end());
   m_contours.append(sorted);
+
+  for (auto overling: overlings) {
+    findUnderling(overling, underlings, vertices, indices);
+  }
 
 
   // fill in the buffers
@@ -377,6 +397,62 @@ void S57Chart::updateModelTransform(const Camera *cam) {
   m_modelMatrix.translate(p.x(), p.y());
   if (geoProjection()->className() == "CM93Mercator") {
     m_modelMatrix.scale(CM93Mercator::scale, CM93Mercator::scale);
+  }
+}
+
+void S57Chart::findUnderling(S57::Object *overling,
+                             const S57::ObjectVector &candidates,
+                             const GL::VertexVector &vertices,
+                             const GL::IndexVector &indices) {
+  const QPointF p = overling->geometry()->center();
+
+  auto inbox = [] (const S57::ElementData& elem, const QPointF& p) {
+    return elem.bbox.contains(p);
+  };
+
+  auto closed = [indices] (const S57::ElementData& elem) {
+    auto first = elem.offset / sizeof(GLuint);
+    auto last = first + elem.count - 1;
+    // Note: adjacency
+    return indices[first + 1] == indices[last - 1];
+  };
+
+  // https://wrf.ecse.rpi.edu//Research/Short_Notes/pnpoly.html
+  auto inpolygon = [vertices, indices] (const S57::ElementData& elem, const QPointF& p) {
+    bool c = false;
+    const int n = elem.count - 3;
+    const int first = elem.offset / sizeof(GLuint) + 1;
+    auto q = reinterpret_cast<const glm::vec2*>(vertices.constData());
+    for (int i0 = 0, j0 = n - 1; i0 < n; j0 = i0++) {
+      auto i = indices[first + i0];
+      auto j = indices[first + j0];
+      if (((q[i].y > p.y()) != (q[j].y > p.y())) &&
+          (p.y() < (q[j].x - q[i].x) * (p.y() - q[i].y) / (q[j].y - q[i].y) + q[i].x)) {
+        c = !c;
+      }
+    }
+    return c;
+  };
+
+  for (S57::Object* c: candidates) {
+    auto geom = dynamic_cast<const S57::Geometry::Line*>(c->geometry());
+    const S57::ElementDataVector elems = geom->lineElements();
+    if (!closed(elems.first())) continue;
+    if (!inbox(elems.first(), p)) continue;
+    if (!inpolygon(elems.first(), p)) continue;
+    bool isUnderling = true;
+    for (int i = 1; i < elems.count(); i++) {
+      if (!closed(elems[i])) continue;
+      if (!inbox(elems[i], p)) continue;
+      isUnderling = !inpolygon(elems[i], p);
+      if (!isUnderling) break;
+    }
+    if (isUnderling) {
+      // qDebug() << "Found underling!";
+      S57::ObjectBuilder helper;
+      helper.addUnderling(overling, c);
+      return;
+    }
   }
 }
 

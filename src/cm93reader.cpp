@@ -468,12 +468,12 @@ S57ChartOutline CM93Reader::readOutline(const QString& path) const {
   auto lng_min = read_and_decode<double>(stream);
   auto lat_min = read_and_decode<double>(stream);
   WGS84Point sw = WGS84Point::fromLL(lng_min, lat_min);
-  qDebug() << "sw" << sw.print();
+  // qDebug() << "sw" << sw.print();
 
   auto lng_max = read_and_decode<double>(stream);
   auto lat_max = read_and_decode<double>(stream);
   WGS84Point ne = WGS84Point::fromLL(lng_max, lat_max);
-  qDebug() << "ne" << ne.print();
+  // qDebug() << "ne" << ne.print();
 
   auto e_min = read_and_decode<double>(stream);
   auto n_min = read_and_decode<double>(stream);
@@ -489,7 +489,7 @@ S57ChartOutline CM93Reader::readOutline(const QString& path) const {
   QSizeF scaling((e_max - e_min) / 65535., (n_max - n_min) / 65535.);
 
   WGS84Point ref = m_proj->toWGS84(QPointF(e_min, n_min));
-  qDebug() << "ref" << ref.print();
+  // qDebug() << "ref" << ref.print();
 
   // skip rest of the header and the geom table
   stream.skipRawData(payload_offset - size_section_offset + geom_table_len);
@@ -622,7 +622,7 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
   stream.skipRawData(4);
 
   auto n_feat_records = read_and_decode<quint16>(stream);
-  qDebug() << "Number of objects" << n_feat_records;
+  // qDebug() << "Number of objects" << n_feat_records;
 
   // auto m_60 = read_and_decode<quint32>(stream);
   // qDebug() << "m_60" << m_60;
@@ -670,11 +670,16 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
   QVector<S57::Geometry::PointVector> soundings;
   for (int i = 0; i < n_p3d_records; i++) {
     auto n_vertices = read_and_decode<quint16>(stream);
-    S57::Geometry::PointVector ss(n_vertices * 3);
+    S57::Geometry::PointVector ss;
     for (int v = 0; v < n_vertices; v++) {
       ss << proj->scaling().width() * read_and_decode<quint16>(stream);
       ss << proj->scaling().height() * read_and_decode<quint16>(stream);
-      ss << static_cast<double>(read_and_decode<quint16>(stream));
+      auto z = read_and_decode<quint16>(stream);
+      if (z >= 12000) {
+        ss << static_cast<double>(z - 12000);
+      } else {
+        ss << .1 * static_cast<double>(z);
+      }
     }
     soundings.append(ss);
   }
@@ -709,7 +714,7 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
         continue;
       }
     }
-
+    // qDebug() << CM93::GetClassInfo(classCode);
     auto object = new S57::Object(featureId, featureCode);
     objects.append(object);
     if (m_subst_attrs.contains(className)) {
@@ -727,12 +732,13 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
       auto n_elems = read_and_decode<quint16>(stream);
       for (int i = 0; i < n_elems; i++) {
         auto edgeHeader = read_and_decode<quint16>(stream);
-        auto index = edgeHeader & 0x1ff;
+        auto index = edgeHeader & 0x1fff;
         auto edgeflags = edgeHeader >> 13;
         Q_ASSERT(index < n_vec_records);
         Edge e = mesh[index];
         e.reversed = edgeflags & ReversedBit;
         e.inner = edgeflags & InnerRingBit;
+        e.border = edgeflags & BorderBit;
         edges.append(e);
       }
       S57::ElementDataVector lines;
@@ -859,7 +865,7 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
 void CM93Reader::triangulate(S57::ElementDataVector &elems,
                              GL::IndexVector &indices,
                              const GL::VertexVector &vertices,
-                             const S57::ElementDataVector &edges) const {
+                             const S57::ElementDataVector& edges) const {
   // The number type to use for tessellation
   using Coord = GLfloat;
 
@@ -880,6 +886,11 @@ void CM93Reader::triangulate(S57::ElementDataVector &elems,
   for (const S57::ElementData& edge: edges) {
     const int first = edge.offset / sizeof(GLuint) + 1;
     const int count = edge.count - 3;
+    // skip open ended linestrings
+    if (indices[first] != indices[first + count]) {
+      qDebug() << "TRIANGULATE: skipping";
+      continue;
+    }
     std::vector<Point> ring;
     for (int i = 0; i < count; i++) {
       const int index = indices[first + i];
@@ -889,10 +900,6 @@ void CM93Reader::triangulate(S57::ElementDataVector &elems,
     }
     polygon.push_back(ring);
 
-    if (polygon.size() > 150) {
-      qWarning() << "Temporary hack: limiting inner polygons to 150";
-      break;
-    }
   }
 
   // Run tessellation
@@ -920,7 +927,7 @@ void CM93Reader::createLineElements(S57::ElementDataVector &elems,
                                     GL::IndexVector &indices,
                                     GL::VertexVector &vertices,
                                     const EdgeVector &edges,
-                                    bool forcePolygons) const {
+                                    bool triangles) const {
 
   for (int i = 0; i < edges.size();) {
     S57::ElementData e;
@@ -937,10 +944,10 @@ void CM93Reader::createLineElements(S57::ElementDataVector &elems,
     }
     // finalize current element
     const int adj = e.offset / sizeof(GLuint);
-    if (prevlast == start || forcePolygons) {
+    if (prevlast == start || triangles) {
       // polygon
       if (prevlast != start) { // forcePolygons
-        // qDebug() << "Force polygon";
+        qDebug() << "Force polygon" << prevlast - getEndPoint(EP::First, edges[i - 1], vertices);
         // add prevlast
         indices.append(getEndPointIndex(EP::Last, edges[i - 1]));
         e.count += 1;

@@ -66,13 +66,18 @@ using AttributeIterator = QMap<quint32, Attribute>::const_iterator;
 
 struct ElementData {
   GLenum mode;
-  // offset to vertex/element buffer, depending whether
-  // vertices are indexed or not
+  // offset to vertex/index buffer, depending whether vertices are indexed or not
+  // chart lines: always index buffer offset
+  // generated lines: always vertex offset, i.e. 1st vertex to draw
+  // unindexed triangles: vertex offset
+  // indexed triangles: index buffer offset
   uintptr_t offset;
   size_t count;
+  QRectF bbox;
 };
 
 using ElementDataVector = QVector<ElementData>;
+
 
 namespace Geometry {
 
@@ -146,7 +151,10 @@ private:
 
 class Line: public Base {
 public:
-  Line(const ElementDataVector& elems, const QPointF& c, GLsizei vo, const GeoProjection* proj)
+  Line(const ElementDataVector& elems,
+       const QPointF& c,
+       GLsizei vo,
+       const GeoProjection* proj)
     : Base(Type::Line, c, proj->toWGS84(c))
     , m_lineElements(elems)
     , m_vertexOffset(vo) {}

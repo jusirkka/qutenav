@@ -1,25 +1,29 @@
 #include "chartfilereader.h"
 
 
-QRectF ChartFileReader::computeBBox(const S57::ElementDataVector &elems,
+QRectF ChartFileReader::computeBBox(S57::ElementDataVector &elems,
                                     const GL::VertexVector& vertices,
                                     const GL::IndexVector& indices) {
 
-  QPointF ur(-1.e15, -1.e15);
-  QPointF ll(1.e15, 1.e15);
+  QRectF ret;
 
-  for (const S57::ElementData& elem: elems) {
+  auto points = reinterpret_cast<const glm::vec2*>(vertices.constData());
+  for (S57::ElementData& elem: elems) {
+    QPointF ur(-1.e15, -1.e15);
+    QPointF ll(1.e15, 1.e15);
+    // assuming chart originated lines
     const int first = elem.offset / sizeof(GLuint);
     for (uint i = 0; i < elem.count; i++) {
-      const int index = indices[first + i];
-      QPointF q(vertices[2 * index], vertices[2 * index + 1]);
-      ur.setX(qMax(ur.x(), q.x()));
-      ur.setY(qMax(ur.y(), q.y()));
-      ll.setX(qMin(ll.x(), q.x()));
-      ll.setY(qMin(ll.y(), q.y()));
+      const glm::vec2 q = points[indices[first + i]];
+      ur.setX(qMax(ur.x(), static_cast<qreal>(q.x)));
+      ur.setY(qMax(ur.y(), static_cast<qreal>(q.y)));
+      ll.setX(qMin(ll.x(), static_cast<qreal>(q.x)));
+      ll.setY(qMin(ll.y(), static_cast<qreal>(q.y)));
     }
+    elem.bbox = QRectF(ll, ur); // inverted y-axis
+    ret |= elem.bbox;
   }
-  return QRectF(ll, ur); // inverted y-axis
+  return ret;
 }
 
 QPointF ChartFileReader::computeLineCenter(const S57::ElementDataVector &elems,

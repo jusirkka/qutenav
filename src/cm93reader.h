@@ -42,6 +42,7 @@ private:
     int count;
     bool reversed;
     bool inner;
+    bool border;
   };
   using EdgeVector = QVector<Edge>;
 
@@ -60,7 +61,7 @@ private:
                           GL::IndexVector& indices,
                           GL::VertexVector& vertices,
                           const EdgeVector& edges,
-                          bool forcePolygons) const;
+                          bool triangles) const;
 
   void triangulate(S57::ElementDataVector& elems,
                    GL::IndexVector& indices,

@@ -441,10 +441,10 @@ S52::CSResArea02::CSResArea02(quint32 index)
 
 S57::PaintDataMap S52::CSResArea02::execute(const QVector<QVariant>&,
                                             const S57::Object* obj) {
-  qDebug() << "[CSResArea02:Class]" << S52::GetClassInfo(obj->classCode());
-  for (auto k: obj->attributes().keys()) {
-    qDebug() << GetAttributeInfo(k, obj);
-  }
+  // qDebug() << "[CSResArea02:Class]" << S52::GetClassInfo(obj->classCode());
+  // for (auto k: obj->attributes().keys()) {
+  //   qDebug() << GetAttributeInfo(k, obj);
+  // }
 
   S57::PaintDataMap ps;
 
@@ -1226,7 +1226,7 @@ S57::PaintDataMap S52::CSObstruction04::execute(const QVector<QVariant>&,
     ps += S52::FindFunction("SY")->execute(v0, obj);
 
     if (doSnd) {
-      auto soundings = dynamic_cast<S52::CSEntrySoundings02*>(S52::FindFunction("SOUNDG02"));
+      auto soundings = dynamic_cast<S52::CSSoundings02*>(S52::FindFunction("SOUNDG02"));
       ps += soundings->symbols(depth, 0, obj);
     }
 
@@ -1252,7 +1252,7 @@ S57::PaintDataMap S52::CSObstruction04::execute(const QVector<QVariant>&,
       ps += S52::FindFunction("LS")->execute(v0, obj);
     }
     if (obj->attributeValue(m_valsou).isValid() && depth <= 20.) {
-      auto soundings = dynamic_cast<S52::CSEntrySoundings02*>(S52::FindFunction("SOUNDG02"));
+      auto soundings = dynamic_cast<S52::CSSoundings02*>(S52::FindFunction("SOUNDG02"));
       ps += soundings->symbols(depth, 0, obj);
     }
     return ps;
@@ -1279,7 +1279,7 @@ S57::PaintDataMap S52::CSObstruction04::execute(const QVector<QVariant>&,
       const QVector<QVariant> v0 {as_numeric(S52::LineType::Dashed), 2, m_chgrd};
       ps += S52::FindFunction("LS")->execute(v0, obj);
     }
-    auto soundings = dynamic_cast<S52::CSEntrySoundings02*>(S52::FindFunction("SOUNDG02"));
+    auto soundings = dynamic_cast<S52::CSSoundings02*>(S52::FindFunction("SOUNDG02"));
     ps += soundings->symbols(depth, 0, obj);
 
     return ps;
@@ -1548,13 +1548,13 @@ S57::PaintDataMap S52::CSShorelineQualOfPos03::execute(const QVector<QVariant>&,
   return ps;
 }
 
-S52::CSEntrySoundings02::CSEntrySoundings02(quint32 index)
+S52::CSSoundings02::CSSoundings02(quint32 index)
   : Function("SOUNDG02", index)
   , m_tecsou(FindIndex("TECSOU"))
   , m_soundsb1(FindIndex("SOUNDSB1"))
   , m_soundgb1(FindIndex("SOUNDGB1"))
   , m_soundsc2(FindIndex("SOUNDSC2"))
-  , m_soundgc2(FindIndex("SOUNDSG2"))
+  , m_soundgc2(FindIndex("SOUNDGC2"))
   , m_soundsa1(FindIndex("SOUNDSA1"))
   , m_quasou(FindIndex("QUASOU"))
   , m_quapos(FindIndex("QUAPOS"))
@@ -1622,8 +1622,8 @@ S52::CSEntrySoundings02::CSEntrySoundings02(quint32 index)
                  FindIndex("SOUNDS58"), FindIndex("SOUNDS59")}
 {}
 
-S57::PaintDataMap S52::CSEntrySoundings02::execute(const QVector<QVariant>&,
-                                                   const S57::Object* obj) {
+S57::PaintDataMap S52::CSSoundings02::execute(const QVector<QVariant>&,
+                                              const S57::Object* obj) {
 
   if (obj->geometry()->type() != S57::Geometry::Type::Point) {
     return S57::PaintDataMap();
@@ -1643,8 +1643,8 @@ S57::PaintDataMap S52::CSEntrySoundings02::execute(const QVector<QVariant>&,
   return ps;
 }
 
-S57::PaintDataMap S52::CSEntrySoundings02::symbols(double depth, int index,
-                                                   const S57::Object *obj) const {
+S57::PaintDataMap S52::CSSoundings02::symbols(double depth, int index,
+                                              const S57::Object *obj) const {
 
   S57::PaintDataMap ps;
 
@@ -1967,7 +1967,7 @@ S57::PaintDataMap S52::CSWrecks02::execute(const QVector<QVariant>&,
     // continuation A
     if (obj->attributeValue(m_valsou).isValid()) {
       if (depth <= 20.) {
-        auto soundings = dynamic_cast<S52::CSEntrySoundings02*>(S52::FindFunction("SOUNDG02"));
+        auto soundings = dynamic_cast<S52::CSSoundings02*>(S52::FindFunction("SOUNDG02"));
         ps += soundings->symbols(depth, 0, obj);
         QVector<QVariant> vals {m_danger01, 0.};
         ps += S52::FindFunction("SY")->execute(vals, obj);
@@ -2014,7 +2014,7 @@ S57::PaintDataMap S52::CSWrecks02::execute(const QVector<QVariant>&,
   // sounding, area color
   if (obj->attributeValue(m_valsou).isValid()) {
     if (depth < 20.) {
-      auto soundings = dynamic_cast<S52::CSEntrySoundings02*>(S52::FindFunction("SOUNDG02"));
+      auto soundings = dynamic_cast<S52::CSSoundings02*>(S52::FindFunction("SOUNDG02"));
       ps += soundings->symbols(depth, 0, obj);
     }
   } else if (watlev == 1 || watlev == 2) {

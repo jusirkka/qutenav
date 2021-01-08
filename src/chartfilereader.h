@@ -22,7 +22,7 @@ public:
   virtual ~ChartFileReader() = default;
 
 protected:
-  static QRectF computeBBox(const S57::ElementDataVector &elems,
+  static QRectF computeBBox(S57::ElementDataVector &elems,
                             const GL::VertexVector& vertices,
                             const GL::IndexVector& indices);
 

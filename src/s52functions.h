@@ -361,9 +361,9 @@ private:
   const quint32 m_watlev;
 };
 
-class CSEntrySoundings02: public Function {
+class CSSoundings02: public Function {
 public:
-  CSEntrySoundings02(quint32 index);
+  CSSoundings02(quint32 index);
 
   S57::PaintDataMap execute(const QVector<QVariant>&, const S57::Object* obj) override;
   S57::PaintDataMap symbols(double depth, int index, const S57::Object* obj) const;
@@ -484,7 +484,7 @@ public:
     FUN(CSQualOfPos01);
     FUN(CSRestrEntry01);
     FUN(CSShorelineQualOfPos03);
-    FUN(CSEntrySoundings02);
+    FUN(CSSoundings02);
     FUN(CSTopmarks01);
     FUN(CSWrecks02);
   }

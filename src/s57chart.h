@@ -75,6 +75,11 @@ private:
   qreal scaleFactor(const WGS84Point &sw, const WGS84Point &ne,
                     const QRectF& va, quint32 scale) const;
 
+  void findUnderling(S57::Object* overling,
+                     const S57::ObjectVector& candidates,
+                     const GL::VertexVector& vertices,
+                     const GL::IndexVector& indices);
+
   GeoProjection* m_nativeProj;
   ObjectLookupVector m_lookups;
   LocationHash m_locations;
