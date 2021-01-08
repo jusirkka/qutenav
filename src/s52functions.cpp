@@ -339,75 +339,53 @@ S52::CSDepthArea01::CSDepthArea01(quint32 index)
 S57::PaintDataMap S52::CSDepthArea01::execute(const QVector<QVariant>&,
                                               const S57::Object* obj) {
 
-  auto geom = dynamic_cast<const S57::Geometry::Area*>(obj->geometry());
-  Q_ASSERT(geom != nullptr);
 
   // Determine the color based on mariner selections
 
-  bool ok;
+  quint32 sym = m_depit;
   double depth = -1.;
-  const double drval1 = obj->attributeValue(m_drval1).toDouble(&ok);
-  if (ok) {
-    depth = drval1;
-  }
-  const double drval2 = obj->attributeValue(m_drval2).toDouble(&ok);
-  if (ok && drval2 < depth) {
-    depth = drval2;
-  }
 
-
-  S57::PaintData* p;
+  if (obj->attributeValue(m_drval1).isValid() &&
+      obj->attributeValue(m_drval2).isValid()) {
+    sym = m_depvs;
+    depth = qMin(obj->attributeValue(m_drval1).toDouble(),
+                 obj->attributeValue(m_drval2).toDouble());
+  }
 
   const Settings* cfg = Settings::instance();
 
-  QColor color;
   if (cfg->twoShades() && depth >= cfg->safetyContour()) {
-    color = S52::GetColor(m_depdw);
-  } else if (depth >= cfg->deepContour()) {
-    color = S52::GetColor(m_depdw);
-  } else if (depth >= cfg->safetyContour()) {
-    color = S52::GetColor(m_depmd);
-  } else if (depth >= cfg->shallowContour()) {
-    color = S52::GetColor(m_depms);
-  } else if (depth >= 0) {
-    color = S52::GetColor(m_depvs);
+    sym = m_depdw;
   } else {
-    color = S52::GetColor(m_depit);
+    if (depth >= cfg->shallowContour()) {
+      sym = m_depms;
+    }
+    if (depth >= cfg->safetyContour()) {
+      sym = m_depmd;
+    }
+    if (depth >= cfg->deepContour()) {
+      sym = m_depdw;
+    }
   }
 
   if (obj->classCode() != m_drgare) {
-    if (geom->indexed()) {
-      p = new S57::TriangleElemData(geom->triangleElements(), geom->vertexOffset(), color);
-    } else {
-      p = new S57::TriangleArrayData(geom->triangleElements(), geom->vertexOffset(), color);
-    }
-    return S57::PaintDataMap{{p->type(), p}};
+    const QVector<QVariant> v0 {sym, 255};
+    return S52::FindFunction("AC")->execute(v0, obj);
   }
 
   if (!obj->attributeValue(m_drval1).isValid()) {
-    color = S52::GetColor(m_depmd);
+    sym = m_depmd;
   }
 
-  if (geom->indexed()) {
-    p = new S57::TriangleElemData(geom->triangleElements(), geom->vertexOffset(), color);
-  } else {
-    p = new S57::TriangleArrayData(geom->triangleElements(), geom->vertexOffset(), color);
-  }
-
-  S57::PaintDataMap ps{{p->type(), p}};
+  const QVector<QVariant> v0 {sym, 255};
+  S57::PaintDataMap ps = S52::FindFunction("AC")->execute(v0, obj);
 
   // run AP(DRGARE01);LS(DASH,1,CHGRF)
+  const QVector<QVariant> v1 {m_drgare01, 0.};
+  ps += S52::FindFunction("AP")->execute(v1, obj);
 
-  QVector<QVariant> vals;
-  vals.append(QVariant::fromValue(m_drgare01));
-  vals.append(QVariant::fromValue(0.));
-  ps += S52::FindFunction("AP")->execute(vals, obj);
-
-  vals.clear();
-  vals.append(QVariant::fromValue(int(S52::LineType::Dashed)));
-  vals.append(QVariant::fromValue(1));
-  vals.append(QVariant::fromValue(m_chgrf));
-  ps += S52::FindFunction("LS")->execute(vals, obj);
+  const QVector<QVariant> v2 {as_numeric(S52::LineType::Dashed), 1, m_chgrf};
+  ps += S52::FindFunction("LS")->execute(v2, obj);
 
   return ps;
 }
@@ -655,6 +633,7 @@ S57::PaintDataMap S52::CSDepthContours02::execute(const QVector<QVariant>&,
 S52::CSLights05::CSLights05(quint32 index)
   : Function("LIGHTS05", index)
   , m_catlit(S52::FindIndex("CATLIT"))
+  , m_lights(S52::FindIndex("LIGHTS"))
   , m_lights82(S52::FindIndex("LIGHTS82"))
   , m_lights81(S52::FindIndex("LIGHTS81"))
   , m_lights11(S52::FindIndex("LIGHTS11"))
@@ -831,11 +810,15 @@ S57::PaintDataMap S52::CSLights05::execute(const QVector<QVariant>&,
 
   if (!isSector) {
     bool flare_at_45 = false;
-    S57::Object::LocationIterator it = obj->others();
-    for (; it != obj->othersEnd() && it.key() == obj->geometry()->centerLL(); ++it) {
-      if (it.value() == obj) continue;
-      if (cols.intersects(m_set_wyo)) flare_at_45 = true;
-      break;
+    if (cols.intersects(m_set_wyo)) {
+      S57::Object::LocationIterator it = obj->others();
+      for (; it != obj->othersEnd() && it.key() == obj->geometry()->centerLL(); ++it) {
+        if (it.value() == obj) continue;
+        const S57::Object* other = it.value();
+        if (other->classCode() != m_lights) continue;
+        flare_at_45 = true;
+        break;
+      }
     }
 
     QVector<QVariant> vals;
@@ -1127,8 +1110,10 @@ S52::CSObstruction04::CSObstruction04(quint32 index)
   , m_uwtroc03(FindIndex("UWTROC03"))
   , m_uwtroc04(FindIndex("UWTROC04"))
   , m_danger01(FindIndex("DANGER01"))
-  , m_danger02(FindIndex("DANGER02"))
-  , m_danger03(FindIndex("DANGER03"))
+  , m_danger51(FindIndex("DANGER51"))
+  , m_danger52(FindIndex("DANGER52"))
+  , m_danger53(FindIndex("DANGER03")) //  DANGER53 missing chartsymbols
+  , m_lndare01(FindIndex("LNDARE01"))
   , m_obstrn01(FindIndex("OBSTRN01"))
   , m_obstrn03(FindIndex("OBSTRN03"))
   , m_obstrn11(FindIndex("OBSTRN11"))
@@ -1147,7 +1132,7 @@ S52::CSObstruction04::CSObstruction04(quint32 index)
 S57::PaintDataMap S52::CSObstruction04::execute(const QVector<QVariant>&,
                                                 const S57::Object* obj) {
   S57::PaintDataMap ps;
-  double depth = - 15.; // always dry land
+  double depth = S52::DefaultDepth; // always dry land
 
   int watlev = 0;
   if (obj->attributeValue(m_watlev).isValid()) {
@@ -1188,25 +1173,30 @@ S57::PaintDataMap S52::CSObstruction04::execute(const QVector<QVariant>&,
             sym = m_uwtroc04;
           } else {
             doSnd = true;
-            sym = m_danger01;
+            sym = m_danger51;
           }
         } else {
           if (watlev == 1 || watlev == 2) {
-            sym = m_obstrn11;
+            sym = m_lndare01;
+          } else if (watlev == 3) {
+            doSnd = true;
+            sym = m_danger52;
           } else if (watlev == 4 || watlev == 5) {
             doSnd = true;
-            sym = m_danger03;
+            sym = m_danger53;
           } else {
             doSnd = true;
             sym = m_danger01;
           }
         }
       } else {
-        sym = m_danger02;
+        sym = m_danger52;
       }
     } else {
       if (obj->classCode() == m_uwtroc) {
-        if (watlev == 3) {
+        if (watlev == 2) {
+          sym = m_lndare01;
+        } else if (watlev == 3) {
           sym = m_uwtroc03;
         } else {
           sym = m_uwtroc04;
@@ -1924,6 +1914,7 @@ S52::CSWrecks02::CSWrecks02(quint32 index)
   , m_drval1(FindIndex("DRVAL1"))
   , m_drval2(FindIndex("DRVAL2"))
   , m_isodgr01(FindIndex("ISODGR01"))
+  , m_expsou(FindIndex("EXPSOU"))
 {}
 
 
@@ -1931,7 +1922,7 @@ S57::PaintDataMap S52::CSWrecks02::execute(const QVector<QVariant>&,
                                             const S57::Object* obj) {
 
   S57::PaintDataMap ps;
-  double depth = - 15.; // always dry land
+  double depth = S52::DefaultDepth; // always dry land
 
   int watlev = 0;
   if (obj->attributeValue(m_watlev).isValid()) {
@@ -2040,8 +2031,20 @@ S57::PaintDataMap S52::CSWrecks02::dangerData(double depth,
     return S57::PaintDataMap();
   }
 
+  int expsou = 0;
+  if (obj->attributeValue(m_expsou).isValid()) {
+    expsou = obj->attributeValue(m_expsou).toInt();
+  }
+
   bool danger = false;
+
   for (const S57::Object* underling: obj->underlings()) {
+    //    qDebug() << "[Underling:Class]" << S52::GetClassInfo(underling->classCode());
+    //    qDebug() << "[Overling:Location]" << obj->geometry()->centerLL().print();
+    //    qDebug() << "[Limit]" << limit;
+    //    for (auto k: underling->attributes().keys()) {
+    //      qDebug() << GetAttributeInfo(k, underling);
+    //    }
     if (underling->geometry()->type() == S57::Geometry::Type::Line) {
       if (!underling->attributeValue(m_drval2).isValid()) continue;
       if (underling->attributeValue(m_drval2).toDouble() < limit) {
@@ -2050,7 +2053,7 @@ S57::PaintDataMap S52::CSWrecks02::dangerData(double depth,
       }
     } else {
       if (!underling->attributeValue(m_drval1).isValid()) continue;
-      if (underling->attributeValue(m_drval1).toDouble() < limit) {
+      if (underling->attributeValue(m_drval1).toDouble() >= limit && expsou != 1) {
         danger = true;
         break;
       }

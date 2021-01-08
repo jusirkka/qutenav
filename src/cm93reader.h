@@ -35,6 +35,9 @@ private:
   static const quint8 InnerRingBit = 2;
   static const quint8 ReversedBit = 4;
 
+  static const quint16 IndexMask = 0x1fff;
+  static const uint IndexBits = 13;
+
   enum class EP {First, Last};
 
   struct Edge {

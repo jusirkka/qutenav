@@ -261,9 +261,9 @@ void GL::TextureShader::setUniforms(const Camera* cam,
   m_program->setUniformValue(m_locations.scale_vertex, QPointF(lx, ly));
   m_program->setUniformValue(m_locations.tr_vertex, QPointF(-dx, -dy));
 
-  if (vp != vp0) {
-    qWarning() << "bad rectangles" << vp << vp0;
-  }
+  //  if (vp != vp0) {
+  //    qWarning() << "bad rectangles" << vp << vp0;
+  //  }
 
   const QPointF p1 = vp0.topLeft();
   const QPointF q1(p1.x() / va.width(), p1.y() / va.height());

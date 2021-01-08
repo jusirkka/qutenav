@@ -60,7 +60,6 @@ namespace GL {
 struct Mesh;
 
 struct GlyphData {
-  bool newGlyphs;
   int width;
   int height;
   const uchar* data;
@@ -119,7 +118,7 @@ signals:
 
 private slots:
 
-  void handleShape(const TextKey& key, GL::Mesh* mesh, const GL::GlyphData& atlas);
+  void handleShape(const TextKey& key, GL::Mesh* mesh, bool newGlyphs);
   void requestUpdate();
 
 private:
@@ -148,13 +147,15 @@ public:
 
   TextShaper(QMutex* mutex);
 
+  GL::GlyphData atlas() const;
+
 public slots:
 
   void shape(const TextKey& key);
 
 signals:
 
-  void done(const TextKey& key, GL::Mesh* mesh, const GL::GlyphData& atlas);
+  void done(const TextKey& key, GL::Mesh* mesh, bool newGlyphs);
 
 private:
 

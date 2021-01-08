@@ -444,6 +444,7 @@ void ChartManager::updateCharts(const Camera *cam, bool force) {
     }
   }
 
+  qDebug() << "selected scale" << bestScale << "num charts =" << scaleBin[bestScale].size();
   IDVector newCharts;
   for (int id: scaleBin[bestScale]) {
     if (!m_chartIds.contains(id)) {
@@ -492,6 +493,7 @@ void ChartManager::updateCharts(const Camera *cam, bool force) {
     while (r.next()) {
       const quint32 id = r.value(0).toUInt();
       const auto path = r.value(1).toString();
+      qDebug() << "New chart" << path;
       const WGS84Point sw = cam->geoprojection()->toWGS84(m_viewArea.topLeft());
       const WGS84Point ne = cam->geoprojection()->toWGS84(m_viewArea.bottomRight());
       m_pendingStack.push(ChartData(id, path, m_scale, sw, ne));

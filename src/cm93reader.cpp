@@ -693,7 +693,7 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
   }
 
   // projection without scaling
-  auto projSc = GeoProjection::CreateProjection(proj->className());
+  auto projSc = QScopedPointer<GeoProjection>(GeoProjection::CreateProjection(proj->className()));
   projSc->setReference(proj->reference());
   S57::ObjectBuilder helper;
   // feature record table
@@ -732,8 +732,8 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
       auto n_elems = read_and_decode<quint16>(stream);
       for (int i = 0; i < n_elems; i++) {
         auto edgeHeader = read_and_decode<quint16>(stream);
-        auto index = edgeHeader & 0x1fff;
-        auto edgeflags = edgeHeader >> 13;
+        auto index = edgeHeader & IndexMask;
+        auto edgeflags = edgeHeader >> IndexBits;
         Q_ASSERT(index < n_vec_records);
         Edge e = mesh[index];
         e.reversed = edgeflags & ReversedBit;
@@ -755,7 +755,7 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
                                                      triangles,
                                                      0,
                                                      true,
-                                                     projSc),
+                                                     projSc.data()),
                              bbox);
 
       n_bytes -= n_elems * 2 + 2;
@@ -766,8 +766,8 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
       auto n_elems = read_and_decode<quint16>(stream);
       for (int i = 0; i < n_elems; i++) {
         auto edgeHeader = read_and_decode<quint16>(stream);
-        auto index = edgeHeader & 0x1ff;
-        auto edgeflags = edgeHeader >> 13;
+        auto index = edgeHeader & IndexMask;
+        auto edgeflags = edgeHeader >> IndexBits;
         Q_ASSERT(index < n_vec_records);
         Edge e = mesh[index];
         e.reversed = edgeflags & ReversedBit;
@@ -779,7 +779,7 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
       const QPointF center = computeLineCenter(lines, vertices, indices);
       const QRectF bbox = computeBBox(lines, vertices, indices);
       helper.cm93SetGeometry(object,
-                             new S57::Geometry::Line(lines, center, 0, projSc),
+                             new S57::Geometry::Line(lines, center, 0, projSc.data()),
                              bbox);
       n_bytes -= n_elems * 2 + 2;
       break;
@@ -788,7 +788,7 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
       auto index = read_and_decode<quint16>(stream);
       auto p0 = points[index];
       QRectF bbox(p0 - QPointF(10, 10), QSizeF(20, 20));
-      helper.cm93SetGeometry(object, new S57::Geometry::Point(p0, projSc), bbox);
+      helper.cm93SetGeometry(object, new S57::Geometry::Point(p0, projSc.data()), bbox);
       n_bytes -= 2;
       break;
     }
@@ -805,7 +805,7 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
         ll.setX(qMin(ll.x(), q.x()));
         ll.setY(qMin(ll.y(), q.y()));
       }
-      helper.cm93SetGeometry(object, new S57::Geometry::Point(ps, projSc), QRectF(ll, ur));
+      helper.cm93SetGeometry(object, new S57::Geometry::Point(ps, projSc.data()), QRectF(ll, ur));
       n_bytes -= 2;
       break;
     }

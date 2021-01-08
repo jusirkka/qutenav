@@ -112,11 +112,9 @@ void RasterSymbolManager::parseSymbols(QXmlStreamReader &reader,
     SymbolData s(d.offset, d.size, d.minDist, staggered, d.elements);
 
     const SymbolKey key(S52::FindIndex(symbolName), t);
-    if (m_symbolMap.contains(key)) {
-      if (s != m_symbolMap[key]) {
-        qWarning() << "multiple raster symbol/pattern definitions for" << symbolName << ", skipping latest";
-      }
-      continue;
+    if (m_symbolMap.contains(key) && s != m_symbolMap[key]) {
+      qWarning() << "multiple raster symbol/pattern definitions for"
+                 << symbolName << ", skipping earlier";
     }
     m_symbolMap.insert(key, s);
   }

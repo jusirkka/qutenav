@@ -53,7 +53,8 @@ QPointF ChartFileReader::computeLineCenter(const S57::ElementDataVector &elems,
   for (int i = first; i < last; i++) {
     const int i1 = indices[i + 1];
     const int i0 = indices[i];
-    const QPointF d(vertices[2 * i1] - vertices[2 * i0], vertices[2 * i1 + 1] - vertices[2 * i0 + 1]);
+    const QPointF d(vertices[2 * i1] - vertices[2 * i0],
+                    vertices[2 * i1 + 1] - vertices[2 * i0 + 1]);
     lengths.append(sqrt(QPointF::dotProduct(d, d)));
     len += lengths.last();
   }
@@ -68,7 +69,7 @@ QPointF ChartFileReader::computeLineCenter(const S57::ElementDataVector &elems,
   const int i0 = indices[first + i - 1];
   const QPointF p1(vertices[2 * i1], vertices[2 * i1 + 1]);
   const QPointF p0(vertices[2 * i0], vertices[2 * i0 + 1]);
-  return p0 + (len - halfLen) * (p1 - p0);
+  return p0 + (len - halfLen) / lengths[i - 1] * (p1 - p0);
 
 }
 

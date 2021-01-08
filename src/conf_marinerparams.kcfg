@@ -7,8 +7,8 @@
   <include>settings.h</include>
   <group name="MarinerParams">
     <entry name="TwoShades" key="two_shades" type="Bool">
-      <label>Flag indicating selection of two depth shades.</label>
-      <default>true</default>
+      <label>Flag indicating selection of just two depth shades.</label>
+      <default>false</default>
     </entry>
     <entry name="SafetyContour" key="safety_contour" type="Double">
       <label>Selected safety contour (meters) [IMO PS 3.6]</label>

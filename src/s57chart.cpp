@@ -120,7 +120,7 @@ S57Chart::S57Chart(quint32 id, const QString& path)
   m_contours.append(sorted);
 
   for (auto overling: overlings) {
-    findUnderling(overling, underlings, vertices, indices);
+    findUnderlings(overling, underlings, vertices, indices);
   }
 
 
@@ -273,6 +273,7 @@ void S57Chart::updatePaintData(const WGS84Point &sw, const WGS84Point &ne, quint
     if (symbols[prio].contains(s->key())) {
       auto s0 = dynamic_cast<S57::SymbolPaintDataBase*>(symbols[prio][s->key()]);
       s0->merge(s, sf, viewArea);
+      delete s;
     } else {
       s->merge(nullptr, sf, viewArea);
       symbols[prio][s->key()] = it.value();
@@ -400,10 +401,10 @@ void S57Chart::updateModelTransform(const Camera *cam) {
   }
 }
 
-void S57Chart::findUnderling(S57::Object *overling,
-                             const S57::ObjectVector &candidates,
-                             const GL::VertexVector &vertices,
-                             const GL::IndexVector &indices) {
+void S57Chart::findUnderlings(S57::Object *overling,
+                              const S57::ObjectVector &candidates,
+                              const GL::VertexVector &vertices,
+                              const GL::IndexVector &indices) {
   const QPointF p = overling->geometry()->center();
 
   auto inbox = [] (const S57::ElementData& elem, const QPointF& p) {
@@ -427,7 +428,7 @@ void S57Chart::findUnderling(S57::Object *overling,
       auto i = indices[first + i0];
       auto j = indices[first + j0];
       if (((q[i].y > p.y()) != (q[j].y > p.y())) &&
-          (p.y() < (q[j].x - q[i].x) * (p.y() - q[i].y) / (q[j].y - q[i].y) + q[i].x)) {
+          (p.x() < (q[j].x - q[i].x) * (p.y() - q[i].y) / (q[j].y - q[i].y) + q[i].x)) {
         c = !c;
       }
     }
@@ -448,7 +449,6 @@ void S57Chart::findUnderling(S57::Object *overling,
       if (!isUnderling) break;
     }
     if (isUnderling) {
-      // qDebug() << "Found underling!";
       S57::ObjectBuilder helper;
       helper.addUnderling(overling, c);
       return;

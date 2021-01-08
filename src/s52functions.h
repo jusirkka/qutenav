@@ -222,6 +222,7 @@ private:
   static const uint magenta = 12;
 
   const quint32 m_catlit;
+  const quint32 m_lights;
   const quint32 m_lights82;
   const quint32 m_lights81;
   const quint32 m_lights11;
@@ -284,8 +285,10 @@ private:
   const quint32 m_uwtroc03;
   const quint32 m_uwtroc04;
   const quint32 m_danger01;
-  const quint32 m_danger02;
-  const quint32 m_danger03;
+  const quint32 m_danger51;
+  const quint32 m_danger52;
+  const quint32 m_danger53;
+  const quint32 m_lndare01;
   const quint32 m_obstrn01;
   const quint32 m_obstrn03;
   const quint32 m_obstrn11;
@@ -451,6 +454,7 @@ private:
   const quint32 m_drval1;
   const quint32 m_drval2;
   const quint32 m_isodgr01;
+  const quint32 m_expsou;
 };
 
 class Functions {

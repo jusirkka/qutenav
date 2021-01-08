@@ -89,7 +89,9 @@ void TextManager::requestUpdate() {
   emit newStrings();
 }
 
-void TextManager::handleShape(const TextKey& key, GL::Mesh* mesh, const GL::GlyphData& atlas) {
+void TextManager::handleShape(const TextKey& key,
+                              GL::Mesh* mesh,
+                              bool newGlyphs) {
 
   if (m_textMap.contains(key)) {
     delete mesh;
@@ -100,24 +102,27 @@ void TextManager::handleShape(const TextKey& key, GL::Mesh* mesh, const GL::Glyp
 
   GL::Context::instance()->makeCurrent();
 
-  if (atlas.newGlyphs) {
+  { // scope for QMutexLocker
+    auto atlas = m_worker->atlas();
     QMutexLocker lock(&m_mutex);
+    if (newGlyphs) {
 
-    // update texture buffer
-    m_glyphTexture->bind();
-
-    if (m_glyphTexture->width() != atlas.width || m_glyphTexture->height() != atlas.height) {
-      m_glyphTexture->destroy();
-      m_glyphTexture->create();
+      // update texture buffer
       m_glyphTexture->bind();
-      m_glyphTexture->setFormat(QOpenGLTexture::R8_UNorm);
-      m_glyphTexture->setSize(atlas.width, atlas.height);
-      m_glyphTexture->setWrapMode(QOpenGLTexture::ClampToEdge);
-      m_glyphTexture->setMinMagFilters(QOpenGLTexture::Linear, QOpenGLTexture::Linear);
-      m_glyphTexture->allocateStorage(QOpenGLTexture::Red, QOpenGLTexture::UInt8);
-    }
 
-    m_glyphTexture->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt8, atlas.data);
+      if (m_glyphTexture->width() != atlas.width || m_glyphTexture->height() != atlas.height) {
+        m_glyphTexture->destroy();
+        m_glyphTexture->create();
+        m_glyphTexture->bind();
+        m_glyphTexture->setFormat(QOpenGLTexture::R8_UNorm);
+        m_glyphTexture->setSize(atlas.width, atlas.height);
+        m_glyphTexture->setWrapMode(QOpenGLTexture::ClampToEdge);
+        m_glyphTexture->setMinMagFilters(QOpenGLTexture::Linear, QOpenGLTexture::Linear);
+        m_glyphTexture->allocateStorage(QOpenGLTexture::Red, QOpenGLTexture::UInt8);
+      }
+
+      m_glyphTexture->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt8, atlas.data);
+    }
   }
 
   // update vertex buffer
@@ -180,11 +185,14 @@ TextShaper::TextShaper(QMutex* mutex)
   : QObject()
   , m_manager(mutex) {}
 
+GL::GlyphData TextShaper::atlas() const {
+  GL::GlyphData ret {m_manager.width(), m_manager.height(), m_manager.data()};
+  return ret;
+}
 
 void TextShaper::shape(const TextKey &key) {
   m_manager.setFont(key.weight);
   bool newGlyphs;
   GL::Mesh* mesh = m_manager.shapeText(HB::Text(key.text), &newGlyphs);
-  const GL::GlyphData atlas{newGlyphs, m_manager.width(), m_manager.height(), m_manager.data()};
-  emit done(key, mesh, atlas);
+  emit done(key, mesh, newGlyphs);
 }

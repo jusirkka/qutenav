@@ -297,6 +297,7 @@ inline uint qHash(const Color& key, uint seed) {
   return qHash(qMakePair(key.index, as_numeric(key.alpha)), seed);
 }
 
+static const inline double DefaultDepth = - 15.;
 
 }
 

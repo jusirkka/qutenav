@@ -135,11 +135,9 @@ void VectorSymbolManager::parseSymbols(QXmlStreamReader& reader,
     SymbolData s(d.offset, d.size, d.minDist, staggered, elems, colors);
 
     const SymbolKey key(S52::FindIndex(symbolName), t);
-    if (m_symbolMap.contains(key)) {
-      if (s != m_symbolMap[key]) {
-        qWarning() << "multiple vector symbol/line-style/pattern definitions for" << symbolName << ", skipping latest";
-      }
-      continue;
+    if (m_symbolMap.contains(key) && s != m_symbolMap[key]) {
+      qWarning() << "multiple vector symbol/line-style/pattern definitions for"
+                 << symbolName << ", skipping earlier";
     }
     m_symbolMap.insert(key, s);
   }
