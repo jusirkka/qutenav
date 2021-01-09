@@ -204,6 +204,14 @@ WGS84Point::WGS84Point(double lng, double lat): m_Valid(true) {
   m_Latitude = lat;
 }
 
+double WGS84Point::lng(const WGS84Point& ref) const {
+  if (m_Longitude < ref.lng()) {
+    return m_Longitude + 360.;
+  }
+  return m_Longitude;
+}
+
+
 
 bool operator!= (const WGS84Point& a, const WGS84Point& b) {
   if (a.m_Valid != b.m_Valid) return true;

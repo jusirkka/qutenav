@@ -120,7 +120,7 @@ S57Chart::S57Chart(quint32 id, const QString& path)
   m_contours.append(sorted);
 
   for (auto overling: overlings) {
-    findUnderlings(overling, underlings, vertices, indices);
+    findUnderling(overling, underlings, vertices, indices);
   }
 
 
@@ -401,7 +401,7 @@ void S57Chart::updateModelTransform(const Camera *cam) {
   }
 }
 
-void S57Chart::findUnderlings(S57::Object *overling,
+void S57Chart::findUnderling(S57::Object *overling,
                               const S57::ObjectVector &candidates,
                               const GL::VertexVector &vertices,
                               const GL::IndexVector &indices) {

@@ -1,14 +1,13 @@
 #pragma once
 
 #include <QObject>
-#include <QtSql/QSqlDatabase>
-#include <QtSql/QSqlQuery>
 #include <GL/gl.h>
 #include "types.h"
 #include "geoprojection.h"
 #include <QRectF>
 #include <QMap>
 #include <QStack>
+#include "chartdatabase.h"
 
 class Camera;
 class S57Chart;
@@ -64,7 +63,6 @@ public:
   static ChartManager* instance();
   void createThreads(QOpenGLContext* ctx);
 
-  bool isValidScale(const Camera* cam, quint32 scale) const;
   QStringList chartSets() const;
   void setChartSet(const QString& charts, const GeoProjection* vproj);
 
@@ -129,54 +127,20 @@ private:
   using UpdaterVector = QVector<ChartUpdater*>;
   using ThreadVector = QVector<GL::Thread*>;
 
-
-  class Database {
-  public:
-
-    Database();
-
-    const QSqlQuery& exec(const QString& sql);
-    const QSqlQuery& prepare(const QString& sql);
-    void exec(QSqlQuery& query);
-    bool transaction();
-    bool commit();
-    void close();
-
-  private:
-
-    QSqlDatabase m_DB;
-    QSqlQuery m_Query;
-  };
-
-  void fillChartsTable();
+  void fillScalesAndChartsTables();
   void fillChartsetsTable();
-
-  class ChartInfo {
-  public:
-    int id;
-    quint32 scale;
-    QRectF bbox;
-    WGS84Point ref;
-  };
 
   void createOutline(const WGS84Point& sw, const WGS84Point& ne);
 
-  using ChartInfoVector = QVector<ChartInfo>;
   using IDVector = QVector<quint32>;
   using IDMap = QMap<quint32, quint32>;
+  using ScaleVector = QVector<quint32>;
+  using ScaleMap = QMap<quint32, quint32>; // scale -> scale_id
 
-  struct LocationArea {
-    QRectF bbox;
-    ChartInfoVector charts;
-  };
-
-  static constexpr float locationRadius = 1000000; // 1000 km
-  static constexpr float maxRadius = 15000000; // 15000 km
   static constexpr float viewportFactor = 1.9;
   static constexpr float marginFactor = 1.08;
-  static constexpr float maxScaleRatio = 32.;
-
-  using LocationAreaVector = QVector<LocationArea>;
+  static constexpr float maxScaleRatio = 16;
+  static constexpr float maxScale = 25000000;
 
   ChartManager(QObject *parent = nullptr);
   ChartManager(const ChartManager&) = delete;
@@ -184,13 +148,13 @@ private:
 
   ChartVector m_charts;
   OutlineVector m_outlines;
-  Database m_db;
-  LocationAreaVector m_locationAreas;
+  ChartDatabase m_db;
   WGS84Point m_ref;
   QRectF m_viewport;
   QRectF m_viewArea;
   quint32 m_scale;
   IDMap m_chartIds;
+  ScaleVector m_scales;
 
   UpdaterVector m_workers;
   ThreadVector m_threads;

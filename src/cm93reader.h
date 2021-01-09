@@ -75,10 +75,19 @@ private:
                             const GL::VertexVector& vertices,
                             const GL::IndexVector& indices) const;
 
+  static const inline QMap<QString, quint32> scales = {{"Z", 20000000},
+                                                       {"A",  3000000},
+                                                       {"B",  1000000},
+                                                       {"C",   200000},
+                                                       {"D",   100000},
+                                                       {"E",    50000},
+                                                       {"F",    20000},
+                                                       {"G",     7500}};
+
+
   const int m_m_sor;
   const int m_wgsox;
   const int m_wgsoy;
-  const int m_cscale;
   const int m_recdat;
 
   const QMap<QString, quint32> m_subst;

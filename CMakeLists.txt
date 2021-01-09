@@ -63,6 +63,7 @@ target_sources(qopencpn
     shaders.qrc
     files.qrc
     src/camera.cpp
+    src/chartdatabase.cpp
     src/chartfilereader.cpp
     src/chartmanager.cpp
     src/chartmode.cpp

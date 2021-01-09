@@ -30,7 +30,7 @@ private:
   void updateProjection();
   void doReset();
 
-  const quint32 MAX_SCALE = 50000000;
+  const quint32 MAX_SCALE = UINT32_MAX;
   const quint32 MIN_SCALE = 800;
 
   WGS84Point m_reference_0;

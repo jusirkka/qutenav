@@ -5,7 +5,6 @@
 #include <QDebug>
 #include "s57chart.h"
 #include <QStandardPaths>
-#include <QtSql/QSqlError>
 #include <QVariant>
 #include <QDirIterator>
 #include "camera.h"
@@ -17,73 +16,7 @@
 #include "cm93presentation.h"
 #include <QDate>
 #include <QScopedPointer>
-
-ChartManager::Database::Database() {
-  m_DB = QSqlDatabase::addDatabase("QSQLITE");
-  QString loc = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
-  loc = QString("%1/qopencpn/charts").arg(loc);
-  if (!QDir().mkpath(loc)) {
-    throw ChartFileError(QString("cannot create charts directory %1").arg(loc));
-  }
-  const QString dbfile = QString("%1/charts.db").arg(loc);
-  m_DB.setDatabaseName(dbfile);
-  m_DB.open();
-  QSqlQuery query;
-  query.exec("create table if not exists chartsets ("
-             "id integer primary key autoincrement, "
-             "name text not null, "
-             "displayName text not null)");
-  query.exec("create table if not exists charts ("
-             "id integer primary key autoincrement, "
-             "chartset integer not null, "
-             "scale integer not null, "
-             "swx real not null, "
-             "swy real not null, "
-             "nex real not null, "
-             "ney real not null, "
-             "published int not null, " // Julian day
-             "modified int not null, "  // Julian day
-             "path text not null unique)");
-  m_DB.close();
-}
-
-const QSqlQuery& ChartManager::Database::exec(const QString& sql) {
-  if (!m_DB.isOpen()) m_DB.open();
-  m_Query = QSqlQuery(m_DB);
-  // qDebug() << sql;
-  m_Query.exec(sql);
-  if (m_Query.lastError().isValid()) qWarning() << m_Query.lastError();
-  return m_Query;
-}
-
-void ChartManager::Database::exec(QSqlQuery& query) {
-  if (!m_DB.isOpen()) m_DB.open();
-  query.exec();
-  if (query.lastError().isValid()) qWarning() << query.lastError();
-}
-
-const QSqlQuery& ChartManager::Database::prepare(const QString& sql) {
-  if (!m_DB.isOpen()) m_DB.open();
-  m_Query = QSqlQuery(m_DB);
-  // qDebug() << sql;
-  m_Query.prepare(sql);
-  if (m_Query.lastError().isValid()) qWarning() << m_Query.lastError();
-  return m_Query;
-}
-
-bool ChartManager::Database::transaction() {
-  if (!m_DB.isOpen()) m_DB.open();
-  return m_DB.transaction();
-}
-
-bool ChartManager::Database::commit() {
-  return m_DB.commit();
-}
-
-void ChartManager::Database::close() {
-  m_DB.commit();
-  m_DB.close();
-}
+#include <QRegion>
 
 
 ChartManager* ChartManager::instance() {
@@ -139,7 +72,7 @@ void ChartManager::fillChartsetsTable() {
 
   for (auto it = present.cbegin(); it != present.cend(); ++it) {
     // insert
-    QSqlQuery r = m_db.prepare("insert into chartsets "
+    QSqlQuery r = m_db.prepare("insert into main.chartsets "
                                "(name, displayName) "
                                "values(?, ?)");
     r.bindValue(0, QVariant::fromValue(it.key()));
@@ -148,18 +81,8 @@ void ChartManager::fillChartsetsTable() {
   }
 }
 
-ChartFileReader* ChartManager::createReader(const QString &name) const {
-  if (name == "osenc") {
-    return new OsencReader();
-  }
-  if (name == "cm93") {
-    CM93::InitPresentation();
-    return new CM93Reader();
-  }
-  return nullptr;
-}
 
-void ChartManager::fillChartsTable() {
+void ChartManager::fillScalesAndChartsTables() {
 
   QStringList locs;
   for (const QString& loc: QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation)) {
@@ -167,25 +90,36 @@ void ChartManager::fillChartsTable() {
   }
 
   QSqlQuery r1 = m_db.prepare("select id "
-                              "from chartsets "
+                              "from main.chartsets "
                               "where name=?");
   r1.bindValue(0, QVariant::fromValue(m_reader->name()));
   m_db.exec(r1);
-  uint setid = 0;
-  while (r1.next()) {
-    setid = r1.value(0).toUInt();
-  }
+  r1.first();
+  uint set_id = r1.value(0).toUInt();
 
 
   QVector<quint32> oldCharts;
-  QSqlQuery r2 = m_db.prepare("select id "
-                              "from charts "
-                              "where chartset=?");
-  r2.bindValue(0, QVariant::fromValue(setid));
+  QSqlQuery r2 = m_db.prepare("select c.id "
+                              "from main.charts c "
+                              "join main.scales s on c.scale_id = s.id "
+                              "where s.chartset_id=?");
+  r2.bindValue(0, QVariant::fromValue(set_id));
   m_db.exec(r2);
   while (r2.next()) {
     oldCharts.append(r2.value(0).toUInt());
   }
+
+
+  ScaleMap scales;
+  QSqlQuery r3 = m_db.prepare("select s.id, s.scale "
+                              "from main.scales s "
+                              "where chartset_id=?");
+  r3.bindValue(0, set_id);
+  m_db.exec(r3);
+  while (r3.next()) {
+    scales[r3.value(1).toUInt()] = r3.value(0).toUInt();
+  }
+
 
   if (!m_db.transaction()) {
     qWarning() << "Cannot create db transaction, not updating";
@@ -199,33 +133,45 @@ void ChartManager::fillChartsTable() {
       try {
         const QString path = it.next();
         S57ChartOutline ch = m_reader->readOutline(path);
-        // skip large scale maps
-        if (ch.extent().nw().lat() - ch.extent().sw().lat() > 9.) {
-          qDebug() << "Skipping" << ch.extent().sw().print() << ch.extent().ne().print();
-          continue;
+        if (!scales.contains(ch.scale())) {
+          auto r4 = m_db.prepare("insert into main.scales"
+                                 "(chartset_id, scale) "
+                                 "values(?, ?)");
+          r4.bindValue(0, set_id);
+          r4.bindValue(1, ch.scale());
+          m_db.exec(r4);
+          scales[ch.scale()] = r4.lastInsertId().toUInt();
         }
 
-        QSqlQuery s = m_db.prepare("select id, published, modified from charts where path=?");
-        s.bindValue(0, QVariant::fromValue(path));
+        // skip large scale maps
+        //        if (ch.extent().nw().lat() - ch.extent().sw().lat() > 9.) {
+        //          qDebug() << "Skipping" << ch.extent().sw().print() << ch.extent().ne().print();
+        //          continue;
+        //        }
+
+        QSqlQuery s = m_db.prepare("select id, published, modified "
+                                   "from main.charts where path=?");
+        s.bindValue(0, path);
         m_db.exec(s);
         if (!s.first()) {
           // insert
-          QSqlQuery t = m_db.prepare("insert into charts"
-                                     "(chartset, scale, swx, swy, nex, ney, "
+          QSqlQuery t = m_db.prepare("insert into main.charts"
+                                     "(scale_id, swx, swy, nex, ney, "
                                      " published, modified, path) "
-                                     "values(?, ?, ?, ?, ?, ?, ?, ?, ?)");
-          // chartset, scale (0, 1)
-          t.bindValue(0, QVariant::fromValue(setid));
-          t.bindValue(1, QVariant::fromValue(ch.scale()));
-          // sw, ne (2, 3, 4, 5)
-          t.bindValue(2, QVariant::fromValue(ch.extent().sw().lng()));
-          t.bindValue(3, QVariant::fromValue(ch.extent().sw().lat()));
-          t.bindValue(4, QVariant::fromValue(ch.extent().ne().lng()));
-          t.bindValue(5, QVariant::fromValue(ch.extent().ne().lat()));
-          // published, modified, path (6, 7, 8)
-          t.bindValue(6, QVariant::fromValue(ch.published().toJulianDay()));
-          t.bindValue(7, QVariant::fromValue(ch.modified().toJulianDay()));
-          t.bindValue(8, QVariant::fromValue(path));
+                                     "values(?, ?, ?, ?, ?, ?, ?, ?)");
+          // scale_id (0)
+          t.bindValue(0, QVariant::fromValue(scales[ch.scale()]));
+          // sw, ne (1, 2, 3, 4)
+          auto sw = ch.extent().sw();
+          auto ne = ch.extent().ne();
+          t.bindValue(1, sw.lng());
+          t.bindValue(2, sw.lat());
+          t.bindValue(3, ne.lng(sw));
+          t.bindValue(4, ne.lat());
+          // published, modified, path (5, 6, 7)
+          t.bindValue(5, QVariant::fromValue(ch.published().toJulianDay()));
+          t.bindValue(6, QVariant::fromValue(ch.modified().toJulianDay()));
+          t.bindValue(7, QVariant::fromValue(path));
 
           m_db.exec(t);
         } else {
@@ -235,22 +181,20 @@ void ChartManager::fillChartsTable() {
             continue;
           }
           // update
-          QSqlQuery t = m_db.prepare("update charts set "
-                                     "scale=?, swx=?, swy=?, nex=?, ney=?, "
+          QSqlQuery t = m_db.prepare("update main.charts set "
+                                     "swx=?, swy=?, nex=?, ney=?, "
                                      "published=?, modified=? "
                                      "where id=?");
-          // scale (0)
-          t.bindValue(0, QVariant::fromValue(ch.scale()));
-          // sw, ne (1, 2, 3, 4)
-          t.bindValue(1, QVariant::fromValue(ch.extent().sw().lng()));
-          t.bindValue(2, QVariant::fromValue(ch.extent().sw().lat()));
-          t.bindValue(3, QVariant::fromValue(ch.extent().ne().lng()));
-          t.bindValue(4, QVariant::fromValue(ch.extent().ne().lat()));
-          // published, modified, path (5, 6)
-          t.bindValue(5, QVariant::fromValue(ch.published().toJulianDay()));
-          t.bindValue(6, QVariant::fromValue(ch.modified().toJulianDay()));
-          // id (7)
-          t.bindValue(7, s.value(0));
+          // sw, ne (0, 1, 2, 3)
+          t.bindValue(0, QVariant::fromValue(ch.extent().sw().lng()));
+          t.bindValue(1, QVariant::fromValue(ch.extent().sw().lat()));
+          t.bindValue(2, QVariant::fromValue(ch.extent().ne().lng()));
+          t.bindValue(3, QVariant::fromValue(ch.extent().ne().lat()));
+          // published, modified, path (4, 5)
+          t.bindValue(4, QVariant::fromValue(ch.published().toJulianDay()));
+          t.bindValue(5, QVariant::fromValue(ch.modified().toJulianDay()));
+          // id (6)
+          t.bindValue(6, s.value(0));
 
           m_db.exec(t);
         }
@@ -278,6 +222,18 @@ void ChartManager::fillChartsTable() {
 }
 
 
+ChartFileReader* ChartManager::createReader(const QString &name) const {
+  if (name == "osenc") {
+    return new OsencReader();
+  }
+  if (name == "cm93") {
+    CM93::InitPresentation();
+    return new CM93Reader();
+  }
+  return nullptr;
+}
+
+
 QStringList ChartManager::chartSets() const {
   return m_chartSets.keys();
 }
@@ -296,61 +252,48 @@ void ChartManager::setChartSet(const QString &name, const GeoProjection* vproj) 
   qDebug() << "Changing chartset" << name;
 
   m_reader = m_readers[m_chartSets[name]];
-  m_locationAreas.clear();
   m_outlines.clear();
+  m_scales.clear();
 
   m_ref = vproj->reference();
 
-  // check & fill charts table
-  QSqlQuery r = m_db.prepare("select c.id, c.scale, c.swx, c.swy, c.nex, c.ney "
-                             "from charts c "
-                             "join chartsets s "
-                             "on c.chartset=s.id "
-                             "where s.name=?");
-  r.bindValue(0, QVariant::fromValue(m_reader->name()));
+  // get chartset id
+  QSqlQuery r0 = m_db.prepare("select id "
+                              "from main.chartsets "
+                              "where name=?");
+  r0.bindValue(0, QVariant::fromValue(m_reader->name()));
+  m_db.exec(r0);
+  r0.first();
+  const uint set_id = r0.value(0).toUInt();
+
+  // get available scales
+  QSqlQuery r = m_db.prepare("select scale "
+                             "from main.scales "
+                             "where chartset_id=?");
+  r.bindValue(0, set_id);
   m_db.exec(r);
   if (!r.first()) {
     // empty table, fill it
-    fillChartsTable();
+    fillScalesAndChartsTables();
     m_db.exec(r);
   }
 
-  QScopedPointer<GeoProjection> p = QScopedPointer<GeoProjection>(GeoProjection::CreateProjection(vproj->className()));
   r.seek(-1);
-  // read all chart rows & create location areas
   while (r.next()) {
-    ChartInfo info;
-    info.id = r.value(0).toInt();
-    info.scale = r.value(1).toInt();
-    auto sw = WGS84Point::fromLL(r.value(2).toDouble(), r.value(3).toDouble());
-    auto ne = WGS84Point::fromLL(r.value(4).toDouble(), r.value(5).toDouble());
-    info.ref = sw + .5 * (ne - sw);
-    p->setReference(info.ref);
-    info.bbox = QRectF(p->fromWGS84(sw), p->fromWGS84(ne));
-    createOutline(sw, ne);
-
-    auto it = m_locationAreas.begin();
-    for (; it != m_locationAreas.end(); ++it) {
-      const float d = (info.ref - it->charts.first().ref).meters();
-      if (d < locationRadius) {
-        it->charts.append(info);
-        break;
-      }
-    }
-    if (it == m_locationAreas.end()) {
-      LocationArea area;
-      area.charts.append(info);
-      m_locationAreas.append(area);
-    }
+    m_scales.append(r.value(0).toUInt());
   }
+  std::sort(m_scales.begin(), m_scales.end());
 
-  // create location area bounding boxes.
-  for (auto it = m_locationAreas.begin(); it != m_locationAreas.end(); ++it) {
-    it->bbox = it->charts.first().bbox;
-    p->setReference(it->charts.first().ref);
-    for (const ChartInfo& chart: it->charts) {
-      it->bbox |= chart.bbox.translated(p->fromWGS84(chart.ref));
-    }
+  m_db.loadCharts(set_id);
+
+
+  // outlines
+  QSqlQuery s = m_db.exec("select swx, swy, nex, ney "
+                          "from m.charts");
+  while (s.next()) {
+    auto sw = WGS84Point::fromLL(s.value(0).toDouble(), s.value(1).toDouble());
+    auto ne = WGS84Point::fromLL(s.value(2).toDouble(), s.value(3).toDouble());
+    createOutline(sw, ne);
   }
 }
 
@@ -403,8 +346,7 @@ void ChartManager::updateCharts(const Camera *cam, bool force) {
 
   if (m_viewport.contains(vp) && cam->scale() == m_scale && !force) return;
 
-  m_scale = cam->scale();
-
+  // setup viewarea
   qreal mw = vp.width() * (viewportFactor - 1) / 2;
   qreal mh = vp.height() * (viewportFactor - 1) / 2;
   m_viewport = vp + QMarginsF(mw, mh, mw, mh);
@@ -421,32 +363,66 @@ void ChartManager::updateCharts(const Camera *cam, bool force) {
   }
   m_viewArea.moveCenter(QPointF(0., 0.));
 
-  double distmin = 1.e15;
-  quint32 bestScale = 0;
-  QMap<quint32, IDVector> scaleBin;
-  for (const LocationArea& a: m_locationAreas) {
-    const WGS84Point ref = a.charts.first().ref;
-    const float d = (m_ref - ref).meters();
-    if (d > maxRadius) continue; // this test removes dateline and similar problems
-    if (!m_viewArea.intersects(a.bbox.translated(cam->geoprojection()->fromWGS84(ref)))) continue;
-    for (const ChartInfo& chart: a.charts) {
-      if (!m_viewArea.intersects(chart.bbox.translated(cam->geoprojection()->fromWGS84(chart.ref))))  continue;
-      if (chart.scale > maxScaleRatio * m_scale) continue;
-      if (m_scale > maxScaleRatio * chart.scale) continue;
-
-      const double dist = std::abs(log(static_cast<double>(m_scale) / chart.scale));
-      if (dist < distmin) {
-        distmin = dist;
-        bestScale = chart.scale;
+  // select scale
+  m_scale = cam->scale();
+  int bestScaleIndex = -1;
+  if (!m_scales.isEmpty() && m_scale * maxScaleRatio <= m_scales.first()) {
+    bestScaleIndex = 0;
+  } else if (m_scale < maxScale) {
+    double dmin = 1.e15;
+    for (int i = 0; i < m_scales.size(); i++) {
+      if (m_scales[i] > maxScaleRatio * m_scale) continue;
+      if (m_scale > maxScaleRatio * m_scales[i]) continue;
+      const double d = std::abs(log(static_cast<double>(m_scale) / m_scales[i]));
+      if (d < dmin) {
+        dmin = d;
+        bestScaleIndex = i;
       }
-      scaleBin[chart.scale].append(chart.id);
-
     }
   }
 
-  qDebug() << "selected scale" << bestScale << "num charts =" << scaleBin[bestScale].size();
+  IDVector chartids;
+  while (bestScaleIndex >= 0 && bestScaleIndex < m_scales.size()) {
+    auto selectedScale = m_scales[bestScaleIndex];
+    chartids.clear();
+
+    // select charts
+    auto sw0 = cam->geoprojection()->toWGS84(m_viewArea.topLeft()); // inverted y-axis
+    auto ne0 = cam->geoprojection()->toWGS84(m_viewArea.bottomRight()); // inverted y-axis
+    QSqlQuery r = m_db.prepare("select chart_id, swx, swy, nex, ney, path "
+                               "from m.charts "
+                               "where scale = ? and "
+                               "      swx < ? and swy < ? and "
+                               "      nex > ? and ney > ?");
+    r.bindValue(0, selectedScale);
+    r.bindValue(1, ne0.lng(sw0));
+    r.bindValue(2, ne0.lat());
+    r.bindValue(3, sw0.lng());
+    r.bindValue(4, sw0.lat());
+
+    m_db.exec(r);
+    QRegion cover;
+    while (r.next()) {
+      chartids.append(r.value(0).toUInt());
+      auto  sw = WGS84Point::fromLL(r.value(1).toDouble(), r.value(2).toDouble());
+      auto  ne = WGS84Point::fromLL(r.value(3).toDouble(), r.value(4).toDouble());
+      auto p1 = cam->geoprojection()->fromWGS84(sw);
+      auto p2 = cam->geoprojection()->fromWGS84(ne);
+      cover += QRect(p1.toPoint(), p2.toPoint());
+    }
+    qDebug() << "chart cover is" << cover.contains(m_viewArea.toRect());
+    qDebug() << "Number of charts" << chartids.size();
+    qDebug() << "Selected scale" << m_scales[bestScaleIndex];
+    qDebug() << "True scale" << m_scale;
+    // select next scale if there's no coverage
+    if (cover.contains(m_viewArea.toRect())) {
+      break;
+    }
+    bestScaleIndex += 1;
+  }
+
   IDVector newCharts;
-  for (int id: scaleBin[bestScale]) {
+  for (int id: chartids) {
     if (!m_chartIds.contains(id)) {
       newCharts.append(id);
     } else {
@@ -515,37 +491,12 @@ void ChartManager::updateCharts(const Camera *cam, bool force) {
     }
   }
 
-  if (noCharts && m_hadCharts) {
+  if (noCharts) {
     qDebug() << "ChartManager::updateCharts: idle";
     emit idle();
   }
 }
 
-bool ChartManager::isValidScale(const Camera* cam, quint32 scale) const {
-
-  if (m_charts.isEmpty()) return true;
-
-  QScopedPointer<GeoProjection> p = QScopedPointer<GeoProjection>(
-        GeoProjection::CreateProjection(cam->geoprojection()->className()));
-
-  p->setReference(m_ref);
-  const QRectF vp = cam->boundingBox().translated(p->fromWGS84(cam->eye()));
-
-  for (const LocationArea& a: m_locationAreas) {
-    const WGS84Point ref = a.charts.first().ref;
-    const float d = (m_ref - ref).meters();
-    if (d > maxRadius) continue; // this test removes dateline and similar problems
-    if (!vp.intersects(a.bbox.translated(p->fromWGS84(ref)))) continue;
-    for (const ChartInfo& chart: a.charts) {
-      if (!vp.intersects(chart.bbox.translated(p->fromWGS84(chart.ref))))  continue;
-      if (float(chart.scale) / scale > maxScaleRatio) continue;
-      if (float(scale) / chart.scale > maxScaleRatio) continue;
-      return true;
-    }
-  }
-
-  return false;
-}
 
 
 void ChartManager::manageThreads(S57Chart* chart) {

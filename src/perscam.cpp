@@ -253,6 +253,9 @@ QRectF PersCam::boundingBox() const {
     ll.setX(qMin(ll.x(), q.x()));
     ll.setY(qMin(ll.y(), q.y()));
   }
-  return QRectF(ll, ur); // inverted y-axis
-
+  QRectF r(ll, ur);
+  if (r.width() > 1.e6 || r.height() > 1.e6) {
+    return QRectF(QPointF(-5.e5, -5.e5), QSizeF(1.e6, 1.e6));
+  }
+  return r;
 }

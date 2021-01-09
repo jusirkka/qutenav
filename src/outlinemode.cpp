@@ -31,6 +31,3 @@ DetailMode* OutlineMode::smallerScaleMode() const {
   return charts;
 }
 
-bool OutlineMode::hasCharts() const {
-  return false;
-}

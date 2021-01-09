@@ -24,12 +24,9 @@ DetailMode* ChartMode::largerScaleMode() const {
   const float wmm = hmm * m_camera->aspect();
   auto p = GeoProjection::CreateProjection(m_camera->geoprojection()->className());
   DetailMode* outlines = new OutlineMode(wmm, hmm, p);
-  const quint32 scale = qMax(m_camera->scale(), outlines->camera()->minScale());
+  const quint32 scale = qMin(outlines->camera()->maxScale(), qMax(m_camera->scale(), outlines->camera()->minScale()));
   outlines->camera()->setScale(scale);
   outlines->camera()->reset(m_camera->eye(), m_camera->northAngle());
   return outlines;
 }
 
-bool ChartMode::hasCharts() const {
-  return true;
-}

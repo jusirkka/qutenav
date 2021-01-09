@@ -22,7 +22,6 @@ CM93Reader::CM93Reader()
   : m_m_sor(CM93::FindIndex("_m_sor"))
   , m_wgsox(CM93::FindIndex("_wgsox"))
   , m_wgsoy(CM93::FindIndex("_wgsoy"))
-  , m_cscale(CM93::FindIndex("CSCALE"))
   , m_recdat(CM93::FindIndex("RECDAT"))
   , m_subst{{"ITDARE", S52::FindIndex("DEPARE")},
             {"SPOGRD", S52::FindIndex("DMPGRD")},
@@ -463,6 +462,11 @@ S57ChartOutline CM93Reader::readOutline(const QString& path) const {
     throw ChartFileError(QString("%1 is not a proper CM93 file").arg(path));
   }
 
+  quint32 scale = 20000000;
+  if (scales.contains(path.right(1))) {
+    scale = scales[path.right(1)];
+  }
+
   // header 128 bytes
 
   auto lng_min = read_and_decode<double>(stream);
@@ -528,15 +532,12 @@ S57ChartOutline CM93Reader::readOutline(const QString& path) const {
     }
 
     if (flags & AttributeBit) {
-      int scale = 0;
       QDate pub;
       auto n_elems = read_and_decode<quint8>(stream);
       for (int i = 0; i < n_elems; i++) {
         auto a = QScopedPointer<const CM93::Attribute>(CM93::Attribute::Decode(stream));
         // qDebug() << a->name() << a->type() << a->value();
-        if (a->index() == m_cscale) {
-          scale = a->value().toInt();
-        } else if (a->index() == m_recdat) {
+        if (a->index() == m_recdat) {
           pub = QDate::fromString(a->value().toString(), "yyyyMMdd");
         }
       }

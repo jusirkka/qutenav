@@ -23,6 +23,13 @@ private:
   QString m_detail;
 };
 
+class DatabaseError {
+public:
+  DatabaseError(QString msg): m_detail(std::move(msg)) {}
+  const QString msg() const {return m_detail;}
+private:
+  QString m_detail;
+};
 
 
 class Angle {
@@ -95,6 +102,9 @@ public:
   QString toISO6709() const;
   double lng() const {return m_Longitude;}
   double lat() const {return m_Latitude;}
+
+  // ensure that returned value is larger than the lng of the reference point
+  double lng(const WGS84Point& ref) const;
 
   double radiansLng() const;
   double radiansLat() const;
