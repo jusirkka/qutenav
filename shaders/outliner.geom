@@ -14,17 +14,17 @@ void main() {
   const float a = angle;
 
   for (int i = 0; i < 2; i++) {
-    gl_Position = m_pv * gl_in[i].gl_Position;
-    EmitVertex();
     const vec3 p = gl_in[i].gl_Position.xyz;
+    gl_Position = m_pv * vec4(p, 1.);
+    EmitVertex();
     const vec3 z = normalize(cross(x, p));
     const vec3 y = cross(z, x);
     const float px = dot(p, x);
     const float py = dot(p, y);
-    vec3 p1 =
+    const vec3 q =
       (cos(a) * px - sin(a) * py) * x +
       (sin(a) * px + cos(a) * py) * y;
-    gl_Position = m_pv * vec4(p1, 1.);
+    gl_Position = m_pv * vec4(q, 1.);
     EmitVertex();
   }
   EndPrimitive();

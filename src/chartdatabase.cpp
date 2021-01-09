@@ -23,11 +23,12 @@ ChartDatabase::ChartDatabase()
              "name text not null, "
              "displayName text not null)");
   checkError();
+
   m_Query.exec("create table if not exists scales ("
              "id integer primary key autoincrement, "
              "chartset_id integer not null, "
              "scale int not null)");
-  if (m_Query.lastError().isValid()) qWarning() << m_Query.lastError();
+  checkError();
 
   m_Query.exec("create table if not exists charts ("
              "id integer primary key autoincrement, "
@@ -61,7 +62,8 @@ void ChartDatabase::loadCharts(int chartset_id) {
                   "c.id, s.scale, c.swx, c.swy, c.nex, c.ney, c.path from "
                   "main.charts c join main.scales s on c.scale_id = s.id where "
                   "s.chartset_id = ?");
-  if (m_Query.lastError().isValid()) qWarning() << m_Query.lastError();
+  checkError();
+
   m_Query.bindValue(0, chartset_id);
   m_Query.exec();
   checkError();

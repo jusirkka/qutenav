@@ -64,13 +64,10 @@ void Outliner::paintGL(const Camera* cam) {
 
   gl->glEnable(GL_DEPTH_TEST);
   gl->glDisable(GL_BLEND);
-  gl->glEnable(GL_STENCIL_TEST);
+  gl->glDisable(GL_STENCIL_TEST);
   gl->glEnable(GL_CULL_FACE);
   gl->glFrontFace(GL_CCW);
   gl->glCullFace(GL_BACK);
-  gl->glStencilFunc(GL_EQUAL, 0, 0xff);
-  gl->glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
-  gl->glStencilMask(0xff);
 
   m_program->bind();
 
@@ -80,14 +77,14 @@ void Outliner::paintGL(const Camera* cam) {
 
   // uniforms
   m_program->setUniformValue(m_locations.m_pv, cam->projection() * cam->view());
-  GLfloat angle = qMax(1.e-6, GLfloat(cam->scale()) / cam->maxScale() * 0.005);
+  GLfloat angle = qMax(1.e-5, GLfloat(cam->scale()) / cam->maxScale() * 0.005);
   m_program->setUniformValue(m_locations.angle, angle);
 
   for (const Rectangle& outline: m_outlines) {
     m_program->setUniformValue(m_locations.base_color, outline.color);
     m_program->setUniformValue(m_locations.center, outline.center);
     m_program->setAttributeBuffer(0, GL_FLOAT, outline.offset, 3, 0);
-    gl->glDrawArrays(GL_LINE_LOOP, 0, 4);
+    gl->glDrawArrays(GL_LINE_LOOP, 0, outline.outline.size() / 3);
   }
 }
 
@@ -98,7 +95,7 @@ void Outliner::updateBuffers() {
   const int cnt = m_manager->outlines().size() / 8;
   DataVector outlines;
   for (int i = 0; i < cnt; ++i) {
-    m_outlines.append(Rectangle(m_manager->outlines(), i));
+    m_outlines.append(Rectangle(m_manager->outlines(), i, outlines.size()));
     outlines.append(m_outlines.last().outline);
   }
 
@@ -109,23 +106,47 @@ void Outliner::updateBuffers() {
   qDebug() << "number of rectangles =" << cnt;
 }
 
-Outliner::Rectangle::Rectangle(const DataVector &d, int rectIndex)
+Outliner::Rectangle::Rectangle(const DataVector &d, int rectIndex, size_t cnt)
   : color("#ff0000"),
-    offset(rectIndex * 12 * sizeof(GLfloat))
+    offset(cnt * sizeof(GLfloat))
 {
+  const float eps = 1.e-6;
 
   int first = rectIndex * 8;
   QVector3D sum(0., 0., 0.);
   for (int i = 0; i < 4; i++) {
-    const float lng = d[first + 2 * i] * M_PI / 180;
-    const float lat = d[first + 2 * i + 1] * M_PI / 180;
-    QVector3D p(cos(lng) * cos(lat),
-                sin(lng) * cos(lat),
-                sin(lat));
-    outline.append(p.x());
-    outline.append(p.y());
-    outline.append(p.z());
-    sum += p;
+    const int i1 = (i + 1) % 4;
+    const float lng1 = d[first + 2 * i] * M_PI / 180;
+    const float lat1 = d[first + 2 * i + 1] * M_PI / 180;
+    const float lng2 = d[first + 2 * i1] * M_PI / 180;
+    const float lat2 = d[first + 2 * i1 + 1] * M_PI / 180;
+    if (std::abs(lng2 - lng1) < eps) {
+      Q_ASSERT(std::abs(lat2 - lat1) > eps);
+      const int n = qMin(100, qMax(1, static_cast<int>(std::abs(lat2 - lat1) * 90 / M_PI)));
+      for (int j = 0; j < n; j++) {
+        const float lat = lat1 + j * (lat2 - lat1) / n;
+        const QVector3D p(1.01 * cos(lng1) * cos(lat),
+                          1.01 * sin(lng1) * cos(lat),
+                          1.01 * sin(lat));
+        outline.append(p.x());
+        outline.append(p.y());
+        outline.append(p.z());
+        if (j == 0) sum += p;
+      }
+    } else {
+      Q_ASSERT(std::abs(lng2 - lng1) > eps);
+      const int n = qMin(100, qMax(1, static_cast<int>(std::abs(lng2 - lng1) * 90 / M_PI)));
+      for (int j = 0; j < n; j++) {
+        const float lng = lng1 + j * (lng2 - lng1) / n;
+        const QVector3D p(1.01 * cos(lng) * cos(lat1),
+                          1.01 * sin(lng) * cos(lat1),
+                          1.01 * sin(lat1));
+        outline.append(p.x());
+        outline.append(p.y());
+        outline.append(p.z());
+        if (j == 0) sum += p;
+      }
+    }
   }
   center = sum.normalized();
 }
