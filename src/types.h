@@ -290,6 +290,12 @@ inline GLfloat LineWidthDots(GLfloat lw) {
   return lw * 0.3 * dots_per_mm_y;
 }
 
+inline QString PrintScale(quint32 s) {
+  s = s / 100;
+  if (s >= 10000) return QString("%1 km/cm").arg(s / 1000);
+  return QString("%1 m/cm").arg(s);
+}
+
 struct Color {
   Color(quint32 i = 0, Alpha a = Alpha::Unset) : index(i), alpha(a) {}
   quint32 index;

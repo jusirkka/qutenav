@@ -26,8 +26,8 @@
  * - s and c prefixes mean sin and cos
  **********************************************************************/
 
-#include <GeographicLib/Geodesic.hpp>
-#include <GeographicLib/GeodesicLine.hpp>
+#include <Geodesic.hpp>
+#include <GeodesicLine.hpp>
 
 #if defined(_MSC_VER)
 // Squelch warnings about potentially uninitialized local variables and

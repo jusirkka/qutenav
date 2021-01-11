@@ -5,7 +5,7 @@
 #include <QDate>
 #include "s52presentation.h"
 #include "cm93presentation.h"
-#include "earcut.hpp"
+#include "triangulator.h"
 #include <QScopedPointer>
 #include <QRegularExpression>
 
@@ -867,61 +867,40 @@ void CM93Reader::triangulate(S57::ElementDataVector &elems,
                              GL::IndexVector &indices,
                              const GL::VertexVector &vertices,
                              const S57::ElementDataVector& edges) const {
-  // The number type to use for tessellation
-  using Coord = GLfloat;
 
-  // The index type. Defaults to uint32_t, but you can also pass uint16_t if you know that your
-  // data won't have more than 65536 vertices.
-  using N = GLuint;
 
-  // Create array
-  using Point = std::array<Coord, 2>;
+  if (edges.isEmpty()) return;
 
-  // Fill polygon structure with actual data. Any winding order works.
-  // The first polyline defines the main polygon.
-  std::vector<std::vector<Point>> polygon;
+  Triangulator tri(vertices, indices);
+  int first = edges.first().offset / sizeof(GLuint) + 1;
+  int count = edges.first().count - 3;
+  // skip open ended linestrings
+  if (indices[first] != indices[first + count]) {
+    qWarning() << "Cannot triangulate";
+    return;
+  }
+  tri.addPolygon(first, count);
 
-  // adjacency: extra initial index, another at end
-  // note also that last = first for polygon edges
-  GL::IndexVector indexCover;
-  for (const S57::ElementData& edge: edges) {
-    const int first = edge.offset / sizeof(GLuint) + 1;
-    const int count = edge.count - 3;
+  for (int i = 1; i < edges.size(); i++) {
+    first = edges[i].offset / sizeof(GLuint) + 1;
+    count = edges[i].count - 3;
     // skip open ended linestrings
     if (indices[first] != indices[first + count]) {
       qDebug() << "TRIANGULATE: skipping";
       continue;
     }
-    std::vector<Point> ring;
-    for (int i = 0; i < count; i++) {
-      const int index = indices[first + i];
-      const Point p{vertices[2 * index], vertices[2 * index + 1]};
-      ring.push_back(p);
-      indexCover << index;
-    }
-    polygon.push_back(ring);
-
+    tri.addHole(first, count);
   }
 
-  // Run tessellation
-  // Returns array of indices that refer to the vertices of the input polygon.
-  // Three subsequent indices form a triangle. Output triangles are clockwise.
-  std::vector<N> earcuts = mapbox::earcut<N>(polygon);
+  auto triangles = tri.triangulate();
 
   S57::ElementData e;
   e.mode = GL_TRIANGLES;
-  e.count = earcuts.size();
+  e.count = triangles.size();
   e.offset = indices.size() * sizeof(GLuint);
   elems.append(e);
 
-  // add triangle indices in ccw order
-  for (uint i = 0; i < earcuts.size() / 3; i++)  {
-    const N i0 = indexCover[earcuts[3 * i]];
-    const N i1 = indexCover[earcuts[3 * i + 1]];
-    const N i2 = indexCover[earcuts[3 * i + 2]];
-    indices << i0 << i2 << i1;
-  }
-
+  indices.append(triangles);
 }
 
 void CM93Reader::createLineElements(S57::ElementDataVector &elems,

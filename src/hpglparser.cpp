@@ -1,14 +1,14 @@
 #include "hpglparser.h"
 #include <QDebug>
 #include "s52presentation.h"
-#include "earcut.hpp"
+#include <glm/glm.hpp>
+#include "triangulator.h"
 
 #include "s52hpgl_parser.h"
 #define YYLTYPE HPGLParser::LocationType
 #define YYSTYPE HPGLParser::ValueType
 #include "s52hpgl_scanner.h"
 
-#include <glm/glm.hpp>
 
 
 void s52hpgl_error(HPGLParser::LocationType* loc,
@@ -314,36 +314,18 @@ QPointF HPGLParser::makePoint(int x, int y) const {
 
 void HPGLParser::triangulate(const PointList& points, Data& out) {
 
-  // The number type to use for tessellation
-  using Coord = GLfloat;
-
-  // The index type. Defaults to uint32_t, but you can also pass uint16_t if you know that your
-  // data won't have more than 65536 vertices.
-  using N = GLuint;
-
-  // Create array
-  using Point = std::array<Coord, 2>;
-
-  // Fill polygon structure with actual data. Any winding order works.
-  // The first polyline defines the main polygon.
-  std::vector<Point> ring;
   GL::VertexVector vertices;
   for (const QPointF p0: points) {
     vertices << p0.x() << p0.y();
-    const Point p{static_cast<GLfloat>(p0.x()), static_cast<GLfloat>(p0.y())};
-    ring.push_back(p);
   }
-  std::vector<std::vector<Point>> polygon;
-  polygon.push_back(ring);
 
-  // Run tessellation
-  // Returns array of indices that refer to the vertices of the input polygon.
-  // Three subsequent indices form a triangle. Output triangles are clockwise.
-  std::vector<N> earcuts = mapbox::earcut<N>(polygon);
+  Triangulator tri(vertices);
+  tri.addPolygon(0, vertices.size() / 2);
+  auto indices = tri.triangulate();
 
   const GLuint offset = out.vertices.size() / 2;
   out.vertices.append(vertices);
-  for (auto index: earcuts) {
+  for (auto index: indices) {
     out.indices << offset + index;
   }
 }

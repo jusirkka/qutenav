@@ -1,7 +1,7 @@
 #include "types.h"
 #include <cmath>
 #include <QRegularExpression>
-#include "GeographicLib/Geodesic.hpp"
+#include "Geodesic.hpp"
 
 
 double Angle::degrees() const {

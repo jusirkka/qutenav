@@ -404,16 +404,16 @@ void ChartManager::updateCharts(const Camera *cam, bool force) {
     QRegion cover;
     while (r.next()) {
       chartids.append(r.value(0).toUInt());
-      auto  sw = WGS84Point::fromLL(r.value(1).toDouble(), r.value(2).toDouble());
-      auto  ne = WGS84Point::fromLL(r.value(3).toDouble(), r.value(4).toDouble());
+      auto sw = WGS84Point::fromLL(r.value(1).toDouble(), r.value(2).toDouble());
+      auto ne = WGS84Point::fromLL(r.value(3).toDouble(), r.value(4).toDouble());
       auto p1 = cam->geoprojection()->fromWGS84(sw);
       auto p2 = cam->geoprojection()->fromWGS84(ne);
       cover += QRect(p1.toPoint(), p2.toPoint());
     }
     qDebug() << "chart cover is" << cover.contains(m_viewArea.toRect());
     qDebug() << "Number of charts" << chartids.size();
-    qDebug() << "Selected scale" << m_scales[bestScaleIndex];
-    qDebug() << "True scale" << m_scale;
+    qDebug() << "Nominal scale" << S52::PrintScale(m_scales[bestScaleIndex]);
+    qDebug() << "True scale" << S52::PrintScale(m_scale);
     // select next scale if there's no coverage
     if (cover.contains(m_viewArea.toRect())) {
       break;

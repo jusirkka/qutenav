@@ -26,7 +26,7 @@
  * - s and c prefixes mean sin and cos
  **********************************************************************/
 
-#include <GeographicLib/GeodesicLine.hpp>
+#include <GeodesicLine.hpp>
 
 namespace GeographicLib {
 

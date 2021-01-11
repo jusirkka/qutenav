@@ -58,6 +58,10 @@ ChartDatabase::ChartDatabase()
 
 void ChartDatabase::loadCharts(int chartset_id) {
   m_Query = QSqlQuery(m_DB);
+
+  m_Query.exec("delete from m.charts");
+  checkError();
+
   m_Query.prepare("insert into m.charts select "
                   "c.id, s.scale, c.swx, c.swy, c.nex, c.ney, c.path from "
                   "main.charts c join main.scales s on c.scale_id = s.id where "
@@ -71,9 +75,10 @@ void ChartDatabase::loadCharts(int chartset_id) {
 
 const QSqlQuery& ChartDatabase::exec(const QString& sql) {
   m_Query = QSqlQuery(m_DB);
-  // qDebug() << sql;
+
   m_Query.exec(sql);
   checkError();
+
   return m_Query;
 }
 
@@ -87,6 +92,7 @@ const QSqlQuery& ChartDatabase::prepare(const QString& sql) {
   m_Query = QSqlQuery(m_DB);
   m_Query.prepare(sql);
   checkError();
+
   return m_Query;
 }
 

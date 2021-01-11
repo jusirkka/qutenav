@@ -11,6 +11,7 @@ find_package(Qt5 ${QT_MIN_VERSION} REQUIRED COMPONENTS
   Widgets
   Gui
   Xml
+  OpenGL
 )
 
 set(KF5_MIN_VERSION "5.56.0")
@@ -102,9 +103,6 @@ target_sources(qopencpn
     src/types.cpp
     src/vectorsymbolmanager.cpp
     src/wfreader.cpp
-    src/GeographicLib/Geodesic.cpp
-    src/GeographicLib/GeodesicLine.cpp
-    src/GeographicLib/Math.cpp
     ${CMAKE_BINARY_DIR}/wavefront_parser.cpp
     ${CMAKE_BINARY_DIR}/wavefront_scanner.cpp
     ${CMAKE_BINARY_DIR}/s52instr_parser.cpp
@@ -141,6 +139,8 @@ kconfig_add_kcfg_files(qopencpn
 target_include_directories(qopencpn
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/geographiclib/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/triangulate/src
     ${CMAKE_BINARY_DIR}
 )
 
@@ -149,8 +149,13 @@ target_compile_features(qopencpn
     cxx_std_17
 )
 
+add_subdirectory(geographiclib)
+add_subdirectory(triangulate)
+
 target_link_libraries(qopencpn
   PRIVATE
+    GeographicLib
+    Triangulate
     KF5::I18n
     KF5::XmlGui
     Qt5::Sql
