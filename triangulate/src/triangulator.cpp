@@ -1,6 +1,27 @@
 #include "triangulator.h"
 #include "earcut.hpp"
 
+namespace mapbox {
+namespace util {
+
+template <>
+struct nth<0, glm::vec2> {
+  inline static auto get(const glm::vec2 &t) {
+    return t.x;
+  }
+};
+
+template <>
+struct nth<1, glm::vec2> {
+  inline static auto get(const glm::vec2 &t) {
+    return t.y;
+  }
+};
+
+} // namespace util
+} // namespace mapbox
+
+
 Triangulator::Triangulator(const GL::VertexVector &vertices,
                            const GL::IndexVector &indices)
   : m_vertices(vertices)
@@ -29,31 +50,32 @@ GL::IndexVector Triangulator::triangulate() {
     return triangulateArrays();
   }
 
-  std::vector<std::vector<Point>> polygon;
+  QVector<QVector<glm::vec2>> polygon;
   GL::IndexVector indexCover;
 
-  std::vector<Point> poly;
+  const glm::vec2* vs = reinterpret_cast<const glm::vec2*>(m_vertices.constData());
+
+  QVector<glm::vec2> poly;
+
   for (uint i = 0; i < m_polygon.count; i++) {
     const int index = m_indices[m_polygon.offset + i];
-    const Point p{m_vertices[2 * index], m_vertices[2 * index + 1]};
-    poly.push_back(p);
+    poly.push_back(vs[index]);
     indexCover << index;
   }
   polygon.push_back(poly);
 
   for (const Extent& e: m_holes) {
-    std::vector<Point> hole;
+    QVector<glm::vec2> hole;
     for (uint i = 0; i < e.count; i++) {
       const int index = m_indices[e.offset + i];
-      const Point p{m_vertices[2 * index], m_vertices[2 * index + 1]};
-      hole.push_back(p);
+      hole.push_back(vs[index]);
       indexCover << index;
     }
     polygon.push_back(hole);
   }
 
   // Three subsequent indices form a triangle. Output triangles are clockwise.
-  std::vector<GLuint> earcuts = mapbox::earcut<GLuint>(polygon);
+  auto earcuts = mapbox::earcut<GLuint>(polygon);
 
   // add triangle indices in ccw order
   GL::IndexVector indices;
@@ -68,26 +90,27 @@ GL::IndexVector Triangulator::triangulate() {
 }
 
 GL::IndexVector Triangulator::triangulateArrays() {
-  std::vector<std::vector<Point>> polygon;
+  QVector<QVector<glm::vec2>> polygon;
 
-  std::vector<Point> poly;
+  const glm::vec2* vs = reinterpret_cast<const glm::vec2*>(m_vertices.constData());
+
+  QVector<glm::vec2> poly;
+
   for (uint i = 0; i < m_polygon.count; i++) {
-    const Point p{m_vertices[2 * i], m_vertices[2 * i + 1]};
-    poly.push_back(p);
+    poly.push_back(vs[i]);
   }
   polygon.push_back(poly);
 
   for (const Extent& e: m_holes) {
-    std::vector<Point> hole;
+    QVector<glm::vec2> hole;
     for (uint i = 0; i < e.count; i++) {
-      const Point p{m_vertices[2 * i], m_vertices[2 * i + 1]};
-      hole.push_back(p);
+      hole.push_back(vs[i]);
     }
     polygon.push_back(hole);
   }
 
   // Three subsequent indices form a triangle. Output triangles are clockwise.
-  std::vector<GLfloat> earcuts = mapbox::earcut<GLfloat>(polygon);
+  auto earcuts = mapbox::earcut<GLfloat>(polygon);
 
   GL::IndexVector indices(earcuts.begin(), earcuts.end());
   return indices;
