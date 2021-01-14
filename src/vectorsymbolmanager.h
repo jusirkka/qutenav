@@ -52,4 +52,5 @@ private:
   SymbolData m_invalid;
   QOpenGLBuffer m_coordBuffer;
   QOpenGLBuffer m_indexBuffer;
+  const QStringList m_blacklist;
 };

@@ -9,6 +9,7 @@ VectorSymbolManager::VectorSymbolManager()
   : m_invalid()
   , m_coordBuffer(QOpenGLBuffer::VertexBuffer)
   , m_indexBuffer(QOpenGLBuffer::IndexBuffer)
+  , m_blacklist {"BOYSPR01"}
 {}
 
 
@@ -103,6 +104,11 @@ void VectorSymbolManager::parseSymbols(QXmlStreamReader& reader,
     }
 
     if (!d.size.isValid()) continue;
+
+    if (m_blacklist.contains(symbolName)) {
+      qWarning() << symbolName << "is blacklisted, skipping";
+      continue;
+    }
 
     HPGLParser parser(src, cmap, d.pivot);
     if (!parser.ok()) {

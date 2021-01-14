@@ -21,7 +21,8 @@ void s52hpgl_error(HPGLParser::LocationType* loc,
 }
 
 
-HPGLParser::HPGLParser(const QString &src, const QString& colors, const QPoint& pivot)
+HPGLParser::HPGLParser(const QString &src, const QString& colors,
+                       const QPoint& pivot)
   : m_ok(true)
   , m_penDown(false)
   , m_pivot(pivot)
@@ -311,7 +312,6 @@ QPointF HPGLParser::makePoint(int x, int y) const {
   return QPointF(x - m_pivot.x(), m_pivot.y() - y);
 }
 
-
 void HPGLParser::triangulate(const PointList& points, Data& out) {
 
   GL::VertexVector vertices;
@@ -319,8 +319,9 @@ void HPGLParser::triangulate(const PointList& points, Data& out) {
     vertices << p0.x() << p0.y();
   }
 
+
   Triangulator tri(vertices);
-  tri.addPolygon(0, vertices.size() / 2);
+  tri.addPolygon(0, vertices.size() / 2 - 1);
   auto indices = tri.triangulate();
 
   const GLuint offset = out.vertices.size() / 2;
@@ -328,6 +329,7 @@ void HPGLParser::triangulate(const PointList& points, Data& out) {
   for (auto index: indices) {
     out.indices << offset + index;
   }
+
 }
 
 //
