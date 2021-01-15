@@ -107,7 +107,7 @@ void Lib2Tessellator::addContour(uint offset, size_t count, bool reversed) {
     bool cw = windingCW(poly.constData(), count);
     if (reversed) cw = !cw;
 
-    tessSetOption(m_tess, TESS_REVERSE_CONTOURS, false);
+    tessSetOption(m_tess, TESS_REVERSE_CONTOURS, cw);
     tessAddContour(m_tess, 2, poly.constData(), sizeof(GLfloat) * 2, count);
   }
 }

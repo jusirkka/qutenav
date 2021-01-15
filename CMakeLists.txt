@@ -1,29 +1,49 @@
 cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
 project(qopencpn LANGUAGES CXX C)
 
+set(DESKTOP ON)
+
+if (MOBILE)
+  set (DESKTOP OFF)
+endif()
+
 #
 # dependencies
 #
 
 set(QT_MIN_VERSION "5.9.7")
-find_package(Qt5 ${QT_MIN_VERSION} REQUIRED COMPONENTS
-  Sql
-  Widgets
-  Gui
-  Xml
-  OpenGL
-)
 
-set(KF5_MIN_VERSION "5.56.0")
+if (DESKTOP)
 
-find_package(ECM ${KF5_MIN_VERSION} REQUIRED CONFIG)
-list(APPEND CMAKE_MODULE_PATH ${ECM_MODULE_PATH} ${ECM_KDE_MODULE_DIR})
+  find_package(Qt5 ${QT_MIN_VERSION} REQUIRED COMPONENTS
+    Sql
+    Widgets
+    Gui
+    Xml
+    OpenGL
+  )
 
-find_package(KF5 ${KF5_MIN_VERSION} REQUIRED COMPONENTS
-  Config
-  I18n
-  XmlGui
-)
+  set(KF5_MIN_VERSION "5.56.0")
+
+  find_package(ECM ${KF5_MIN_VERSION} REQUIRED CONFIG)
+  list(APPEND CMAKE_MODULE_PATH ${ECM_MODULE_PATH} ${ECM_KDE_MODULE_DIR})
+
+  find_package(KF5 ${KF5_MIN_VERSION} REQUIRED COMPONENTS
+    Config
+    I18n
+    XmlGui
+  )
+
+else()
+
+  find_package(Qt5 ${QT_MIN_VERSION} REQUIRED COMPONENTS
+    Sql
+    Xml
+    OpenGL
+  )
+
+endif()
+
 
 set(GDAL_MIN_VERSION "3.0.0")
 find_package(GDAL ${GDAL_MIN_VERSION} REQUIRED)
@@ -52,17 +72,14 @@ find_package(glm ${GLM_VERSION} REQUIRED)
 
 add_executable(qopencpn)
 
+
 set_target_properties(qopencpn
   PROPERTIES
     AUTOMOC ON
-    AUTOUIC ON
-    AUTORCC ON
 )
 
 target_sources(qopencpn
   PRIVATE
-    shaders.qrc
-    files.qrc
     src/camera.cpp
     src/chartdatabase.cpp
     src/chartfilereader.cpp
@@ -81,8 +98,6 @@ target_sources(qopencpn
     src/glyphmanager.cpp
     src/hpglparser.cpp
     src/linecalculator.cpp
-    src/main.cpp
-    src/mainwindow.cpp
     src/orthocam.cpp
     src/osencreader.cpp
     src/outlinemode.cpp
@@ -95,7 +110,6 @@ target_sources(qopencpn
     src/s57chart.cpp
     src/s57chartoutline.cpp
     src/s57object.cpp
-    src/settings.cpp
     src/shader.cpp
     src/symboldata.cpp
     src/textmanager.cpp
@@ -129,49 +143,77 @@ FLEX_TARGET(S52HScanner src/s52hpgl_scanner.l ${CMAKE_BINARY_DIR}/s52hpgl_scanne
 BISON_TARGET(S52HParser src/s52hpgl_parser.y ${CMAKE_BINARY_DIR}/s52hpgl_parser.cpp
   DEFINES_FILE ${CMAKE_BINARY_DIR}/s52hpgl_parser.h)
 
-kconfig_add_kcfg_files(qopencpn
-  src/conf_mainwindow.kcfgc
-  src/conf_detailmode.kcfgc
-  src/conf_marinerparams.kcfgc
-)
-
-
-target_include_directories(qopencpn
-  PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/geographiclib/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/triangulate/src
-    ${CMAKE_BINARY_DIR}
-)
+if (DESKTOP)
+  target_include_directories(qopencpn
+    PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}/src
+      ${CMAKE_CURRENT_SOURCE_DIR}/geographiclib/src
+      ${CMAKE_CURRENT_SOURCE_DIR}/triangulate/src
+      ${CMAKE_CURRENT_SOURCE_DIR}/desktop/src
+      ${CMAKE_BINARY_DIR}/desktop
+      ${CMAKE_BINARY_DIR}
+  )
+else()
+  target_include_directories(qopencpn
+    PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}/src
+      ${CMAKE_CURRENT_SOURCE_DIR}/geographiclib/src
+      ${CMAKE_CURRENT_SOURCE_DIR}/triangulate/src
+      ${CMAKE_CURRENT_SOURCE_DIR}/mobile/src
+      ${CMAKE_BINARY_DIR}
+  )
+endif()
 
 target_compile_features(qopencpn
   PRIVATE
     cxx_std_17
 )
 
-add_subdirectory(geographiclib)
-add_subdirectory(triangulate)
-
-target_link_libraries(qopencpn
-  PRIVATE
-    GeographicLib
-    Triangulate
-    KF5::I18n
-    KF5::XmlGui
-    Qt5::Sql
-    Freetype::Freetype
-    Fontconfig::Fontconfig
-    harfbuzz::harfbuzz
-)
-
-
-install(TARGETS qopencpn)
-
 #
 # subdirectories
 #
 
 add_subdirectory(triglobe)
+add_subdirectory(geographiclib)
+add_subdirectory(triangulate)
+
+if (DESKTOP)
+  add_subdirectory(desktop)
+else()
+  add_subdirectory(mobile)
+endif()
+
+if (DESKTOP)
+  target_link_libraries(qopencpn
+    PRIVATE
+      GeographicLib
+      Triangulate
+      Platform
+      Qt5::Core
+      Qt5::OpenGL
+      KF5::I18n
+      KF5::XmlGui
+      Freetype::Freetype
+      Fontconfig::Fontconfig
+      harfbuzz::harfbuzz
+  )
+else()
+  target_link_libraries(qopencpn
+    PRIVATE
+      GeographicLib
+      Triangulate
+      Platform
+      Qt5::Core
+      Qt5::OpenGL
+      Freetype::Freetype
+      Fontconfig::Fontconfig
+      harfbuzz::harfbuzz
+  )
+endif()
+
+
+install(TARGETS qopencpn)
+
 
 
 feature_summary(WHAT ALL INCLUDE_QUIET_PACKAGES FATAL_ON_MISSING_REQUIRED_PACKAGES)
