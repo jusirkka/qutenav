@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
-project(qopencpn LANGUAGES CXX)
+project(qopencpn LANGUAGES CXX C)
 
 #
 # dependencies

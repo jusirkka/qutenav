@@ -698,6 +698,9 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
   projSc->setReference(proj->reference());
   S57::ObjectBuilder helper;
   // feature record table
+
+  int largestPolygonSize = 0;
+
   for (int featureId = 0; featureId < n_feat_records; featureId++) {
     auto classCode = read_and_decode<quint8>(stream);
     auto geoHeader = read_and_decode<quint8>(stream);
@@ -744,7 +747,14 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
       }
       S57::ElementDataVector lines;
       createLineElements(lines, indices, vertices, edges, true);
+
       // qDebug() << "number of polygons" << lines.size();
+      int polygonSize = 0;
+      for (auto elem: lines) {
+        polygonSize += elem.count;
+      }
+      if (polygonSize > largestPolygonSize) largestPolygonSize = polygonSize;
+
       S57::ElementDataVector triangles;
       triangulate(triangles, indices, vertices, lines);
 
@@ -860,6 +870,7 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
     }
     Q_ASSERT(n_bytes == 0);
   }
+  qDebug() << "Largest polygon size" << largestPolygonSize;
 }
 
 

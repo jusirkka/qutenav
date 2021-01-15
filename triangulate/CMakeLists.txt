@@ -3,6 +3,15 @@ add_library(Triangulate OBJECT)
 target_sources(Triangulate
   PRIVATE
     src/triangulator.cpp
+    src/earcuttessellator.cpp
+    src/lib2tessellator.cpp
+    src/libtess2/bucketalloc.c
+    src/libtess2/dict.c
+    src/libtess2/geom.c
+    src/libtess2/mesh.c
+    src/libtess2/priorityq.c
+    src/libtess2/sweep.c
+    src/libtess2/tess.c
 )
 
 
