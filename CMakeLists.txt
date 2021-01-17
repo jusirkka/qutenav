@@ -188,7 +188,7 @@ if (DESKTOP)
     PRIVATE
       GeographicLib
       Triangulate
-      Platform
+      Desktop
       Qt5::Core
       Qt5::OpenGL
       KF5::I18n
@@ -202,7 +202,7 @@ else()
     PRIVATE
       GeographicLib
       Triangulate
-      Platform
+      Mobile
       Qt5::Core
       Qt5::OpenGL
       Freetype::Freetype
