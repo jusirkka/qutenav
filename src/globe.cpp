@@ -22,7 +22,7 @@ Globe::Globe(QObject *parent)
   QStringList locs;
 
   for (const QString& loc: QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation)) {
-    locs << QString("%1/qopencpn/GSHHS/c").arg(loc);
+    locs << QString("%1/%2/GSHHS/c").arg(loc).arg(qAppName());
   }
 
   for (const QString& loc: locs) {
@@ -81,7 +81,7 @@ void Globe::initializeGL() {
   };
 
   for (const Source& s: sources) {
-    if (!m_program->addCacheableShaderFromSourceFile(s.stype, s.fname)) {
+    if (!m_program->addShaderFromSourceFile(s.stype, s.fname)) {
       qFatal("Failed to compile %s: %s", s.fname.toUtf8().data(), m_program->log().toUtf8().data());
     }
   }

@@ -68,7 +68,7 @@ HPGLParser::HPGLParser(const QString &src, const QString& colors,
 void HPGLParser::parseColorRef(const QString& cmap) {
   int index = 0;
   while (index < cmap.length()) {
-    const char key = cmap.mid(index, 1).front().toLatin1();
+    const char key = cmap.mid(index, 1).at(0).toLatin1();
     index += 1;
     const QString cref = cmap.mid(index, 5);
     bool ok;

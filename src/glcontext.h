@@ -1,6 +1,7 @@
 #pragma once
 
-class QOpenGLWindow;
+class QWindow;
+class QOpenGLContext;
 
 namespace GL {
 
@@ -11,11 +12,12 @@ public:
   static Context* instance();
   void makeCurrent();
   void doneCurrent();
-  void initializeContext(QOpenGLWindow* w);
+  void initializeContext(QOpenGLContext* c, QWindow* w);
 
 private:
 
-  QOpenGLWindow* m_window;
+  QOpenGLContext* m_context;
+  QWindow* m_window;
 
 };
 

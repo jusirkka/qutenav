@@ -115,7 +115,10 @@ S57Chart::S57Chart(quint32 id, const QString& path)
       underlings.append(object);
     }
   }
-  ContourVector sorted(contours.begin(), contours.end());
+  // Iterator constructors not yet supported in Qt 5.6.3
+  // ContourVector sorted(contours.begin(), contours.end());
+  ContourVector sorted;
+  for (auto c: contours) sorted << c;
   std::sort(sorted.begin(), sorted.end());
   m_contours.append(sorted);
 

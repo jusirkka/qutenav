@@ -5,6 +5,7 @@
 #include <QPointF>
 #include <QMap>
 #include <QSharedPointer>
+#include <ft2build.h>
 #include <freetype/freetype.h>
 #include <harfbuzz/hb.h>
 #include <QRectF>

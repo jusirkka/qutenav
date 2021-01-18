@@ -23,7 +23,9 @@ public:
   quint32 minScale() const override;
   QRectF boundingBox() const override;
 
+protected:
 
+  void doUpdate(const Camera *other) override;
 
 private:
 

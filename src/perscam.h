@@ -30,6 +30,10 @@ private:
   void setScaleFromEyeDist();
   void setEyeDist();
 
+protected:
+
+  void doUpdate(const Camera *other) override;
+
 private:
 
 

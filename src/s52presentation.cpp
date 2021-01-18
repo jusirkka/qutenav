@@ -146,7 +146,7 @@ QString S52::FindPath(const QString& s) {
   QString file;
 
   for (const QString& loc: QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation)) {
-    locs << QString("%1/qopencpn/s57data").arg(loc);
+    locs << QString("%1/%2/s57data").arg(loc).arg(qAppName());
   }
 
   for (const QString& loc: locs) {

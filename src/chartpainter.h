@@ -7,7 +7,6 @@
 class S57Chart;
 class GeoProjection;
 class ChartManager;
-class QOpenGLDebugLogger;
 class QOpenGLFramebufferObject;
 
 
@@ -54,8 +53,6 @@ private:
 
   QOpenGLBuffer m_coordBuffer;
   QOpenGLBuffer m_indexBuffer;
-
-  QOpenGLDebugLogger* m_logger;
 
 };
 

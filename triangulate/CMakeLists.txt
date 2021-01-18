@@ -1,4 +1,4 @@
-add_library(Triangulate OBJECT)
+add_library(Triangulate STATIC)
 
 target_sources(Triangulate
   PRIVATE

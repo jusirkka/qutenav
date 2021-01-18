@@ -10,9 +10,9 @@ target_sources(Desktop
   PRIVATE
     shaders.qrc
     files.qrc
+    src/glwindow.cpp
     src/main.cpp
     src/mainwindow.cpp
-    src/settings.cpp
 )
 
 kconfig_add_kcfg_files(Desktop

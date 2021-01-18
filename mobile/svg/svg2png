@@ -1,0 +1,22 @@
+#!/bin/bash
+
+target=$1
+mkdir -p $(dirname $target)
+base=$(basename $target)
+
+source=$(dirname $0)/$(echo $base | sed -n -e 's/\(.*\)-.*/\1.svg/p')
+width=$(echo $base | sed -n -e 's/.*-\(.*\)x.*/\1/p')
+height=$(echo $base | sed -n -e 's/.*x\(.*\)\..*/\1/p')
+
+if test "$width" == ""; then
+    scale=$(echo $base | sed -n -e 's/.*-\(.*\)\.png/\1/p')
+    echo $scale
+    w1=$(egrep "^ *width" $source | sed -e 's/.*\"\([0-9]\+\)\"/\1/')
+    echo $w1
+    h1=$(egrep "^ *height" $source | sed -e 's/.*\"\([0-9]\+\)\"/\1/')
+    echo $h1
+    width=$(expr $w1 \* $scale / 100)
+    height=$(expr $h1 \* $scale / 100)
+fi
+
+inkscape -o $target -C -w $width -h $height $source

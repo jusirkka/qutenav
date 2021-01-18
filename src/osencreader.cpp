@@ -224,11 +224,12 @@ void OsencReader::readChart(GL::VertexVector& vertices,
   using TriangleHandle = QVector<TrianglePatch>;
 
   struct OData {
-    explicit OData(S57::Object* obj):
-      object(obj),
-      lines(),
-      triangles(),
-      type(S57::Geometry::Type::Meta) {}
+    explicit OData(S57::Object* obj = nullptr)
+      : object(obj)
+      , lines()
+      , triangles()
+      , type(S57::Geometry::Type::Meta) {}
+
 
     S57::Object* object;
     LineHandle lines;
@@ -478,7 +479,7 @@ void OsencReader::readChart(GL::VertexVector& vertices,
     // qDebug() << geom;
     for (int i = 0; i < cnt;) {
       S57::ElementData e;
-      e.mode = GL_LINE_STRIP_ADJACENCY;
+      e.mode = GL_LINE_STRIP_ADJACENCY_EXT;
       e.offset = indices.size() * sizeof(GLuint);
       indices.append(0); // dummy index to account adjacency
       e.count = 1;

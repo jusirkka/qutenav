@@ -1,0 +1,95 @@
+#version 310 es
+
+uniform float period;
+uniform vec4 viewArea;
+uniform int numOutIndices;
+uniform int indexOffset;
+uniform int vertexOffset;
+
+
+struct Transform {
+  float num;
+  float ca;
+  float sa;
+  float pad;
+  vec2 first;
+  vec2 dir;
+};
+
+layout(packed, binding = 0) buffer VertexBufferIn {
+  vec2 data[];
+} vertexBufferIn;
+
+layout(packed, binding = 1) buffer IndexBufferIn {
+  int data[];
+} indexBufferIn;
+
+layout(std140, binding = 2) buffer VertexBufferOut {
+  Transform data[];
+} vertexBufferOut;
+
+const uint LEFT = 1;
+const uint RIGHT = 2;
+const uint BOTTOM = 4;
+const uint TOP = 8;
+
+uint locationCode(const in vec2 v) {
+  uint code = 0;
+  if (v.y > viewArea.w) {
+    code |= TOP;
+  } else if (v.y < viewArea.y) {
+    code |= BOTTOM;
+  }
+
+  if (v.x > viewArea.z) {
+    code |= RIGHT;
+  } else if (v.x < viewArea.x) {
+    code |= LEFT;
+  }
+  return code;
+}
+
+// Cohen-Sutherland test
+bool outsideViewArea(const in vec2 v1, const in vec2 v2) {
+  const uint c1 = locationCode(v1);
+  const uint c2 = locationCode(v2);
+  if (c1 == 0 && c2 == 0) return false;
+  return (c1 & c2) != 0;
+}
+
+layout (local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+void main() {
+  // Read current global position for this thread
+  uint index = gl_GlobalInvocationID.x;
+  if (index >= numOutIndices) return;
+  const uint v1 = vertexOffset + indexBufferIn.data[indexOffset + index];
+  const uint v2 = vertexOffset + indexBufferIn.data[indexOffset + index + 1];
+  const vec2 p1 = vertexBufferIn.data[v1];
+  const vec2 p2 = vertexBufferIn.data[v2];
+
+  if (outsideViewArea(p1, p2)) {
+    vertexBufferOut.data[index].num = 0;
+    return;
+  }
+
+  const float r = length(p2 - p1);
+  if (r < 1.e-10) {
+    vertexBufferOut.data[index].num = 0;
+    return;
+  }
+  const vec2 u = (p2 - p1) / r;
+  float n = floor(r / period);
+  const float r0 = period * (n + .5);
+  if (r > r0 || n == 0) {
+    n = n + 1;
+  }
+  const float s = r / (period * n);
+
+  vertexBufferOut.data[index].num = n;
+  vertexBufferOut.data[index].ca = s * u.x;
+  vertexBufferOut.data[index].sa = s * u.y;
+  vertexBufferOut.data[index].first = p1;
+  vertexBufferOut.data[index].dir = s * period * u;
+
+}

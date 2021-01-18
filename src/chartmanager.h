@@ -1,7 +1,6 @@
 #pragma once
 
 #include <QObject>
-#include <GL/gl.h>
 #include "types.h"
 #include "geoprojection.h"
 #include <QRectF>
@@ -57,7 +56,6 @@ class ChartManager: public QObject {
 public:
 
   using ChartVector = QVector<S57Chart*>;
-  using OutlineVector = QVector<GLfloat>;
   using ChartReaderVector = QVector<ChartFileReader*>;
 
   static ChartManager* instance();
@@ -65,9 +63,10 @@ public:
 
   QStringList chartSets() const;
   void setChartSet(const QString& charts, const GeoProjection* vproj);
+  QString chartSet() const;
 
   const ChartVector& charts() const {return m_charts;}
-  const OutlineVector& outlines() const {return m_outlines;}
+  const GL::VertexVector& outlines() const {return m_outlines;}
   const ChartReaderVector& readers() const {return m_readers;}
 
   ~ChartManager();
@@ -147,7 +146,7 @@ private:
   ChartManager& operator=(const ChartManager&) = delete;
 
   ChartVector m_charts;
-  OutlineVector m_outlines;
+  GL::VertexVector m_outlines;
   ChartDatabase m_db;
   WGS84Point m_ref;
   QRectF m_viewport;

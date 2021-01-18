@@ -11,7 +11,7 @@ GL::Shader::Shader(const QVector<Source>& sources, GLfloat ds)
   m_program = new QOpenGLShaderProgram;
 
   for (const Source& s: sources) {
-    if (!m_program->addCacheableShaderFromSourceFile(s.stype, s.fname)) {
+    if (!m_program->addShaderFromSourceFile(s.stype, s.fname)) {
       qFatal("Failed to compile %s: %s", s.fname.toUtf8().data(), m_program->log().toUtf8().data());
     }
   }
@@ -274,8 +274,10 @@ void GL::TextureShader::setUniforms(const Camera* cam,
   const QPointF tr = q1 + QPointF(.5, .5);
   const QPointF sc = (q2 - q1);
 
-  const qreal s = qMax(0., qMin(1. - sc.x(), tr.x()));
-  const qreal t = qMax(0., qMin(1. - sc.y(), tr.y()));
+  const qreal v0 = 0.;
+  const qreal v1 = 1.;
+  const qreal s = qMax(v0, qMin(v1 - sc.x(), tr.x()));
+  const qreal t = qMax(v0, qMin(v1 - sc.y(), tr.y()));
 
   m_program->setUniformValue(m_locations.tr_tex, QPointF(s, t));
   m_program->setUniformValue(m_locations.scale_tex, sc);

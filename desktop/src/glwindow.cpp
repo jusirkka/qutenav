@@ -66,7 +66,7 @@ void GLWindow::initializeGL() {
       qFatal("Doh!");
     }
 
-    GL::Context::instance()->initializeContext(this);
+    GL::Context::instance()->initializeContext(context(), this);
 
     ChartManager::instance()->createThreads(context());
     TextManager::instance()->createBuffers();

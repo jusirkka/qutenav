@@ -21,6 +21,7 @@ DetailMode* OutlineMode::largerScaleMode() const {
 }
 
 DetailMode* OutlineMode::smallerScaleMode() const {
+  return nullptr;
   const float hmm = m_camera->heightMM();
   const float wmm = hmm * m_camera->aspect();
   auto p = GeoProjection::CreateProjection(m_camera->geoprojection()->className());
@@ -29,5 +30,15 @@ DetailMode* OutlineMode::smallerScaleMode() const {
   charts->camera()->setScale(scale);
   charts->camera()->reset(m_camera->eye(), m_camera->northAngle());
   return charts;
+}
+
+Camera* OutlineMode::cloneCamera() const {
+  const float wmm = m_camera->heightMM();
+  const float hmm = wmm * m_camera->aspect();
+  GeoProjection* p = GeoProjection::CreateProjection(m_camera->geoprojection()->className());
+  Camera* cam = new PersCam(wmm, hmm, p);
+  cam->setScale(m_camera->scale());
+  cam->reset(m_camera->eye(), m_camera->northAngle());
+  return cam;
 }
 

@@ -7,13 +7,14 @@ GL::Context* GL::Context::instance() {
 }
 
 void GL::Context::makeCurrent() {
-  m_window->makeCurrent();
+  m_context->makeCurrent(m_window);
 }
 
 void GL::Context::doneCurrent() {
-  m_window->doneCurrent();
+  m_context->doneCurrent();
 }
 
-void GL::Context::initializeContext(QOpenGLWindow* w) {
+void GL::Context::initializeContext(QOpenGLContext* c, QWindow* w) {
+  m_context = c;
   m_window = w;
 }

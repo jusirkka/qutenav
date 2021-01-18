@@ -1,6 +1,5 @@
 #include "linecalculator.h"
 #include <QOpenGLExtraFunctions>
-#include <QOpenGLDebugLogger>
 
 GL::LineCalculator* GL::LineCalculator::instance() {
   static LineCalculator* lc = new LineCalculator();
@@ -9,18 +8,9 @@ GL::LineCalculator* GL::LineCalculator::instance() {
 
 GL::LineCalculator::LineCalculator()
   : m_program(new QOpenGLShaderProgram())
-  , m_logger(new QOpenGLDebugLogger())
   , m_outBuffer(QOpenGLBuffer::VertexBuffer)
 {
-
-  if (!m_logger->initialize()) {
-    qWarning() << "OpenGL logging not available";
-  }
-  m_logger->disableMessages(QOpenGLDebugMessage::APISource,
-                            QOpenGLDebugMessage::PerformanceType);
-
-
-  if (!m_program->addCacheableShaderFromSourceFile(QOpenGLShader::Compute, ":/shaders/linecalculator.comp")) {
+  if (!m_program->addShaderFromSourceFile(QOpenGLShader::Compute, ":/shaders/linecalculator.comp")) {
     qFatal("Failed to compile compute shader: %s", m_program->log().toUtf8().data());
   }
 
@@ -43,7 +33,6 @@ GL::LineCalculator::LineCalculator()
 
 GL::LineCalculator::~LineCalculator() {
   delete m_program;
-  delete m_logger;
 }
 
 void GL::LineCalculator::calculate(VertexVector& transforms,
@@ -89,10 +78,6 @@ void GL::LineCalculator::calculate(VertexVector& transforms,
                       m_outBuffer.bufferId());
 
   f->glDispatchCompute((numOutIndices + 63) / 64, 1, 1);
-
-  for (const QOpenGLDebugMessage& message: m_logger->loggedMessages()) {
-    qDebug() << message;
-  }
 
   m_outBuffer.bind();
   auto src = reinterpret_cast<const Transform*>(m_outBuffer.mapRange(0, numOutIndices * sizeof(Transform), QOpenGLBuffer::RangeRead));

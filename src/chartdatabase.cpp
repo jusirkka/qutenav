@@ -9,7 +9,7 @@ ChartDatabase::ChartDatabase()
   : m_DB(QSqlDatabase::addDatabase("QSQLITE"))
 {
   QString loc = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
-  loc = QString("%1/qopencpn/charts").arg(loc);
+  loc = QString("%1/%2/charts").arg(loc).arg(qAppName());
   if (!QDir().mkpath(loc)) {
     throw ChartFileError(QString("cannot create charts directory %1").arg(loc));
   }

@@ -277,19 +277,19 @@ void Private::Presentation::readLookups(QXmlStreamReader& reader) {
   while (reader.readNextStartElement()) {
     Q_ASSERT(reader.name() == "lookup");
 
-    const int id = reader.attributes().value("RCID").toInt();
+    const int rcid = reader.attributes().value("RCID").toInt();
     const QString className = reader.attributes().value("name").toString();
 
     if (!names.contains(className)) {
-      qWarning() << "Unknown class name" << className << ", skipping lookup" << id;
+      qWarning() << "Unknown class name" << className << ", skipping lookup" << rcid;
       reader.skipCurrentElement();
       continue;
     }
 
     const int code = names[className];
     S52::Lookup::Type name;
-    int prio;
-    S52::Lookup::Category cat;
+    int prio = 0;
+    S52::Lookup::Category cat = S52::Lookup::Category::Standard;
     QString comment;
     QString instr;
     S52::Lookup::AttributeMap attrs;
@@ -312,29 +312,29 @@ void Private::Presentation::readLookups(QXmlStreamReader& reader) {
         QString token = reader.readElementText().trimmed();
         QString key = token.left(6);
         if (!names.contains(key)) {
-          qWarning() << "Unknown attribute" << key << ", skipping lookup" << id;
+          qWarning() << "Unknown attribute" << key << ", skipping lookup" << rcid;
           ok = false;
           break;
         }
         QString value = token.mid(6).simplified();
-        quint32 id = names[key];
+        const quint32 aid = names[key];
         if (value.isEmpty()) {
-          attrs[id] = S57::Attribute(S57::Attribute::Type::Any);
+          attrs[aid] = S57::Attribute(S57::Attribute::Type::Any);
         } else if (value == "?") {
-          attrs[id] = S57::Attribute(S57::Attribute::Type::None);
-        } else if (attributes[id].type == S57::Attribute::Type::Integer) {
-          attrs[id] = S57::Attribute(value.toInt());
-        } else if (attributes[id].type == S57::Attribute::Type::IntegerList) {
+          attrs[aid] = S57::Attribute(S57::Attribute::Type::None);
+        } else if (attributes[aid].type == S57::Attribute::Type::Integer) {
+          attrs[aid] = S57::Attribute(value.toInt());
+        } else if (attributes[aid].type == S57::Attribute::Type::IntegerList) {
           QVariantList values;
           QStringList parts = value.split(",");
           for (auto p: parts) values << QVariant::fromValue(p.toInt());
-          attrs[id] = S57::Attribute(values);
-        } else if (attributes[id].type == S57::Attribute::Type::Real) {
-          attrs[id] = S57::Attribute(value.toDouble());
-        } else if (attributes[id].type == S57::Attribute::Type::String) {
-          attrs[id] = S57::Attribute(value);
+          attrs[aid] = S57::Attribute(values);
+        } else if (attributes[aid].type == S57::Attribute::Type::Real) {
+          attrs[aid] = S57::Attribute(value.toDouble());
+        } else if (attributes[aid].type == S57::Attribute::Type::String) {
+          attrs[aid] = S57::Attribute(value);
         }
-      } else if (ignored.contains(reader.name())) {
+      } else if (ignored.contains(reader.name().toString())) {
         reader.skipCurrentElement();
       } else {
         qWarning() << "Don't know how to handle" << reader.name();
@@ -345,7 +345,7 @@ void Private::Presentation::readLookups(QXmlStreamReader& reader) {
       reader.skipCurrentElement();
       continue;
     }
-    auto lookup = new S52::Lookup(name, id, code, prio, cat, attrs, comment, instr);
+    auto lookup = new S52::Lookup(name, rcid, code, prio, cat, attrs, comment, instr);
 
     unsortedLookups[name][code].append(lookup);
   }

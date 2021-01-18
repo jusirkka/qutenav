@@ -2,7 +2,7 @@
 
 #include "drawable.h"
 #include <QOpenGLBuffer>
-#include <QVector4D>
+#include <glm/glm.hpp>
 
 class ChartManager;
 
@@ -27,14 +27,15 @@ private:
   QOpenGLBuffer m_coordBuffer;
   QOpenGLShaderProgram* m_program;
 
-  using DataVector = QVector<GLfloat>;
+  using DataVector = QVector<glm::vec4>;
 
   struct Rectangle {
-    Rectangle(const DataVector& d, int i, size_t off);
+    Rectangle(const GL::VertexVector& d, int i, size_t off);
+    Rectangle() = default;
     DataVector outline;
     QVector3D center;
     QColor color;
-    size_t offset;
+    int offset;
   };
 
   QVector<Rectangle> m_outlines;
@@ -44,6 +45,7 @@ private:
     int m_pv;
     int center;
     int angle;
+    int vertexOffset;
   } m_locations;
 
   ChartManager* m_manager;

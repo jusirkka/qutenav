@@ -173,9 +173,8 @@ TextData TextManager::textData(const QString& txt, TXT::Weight weight) const {
   const TextKey key(txt, weight);
   if (m_textMap.contains(key)) return m_textMap[key];
 
-  QMetaObject::invokeMethod(m_worker, [this, key] () {
-    m_worker->shape(key);
-  });
+  QMetaObject::invokeMethod(m_worker, "shape",
+                            Q_ARG(const TextKey&, key));
 
   return m_invalid;
 }

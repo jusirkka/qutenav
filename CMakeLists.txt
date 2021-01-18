@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.11 FATAL_ERROR)
 project(qopencpn LANGUAGES CXX C)
 
 set(DESKTOP ON)
@@ -11,7 +11,7 @@ endif()
 # dependencies
 #
 
-set(QT_MIN_VERSION "5.9.7")
+set(QT_MIN_VERSION "5.6.3")
 
 if (DESKTOP)
 
@@ -29,10 +29,21 @@ if (DESKTOP)
   list(APPEND CMAKE_MODULE_PATH ${ECM_MODULE_PATH} ${ECM_KDE_MODULE_DIR})
 
   find_package(KF5 ${KF5_MIN_VERSION} REQUIRED COMPONENTS
-    Config
     I18n
     XmlGui
   )
+
+  set(GDAL_MIN_VERSION "3.0.0")
+  find_package(GDAL ${GDAL_MIN_VERSION} REQUIRED)
+
+  set(FONTCONFIG_MIN_VERSION "2.13")
+  find_package(Fontconfig ${FONTCONFIG_MIN_VERSION} REQUIRED)
+
+  set(FONTCONFIG_MIN_VERSION "2.13")
+  find_package(Fontconfig ${FONTCONFIG_MIN_VERSION} REQUIRED)
+
+  set(GLM_VERSION "0.9.9")
+  find_package(glm ${GLM_VERSION} REQUIRED)
 
 else()
 
@@ -40,13 +51,17 @@ else()
     Sql
     Xml
     OpenGL
+    Quick
   )
 
+  include(FindPkgConfig)
+  # make it cooperate with qt-creator by setting EMU_PATH to appr. value
+  set (CMAKE_PREFIX_PATH "$ENV{EMU_PATH}")
+  pkg_search_module(SAILFISH REQUIRED sailfishapp)
+  pkg_search_module(GLM REQUIRED glm)
+  pkg_search_module(Fontconfig REQUIRED fontconfig)
+
 endif()
-
-
-set(GDAL_MIN_VERSION "3.0.0")
-find_package(GDAL ${GDAL_MIN_VERSION} REQUIRED)
 
 set(BISON_MIN_VERSION "3.1")
 find_package(BISON ${BISON_MIN_VERSION} REQUIRED)
@@ -54,17 +69,11 @@ find_package(BISON ${BISON_MIN_VERSION} REQUIRED)
 set(FLEX_MIN_VERSION "2.6.1")
 find_package(FLEX ${FLEX_MIN_VERSION} REQUIRED)
 
-set(FREETYPE_MIN_VERSION "2.10.4")
+set(FREETYPE_MIN_VERSION "2.10.0")
 find_package(Freetype ${FREETYPE_MIN_VERSION} REQUIRED)
 
-set(FONTCONFIG_MIN_VERSION "2.13")
-find_package(Fontconfig ${FONTCONFIG_MIN_VERSION} REQUIRED)
+find_package(harfbuzz REQUIRED)
 
-#set(HARFBUZZ_VERSION "2.6.7")
-find_package(harfbuzz ${HARFBUZZ_VERSION} REQUIRED)
-
-set(GLM_VERSION "0.9.9")
-find_package(glm ${GLM_VERSION} REQUIRED)
 
 #
 # targets
@@ -94,7 +103,6 @@ target_sources(qopencpn
     src/glcontext.cpp
     src/globe.cpp
     src/glthread.cpp
-    src/glwindow.cpp
     src/glyphmanager.cpp
     src/hpglparser.cpp
     src/linecalculator.cpp
@@ -110,6 +118,7 @@ target_sources(qopencpn
     src/s57chart.cpp
     src/s57chartoutline.cpp
     src/s57object.cpp
+    src/settings.cpp
     src/shader.cpp
     src/symboldata.cpp
     src/textmanager.cpp
@@ -124,6 +133,7 @@ target_sources(qopencpn
     ${CMAKE_BINARY_DIR}/s52hpgl_parser.cpp
     ${CMAKE_BINARY_DIR}/s52hpgl_scanner.cpp
 )
+
 
 FLEX_TARGET(WFScanner src/wavefront_scanner.l ${CMAKE_BINARY_DIR}/wavefront_scanner.cpp
   DEFINES_FILE ${CMAKE_BINARY_DIR}/wavefront_scanner.h)
@@ -143,7 +153,9 @@ FLEX_TARGET(S52HScanner src/s52hpgl_scanner.l ${CMAKE_BINARY_DIR}/s52hpgl_scanne
 BISON_TARGET(S52HParser src/s52hpgl_parser.y ${CMAKE_BINARY_DIR}/s52hpgl_parser.cpp
   DEFINES_FILE ${CMAKE_BINARY_DIR}/s52hpgl_parser.h)
 
+
 if (DESKTOP)
+
   target_include_directories(qopencpn
     PRIVATE
       ${CMAKE_CURRENT_SOURCE_DIR}/src
@@ -153,7 +165,9 @@ if (DESKTOP)
       ${CMAKE_BINARY_DIR}/desktop
       ${CMAKE_BINARY_DIR}
   )
+
 else()
+
   target_include_directories(qopencpn
     PRIVATE
       ${CMAKE_CURRENT_SOURCE_DIR}/src
@@ -162,6 +176,7 @@ else()
       ${CMAKE_CURRENT_SOURCE_DIR}/mobile/src
       ${CMAKE_BINARY_DIR}
   )
+
 endif()
 
 target_compile_features(qopencpn
@@ -173,17 +188,22 @@ target_compile_features(qopencpn
 # subdirectories
 #
 
-add_subdirectory(triglobe)
 add_subdirectory(geographiclib)
 add_subdirectory(triangulate)
 
 if (DESKTOP)
+
+  add_subdirectory(triglobe)
   add_subdirectory(desktop)
+
 else()
+
   add_subdirectory(mobile)
+
 endif()
 
 if (DESKTOP)
+
   target_link_libraries(qopencpn
     PRIVATE
       GeographicLib
@@ -197,24 +217,26 @@ if (DESKTOP)
       Fontconfig::Fontconfig
       harfbuzz::harfbuzz
   )
+
 else()
+
   target_link_libraries(qopencpn
     PRIVATE
+      ${SAILFISH_LDFLAGS}
       GeographicLib
       Triangulate
       Mobile
-      Qt5::Core
+      Qt5::Quick
       Qt5::OpenGL
+      Qt5::Sql
       Freetype::Freetype
-      Fontconfig::Fontconfig
+      fontconfig
       harfbuzz::harfbuzz
+      -lGLESv2
   )
+
 endif()
 
 
-install(TARGETS qopencpn)
-
-
-
-feature_summary(WHAT ALL INCLUDE_QUIET_PACKAGES FATAL_ON_MISSING_REQUIRED_PACKAGES)
+install(TARGETS qopencpn DESTINATION bin)
 

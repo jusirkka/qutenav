@@ -967,7 +967,7 @@ S57::PaintDataMap S52::CSLights05::drawDirection(const S57::Object *obj) const {
   S57::ElementData e;
   e.count = 4;
   e.offset = 0;
-  e.mode = GL_LINE_STRIP_ADJACENCY;
+  e.mode = GL_LINE_STRIP_ADJACENCY_EXT;
 
   S57::ElementDataVector elements;
   elements.append(e);
@@ -1014,7 +1014,7 @@ S57::PaintDataMap S52::CSLights05::drawSectors(const S57::Object *obj) const {
   S57::ElementData e;
   e.count = 5;
   e.offset = 0;
-  e.mode = GL_LINE_STRIP_ADJACENCY;
+  e.mode = GL_LINE_STRIP_ADJACENCY_EXT;
 
   S57::ElementDataVector elements;
   elements.append(e);
@@ -1060,7 +1060,7 @@ S57::PaintDataMap S52::CSLights05::drawArc(const S57::Object *obj,
   S57::ElementData e;
   e.count = n0 + 2;
   e.offset = 0;
-  e.mode = GL_LINE_STRIP_ADJACENCY;
+  e.mode = GL_LINE_STRIP_ADJACENCY_EXT;
 
   S57::ElementDataVector elements;
   elements.append(e);

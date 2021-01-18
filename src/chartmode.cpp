@@ -30,3 +30,13 @@ DetailMode* ChartMode::largerScaleMode() const {
   return outlines;
 }
 
+Camera* ChartMode::cloneCamera() const {
+  const float wmm = m_camera->heightMM();
+  const float hmm = wmm * m_camera->aspect();
+  GeoProjection* p = GeoProjection::CreateProjection(m_camera->geoprojection()->className());
+  Camera* cam = new OrthoCam(wmm, hmm, p);
+  cam->setScale(m_camera->scale());
+  cam->reset(m_camera->eye(), m_camera->northAngle());
+  return cam;
+}
+

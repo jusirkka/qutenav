@@ -10,12 +10,15 @@ DetailMode* DetailMode::RestoreState() {
   const float wmm = Conf::DetailMode::widthMM();
   const float hmm = Conf::DetailMode::heightMM();
 
+  qDebug() << wmm << hmm;
+
   auto p = GeoProjection::CreateProjection(Conf::DetailMode::projection());
   if (p == nullptr) {
     p = new SimpleMercator;
   }
 
   const QString name = Conf::DetailMode::name();
+  qDebug() << name;
   DetailMode* mode;
   if (name == "OutlineMode") {
     mode = new OutlineMode(wmm, hmm, p);

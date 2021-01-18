@@ -1,4 +1,4 @@
-add_library(GeographicLib OBJECT)
+add_library(GeographicLib STATIC)
 
 
 target_sources(GeographicLib

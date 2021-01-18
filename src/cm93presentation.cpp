@@ -132,7 +132,7 @@ static QString FindPath(const QString& s) {
   QString file;
 
   for (const QString& loc: QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation)) {
-    locs << QString("%1/qopencpn/charts/cm93").arg(loc);
+    locs << QString("%1/%2/charts/cm93").arg(loc).arg(qAppName());
   }
 
   for (const QString& loc: locs) {

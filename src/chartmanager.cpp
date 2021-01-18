@@ -30,7 +30,7 @@ ChartManager::ChartManager(QObject *parent)
   , m_workers({nullptr}) // temporary, to be replaced in createThreads
   , m_reader(nullptr)
   , m_filters {{"osenc", {"*.S57"}},
-               {"cm93", {"*.A", "*.B", "*.C", "*.D", "*.E", "*.F", "*.G", "*.Z"}}}
+               {"cm93", {"*.[A-G]", "*.Z"}}}
 {
   // check & fill chartsets table
   const QString sql = "select name, displayName from chartsets";
@@ -52,7 +52,7 @@ ChartManager::ChartManager(QObject *parent)
 void ChartManager::fillChartsetsTable() {
   QStringList locs;
   for (const QString& loc: QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation)) {
-    locs << QString("%1/qopencpn/charts").arg(loc);
+    locs << QString("%1/%2/charts").arg(loc).arg(qAppName());
   }
   const QMap<QString, QString> supported {{"cm93", "CM93 Charts"},
                                           {"osenc", "OSENC Charts"}};
@@ -86,7 +86,7 @@ void ChartManager::fillScalesAndChartsTables() {
 
   QStringList locs;
   for (const QString& loc: QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation)) {
-    locs << QString("%1/qopencpn/charts/%2").arg(loc).arg(m_reader->name());
+    locs << QString("%1/%2/charts/%3").arg(loc).arg(qAppName()).arg(m_reader->name());
   }
 
   QSqlQuery r1 = m_db.prepare("select id "
@@ -238,6 +238,15 @@ QStringList ChartManager::chartSets() const {
   return m_chartSets.keys();
 }
 
+QString ChartManager::chartSet() const {
+  for (auto it = m_chartSets.cbegin(); it != m_chartSets.cend(); ++it) {
+    if (m_reader == m_readers[it.value()]) {
+      return it.key();
+    }
+  }
+  return "None";
+}
+
 void ChartManager::setChartSet(const QString &name, const GeoProjection* vproj) {
 
   if (!m_chartSets.contains(name)) {
@@ -309,7 +318,7 @@ void ChartManager::createOutline(const WGS84Point& sw, const WGS84Point& ne) {
 }
 
 void ChartManager::createThreads(QOpenGLContext* ctx) {
-  const int numThreads = QThread::idealThreadCount() - 1;
+  const int numThreads = qMax(1, QThread::idealThreadCount() - 1);
   qDebug() << "number of chart updaters =" << numThreads;
   m_workers.clear(); // remove the temporary setting in ctor
   for (int i = 0; i < numThreads; ++i) {
@@ -481,13 +490,18 @@ void ChartManager::updateCharts(const Camera *cam, bool force) {
     const quint32 index = m_idleStack.pop();
     ChartUpdater* dest = m_workers[index];
     if (d.chart != nullptr) {
-      QMetaObject::invokeMethod(dest, [dest, d] () {
-        dest->updateChart(d.chart, d.scale, d.sw, d.ne);
-      });
+      QMetaObject::invokeMethod(dest, "updateChart",
+                                Q_ARG(S57Chart*, d.chart),
+                                Q_ARG(quint32, d.scale),
+                                Q_ARG(const WGS84Point&, d.sw),
+                                Q_ARG(const WGS84Point&, d.ne));
     } else {
-      QMetaObject::invokeMethod(dest, [dest, d] () {
-        dest->createChart(d.id, d.path, d.scale, d.sw, d.ne);
-      });
+      QMetaObject::invokeMethod(dest, "createChart",
+                                Q_ARG(quint32, d.id),
+                                Q_ARG(const QString&, d.path),
+                                Q_ARG(quint32, d.scale),
+                                Q_ARG(const WGS84Point&, d.sw),
+                                Q_ARG(const WGS84Point&, d.ne));
     }
   }
 
@@ -519,13 +533,18 @@ void ChartManager::manageThreads(S57Chart* chart) {
   if (!m_pendingStack.isEmpty()) {
     const ChartData d = m_pendingStack.pop();
     if (d.chart != nullptr) {
-      QMetaObject::invokeMethod(dest, [dest, d] () {
-        dest->updateChart(d.chart, d.scale, d.sw, d.ne);
-      });
+      QMetaObject::invokeMethod(dest, "updateChart",
+                                Q_ARG(S57Chart*, d.chart),
+                                Q_ARG(quint32, d.scale),
+                                Q_ARG(const WGS84Point&, d.sw),
+                                Q_ARG(const WGS84Point&, d.ne));
     } else {
-      QMetaObject::invokeMethod(dest, [dest, d] () {
-        dest->createChart(d.id, d.path, d.scale, d.sw, d.ne);
-      });
+      QMetaObject::invokeMethod(dest, "createChart",
+                                Q_ARG(quint32, d.id),
+                                Q_ARG(const QString&, d.path),
+                                Q_ARG(quint32, d.scale),
+                                Q_ARG(const WGS84Point&, d.sw),
+                                Q_ARG(const WGS84Point&, d.ne));
     }
   } else {
     m_idleStack.push(dest->id());

@@ -922,7 +922,7 @@ void CM93Reader::createLineElements(S57::ElementDataVector &elems,
 
   for (int i = 0; i < edges.size();) {
     S57::ElementData e;
-    e.mode = GL_LINE_STRIP_ADJACENCY;
+    e.mode = GL_LINE_STRIP_ADJACENCY_EXT;
     e.offset = indices.size() * sizeof(GLuint);
     indices.append(0); // dummy index to account adjacency
     e.count = 1;

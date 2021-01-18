@@ -4,8 +4,6 @@
 #include <QOpenGLBuffer>
 #include "types.h"
 
-class QOpenGLDebugLogger;
-
 namespace GL {
 
 class LineCalculator {
@@ -33,7 +31,6 @@ private:
   LineCalculator();
 
   QOpenGLShaderProgram* m_program;
-  QOpenGLDebugLogger* m_logger;
 
   QOpenGLBuffer m_outBuffer;
 

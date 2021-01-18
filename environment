@@ -1,4 +1,4 @@
 export QT_LOGGING_CONF="$PWD/qtlogging.ini"
-export QT_MESSAGE_PATTERN="[%{file}:%{line}] - %{message}"
-#export QT_MESSAGE_PATTERN="[%{category} %{if-debug}D%{endif}%{if-info}I%{endif}%{if-warning}W%{endif}%{if-critical}C%{endif}%{if-fatal}F%{endif}] %{message}"
+#export QT_MESSAGE_PATTERN="[%{file}:%{line}] - %{message}"
+export QT_MESSAGE_PATTERN="[%{category} %{if-debug}D%{endif}%{if-info}I%{endif}%{if-warning}W%{endif}%{if-critical}C%{endif}%{if-fatal}F%{endif}] %{message}"
 

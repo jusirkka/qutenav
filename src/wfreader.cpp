@@ -8,7 +8,6 @@
 #define YYLTYPE WAVEFRONT_LTYPE
 #endif
 #include "wavefront_scanner.h"
-#include "triangleoptimizer.h"
 
 #include <QDebug>
 #include <QFile>

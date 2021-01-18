@@ -87,7 +87,7 @@ void RasterSymbolManager::parseSymbols(QXmlStreamReader &reader,
 
     QString symbolName;
     ParseData d;
-    bool staggered;
+    bool staggered = false;
     bool skip = false;
 
     while (reader.readNextStartElement()) {

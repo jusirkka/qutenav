@@ -259,3 +259,11 @@ QRectF PersCam::boundingBox() const {
   }
   return r;
 }
+
+
+void PersCam::doUpdate(const Camera *other) {
+  auto cam = dynamic_cast<const PersCam*>(other);
+  if (!cam) return;
+  m_rot = cam->m_rot;
+  m_eye = cam->m_eye;
+}

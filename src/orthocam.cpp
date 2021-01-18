@@ -131,12 +131,16 @@ QRectF OrthoCam::boundingBox() const {
   const QVector<QPointF> ps {p1 + p2, p1 - p2, - p1 + p2, - p1 - p2};
   for (const QPointF& p: ps) {
     const QVector4D q = m_view * QVector4D(p);
-    ur.setX(qMax(ur.x(), static_cast<double>(q.x())));
-    ur.setY(qMax(ur.y(), static_cast<double>(q.y())));
-    ll.setX(qMin(ll.x(), static_cast<double>(q.x())));
-    ll.setY(qMin(ll.y(), static_cast<double>(q.y())));
+    ur.setX(qMax(ur.x(), static_cast<qreal>(q.x())));
+    ur.setY(qMax(ur.y(), static_cast<qreal>(q.y())));
+    ll.setX(qMin(ll.x(), static_cast<qreal>(q.x())));
+    ll.setY(qMin(ll.y(), static_cast<qreal>(q.y())));
   }
   return QRectF(ll, ur); // inverted y-axis
 }
 
-
+void OrthoCam::doUpdate(const Camera *other) {
+  auto cam = dynamic_cast<const OrthoCam*>(other);
+  if (!cam) return;
+  m_northAngle = cam->m_northAngle;
+}

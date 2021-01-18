@@ -1,7 +1,7 @@
 #pragma once
 
 #include <QVector>
-#include <GL/gl.h>
+#include <QOpenGLFunctions>
 
 #define WAVEFRONT_LTYPE WF::LocationType
 #define WAVEFRONT_STYPE WF::ValueType

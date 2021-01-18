@@ -33,6 +33,7 @@ public:
   virtual quint32 minScale() const = 0;
   // map from clip space to WGS84
   virtual WGS84Point location(const QPointF& cp) const = 0;
+  virtual QRectF boundingBox() const = 0;
 
   const QMatrix4x4& projection() const {return m_projection;}
   const QMatrix4x4& view() const {return m_view;}
@@ -43,11 +44,13 @@ public:
     return m_projection(1, 1) / m_projection(0, 0);
   }
 
-  virtual QRectF boundingBox() const = 0;
+  void update(const Camera* other);
 
   virtual ~Camera() {delete m_geoprojection;}
 
 protected:
+
+  virtual void doUpdate(const Camera* other) = 0;
 
   Camera(GeoProjection* proj, float hmm)
     : m_geoprojection(proj)
