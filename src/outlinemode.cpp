@@ -21,7 +21,6 @@ DetailMode* OutlineMode::largerScaleMode() const {
 }
 
 DetailMode* OutlineMode::smallerScaleMode() const {
-  return nullptr;
   const float hmm = m_camera->heightMM();
   const float wmm = hmm * m_camera->aspect();
   auto p = GeoProjection::CreateProjection(m_camera->geoprojection()->className());

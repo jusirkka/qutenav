@@ -185,7 +185,8 @@ Font::Font(const QString &family,
   FcPatternAddDouble(pattern, FC_SIZE, pixelSize);
   FcPatternAddInteger(pattern, FC_WEIGHT, iweight);
   FcPatternAddInteger(pattern, FC_SLANT, slant);
-  FcPatternAddString(pattern, FC_FAMILY, (const FcChar8*) family.toUtf8().constData());
+  FcPatternAddString(pattern, FC_FAMILY,
+                     reinterpret_cast<const FcChar8*>(family.toUtf8().constData()));
   FcConfigSubstitute(nullptr, pattern, FcMatchPattern);
   FcDefaultSubstitute(pattern);
   FcResult result;
@@ -213,7 +214,7 @@ Font::Font(const QString &family,
   FcPatternGetString(match, FC_FILE, 0, &fname);
   FcPatternGetInteger(match, FC_INDEX, 0, &index);
 
-  FT_New_Face(lib, (const char*) fname, index, &m_face);
+  FT_New_Face(lib, reinterpret_cast<const char*>(fname), index, &m_face);
 
   FcPatternDestroy(match);
 

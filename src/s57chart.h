@@ -102,3 +102,5 @@ private:
 
 };
 
+Q_DECLARE_METATYPE(S57Chart*)
+

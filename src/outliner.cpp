@@ -112,6 +112,7 @@ Outliner::Rectangle::Rectangle(const GL::VertexVector &d, int rectIndex, size_t 
   , offset(cnt)
 {
   const float eps = 1.e-6;
+  const float r = 1. + 1.e-4;
 
   int first = rectIndex * 8;
   glm::vec4 sum(0.);
@@ -126,9 +127,9 @@ Outliner::Rectangle::Rectangle(const GL::VertexVector &d, int rectIndex, size_t 
       const int n = qMin(100, qMax(1, static_cast<int>(std::abs(lat2 - lat1) * 90 / M_PI)));
       for (int j = 0; j < n; j++) {
         const float lat = lat1 + j * (lat2 - lat1) / n;
-        const glm::vec4 p(1.01 * cos(lng1) * cos(lat),
-                          1.01 * sin(lng1) * cos(lat),
-                          1.01 * sin(lat),
+        const glm::vec4 p(r * cos(lng1) * cos(lat),
+                          r * sin(lng1) * cos(lat),
+                          r * sin(lat),
                           1.);
         outline.append(p);
         if (j == 0) sum += p;
@@ -138,9 +139,9 @@ Outliner::Rectangle::Rectangle(const GL::VertexVector &d, int rectIndex, size_t 
       const int n = qMin(100, qMax(1, static_cast<int>(std::abs(lng2 - lng1) * 90 / M_PI)));
       for (int j = 0; j < n; j++) {
         const float lng = lng1 + j * (lng2 - lng1) / n;
-        const glm::vec4 p(1.01 * cos(lng) * cos(lat1),
-                          1.01 * sin(lng) * cos(lat1),
-                          1.01 * sin(lat1),
+        const glm::vec4 p(r * cos(lng) * cos(lat1),
+                          r * sin(lng) * cos(lat1),
+                          r * sin(lat1),
                           1.);
         outline.append(p);
         if (j == 0) sum += p;

@@ -6,6 +6,7 @@
 #include "mainwindow.h"
 #include "s52presentation.h"
 #include "textmanager.h"
+#include "s57chart.h"
 
 #include <QSurfaceFormat>
 #include <KAboutData>
@@ -55,6 +56,8 @@ int main(int argc, char *argv[])
 
   qRegisterMetaType<TextKey>();
   qRegisterMetaType<GL::GlyphData>();
+  qRegisterMetaType<WGS84Point>();
+  qRegisterMetaType<S57Chart*>();
 
   QSurfaceFormat format;
   format.setVersion(4, 6);

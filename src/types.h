@@ -135,6 +135,9 @@ private:
 
 };
 
+Q_DECLARE_METATYPE(WGS84Point)
+
+
 bool operator!= (const WGS84Point& a, const WGS84Point& b);
 bool operator== (const WGS84Point& a, const WGS84Point& b);
 

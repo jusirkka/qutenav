@@ -350,8 +350,8 @@ void ChartManager::updateCharts(const Camera *cam, bool force) {
   m_ref = cam->eye();
 
   const QRectF vp = cam->boundingBox();
-  if (!vp.isValid()) return;
   // qDebug() << "ChartManager::updateCharts" << vp;
+  if (!vp.isValid()) return;
 
   if (m_viewport.contains(vp) && cam->scale() == m_scale && !force) return;
 
@@ -372,27 +372,29 @@ void ChartManager::updateCharts(const Camera *cam, bool force) {
   }
   m_viewArea.moveCenter(QPointF(0., 0.));
 
-  // select scale
+  // sort available scales
   m_scale = cam->scale();
-  int bestScaleIndex = -1;
+  ScaleVector scaleCandidates;
   if (!m_scales.isEmpty() && m_scale * maxScaleRatio <= m_scales.first()) {
-    bestScaleIndex = 0;
+    scaleCandidates << m_scales.first();
   } else if (m_scale < maxScale) {
-    double dmin = 1.e15;
-    for (int i = 0; i < m_scales.size(); i++) {
-      if (m_scales[i] > maxScaleRatio * m_scale) continue;
-      if (m_scale > maxScaleRatio * m_scales[i]) continue;
-      const double d = std::abs(log(static_cast<double>(m_scale) / m_scales[i]));
-      if (d < dmin) {
-        dmin = d;
-        bestScaleIndex = i;
-      }
+    for (quint32 sc: m_scales) {
+      if (sc > maxScaleRatio * m_scale) continue;
+      if (m_scale > maxScaleRatio * sc) continue;
+      scaleCandidates << sc;
     }
   }
 
+  std::sort(scaleCandidates.begin(), scaleCandidates.end(), [this] (quint32 a, quint32 b) {
+    const double la = std::abs(log(static_cast<double>(a) / m_scale));
+    const double lb = std::abs(log(static_cast<double>(b) / m_scale));
+    return la < lb;
+  });
+
+  qDebug() << "scale candidates" << scaleCandidates;
+
   IDVector chartids;
-  while (bestScaleIndex >= 0 && bestScaleIndex < m_scales.size()) {
-    auto selectedScale = m_scales[bestScaleIndex];
+  for (quint32 selectedScale: scaleCandidates) {
     chartids.clear();
 
     // select charts
@@ -419,15 +421,14 @@ void ChartManager::updateCharts(const Camera *cam, bool force) {
       auto p2 = cam->geoprojection()->fromWGS84(ne);
       cover += QRect(p1.toPoint(), p2.toPoint());
     }
-    qDebug() << "chart cover is" << cover.contains(m_viewArea.toRect());
+    qDebug() << "chart cover is" << cover.contains(m_viewArea.toRect().center());
     qDebug() << "Number of charts" << chartids.size();
-    qDebug() << "Nominal scale" << S52::PrintScale(m_scales[bestScaleIndex]);
+    qDebug() << "Nominal scale" << S52::PrintScale(selectedScale);
     qDebug() << "True scale" << S52::PrintScale(m_scale);
     // select next scale if there's no coverage
-    if (cover.contains(m_viewArea.toRect())) {
+    if (cover.contains(m_viewArea.toRect().center())) {
       break;
     }
-    bestScaleIndex += 1;
   }
 
   IDVector newCharts;
