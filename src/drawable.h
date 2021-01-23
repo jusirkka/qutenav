@@ -3,7 +3,6 @@
 
 #include <QMatrix4x4>
 #include <QOpenGLShaderProgram>
-#include <QOpenGLWidget>
 
 
 #include "camera.h"

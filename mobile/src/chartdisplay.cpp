@@ -166,6 +166,7 @@ QSGNode* ChartDisplay::updatePaintNode(QSGNode* prev, UpdatePaintNodeData*) {
     node->setFiltering(QSGTexture::Linear);
     node->setTextureCoordinatesTransform(QSGSimpleTextureNode::MirrorVertically);
   }
+
   node->setRect(boundingRect());
   return node;
 }

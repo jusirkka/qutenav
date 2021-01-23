@@ -15,6 +15,7 @@ target_sources(Mobile
     src/conf_detailmode.cpp
     src/conf_mainwindow.cpp
     src/conf_marinerparams.cpp
+    src/linecalculator.cpp
     src/main.cpp
 )
 
@@ -36,7 +37,7 @@ target_link_libraries(Mobile
   PRIVATE
     ${SAILFISH_LDFLAGS}
     Qt5::Quick
-    Qt5::OpenGL
+    Qt5::Gui
     Freetype::Freetype
 )
 

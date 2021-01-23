@@ -3,6 +3,7 @@
 #include "drawable.h"
 #include <QOpenGLBuffer>
 #include <glm/glm.hpp>
+#include <QColor>
 
 class ChartManager;
 

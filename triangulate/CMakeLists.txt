@@ -24,6 +24,7 @@ target_include_directories(Triangulate
 target_link_libraries(Triangulate
   PRIVATE
     Qt5::Core
+    Qt5::Gui
     Qt5::OpenGL
 )
 

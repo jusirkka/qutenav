@@ -50,8 +50,8 @@ else()
   find_package(Qt5 ${QT_MIN_VERSION} REQUIRED COMPONENTS
     Sql
     Xml
-    OpenGL
     Quick
+    OpenGL
   )
 
   include(FindPkgConfig)
@@ -105,7 +105,6 @@ target_sources(qopencpn
     src/glthread.cpp
     src/glyphmanager.cpp
     src/hpglparser.cpp
-    src/linecalculator.cpp
     src/orthocam.cpp
     src/osencreader.cpp
     src/outlinemode.cpp
@@ -227,7 +226,7 @@ else()
       Triangulate
       Mobile
       Qt5::Quick
-      Qt5::OpenGL
+      Qt5::Gui
       Qt5::Sql
       Freetype::Freetype
       fontconfig

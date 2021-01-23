@@ -2,6 +2,7 @@
 
 #include "drawable.h"
 #include <QOpenGLBuffer>
+#include <QColor>
 
 
 class Globe: public Drawable

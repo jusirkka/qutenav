@@ -8,6 +8,7 @@
 #include "chartdisplay.h"
 #include "s52presentation.h"
 #include "textmanager.h"
+#include "s57chart.h"
 
 
 int main(int argc, char *argv[]) {
@@ -24,6 +25,8 @@ int main(int argc, char *argv[]) {
 
   qRegisterMetaType<TextKey>();
   qRegisterMetaType<GL::GlyphData>();
+  qRegisterMetaType<S57Chart*>();
+  qRegisterMetaType<WGS84Point>();
 
   S52::InitPresentation();
 

@@ -1,7 +1,5 @@
 #include "glyphmanager.h"
 #include <fontconfig/fontconfig.h>
-#include <QApplication>
-#include <QDesktopWidget>
 #include <QDebug>
 #include "tiny_sdf.h"
 #include "harfbuzz/hb-ft.h"
@@ -220,8 +218,8 @@ Font::Font(const QString &family,
 
   FT_Select_Charmap(m_face, FT_ENCODING_UNICODE);
   FT_Set_Char_Size(m_face, 0, pixelSize * 64,
-                   qApp->desktop()->physicalDpiX(),
-                   qApp->desktop()->physicalDpiY());
+                   dots_per_inch_x,
+                   dots_per_inch_y);
 
   m_font = hb_ft_font_create(m_face, nullptr);
 }

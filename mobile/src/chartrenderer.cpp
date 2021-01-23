@@ -95,7 +95,7 @@ void ChartRenderer::paint() {
   m_fbo->bindDefault();
 
   // Generally useful for when mixing with raw OpenGL.
-  // m_window->resetOpenGLState();
+  m_window->resetOpenGLState();
 }
 
 GLuint ChartRenderer::textureId() const {

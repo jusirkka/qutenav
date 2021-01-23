@@ -83,6 +83,9 @@ void ChartPainter::paintGL(const Camera *cam) {
   funcs->glDisable(GL_STENCIL_TEST);
   funcs->glDisable(GL_CULL_FACE);
   funcs->glDisable(GL_BLEND);
+  funcs->glViewport(0, 0,
+                    cam->heightMM() * cam->aspect() * dots_per_mm_x,
+                    cam->heightMM() * dots_per_mm_y);
 
   m_textureShader->initializePaint();
 

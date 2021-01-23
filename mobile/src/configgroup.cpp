@@ -36,7 +36,10 @@ void Conf::ConfigGroup::save() {
 
   QVariantMap::const_iterator it = m_values.cbegin();
   for (; it != m_values.end(); ++it) {
-    if (it.value() == m_defaults[it.key()]) continue;
+    if (it.value() == m_defaults[it.key()]) {
+      settings.remove(it.key());
+      continue;
+    }
     settings.setValue(it.key(), it.value());
   }
 

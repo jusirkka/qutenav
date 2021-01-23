@@ -11,6 +11,7 @@ target_sources(Desktop
     shaders.qrc
     files.qrc
     src/glwindow.cpp
+    src/linecalculator.cpp
     src/main.cpp
     src/mainwindow.cpp
 )
