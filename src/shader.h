@@ -7,8 +7,8 @@ class WGS84Point;
 
 namespace S57 {
 class TriangleData;
-class SolidLineData;
-class DashedLineData;
+class LineElemData;
+class LineArrayData;
 class TextElemData;
 class RasterHelper;
 class VectorHelper;
@@ -66,37 +66,17 @@ private:
 
 };
 
-class SolidLineShader: public Shader {
 
-  friend class S57::SolidLineData;
+class LineElemShader: public Shader {
+
+  friend class S57::LineElemData;
 
 public:
-  static SolidLineShader* instance();
+  static LineElemShader* instance();
   void setGlobals(const Camera* cam, const QMatrix4x4& mt) override;
 
 private:
-  SolidLineShader();
-
-  struct _locations {
-    int m_p;
-    int m_model;
-    int windowScale;
-    int lineWidth;
-    int base_color;
-  } m_locations;
-};
-
-
-class DashedLineShader: public Shader {
-
-  friend class S57::DashedLineData;
-
-public:
-  static DashedLineShader* instance();
-  void setGlobals(const Camera* cam, const QMatrix4x4& mt) override;
-
-private:
-  DashedLineShader();
+  LineElemShader();
 
   static constexpr uint linePatlen = 18;
   static constexpr uint linefactor = 1;
@@ -108,8 +88,34 @@ private:
     int lineWidth;
     int base_color;
     int pattern;
-    int patlen;
-    int factor;
+    int vertexOffset;
+    int indexOffset;
+  } m_locations;
+};
+
+
+class LineArrayShader: public Shader {
+
+  friend class S57::LineArrayData;
+
+public:
+  static LineArrayShader* instance();
+  void setGlobals(const Camera* cam, const QMatrix4x4& mt) override;
+
+private:
+  LineArrayShader();
+
+  static constexpr uint linePatlen = 18;
+  static constexpr uint linefactor = 1;
+
+  struct _locations {
+    int m_p;
+    int m_model;
+    int windowScale;
+    int lineWidth;
+    int base_color;
+    int pattern;
+    int vertexOffset;
   } m_locations;
 };
 

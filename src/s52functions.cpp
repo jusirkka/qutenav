@@ -97,18 +97,12 @@ S57::PaintDataMap S52::LineSimple::execute(const QVector<QVariant>& vals,
                                            const S57::Object* obj) {
   auto line = dynamic_cast<const S57::Geometry::Line*>(obj->geometry());
 
-  S57::PaintData* p;
-
   auto pattern = as_enum<S52::LineType>(vals[0].toUInt(), S52::AllLineTypes);
   auto width = vals[1].toUInt();
   auto color = S52::GetColor(vals[2].toUInt());
 
-  if (pattern == S52::LineType::Solid) {
-    p = new S57::SolidLineElemData(line->lineElements(), 0, color, width);
-  } else {
-    p = new S57::DashedLineElemData(line->lineElements(), 0, color, width,
-                                    as_numeric(pattern));
-  }
+  auto p = new S57::LineElemData(line->lineElements(), 0, color, width,
+                                 as_numeric(pattern));
 
   return S57::PaintDataMap{{p->type(), p}};
 }
@@ -985,9 +979,9 @@ S57::PaintDataMap S52::CSLights05::drawDirection(const S57::Object *obj) const {
 
 
   auto color = S52::GetColor(m_chblk);
-  auto p = new S57::DashedLineLocalData(vertices, elements, color, 1,
-                                        as_numeric(S52::LineType::Dashed),
-                                        false, QPointF(x0, y0));
+  auto p = new S57::LineLocalData(vertices, elements, color, 1,
+                                  as_numeric(S52::LineType::Dashed),
+                                  false, QPointF(x0, y0));
 
   return S57::PaintDataMap{{p->type(), p}};
 }
@@ -1034,10 +1028,10 @@ S57::PaintDataMap S52::CSLights05::drawSectors(const S57::Object *obj) const {
   vertices << 2 * x2 - x0 << 2 * y2 - y0;
 
   auto color = S52::GetColor(m_chblk);
-  auto p = new S57::DashedLineLocalData(vertices, elements, color, 1,
-                                        as_numeric(S52::LineType::Dashed),
-                                        !chartUnits,
-                                        QPointF(x0, y0));
+  auto p = new S57::LineLocalData(vertices, elements, color, 1,
+                                  as_numeric(S52::LineType::Dashed),
+                                  !chartUnits,
+                                  QPointF(x0, y0));
 
   return S57::PaintDataMap{{p->type(), p}};
 }
@@ -1086,15 +1080,8 @@ S57::PaintDataMap S52::CSLights05::drawArc(const S57::Object *obj,
 
 
   auto color = S52::GetColor(c);
-  S57::PaintData* p;
-  if (t == S52::LineType::Solid) {
-    p = new S57::SolidLineLocalData(vertices, elements, color, lw,
-                                    true, p0);
-  } else {
-    p = new S57::DashedLineLocalData(vertices, elements, color, lw,
-                                     as_numeric(S52::LineType::Dashed),
-                                     true, p0);
-  }
+  auto p = new S57::LineLocalData(vertices, elements, color, lw,
+                                  as_numeric(t), true, p0);
 
   return S57::PaintDataMap{{p->type(), p}};
 }

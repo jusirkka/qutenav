@@ -12,8 +12,8 @@ class QOpenGLFramebufferObject;
 
 namespace GL {
 class AreaShader;
-class SolidLineShader;
-class DashedLineShader;
+class LineElemShader;
+class LineArrayShader;
 class TextShader;
 class RasterSymbolShader;
 class VectorSymbolShader;
@@ -38,8 +38,8 @@ private:
 
   ChartManager* m_manager;
   GL::AreaShader* m_areaShader;
-  GL::SolidLineShader* m_solidShader;
-  GL::DashedLineShader* m_dashedShader;
+  GL::LineElemShader* m_lineElemShader;
+  GL::LineArrayShader* m_lineArrayShader;
   GL::TextShader* m_textShader;
   GL::RasterSymbolShader* m_rasterShader;
   GL::VectorSymbolShader* m_vectorShader;

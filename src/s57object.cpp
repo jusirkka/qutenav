@@ -5,6 +5,7 @@
 #include "s52presentation.h"
 #include "platform.h"
 #include "linecalculator.h"
+#include <QOpenGLExtraFunctions>
 
 
 bool S57::Attribute::matches(const Attribute &constraint) const {
@@ -194,126 +195,106 @@ S57::TriangleElemData::TriangleElemData(const ElementDataVector& elem, GLsizei o
   : TriangleData(Type::TriangleElements, elem, offset, c)
 {}
 
-S57::LineData::LineData(Type t, const ElementDataVector& elems, GLfloat lw)
+S57::LineData::LineData(Type t,
+                        const ElementDataVector& elems,
+                        GLsizei offset,
+                        const QColor& c,
+                        GLfloat lw,
+                        uint patt)
   : PaintData(t)
   , m_elements(elems)
   , m_lineWidth(lw)
   , m_conv(1. / S52::LineWidthDots(1))
-{}
-
-void S57::SolidLineData::setUniforms() const {
-  auto prog = GL::SolidLineShader::instance();
-  prog->prog()->setUniformValue(prog->m_locations.base_color, m_color);
-  prog->prog()->setUniformValue(prog->m_locations.lineWidth, m_conv * m_lineWidth);
-}
-
-void S57::SolidLineData::setVertexOffset() const {
-  auto prog = GL::SolidLineShader::instance()->prog();
-  prog->setAttributeBuffer(0, GL_FLOAT, m_vertexOffset, 2, 0);
-}
-
-
-S57::SolidLineData::SolidLineData(Type t,
-                                  const ElementDataVector& elems,
-                                  GLsizei offset,
-                                  const QColor& c,
-                                  GLfloat width)
-  : LineData(t, elems, width)
-  , m_vertexOffset(offset)
-  , m_color(c)
-{}
-
-
-void S57::DashedLineData::setUniforms() const {
-  auto prog = GL::DashedLineShader::instance();
-  prog->prog()->setUniformValue(prog->m_locations.base_color, m_color);
-  prog->prog()->setUniformValue(prog->m_locations.lineWidth, m_conv * m_lineWidth);
-  prog->prog()->setUniformValue(prog->m_locations.pattern, m_pattern);
-}
-
-void S57::DashedLineData::setVertexOffset() const {
-  auto prog = GL::DashedLineShader::instance()->prog();
-  prog->setAttributeBuffer(0, GL_FLOAT, m_vertexOffset, 2, 0);
-}
-
-
-S57::DashedLineData::DashedLineData(Type t, const
-                                    ElementDataVector& elems,
-                                    GLsizei offset,
-                                    const QColor& c,
-                                    GLfloat width,
-                                    uint patt)
-  : LineData(t, elems, width)
   , m_vertexOffset(offset)
   , m_color(c)
   , m_pattern(patt)
 {}
 
 
-S57::SolidLineElemData::SolidLineElemData(const ElementDataVector& elem, GLsizei offset, const QColor& c, GLfloat width)
-  : SolidLineData(Type::SolidLineElements, elem, offset, c, width)
+void S57::LineData::setVertexOffset() const {
+  // noop
+}
+
+
+S57::LineElemData::LineElemData(const ElementDataVector& elem,
+                                GLsizei offset,
+                                const QColor& c,
+                                GLfloat width,
+                                uint pattern)
+  : LineData(Type::LineElements, elem, offset, c, width, pattern)
 {}
 
-S57::SolidLineArrayData::SolidLineArrayData(const ElementDataVector& elem, GLsizei offset, const QColor& c, GLfloat width)
-  : SolidLineData(Type::SolidLineArrays, elem, offset, c, width)
+void S57::LineElemData::setUniforms() const {
+  auto prog = GL::LineElemShader::instance();
+  prog->prog()->setUniformValue(prog->m_locations.base_color, m_color);
+  prog->prog()->setUniformValue(prog->m_locations.lineWidth, m_conv * m_lineWidth);
+  auto f = QOpenGLContext::currentContext()->extraFunctions();
+  f->glUniform1ui(prog->m_locations.pattern, m_pattern);
+}
+
+
+void S57::LineElemData::setStorageOffsets(uintptr_t offset) const {
+  auto prog = GL::LineElemShader::instance();
+  auto f = QOpenGLContext::currentContext()->extraFunctions();
+  f->glUniform1ui(prog->m_locations.vertexOffset,
+                  static_cast<GLuint>(m_vertexOffset / 2 / sizeof(GLfloat)));
+  f->glUniform1ui(prog->m_locations.indexOffset,
+                  static_cast<GLuint>(offset / sizeof(GLuint)));
+}
+
+S57::LineArrayData::LineArrayData(const ElementDataVector& elem,
+                                  GLsizei offset,
+                                  const QColor& c,
+                                  GLfloat width,
+                                  uint pattern)
+  : LineData(Type::LineArrays, elem, offset, c, width, pattern)
 {}
 
-S57::DashedLineElemData::DashedLineElemData(const ElementDataVector& elem, GLsizei offset, const QColor& c, GLfloat width, uint pattern)
-  : DashedLineData(Type::DashedLineElements, elem, offset, c, width, pattern)
-{}
+void S57::LineArrayData::setUniforms() const {
+  auto prog = GL::LineArrayShader::instance();
+  prog->prog()->setUniformValue(prog->m_locations.base_color, m_color);
+  prog->prog()->setUniformValue(prog->m_locations.lineWidth, m_conv * m_lineWidth);
 
-S57::DashedLineArrayData::DashedLineArrayData(const ElementDataVector& elem, GLsizei offset, const QColor& c, GLfloat width, uint pattern)
-  : DashedLineData(Type::DashedLineArrays, elem, offset, c, width, pattern)
-{}
+  auto f = QOpenGLContext::currentContext()->extraFunctions();
+  f->glUniform1ui(prog->m_locations.pattern, m_pattern);
+}
 
-S57::SolidLineLocalData::SolidLineLocalData(const GL::VertexVector& vertices,
-                                            const ElementDataVector& elem,
-                                            const QColor& c,
-                                            GLfloat width,
-                                            bool dispU,
-                                            const QPointF& p)
-  : SolidLineData(Type::SolidLineLocal, elem, 0, c, width)
+void S57::LineArrayData::setStorageOffsets(uintptr_t offset) const {
+  auto prog = GL::LineArrayShader::instance();
+  auto f = QOpenGLContext::currentContext()->extraFunctions();
+  f->glUniform1ui(prog->m_locations.vertexOffset,
+                  static_cast<GLuint>(m_vertexOffset / 2 / sizeof(GLfloat) + offset));
+}
+
+
+S57::LineLocalData::LineLocalData(const GL::VertexVector& vertices,
+                                  const ElementDataVector& elem,
+                                  const QColor& c,
+                                  GLfloat width,
+                                  uint pattern,
+                                  bool dispU,
+                                  const QPointF& p)
+  : LineData(Type::LineLocal, elem, 0, c, width, pattern)
   , m_vertices(vertices)
   , m_displayUnits(dispU)
   , m_pivot(p)
 {}
 
-S57::PaintData* S57::SolidLineLocalData::globalize(GLsizei offset) const {
-  return new SolidLineArrayData(m_elements, offset, m_color, m_lineWidth);
+void S57::LineLocalData::setUniforms() const {
+  // noop
 }
 
-GL::VertexVector S57::SolidLineLocalData::vertices(qreal scale) {
-  if (m_displayUnits) {
-    GL::VertexVector vs;
-    scale *= 2 / dots_per_mm_y;
-    for (int i = 0; i < m_vertices.size() / 2; i++) {
-      const QPointF p1(m_vertices[2 * i], m_vertices[2 * i + 1]);
-      const QPointF p = m_pivot + (p1 - m_pivot) / scale;
-      vs << p.x() << p.y();
-    }
-    return vs;
-  }
-  return m_vertices;
+void S57::LineLocalData::setStorageOffsets(uintptr_t) const {
+  // noop
 }
 
-S57::DashedLineLocalData::DashedLineLocalData(const GL::VertexVector& vertices,
-                                              const ElementDataVector& elem,
-                                              const QColor& c,
-                                              GLfloat width,
-                                              uint pattern,
-                                              bool dispU,
-                                              const QPointF& p)
-  : DashedLineData(Type::DashedLineLocal, elem, 0, c, width, pattern)
-  , m_vertices(vertices)
-  , m_displayUnits(dispU)
-  , m_pivot(p)
-{}
 
-S57::PaintData* S57::DashedLineLocalData::globalize(GLsizei offset) const {
-  return new DashedLineArrayData(m_elements, offset, m_color, m_lineWidth, m_pattern);
+
+S57::PaintData* S57::LineLocalData::globalize(GLsizei offset) const {
+  return new LineArrayData(m_elements, offset, m_color, m_lineWidth, m_pattern);
 }
 
-GL::VertexVector S57::DashedLineLocalData::vertices(qreal scale) {
+GL::VertexVector S57::LineLocalData::vertices(qreal scale) {
   if (m_displayUnits) {
     GL::VertexVector vs;
     scale *= 2 / dots_per_mm_y;

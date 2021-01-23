@@ -10,12 +10,12 @@ uniform mat4 m_model;
 uniform vec2 offset;
 
 
-noperspective out vec2 tex;
+out vec2 tex;
 
 void main(void) {
   tex = texin;
-  const float a = 1. / windowScale;
-  const vec2 v =  a * (vertex + offset) + pivot;
+  float a = 1. / windowScale;
+  vec2 v =  a * (vertex + offset) + pivot;
   gl_Position = m_p * m_model * vec4(v, depth, 1.);
 }
 

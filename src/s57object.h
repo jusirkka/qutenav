@@ -204,12 +204,9 @@ public:
     Priority, // For a CS procedure to change priority
     TriangleElements,
     TriangleArrays,
-    SolidLineElements,
-    DashedLineElements,
-    SolidLineArrays,
-    DashedLineArrays,
-    SolidLineLocal,
-    DashedLineLocal,
+    LineElements,
+    LineArrays,
+    LineLocal,
     TextElements,
     RasterSymbols,
     RasterPatterns,
@@ -294,89 +291,53 @@ public:
 
 class LineData: public PaintData {
 public:
+
   const ElementDataVector& elements() const {return m_elements;}
+  void setVertexOffset() const override;
+
+  virtual void setStorageOffsets(uintptr_t offset) const = 0;
 
 protected:
 
-  LineData(Type t, const ElementDataVector& elems, GLfloat lw);
+  LineData(Type t,
+           const ElementDataVector& elems,
+           GLsizei offset,
+           const QColor& c,
+           GLfloat lw,
+           uint patt);
 
   ElementDataVector m_elements;
   GLfloat m_lineWidth;
   const GLfloat m_conv;
-};
-
-class SolidLineData: public LineData {
-public:
-  void setUniforms() const override;
-  void setVertexOffset() const override;
-
-
-protected:
-
-  SolidLineData(Type t,
-                const ElementDataVector& elems,
-                GLsizei offset,
-                const QColor& c,
-                GLfloat width);
-
-  GLsizei m_vertexOffset;
-  QColor m_color;
-
-};
-
-class DashedLineData: public LineData {
-public:
-  void setUniforms() const override;
-  void setVertexOffset() const override;
-
-
-protected:
-
-  DashedLineData(Type t, const
-                 ElementDataVector& elems,
-                 GLsizei offset,
-                 const QColor& c,
-                 GLfloat width,
-                 uint patt);
-
   GLsizei m_vertexOffset;
   QColor m_color;
   GLuint m_pattern;
 };
 
-class SolidLineElemData: public SolidLineData {
+
+
+class LineElemData: public LineData {
 public:
-  SolidLineElemData(const ElementDataVector& elem,
-                    GLsizei offset,
-                    const QColor& c,
-                    GLfloat width);
+  LineElemData(const ElementDataVector& elem,
+               GLsizei offset,
+               const QColor& c,
+               GLfloat lw,
+               uint pattern);
+
+  void setUniforms() const override;
+  void setStorageOffsets(uintptr_t offset) const override;
 };
 
-
-class SolidLineArrayData: public SolidLineData {
+class LineArrayData: public LineData {
 public:
-  SolidLineArrayData(const ElementDataVector& elem,
-                     GLsizei offset,
-                     const QColor& c,
-                     GLfloat width);
-};
+  LineArrayData(const ElementDataVector& elem,
+                GLsizei offset,
+                const QColor& c,
+                GLfloat lw,
+                uint pattern);
 
-class DashedLineElemData: public DashedLineData {
-public:
-  DashedLineElemData(const ElementDataVector& elem,
-                     GLsizei offset,
-                     const QColor& c,
-                     GLfloat width,
-                     uint pattern);
-};
-
-class DashedLineArrayData: public DashedLineData {
-public:
-  DashedLineArrayData(const ElementDataVector& elem,
-                      GLsizei offset,
-                      const QColor& c,
-                      GLfloat width,
-                      uint pattern);
+  void setUniforms() const override;
+  void setStorageOffsets(uintptr_t offset) const override;
 };
 
 class Globalizer {
@@ -386,36 +347,22 @@ public:
   virtual ~Globalizer() = default;
 };
 
-class SolidLineLocalData: public SolidLineData, public Globalizer {
+
+class LineLocalData: public LineData, public Globalizer {
 public:
-  SolidLineLocalData(const GL::VertexVector& vertices,
-                     const ElementDataVector& elem,
-                     const QColor& c,
-                     GLfloat width,
-                     bool displayUnits,
-                     const QPointF& pivot);
+  LineLocalData(const GL::VertexVector& vertices,
+                const ElementDataVector& elem,
+                const QColor& c,
+                GLfloat width,
+                uint pattern,
+                bool displayUnits,
+                const QPointF& pivot);
 
   PaintData* globalize(GLsizei offset) const override;
   GL::VertexVector vertices(qreal scale) override;
 
-private:
-  GL::VertexVector m_vertices;
-  bool m_displayUnits;
-  QPointF m_pivot;
-};
-
-class DashedLineLocalData: public DashedLineData, public Globalizer {
-public:
-  DashedLineLocalData(const GL::VertexVector& vertices,
-                      const ElementDataVector& elem,
-                      const QColor& c,
-                      GLfloat width,
-                      uint pattern,
-                      bool displayUnits,
-                      const QPointF& pivot);
-
-  PaintData* globalize(GLsizei offset) const override;
-  GL::VertexVector vertices(qreal scale) override;
+  void setUniforms() const override;
+  void setStorageOffsets(uintptr_t offset) const override;
 
 private:
   GL::VertexVector m_vertices;
@@ -441,7 +388,6 @@ public:
   const ElementData& elements() const {return m_elements;}
 
 protected:
-
 
   ElementData m_elements;
   GLsizei m_vertexOffset;

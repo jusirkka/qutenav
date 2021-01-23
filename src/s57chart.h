@@ -25,9 +25,9 @@ public:
   void updateModelTransform(const Camera* cam);
 
   void drawAreas(const Camera* cam, int prio);
-  void drawSolidLines(const Camera* cam, int prio);
+  void drawLineArrays(const Camera* cam, int prio);
+  void drawLineElems(const Camera* cam, int prio);
   void drawText(const Camera* cam, int prio);
-  void drawDashedLines(const Camera* cam, int prio);
   void drawRasterSymbols(const Camera* cam, int prio);
   void drawVectorSymbols(const Camera* cam, int prio);
   void drawVectorPatterns(const Camera* cam);

@@ -356,8 +356,7 @@ void S57Chart::updatePaintData(const WGS84Point &sw, const WGS84Point &ne, quint
   for (int prio = 0; prio < S52::Lookup::PriorityCount; prio++) {
     auto pd = updates[prio];
     // handle the local arrays
-    parseLocals(S57::PaintData::Type::SolidLineLocal, pd, prio, handleLine);
-    parseLocals(S57::PaintData::Type::DashedLineLocal, pd, prio, handleLine);
+    parseLocals(S57::PaintData::Type::LineLocal, pd, prio, handleLine);
 
     // merge symbols & patterns
     parseLocals(S57::PaintData::Type::RasterSymbols, pd, prio, mergeRasterSymbols);
@@ -501,87 +500,56 @@ void S57Chart::drawAreas(const Camera* cam, int prio) {
 
 }
 
-void S57Chart::drawSolidLines(const Camera* cam, int prio) {
 
-  m_coordBuffer.bind();
-  m_indexBuffer.bind();
+void S57Chart::drawLineArrays(const Camera* cam, int prio) {
 
-  auto prog = GL::SolidLineShader::instance();
-
-  prog->setGlobals(cam, m_modelMatrix);
-  prog->setDepth(prio);
-
-
-  auto f = QOpenGLContext::currentContext()->extraFunctions();
-
-  const S57::PaintIterator end = m_paintData[prio].constEnd();
-
-  S57::PaintIterator arr = m_paintData[prio].constFind(S57::PaintData::Type::SolidLineArrays);
-
-  while (arr != end && arr.key() == S57::PaintData::Type::SolidLineArrays) {
-    auto d = dynamic_cast<const S57::SolidLineArrayData*>(arr.value());
-    d->setUniforms();
-    d->setVertexOffset();
-    for (const S57::ElementData& e: d->elements()) {
-      f->glDrawArrays(e.mode, e.offset, e.count);
-    }
-    ++arr;
-  }
-
-  S57::PaintIterator elem = m_paintData[prio].constFind(S57::PaintData::Type::SolidLineElements);
-
-  while (elem != end && elem.key() == S57::PaintData::Type::SolidLineElements) {
-    auto d = dynamic_cast<const S57::SolidLineElemData*>(elem.value());
-    d->setUniforms();
-    d->setVertexOffset();
-    for (const S57::ElementData& e: d->elements()) {
-      f->glDrawElements(e.mode, e.count, GL_UNSIGNED_INT,
-                        reinterpret_cast<const void*>(e.offset));
-    }
-    ++elem;
-  }
-}
-
-void S57Chart::drawDashedLines(const Camera* cam, int prio) {
-
-  m_coordBuffer.bind();
-  m_indexBuffer.bind();
-
-  auto prog = GL::DashedLineShader::instance();
+  auto prog = GL::LineArrayShader::instance();
   prog->setGlobals(cam, m_modelMatrix);
   prog->setDepth(prio);
 
   auto f = QOpenGLContext::currentContext()->extraFunctions();
 
+  f->glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_coordBuffer.bufferId());
 
   const S57::PaintIterator end = m_paintData[prio].constEnd();
 
-  S57::PaintIterator arr = m_paintData[prio].constFind(S57::PaintData::Type::DashedLineArrays);
+  S57::PaintIterator arr = m_paintData[prio].constFind(S57::PaintData::Type::LineArrays);
 
-  while (arr != end && arr.key() == S57::PaintData::Type::DashedLineArrays) {
-    auto d = dynamic_cast<const S57::DashedLineArrayData*>(arr.value());
+  while (arr != end && arr.key() == S57::PaintData::Type::LineArrays) {
+    auto d = dynamic_cast<const S57::LineArrayData*>(arr.value());
     d->setUniforms();
-    d->setVertexOffset();
     for (const S57::ElementData& e: d->elements()) {
-      f->glDrawArrays(e.mode, e.offset, e.count);
+      d->setStorageOffsets(e.offset);
+      f->glDrawArrays(GL_TRIANGLE_STRIP, 0, 2 * (e.count - 2));
     }
     ++arr;
   }
+}
 
-  S57::PaintIterator elem = m_paintData[prio].constFind(S57::PaintData::Type::DashedLineElements);
+void S57Chart::drawLineElems(const Camera* cam, int prio) {
 
-  while (elem != end && elem.key() == S57::PaintData::Type::DashedLineElements) {
-    auto d = dynamic_cast<const S57::DashedLineElemData*>(elem.value());
+  auto prog = GL::LineElemShader::instance();
+  prog->setGlobals(cam, m_modelMatrix);
+  prog->setDepth(prio);
+
+  auto f = QOpenGLContext::currentContext()->extraFunctions();
+
+  f->glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_coordBuffer.bufferId());
+  f->glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_indexBuffer.bufferId());
+
+  const S57::PaintIterator end = m_paintData[prio].constEnd();
+  S57::PaintIterator elem = m_paintData[prio].constFind(S57::PaintData::Type::LineElements);
+
+  while (elem != end && elem.key() == S57::PaintData::Type::LineElements) {
+    auto d = dynamic_cast<const S57::LineElemData*>(elem.value());
     d->setUniforms();
-    d->setVertexOffset();
     for (const S57::ElementData& e: d->elements()) {
-      f->glDrawElements(e.mode, e.count, GL_UNSIGNED_INT,
-                        reinterpret_cast<const void*>(e.offset));
+      d->setStorageOffsets(e.offset);
+      f->glDrawArrays(GL_TRIANGLE_STRIP, 0, 2 * (e.count - 2));
     }
     ++elem;
   }
 }
-
 
 void S57Chart::drawText(const Camera* cam, int prio) {
 

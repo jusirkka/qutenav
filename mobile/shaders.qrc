@@ -6,16 +6,15 @@
         <file>shaders/outliner.vert</file>
         <file>shaders/chartpainter.vert</file>
         <file>shaders/chartpainter.frag</file>
-        <file>shaders/chartpainter-lines.geom</file>
-        <file>shaders/chartpainter-dashed.geom</file>
-        <file>shaders/chartpainter-dashed.frag</file>
         <file>shaders/chartpainter-text.vert</file>
         <file>shaders/chartpainter-text.frag</file>
-        <file>shaders/chartpainter-lines.vert</file>
         <file>shaders/chartpainter-rastersymbol.vert</file>
         <file>shaders/chartpainter-texture.frag</file>
         <file>shaders/chartpainter-texture.vert</file>
         <file>shaders/chartpainter-vectorsymbol.vert</file>
         <file>shaders/linecalculator.comp</file>
+        <file>shaders/chartpainter-lineelems.vert</file>
+        <file>shaders/chartpainter-linearrays.vert</file>
+        <file>shaders/chartpainter-lines.frag</file>
     </qresource>
 </RCC>

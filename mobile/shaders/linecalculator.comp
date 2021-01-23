@@ -28,13 +28,13 @@ layout(std140, binding = 2) buffer VertexBufferOut {
   Transform data[];
 } vertexBufferOut;
 
-const uint LEFT = 1;
-const uint RIGHT = 2;
-const uint BOTTOM = 4;
-const uint TOP = 8;
+const uint LEFT = 1U;
+const uint RIGHT = 2U;
+const uint BOTTOM = 4U;
+const uint TOP = 8U;
 
 uint locationCode(const in vec2 v) {
-  uint code = 0;
+  uint code = 0U;
   if (v.y > viewArea.w) {
     code |= TOP;
   } else if (v.y < viewArea.y) {
@@ -51,10 +51,10 @@ uint locationCode(const in vec2 v) {
 
 // Cohen-Sutherland test
 bool outsideViewArea(const in vec2 v1, const in vec2 v2) {
-  const uint c1 = locationCode(v1);
-  const uint c2 = locationCode(v2);
-  if (c1 == 0 && c2 == 0) return false;
-  return (c1 & c2) != 0;
+  uint c1 = locationCode(v1);
+  uint c2 = locationCode(v2);
+  if (c1 == 0U && c2 == 0U) return false;
+  return (c1 & c2) != 0U;
 }
 
 layout (local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
@@ -62,29 +62,29 @@ layout (local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 void main() {
   // Read current global position for this thread
   uint index = gl_GlobalInvocationID.x;
-  if (index >= numOutIndices) return;
-  const uint v1 = vertexOffset + indexBufferIn.data[indexOffset + index];
-  const uint v2 = vertexOffset + indexBufferIn.data[indexOffset + index + 1];
-  const vec2 p1 = vertexBufferIn.data[v1];
-  const vec2 p2 = vertexBufferIn.data[v2];
+  if (index >= uint(numOutIndices)) return;
+  int v1 = vertexOffset + indexBufferIn.data[uint(indexOffset) + index];
+  int v2 = vertexOffset + indexBufferIn.data[uint(indexOffset) + index + 1U];
+  vec2 p1 = vertexBufferIn.data[v1];
+  vec2 p2 = vertexBufferIn.data[v2];
 
   if (outsideViewArea(p1, p2)) {
-    vertexBufferOut.data[index].num = 0;
+    vertexBufferOut.data[index].num = 0.;
     return;
   }
 
-  const float r = length(p2 - p1);
+  float r = length(p2 - p1);
   if (r < 1.e-10) {
-    vertexBufferOut.data[index].num = 0;
+    vertexBufferOut.data[index].num = 0.;
     return;
   }
-  const vec2 u = (p2 - p1) / r;
+  vec2 u = (p2 - p1) / r;
   float n = floor(r / period);
-  const float r0 = period * (n + .5);
-  if (r > r0 || n == 0) {
-    n = n + 1;
+  float r0 = period * (n + .5);
+  if (r > r0 || n == 0.) {
+    n = n + 1.;
   }
-  const float s = r / (period * n);
+  float s = r / (period * n);
 
   vertexBufferOut.data[index].num = n;
   vertexBufferOut.data[index].ca = s * u.x;

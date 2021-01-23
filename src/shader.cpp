@@ -58,12 +58,13 @@ GL::AreaShader::AreaShader()
   m_locations.m_model = m_program->uniformLocation("m_model");
 }
 
-GL::SolidLineShader* GL::SolidLineShader::instance() {
-  static auto shader = new GL::SolidLineShader;
+GL::LineElemShader* GL::LineElemShader::instance() {
+  static auto shader = new GL::LineElemShader;
   return shader;
 }
 
-void GL::SolidLineShader::setGlobals(const Camera *cam, const QMatrix4x4 &mt) {
+
+void GL::LineElemShader::setGlobals(const Camera *cam, const QMatrix4x4 &mt) {
   m_program->setUniformValue(m_locations.m_p, cam->projection());
   m_program->setUniformValue(m_locations.m_model, mt);
   const float s = .5 * cam->heightMM() * dots_per_mm_y * cam->projection()(1, 1);
@@ -71,39 +72,9 @@ void GL::SolidLineShader::setGlobals(const Camera *cam, const QMatrix4x4 &mt) {
 }
 
 
-GL::SolidLineShader::SolidLineShader()
-  : Shader({{QOpenGLShader::Vertex, ":/shaders/chartpainter-lines.vert"},
-            {QOpenGLShader::Geometry, ":/shaders/chartpainter-lines.geom"},
-            {QOpenGLShader::Fragment, ":/shaders/chartpainter.frag"}}, .02)
-{
-  m_locations.m_p = m_program->uniformLocation("m_p");
-  m_locations.m_model = m_program->uniformLocation("m_model");
-  m_locations.windowScale = m_program->uniformLocation("windowScale");
-  m_locations.lineWidth = m_program->uniformLocation("lineWidth");
-  m_locations.base_color = m_program->uniformLocation("base_color");
-}
-
-
-GL::DashedLineShader* GL::DashedLineShader::instance() {
-  static auto shader = new GL::DashedLineShader;
-  return shader;
-}
-
-
-void GL::DashedLineShader::setGlobals(const Camera *cam, const QMatrix4x4 &mt) {
-  m_program->setUniformValue(m_locations.m_p, cam->projection());
-  m_program->setUniformValue(m_locations.m_model, mt);
-  const float s = .5 * cam->heightMM() * dots_per_mm_y * cam->projection()(1, 1);
-  m_program->setUniformValue(m_locations.windowScale, s);
-  m_program->setUniformValue(m_locations.patlen, linePatlen);
-  m_program->setUniformValue(m_locations.factor, linefactor);
-}
-
-
-GL::DashedLineShader::DashedLineShader()
-  : Shader({{QOpenGLShader::Vertex, ":/shaders/chartpainter-lines.vert"},
-            {QOpenGLShader::Geometry, ":/shaders/chartpainter-dashed.geom"},
-            {QOpenGLShader::Fragment, ":/shaders/chartpainter-dashed.frag"}}, .02)
+GL::LineElemShader::LineElemShader()
+  : Shader({{QOpenGLShader::Vertex, ":/shaders/chartpainter-lineelems.vert"},
+            {QOpenGLShader::Fragment, ":/shaders/chartpainter-lines.frag"}}, .02)
 {
   m_locations.m_p = m_program->uniformLocation("m_p");
   m_locations.m_model = m_program->uniformLocation("m_model");
@@ -111,10 +82,36 @@ GL::DashedLineShader::DashedLineShader()
   m_locations.lineWidth = m_program->uniformLocation("lineWidth");
   m_locations.base_color = m_program->uniformLocation("base_color");
   m_locations.pattern = m_program->uniformLocation("pattern");
-  m_locations.patlen = m_program->uniformLocation("patlen");
-  m_locations.factor = m_program->uniformLocation("factor");
+  m_locations.vertexOffset = m_program->uniformLocation("vertexOffset");
+  m_locations.indexOffset = m_program->uniformLocation("indexOffset");
 }
 
+GL::LineArrayShader* GL::LineArrayShader::instance() {
+  static auto shader = new GL::LineArrayShader;
+  return shader;
+}
+
+
+void GL::LineArrayShader::setGlobals(const Camera *cam, const QMatrix4x4 &mt) {
+  m_program->setUniformValue(m_locations.m_p, cam->projection());
+  m_program->setUniformValue(m_locations.m_model, mt);
+  const float s = .5 * cam->heightMM() * dots_per_mm_y * cam->projection()(1, 1);
+  m_program->setUniformValue(m_locations.windowScale, s);
+}
+
+
+GL::LineArrayShader::LineArrayShader()
+  : Shader({{QOpenGLShader::Vertex, ":/shaders/chartpainter-linearrays.vert"},
+            {QOpenGLShader::Fragment, ":/shaders/chartpainter-lines.frag"}}, .02)
+{
+  m_locations.m_p = m_program->uniformLocation("m_p");
+  m_locations.m_model = m_program->uniformLocation("m_model");
+  m_locations.windowScale = m_program->uniformLocation("windowScale");
+  m_locations.lineWidth = m_program->uniformLocation("lineWidth");
+  m_locations.base_color = m_program->uniformLocation("base_color");
+  m_locations.pattern = m_program->uniformLocation("pattern");
+  m_locations.vertexOffset = m_program->uniformLocation("vertexOffset");
+}
 
 GL::TextShader* GL::TextShader::instance() {
   static auto shader = new GL::TextShader;
