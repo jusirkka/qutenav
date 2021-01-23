@@ -13,7 +13,7 @@ uniform vec2 pivot;
 uniform vec2 offset;
 
 
-noperspective out vec2 tex;
+out vec2 tex;
 
 void main(void) {
   tex = vec2(texin.x / w_atlas, texin.y / h_atlas);

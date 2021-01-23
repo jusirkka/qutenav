@@ -10,7 +10,7 @@ uniform mat4 m_model;
 uniform mat4 m_p;
 uniform float windowScale;
 
-noperspective out float texCoord;
+out float texCoord;
 
 layout(packed, binding = 0) buffer VertexBufferIn {
   vec2 data[];

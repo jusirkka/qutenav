@@ -10,7 +10,7 @@ uniform mat4 m_model;
 uniform vec2 offset;
 
 
-noperspective out vec2 tex;
+out vec2 tex;
 
 void main(void) {
   tex = texin;

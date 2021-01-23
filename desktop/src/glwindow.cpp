@@ -67,8 +67,13 @@ void GLWindow::initializeGL() {
     }
 
     GL::Context::instance()->initializeContext(context(), this);
-
+    // From textureinthread qt example:
+    // "Some GL implementations requres that the currently bound context is
+    // made non-current before we set up sharing, so we doneCurrent here
+    // and makeCurrent down below while setting up our own context."
+    doneCurrent();
     ChartManager::instance()->createThreads(context());
+    makeCurrent();
     TextManager::instance()->createBuffers();
     RasterSymbolManager::instance()->createSymbols();
     VectorSymbolManager::instance()->createSymbols();

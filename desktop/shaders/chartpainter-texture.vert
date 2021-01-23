@@ -9,7 +9,7 @@ uniform vec2 scale_vertex;
 uniform vec2 scale_tex;
 
 
-noperspective out vec2 tex;
+out vec2 tex;
 
 void main(void) {
   tex = tr_tex + scale_tex * texin;

@@ -3,6 +3,7 @@
 #include <QThread>
 
 class QOpenGLContext;
+class QOffscreenSurface;
 
 namespace GL {
 
@@ -12,15 +13,15 @@ class Thread: public QThread {
 
 public:
 
-  Thread(QOpenGLContext* ctx)
-    : QThread()
-    , m_mainContext(ctx) {}
+  Thread(QOpenGLContext* ctx);
+  ~Thread();
 
 private:
 
   void run() override;
 
-  QOpenGLContext* m_mainContext;
+  QOpenGLContext* m_context;
+  QOffscreenSurface* m_surface;
 
 };
 
