@@ -19,27 +19,26 @@ ChartDatabase::ChartDatabase()
   m_Query = QSqlQuery(m_DB);
 
   m_Query.exec("create table if not exists chartsets ("
-             "id integer primary key autoincrement, "
-             "name text not null, "
-             "displayName text not null)");
+               "id integer primary key autoincrement, "
+               "name text not null)");
   checkError();
 
   m_Query.exec("create table if not exists scales ("
-             "id integer primary key autoincrement, "
-             "chartset_id integer not null, "
-             "scale int not null)");
+               "id integer primary key autoincrement, "
+               "chartset_id integer not null, "
+               "scale int not null)");
   checkError();
 
   m_Query.exec("create table if not exists charts ("
-             "id integer primary key autoincrement, "
-             "scale_id integer not null, "
-             "swx real not null, "
-             "swy real not null, "
-             "nex real not null, "
-             "ney real not null, "
-             "published int not null, " // Julian day
-             "modified int not null, "  // Julian day
-             "path text not null unique)");
+               "id integer primary key autoincrement, "
+               "scale_id integer not null, "
+               "swx real not null, "
+               "swy real not null, "
+               "nex real not null, "
+               "ney real not null, "
+               "published int not null, " // Julian day
+               "modified int not null, "  // Julian day
+               "path text not null unique)");
   checkError();
 
   m_Query.exec("attach database ':memory:' as m");

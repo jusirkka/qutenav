@@ -146,7 +146,7 @@ static QString FindPath(const QString& s) {
   }
 
   if (file.isEmpty()) {
-    qFatal("%s not found in any of the standard locations", s.toUtf8().constData());
+    throw ChartFileError(QString("%1 not found in any of the standard locations").arg(s));
   }
 
   return dataDir.absoluteFilePath(file);

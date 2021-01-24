@@ -12,12 +12,13 @@ class Camera;
 class S57Chart;
 class S57ChartOutline;
 class QOpenGLContext;
+class ChartFileReader;
+class ChartFileReaderFactory;
 
 namespace GL {
 class Thread;
 }
 
-class ChartFileReader;
 
 class ChartUpdater: public QObject {
    Q_OBJECT
@@ -130,6 +131,8 @@ private:
   void fillChartsetsTable();
 
   void createOutline(const WGS84Point& sw, const WGS84Point& ne);
+  void loadPlugins();
+
 
   using IDVector = QVector<quint32>;
   using IDMap = QMap<quint32, quint32>;
@@ -161,14 +164,12 @@ private:
   ChartDataStack m_pendingStack;
 
   using ChartsetNameMap = QMap<QString, int>;
-  using FilterMap = QMap<QString, QStringList>;
-
-  ChartFileReader* createReader(const QString& name) const;
+  using FactoryMap = QMap<QString, ChartFileReaderFactory*>;
 
   ChartsetNameMap m_chartSets;
   ChartReaderVector m_readers;
   ChartFileReader* m_reader;
-  const FilterMap m_filters;
+  FactoryMap m_factories;
 
   bool m_hadCharts;
 };

@@ -1,9 +1,8 @@
 #pragma once
+
 #include "chartfilereader.h"
 
-class OsencReader: public  ChartFileReader {
-
-  friend class ChartFileReader;
+class OsencReader: public ChartFileReader {
 
 public:
 
@@ -15,18 +14,36 @@ public:
                  const QString& path,
                  const GeoProjection* proj) const override;
 
-  const QString& name() const override;
 
   const GeoProjection* geoprojection() const override;
 
-  OsencReader();
+  OsencReader(const QString& name);
 
 private:
 
-  QString m_name;
   GeoProjection* m_proj;
 
 };
+
+class OsencReaderFactory: public QObject, public ChartFileReaderFactory {
+
+  Q_OBJECT
+  Q_PLUGIN_METADATA(IID "net.kvanttiapina.qopencpn.ChartFileReaderFactory/1.0")
+  Q_INTERFACES(ChartFileReaderFactory)
+
+public:
+
+  QString name() const override;
+  QString displayName() const override;
+  QStringList filters() const override;
+
+protected:
+
+  void initialize() const override;
+  ChartFileReader* create() const override;
+
+};
+
 
 
 //  OSENC V2 record definitions

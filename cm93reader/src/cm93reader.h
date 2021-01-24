@@ -1,9 +1,7 @@
 #pragma once
 #include "chartfilereader.h"
 
-class CM93Reader: public  ChartFileReader {
-
-  friend class ChartFileReader;
+class CM93Reader: public ChartFileReader {
 
 public:
 
@@ -15,11 +13,9 @@ public:
                  const QString& path,
                  const GeoProjection* proj) const override;
 
-  const QString& name() const override;
-
   const GeoProjection* geoprojection() const override;
 
-  CM93Reader();
+  CM93Reader(const QString& name);
 
 private:
 
@@ -93,10 +89,29 @@ private:
   const QMap<QString, quint32> m_subst;
   const QMap<QString, QPair<quint32, S57::Attribute>> m_subst_attrs;
 
-  QString m_name;
   GeoProjection* m_proj;
 
 };
+
+class CM93ReaderFactory: public QObject, public ChartFileReaderFactory {
+
+  Q_OBJECT
+  Q_PLUGIN_METADATA(IID "net.kvanttiapina.qopencpn.ChartFileReaderFactory/1.0")
+  Q_INTERFACES(ChartFileReaderFactory)
+
+public:
+
+  QString name() const override;
+  QString displayName() const override;
+  QStringList filters() const override;
+
+protected:
+
+  void initialize() const override;
+  ChartFileReader* create() const override;
+
+};
+
 
 
 

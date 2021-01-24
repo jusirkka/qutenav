@@ -95,8 +95,6 @@ target_sources(qopencpn
     src/chartmanager.cpp
     src/chartmode.cpp
     src/chartpainter.cpp
-    src/cm93reader.cpp
-    src/cm93presentation.cpp
     src/detailmode.cpp
     src/drawable.cpp
     src/geoprojection.cpp
@@ -106,7 +104,6 @@ target_sources(qopencpn
     src/glyphmanager.cpp
     src/hpglparser.cpp
     src/orthocam.cpp
-    src/osencreader.cpp
     src/outlinemode.cpp
     src/outliner.cpp
     src/perscam.cpp
@@ -132,7 +129,6 @@ target_sources(qopencpn
     ${CMAKE_BINARY_DIR}/s52hpgl_parser.cpp
     ${CMAKE_BINARY_DIR}/s52hpgl_scanner.cpp
 )
-
 
 FLEX_TARGET(WFScanner src/wavefront_scanner.l ${CMAKE_BINARY_DIR}/wavefront_scanner.cpp
   DEFINES_FILE ${CMAKE_BINARY_DIR}/wavefront_scanner.h)
@@ -189,6 +185,8 @@ target_compile_features(qopencpn
 
 add_subdirectory(geographiclib)
 add_subdirectory(triangulate)
+add_subdirectory(osencreader)
+add_subdirectory(cm93reader)
 
 if (DESKTOP)
 
@@ -208,6 +206,8 @@ if (DESKTOP)
       GeographicLib
       Triangulate
       Desktop
+      Osencreader
+      Cm93reader
       Qt5::Core
       Qt5::OpenGL
       KF5::I18n
@@ -225,6 +225,8 @@ else()
       GeographicLib
       Triangulate
       Mobile
+      Osencreader
+      Cm93reader
       Qt5::Quick
       Qt5::Gui
       Qt5::Sql

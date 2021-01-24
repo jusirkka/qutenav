@@ -9,17 +9,13 @@
 #include <QScopedPointer>
 #include <QRegularExpression>
 
-
-const QString& CM93Reader::name() const {
-  return m_name;
-}
-
 const GeoProjection* CM93Reader::geoprojection() const {
   return m_proj;
 }
 
-CM93Reader::CM93Reader()
-  : m_m_sor(CM93::FindIndex("_m_sor"))
+CM93Reader::CM93Reader(const QString &name)
+  : ChartFileReader(name)
+  , m_m_sor(CM93::FindIndex("_m_sor"))
   , m_wgsox(CM93::FindIndex("_wgsox"))
   , m_wgsoy(CM93::FindIndex("_wgsoy"))
   , m_recdat(CM93::FindIndex("RECDAT"))
@@ -100,7 +96,6 @@ CM93Reader::CM93Reader()
                   {"SLTPAN", {S52::FindIndex("CATLND"), QVariantList{QVariant::fromValue(15)}}},
                   {"TELPHC", {S52::FindIndex("CATCON"), 1}},
                   {"WIRLNE", {S52::FindIndex("CATDAM"), 1}}}
-  , m_name("cm93")
   , m_proj(GeoProjection::CreateProjection("CM93Mercator"))
 {}
 
@@ -1035,6 +1030,25 @@ QPointF CM93Reader::computeAreaCenter(const S57::ElementDataVector &elems,
 
 
 
+QString CM93ReaderFactory::name() const {
+  return "cm93";
+}
+
+QString CM93ReaderFactory::displayName() const {
+  return "CM93 Charts";
+}
+
+QStringList CM93ReaderFactory::filters() const {
+  return QStringList {"*.[A-G]", "*.Z"};
+}
+
+void CM93ReaderFactory::initialize() const {
+  CM93::InitPresentation();
+}
+
+ChartFileReader* CM93ReaderFactory::create() const {
+  return new CM93Reader(name());
+}
 
 
 

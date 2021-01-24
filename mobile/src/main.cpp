@@ -3,6 +3,7 @@
 #include <QtQml>
 #include <QDebug>
 #include <QQuickView>
+#include <QDebug>
 
 #include <sailfishapp.h>
 #include "chartdisplay.h"
@@ -10,6 +11,8 @@
 #include "textmanager.h"
 #include "s57chart.h"
 
+Q_IMPORT_PLUGIN(OsencReaderFactory)
+Q_IMPORT_PLUGIN(CM93ReaderFactory)
 
 int main(int argc, char *argv[]) {
 

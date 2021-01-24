@@ -7,16 +7,12 @@
 
 
 
-const QString& OsencReader::name() const {
-  return m_name;
-}
-
 const GeoProjection* OsencReader::geoprojection() const {
   return m_proj;
 }
 
-OsencReader::OsencReader()
-  : m_name("osenc")
+OsencReader::OsencReader(const QString& name)
+  : ChartFileReader(name)
   , m_proj(GeoProjection::CreateProjection("SimpleMercator"))
 {}
 
@@ -640,5 +636,24 @@ static QPointF computeAreaCenter(const S57::ElementDataVector &elems,
   return s / area;
 }
 
+QString OsencReaderFactory::name() const {
+  return "osenc";
+}
+
+QString OsencReaderFactory::displayName() const {
+  return "OSENC Charts";
+}
+
+QStringList OsencReaderFactory::filters() const {
+  return QStringList {"*.S57"};
+}
+
+void OsencReaderFactory::initialize() const {
+  // noop
+}
+
+ChartFileReader* OsencReaderFactory::create() const {
+  return new OsencReader(name());
+}
 
 

@@ -2,6 +2,7 @@
 #include <QCommandLineParser>
 #include <QStringList>
 #include <QDebug>
+#include <QtPlugin>
 
 #include "mainwindow.h"
 #include "s52presentation.h"
@@ -12,6 +13,9 @@
 #include <KAboutData>
 #include <KLocalizedString>
 
+
+Q_IMPORT_PLUGIN(OsencReaderFactory)
+Q_IMPORT_PLUGIN(CM93ReaderFactory)
 
 int main(int argc, char *argv[])
 {

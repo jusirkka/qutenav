@@ -1,6 +1,16 @@
 #include "chartfilereader.h"
 
 
+ChartFileReader* ChartFileReaderFactory::loadReader() const {
+  try {
+    initialize();
+    return create();
+  } catch (ChartFileError& e) {
+    qWarning() << e.msg();
+    return nullptr;
+  }
+}
+
 QRectF ChartFileReader::computeBBox(S57::ElementDataVector &elems,
                                     const GL::VertexVector& vertices,
                                     const GL::IndexVector& indices) {

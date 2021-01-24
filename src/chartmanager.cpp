@@ -11,12 +11,12 @@
 #include <QOpenGLContext>
 #include "glthread.h"
 #include "glcontext.h"
-#include "osencreader.h"
-#include "cm93reader.h"
-#include "cm93presentation.h"
+#include "chartfilereader.h"
 #include <QDate>
 #include <QScopedPointer>
 #include <QRegion>
+#include <QPluginLoader>
+#include <QLibraryInfo>
 
 
 ChartManager* ChartManager::instance() {
@@ -29,11 +29,12 @@ ChartManager::ChartManager(QObject *parent)
   , m_db()
   , m_workers({nullptr}) // temporary, to be replaced in createThreads
   , m_reader(nullptr)
-  , m_filters {{"osenc", {"*.S57"}},
-               {"cm93", {"*.[A-G]", "*.Z"}}}
 {
+
+  loadPlugins();
+
   // check & fill chartsets table
-  const QString sql = "select name, displayName from chartsets";
+  const QString sql = "select name from chartsets";
   QSqlQuery r = m_db.exec(sql);
   if (!r.first()) {
     // empty table, fill it
@@ -43,9 +44,35 @@ ChartManager::ChartManager(QObject *parent)
   r.seek(-1);
   while (r.next()) {
     const QString name = r.value(0).toString();
-    const QString displayName = r.value(1).toString();
-    m_chartSets[displayName] = m_readers.size();
-    m_readers.append(createReader(name));
+    if (!m_factories.contains(name)) continue;
+    auto reader = m_factories[name]->loadReader();
+    if (reader == nullptr) continue;
+    m_chartSets[m_factories[name]->displayName()] = m_readers.size();
+    m_readers.append(reader);
+  }
+}
+
+void ChartManager::loadPlugins() {
+  const auto& staticFactories = QPluginLoader::staticInstances();
+  for (auto plugin: staticFactories) {
+    auto factory = qobject_cast<ChartFileReaderFactory*>(plugin);
+    if (!factory) continue;
+    qDebug() << "Loaded reader plugin" << factory->name();
+    m_factories[factory->name()] = factory;
+  }
+
+  QString base = QLibraryInfo::location(QLibraryInfo::PluginsPath);
+  QDir pluginsDir(QString("%1/%2").arg(base).arg(qAppName()));
+  qDebug() << "Searching reader plugins in" << pluginsDir;
+
+  const QStringList plugins = pluginsDir.entryList(QStringList(),
+                                                   QDir::Files | QDir::Readable);
+  for (auto& plugin: plugins) {
+    QPluginLoader loader(pluginsDir.absoluteFilePath(plugin));
+    auto factory = qobject_cast<ChartFileReaderFactory*>(loader.instance());
+    if (!factory) continue;
+    qDebug() << "Loaded reader plugin" << factory->name();
+    m_factories[factory->name()] = factory;
   }
 }
 
@@ -54,29 +81,24 @@ void ChartManager::fillChartsetsTable() {
   for (const QString& loc: QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation)) {
     locs << QString("%1/%2/charts").arg(loc).arg(qAppName());
   }
-  const QMap<QString, QString> supported {{"cm93", "CM93 Charts"},
-                                          {"osenc", "OSENC Charts"}};
 
-  QMap<QString, QString> present;
+  QStringList present;
 
   for (const QString& loc: locs) {
     QDir dataDir(loc);
     const QStringList dirs = dataDir.entryList(QStringList(),
                                                QDir::Dirs | QDir::Readable);
     for (auto dir: dirs) {
-      if (supported.contains(dir)) {
-        present[dir] = supported[dir];
+      if (m_factories.contains(dir)) {
+        present << dir;
       }
     }
   }
 
-  for (auto it = present.cbegin(); it != present.cend(); ++it) {
+  for (auto name: present) {
     // insert
-    QSqlQuery r = m_db.prepare("insert into main.chartsets "
-                               "(name, displayName) "
-                               "values(?, ?)");
-    r.bindValue(0, QVariant::fromValue(it.key()));
-    r.bindValue(1, QVariant::fromValue(it.value()));
+    QSqlQuery r = m_db.prepare("insert into main.chartsets (name) values(?)");
+    r.bindValue(0, name);
     m_db.exec(r);
   }
 }
@@ -127,7 +149,9 @@ void ChartManager::fillScalesAndChartsTables() {
   }
 
   for (const QString& loc: locs) {
-    QDirIterator it(loc, m_filters[m_reader->name()], QDir::Files | QDir::Readable,
+    QDirIterator it(loc,
+                    m_factories[m_reader->name()]->filters(),
+                    QDir::Files | QDir::Readable,
                     QDirIterator::FollowSymlinks | QDirIterator::Subdirectories);
     while (it.hasNext()) {
       try {
@@ -219,18 +243,6 @@ void ChartManager::fillScalesAndChartsTables() {
   if (!m_db.commit()) {
     qWarning() << "DB commit failed!";
   }
-}
-
-
-ChartFileReader* ChartManager::createReader(const QString &name) const {
-  if (name == "osenc") {
-    return new OsencReader();
-  }
-  if (name == "cm93") {
-    CM93::InitPresentation();
-    return new CM93Reader();
-  }
-  return nullptr;
 }
 
 
