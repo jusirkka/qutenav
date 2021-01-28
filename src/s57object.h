@@ -20,14 +20,7 @@ namespace S57 {
 class Attribute {
 public:
 
-  enum class Type: uint8_t {
-    Integer,
-    IntegerList,
-    Real,
-    None, // OgrAttr_t has RealLst here
-    String,
-    Any // Not in OgrAttr_t
-  };
+  using Type = AttributeType;
 
   Attribute(int v)
     : m_type(Type::Integer)

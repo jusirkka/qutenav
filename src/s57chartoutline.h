@@ -10,20 +10,25 @@ class S57ChartOutlinePrivate;
 class S57ChartOutline {
 public:
 
+  using Region = QVector<WGS84PointVector>;
+
   S57ChartOutline(S57ChartOutlinePrivate *d);
   S57ChartOutline();
+
   S57ChartOutline(const WGS84Point& sw,
-                  const WGS84Point& se,
                   const WGS84Point& ne,
-                  const WGS84Point& nw,
+                  const Region& cov,
+                  const Region& nocov,
+                  const WGS84Point& ref,
+                  const QSizeF& scaling,
                   quint32 scale,
                   const QDate& pub,
                   const QDate& mod);
 
   S57ChartOutline(const WGS84Point& sw,
                   const WGS84Point& ne,
-                  const WGS84Point& ref,
-                  const QSizeF& scaling,
+                  const Region& cov,
+                  const Region& nocov,
                   quint32 scale,
                   const QDate& pub,
                   const QDate& mod);
@@ -41,6 +46,9 @@ public:
   quint32 scale() const;
   const QDate& published() const;
   const QDate& modified() const;
+
+  const Region& coverage() const;
+  const Region& nocoverage() const;
 
 private:
 

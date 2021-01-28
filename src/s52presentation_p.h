@@ -75,42 +75,7 @@ public:
 
   using IdentifierHash = QHash<QString, quint32>;
 
-  struct ClassDescription {
-    ClassDescription(const QString& c, const QString& d, bool meta)
-      : code(c)
-      , description(d)
-      , isMeta(meta) {}
-
-    ClassDescription() = default;
-
-    QString code;
-    QString description;
-    bool isMeta;
-  };
-
-  using ClassHash = QHash<quint32, ClassDescription>;
-
   IdentifierHash names;
-  ClassHash classes;
-
-  using DescriptionMap = QMap<quint32, QString>;
-
-  struct AttributeDescription {
-    AttributeDescription(const QString& c, S57::Attribute::Type t, const QString& d)
-      : code(c)
-      , type(t)
-      , description(d) {}
-
-    AttributeDescription() = default;
-
-    QString code;
-    S57::Attribute::Type type;
-    QString description;
-    DescriptionMap enumDescriptions;
-  };
-  using AttributeMap = QMap<quint32, AttributeDescription>;
-
-  AttributeMap attributes;
 
 
   struct SymbolDescription {

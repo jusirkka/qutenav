@@ -3,6 +3,7 @@
 #include "geoprojection.h"
 #include "s57object.h"
 #include "s52presentation.h"
+#include "s52names.h"
 #include <QDate>
 #include "settings.h"
 #include "shader.h"

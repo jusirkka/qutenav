@@ -1,5 +1,6 @@
 #include "s52functions.h"
 #include "s52presentation.h"
+#include "s52names.h"
 #include "conf_marinerparams.h"
 #include "settings.h"
 #include <cmath>

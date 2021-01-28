@@ -2,6 +2,7 @@
 #include <QDebug>
 #include <QDir>
 #include <QStandardPaths>
+#include "s52names.h"
 
 S57::PaintDataMap S52::Lookup::execute(const S57::Object *obj) const {
 
@@ -119,6 +120,65 @@ QVariant S52::GetAttribute(const QString &name, const S57::Object *obj) {
   return obj->attributeValue(p->names[name]);
 }
 
+
+void S52::InitPresentation() {
+  InitNames();
+  Private::Presentation* p = Private::Presentation::instance();
+  p->init();
+}
+
+QString S52::GetSymbolInfo(quint32 index, S52::SymbolType t) {
+  const Private::Presentation* p = Private::Presentation::instance();
+  const SymbolKey key(index, t);
+  if (!p->symbols.contains(key)) return QString();
+  return p->symbols[key].code + ": " + p->symbols[key].description;
+}
+
+
+QString S52::GetAttributeInfo(quint32 index, const S57::Object* obj) {
+  auto code = GetAttributeName(index);
+  if (code.isEmpty()) return QString();
+
+  auto attr = GetAttributeDescription(index);
+  QString info;
+  info += code + ": " + attr + ": ";
+  QVariant v = obj->attributeValue(index);
+  switch (GetAttributeType(index)) {
+  case S57::Attribute::Type::Real:
+    info += QString::number(v.toDouble());
+    break;
+  case S57::Attribute::Type::String:
+    info += v.toString();
+    break;
+  case S57::Attribute::Type::Integer: {
+    auto descr = GetAttributeEnumDescription(index, v.toInt());
+    if (!descr.isEmpty()) {
+      info += descr;
+    } else {
+      info += QString::number(v.toInt());
+    }
+    break;
+  }
+  case S57::Attribute::Type::IntegerList:
+  {
+    auto items = v.toList();
+    for (auto a: items) {
+      auto descr = GetAttributeEnumDescription(index, a.toInt());
+      if (!descr.isEmpty()) {
+        info += descr + ", ";
+      } else {
+        info += QString::number(a.toInt()) + ", ";
+      }
+    }
+    if (!items.isEmpty()) info.remove(info.length() - 2, 2);
+  }
+    break;
+  default:
+    ; // do nothing
+  }
+  return info;
+}
+
 quint32 S52::FindIndex(const QString &name) {
   const Private::Presentation* p = Private::Presentation::instance();
   Q_ASSERT(p->names.contains(name));
@@ -133,109 +193,5 @@ quint32 S52::FindIndex(const QString &name, bool* ok) {
   }
   if (ok != nullptr) *ok = false;
   return 0;
-}
-
-void S52::InitPresentation() {
-  Private::Presentation* p = Private::Presentation::instance();
-  p->init();
-}
-
-QString S52::FindPath(const QString& s) {
-  QDir dataDir;
-  QStringList locs;
-  QString file;
-
-  for (const QString& loc: QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation)) {
-    locs << QString("%1/%2/s57data").arg(loc).arg(qAppName());
-  }
-
-  for (const QString& loc: locs) {
-    dataDir = QDir(loc);
-    const QStringList files = dataDir.entryList(QStringList() << s,
-                                                QDir::Files | QDir::Readable);
-    if (files.size() == 1) {
-      file = files.first();
-      break;
-    }
-  }
-
-  if (file.isEmpty()) {
-    qFatal("%s not found in any of the standard locations", s.toUtf8().constData());
-  }
-
-  return dataDir.absoluteFilePath(file);
-}
-
-QString S52::GetSymbolInfo(quint32 index, S52::SymbolType t) {
-  const Private::Presentation* p = Private::Presentation::instance();
-  const SymbolKey key(index, t);
-  if (!p->symbols.contains(key)) return QString();
-  return p->symbols[key].code + ": " + p->symbols[key].description;
-}
-
-QString S52::GetAttributeInfo(quint32 index, const S57::Object* obj) {
-  const Private::Presentation* p = Private::Presentation::instance();
-  if (!p->attributes.contains(index)) return QString();
-  QString info;
-  auto attr = p->attributes[index];
-  info += attr.code + ": " + attr.description + ": ";
-  QVariant v = obj->attributeValue(index);
-  switch (attr.type) {
-  case S57::Attribute::Type::Real:
-    info += QString::number(v.toDouble());
-    break;
-  case S57::Attribute::Type::String:
-    info += v.toString();
-    break;
-  case S57::Attribute::Type::Integer:
-    if (!attr.enumDescriptions.isEmpty()) {
-      info += attr.enumDescriptions[v.toInt()];
-    } else {
-      info += QString::number(v.toInt());
-    }
-    break;
-  case S57::Attribute::Type::IntegerList:
-  {
-    auto items = v.toList();
-    for (auto a: items) {
-      if (!attr.enumDescriptions.isEmpty()) {
-        info += attr.enumDescriptions[a.toInt()] + ", ";
-      } else {
-        info += QString::number(a.toInt()) + ", ";
-      }
-    }
-    if (!items.isEmpty()) info.remove(info.length() - 2, 2);
-  }
-    break;
-  default:
-    ; // do nothing
-  }
-  return info;
-}
-
-
-QString S52::GetClassInfo(quint32 code) {
-  const Private::Presentation* p = Private::Presentation::instance();
-  if (!p->classes.contains(code)) return QString();
-  auto cl = p->classes[code];
-  return cl.code + ": " + cl.description;
-}
-
-S57::Attribute::Type S52::GetAttributeType(quint32 index) {
-  const Private::Presentation* p = Private::Presentation::instance();
-  if (!p->attributes.contains(index)) return S57::Attribute::Type::None;
-  return p->attributes[index].type;
-}
-
-QString S52::GetAttributeName(quint32 index) {
-  const Private::Presentation* p = Private::Presentation::instance();
-  if (!p->attributes.contains(index)) return QString();
-  return p->attributes[index].code;
-}
-
-bool S52::IsMetaClass(quint32 code) {
-  const Private::Presentation* p = Private::Presentation::instance();
-  Q_ASSERT(p->classes.contains(code));
-  return p->classes[code].isMeta;
 }
 

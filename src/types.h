@@ -320,6 +320,19 @@ static const inline double DefaultDepth = - 15.;
 
 }
 
+namespace S57 {
+
+enum class AttributeType: uint8_t {
+  Integer,
+  IntegerList,
+  Real,
+  None, // OgrAttr_t has RealLst here
+  String,
+  Any // Not in OgrAttr_t
+};
+
+}
+
 namespace QT {
 using ColorVector = QVector<QColor>;
 }

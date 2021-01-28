@@ -29,19 +29,13 @@ ChartManager::ChartManager(QObject *parent)
   , m_db()
   , m_workers({nullptr}) // temporary, to be replaced in createThreads
   , m_reader(nullptr)
+  , m_coverCache(100 * sizeof(ChartCover))
 {
 
   loadPlugins();
 
-  // check & fill chartsets table
-  const QString sql = "select name from chartsets";
-  QSqlQuery r = m_db.exec(sql);
-  if (!r.first()) {
-    // empty table, fill it
-    fillChartsetsTable();
-    r = m_db.exec(sql);
-  }
-  r.seek(-1);
+  // create readers
+  QSqlQuery r = m_db.exec("select name from chartsets");
   while (r.next()) {
     const QString name = r.value(0).toString();
     if (!m_factories.contains(name)) continue;
@@ -61,9 +55,10 @@ void ChartManager::loadPlugins() {
     m_factories[factory->name()] = factory;
   }
 
-  QString base = QLibraryInfo::location(QLibraryInfo::PluginsPath);
-  QDir pluginsDir(QString("%1/%2").arg(base).arg(qAppName()));
-  qDebug() << "Searching reader plugins in" << pluginsDir;
+  const QString loc = qAppName().split("_").first();
+  const QString base = QLibraryInfo::location(QLibraryInfo::PluginsPath);
+  QDir pluginsDir(QString("%1/%2").arg(base).arg(loc));
+  qDebug() << "Searching reader plugins in" << pluginsDir.dirName();
 
   const QStringList plugins = pluginsDir.entryList(QStringList(),
                                                    QDir::Files | QDir::Readable);
@@ -73,175 +68,6 @@ void ChartManager::loadPlugins() {
     if (!factory) continue;
     qDebug() << "Loaded reader plugin" << factory->name();
     m_factories[factory->name()] = factory;
-  }
-}
-
-void ChartManager::fillChartsetsTable() {
-  QStringList locs;
-  for (const QString& loc: QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation)) {
-    locs << QString("%1/%2/charts").arg(loc).arg(qAppName());
-  }
-
-  QStringList present;
-
-  for (const QString& loc: locs) {
-    QDir dataDir(loc);
-    const QStringList dirs = dataDir.entryList(QStringList(),
-                                               QDir::Dirs | QDir::Readable);
-    for (auto dir: dirs) {
-      if (m_factories.contains(dir)) {
-        present << dir;
-      }
-    }
-  }
-
-  for (auto name: present) {
-    // insert
-    QSqlQuery r = m_db.prepare("insert into main.chartsets (name) values(?)");
-    r.bindValue(0, name);
-    m_db.exec(r);
-  }
-}
-
-
-void ChartManager::fillScalesAndChartsTables() {
-
-  QStringList locs;
-  for (const QString& loc: QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation)) {
-    locs << QString("%1/%2/charts/%3").arg(loc).arg(qAppName()).arg(m_reader->name());
-  }
-
-  QSqlQuery r1 = m_db.prepare("select id "
-                              "from main.chartsets "
-                              "where name=?");
-  r1.bindValue(0, QVariant::fromValue(m_reader->name()));
-  m_db.exec(r1);
-  r1.first();
-  uint set_id = r1.value(0).toUInt();
-
-
-  QVector<quint32> oldCharts;
-  QSqlQuery r2 = m_db.prepare("select c.id "
-                              "from main.charts c "
-                              "join main.scales s on c.scale_id = s.id "
-                              "where s.chartset_id=?");
-  r2.bindValue(0, QVariant::fromValue(set_id));
-  m_db.exec(r2);
-  while (r2.next()) {
-    oldCharts.append(r2.value(0).toUInt());
-  }
-
-
-  ScaleMap scales;
-  QSqlQuery r3 = m_db.prepare("select s.id, s.scale "
-                              "from main.scales s "
-                              "where chartset_id=?");
-  r3.bindValue(0, set_id);
-  m_db.exec(r3);
-  while (r3.next()) {
-    scales[r3.value(1).toUInt()] = r3.value(0).toUInt();
-  }
-
-
-  if (!m_db.transaction()) {
-    qWarning() << "Cannot create db transaction, not updating";
-    return;
-  }
-
-  for (const QString& loc: locs) {
-    QDirIterator it(loc,
-                    m_factories[m_reader->name()]->filters(),
-                    QDir::Files | QDir::Readable,
-                    QDirIterator::FollowSymlinks | QDirIterator::Subdirectories);
-    while (it.hasNext()) {
-      try {
-        const QString path = it.next();
-        S57ChartOutline ch = m_reader->readOutline(path);
-        if (!scales.contains(ch.scale())) {
-          auto r4 = m_db.prepare("insert into main.scales"
-                                 "(chartset_id, scale) "
-                                 "values(?, ?)");
-          r4.bindValue(0, set_id);
-          r4.bindValue(1, ch.scale());
-          m_db.exec(r4);
-          scales[ch.scale()] = r4.lastInsertId().toUInt();
-        }
-
-        // skip large scale maps
-        //        if (ch.extent().nw().lat() - ch.extent().sw().lat() > 9.) {
-        //          qDebug() << "Skipping" << ch.extent().sw().print() << ch.extent().ne().print();
-        //          continue;
-        //        }
-
-        QSqlQuery s = m_db.prepare("select id, published, modified "
-                                   "from main.charts where path=?");
-        s.bindValue(0, path);
-        m_db.exec(s);
-        if (!s.first()) {
-          // insert
-          QSqlQuery t = m_db.prepare("insert into main.charts"
-                                     "(scale_id, swx, swy, nex, ney, "
-                                     " published, modified, path) "
-                                     "values(?, ?, ?, ?, ?, ?, ?, ?)");
-          // scale_id (0)
-          t.bindValue(0, QVariant::fromValue(scales[ch.scale()]));
-          // sw, ne (1, 2, 3, 4)
-          auto sw = ch.extent().sw();
-          auto ne = ch.extent().ne();
-          t.bindValue(1, sw.lng());
-          t.bindValue(2, sw.lat());
-          t.bindValue(3, ne.lng(sw));
-          t.bindValue(4, ne.lat());
-          // published, modified, path (5, 6, 7)
-          t.bindValue(5, QVariant::fromValue(ch.published().toJulianDay()));
-          t.bindValue(6, QVariant::fromValue(ch.modified().toJulianDay()));
-          t.bindValue(7, QVariant::fromValue(path));
-
-          m_db.exec(t);
-        } else {
-          oldCharts.removeOne(s.value(0).toInt());
-          if (ch.published().toJulianDay() == s.value(1).toInt() &&
-              ch.modified().toJulianDay() == s.value(2).toInt()) {
-            continue;
-          }
-          // update
-          QSqlQuery t = m_db.prepare("update main.charts set "
-                                     "swx=?, swy=?, nex=?, ney=?, "
-                                     "published=?, modified=? "
-                                     "where id=?");
-          // sw, ne (0, 1, 2, 3)
-          t.bindValue(0, QVariant::fromValue(ch.extent().sw().lng()));
-          t.bindValue(1, QVariant::fromValue(ch.extent().sw().lat()));
-          t.bindValue(2, QVariant::fromValue(ch.extent().ne().lng()));
-          t.bindValue(3, QVariant::fromValue(ch.extent().ne().lat()));
-          // published, modified, path (4, 5)
-          t.bindValue(4, QVariant::fromValue(ch.published().toJulianDay()));
-          t.bindValue(5, QVariant::fromValue(ch.modified().toJulianDay()));
-          // id (6)
-          t.bindValue(6, s.value(0));
-
-          m_db.exec(t);
-        }
-      } catch (ChartFileError& e) {
-        qWarning() << "Chart file error:" << e.msg() << ", skipping";
-      }
-    }
-  }
-
-  // remove old rows
-  if (!oldCharts.isEmpty()) {
-    QString sql = "delete from charts where id in (";
-    sql += QString("?,").repeated(oldCharts.size());
-    sql = sql.replace(sql.length() - 1, 1, ")");
-    QSqlQuery s = m_db.prepare(sql);
-    for (int i = 0; i < oldCharts.size(); i++) {
-      s.bindValue(i, QVariant::fromValue(oldCharts[i]));
-    }
-    m_db.exec(s);
-  }
-
-  if (!m_db.commit()) {
-    qWarning() << "DB commit failed!";
   }
 }
 
@@ -293,20 +119,13 @@ void ChartManager::setChartSet(const QString &name, const GeoProjection* vproj) 
                              "where chartset_id=?");
   r.bindValue(0, set_id);
   m_db.exec(r);
-  if (!r.first()) {
-    // empty table, fill it
-    fillScalesAndChartsTables();
-    m_db.exec(r);
-  }
-
-  r.seek(-1);
   while (r.next()) {
     m_scales.append(r.value(0).toUInt());
   }
   std::sort(m_scales.begin(), m_scales.end());
 
+  // load charts to attached memory db
   m_db.loadCharts(set_id);
-
 
   // outlines
   QSqlQuery s = m_db.exec("select swx, swy, nex, ney "
@@ -352,6 +171,60 @@ ChartManager::~ChartManager() {
     thread->wait();
   }
   qDeleteAll(m_threads);
+}
+
+const ChartCover* ChartManager::getCover(quint32 chart_id,
+                                         const WGS84Point &sw,
+                                         const WGS84Point &ne,
+                                         const GeoProjection *p) {
+  if (!m_coverCache.contains(chart_id)) {
+    QSqlQuery r = m_db.prepare("select c.id, c.type_id, p.x, p.y "
+                               "from m.polygons p "
+                               "join m.coverage c on p.cov_id = c.id "
+                               "where c.chart_id=?");
+    r.bindValue(0, chart_id);
+    m_db.exec(r);
+    int prev = -1;
+    int type_id = -1;
+    Region cov;
+    Region nocov;
+    WGS84PointVector ps;
+    while (r.next()) {
+      const int cid = r.value(0).toInt();
+      if (cid != prev) {
+        if (type_id == 1) {
+          cov << ps;
+        } else if (type_id == 2) {
+          nocov << ps;
+        }
+        ps.clear();
+      }
+      ps << WGS84Point::fromLL(r.value(2).toDouble(), r.value(3).toDouble());
+      prev = cid;
+      type_id = r.value(1).toInt();
+    }
+    if (!ps.isEmpty()) {
+      if (type_id == 1) {
+        cov << ps;
+      } else if (type_id == 2) {
+        nocov << ps;
+      }
+    }
+
+    if (cov.isEmpty()) {
+      WGS84PointVector ws;
+      ws << sw;
+      ws << WGS84Point::fromLL(ne.lng(), sw.lat());
+      ws << ne;
+      ws << WGS84Point::fromLL(sw.lng(), ne.lat());
+
+      cov << ws;
+    }
+
+    m_coverCache.insert(chart_id, new ChartCover(cov, nocov, p));
+  }
+
+  return m_coverCache[chart_id];
 }
 
 void ChartManager::updateCharts(const Camera *cam, bool force) {
@@ -403,15 +276,16 @@ void ChartManager::updateCharts(const Camera *cam, bool force) {
     return la < lb;
   });
 
-  qDebug() << "scale candidates" << scaleCandidates;
+  // qDebug() << "scale candidates" << scaleCandidates;
+
+  const WGS84Point sw0 = cam->geoprojection()->toWGS84(m_viewArea.topLeft()); // inverted y-axis
+  const WGS84Point ne0 = cam->geoprojection()->toWGS84(m_viewArea.bottomRight()); // inverted y-axis
 
   IDVector chartids;
   for (quint32 selectedScale: scaleCandidates) {
     chartids.clear();
 
     // select charts
-    auto sw0 = cam->geoprojection()->toWGS84(m_viewArea.topLeft()); // inverted y-axis
-    auto ne0 = cam->geoprojection()->toWGS84(m_viewArea.bottomRight()); // inverted y-axis
     QSqlQuery r = m_db.prepare("select chart_id, swx, swy, nex, ney, path "
                                "from m.charts "
                                "where scale = ? and "
@@ -424,21 +298,23 @@ void ChartManager::updateCharts(const Camera *cam, bool force) {
     r.bindValue(4, sw0.lat());
 
     m_db.exec(r);
-    QRegion cover;
+    bool covered = false;
     while (r.next()) {
       chartids.append(r.value(0).toUInt());
-      auto sw = WGS84Point::fromLL(r.value(1).toDouble(), r.value(2).toDouble());
-      auto ne = WGS84Point::fromLL(r.value(3).toDouble(), r.value(4).toDouble());
-      auto p1 = cam->geoprojection()->fromWGS84(sw);
-      auto p2 = cam->geoprojection()->fromWGS84(ne);
-      cover += QRect(p1.toPoint(), p2.toPoint());
+      qDebug() << chartids.last();
+      if (!covered) {
+        auto sw = WGS84Point::fromLL(r.value(1).toDouble(), r.value(2).toDouble());
+        auto ne = WGS84Point::fromLL(r.value(3).toDouble(), r.value(4).toDouble());
+        const ChartCover* c = getCover(chartids.last(), sw, ne, cam->geoprojection());
+        covered = c->covers(m_viewArea.center(), cam->geoprojection());
+      }
     }
-    qDebug() << "chart cover is" << cover.contains(m_viewArea.toRect().center());
+    qDebug() << "chart cover is" << covered;
     qDebug() << "Number of charts" << chartids.size();
-    qDebug() << "Nominal scale" << S52::PrintScale(selectedScale);
-    qDebug() << "True scale" << S52::PrintScale(m_scale);
+    qDebug() << "Nominal scale" << selectedScale;
+    qDebug() << "True scale   " << m_scale;
     // select next scale if there's no coverage
-    if (cover.contains(m_viewArea.toRect().center())) {
+    if (covered) {
       break;
     }
   }

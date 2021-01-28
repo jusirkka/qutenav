@@ -1,6 +1,7 @@
 #include "hpglparser.h"
 #include <QDebug>
 #include "s52presentation.h"
+#include "s52names.h"
 #include <glm/glm.hpp>
 #include "triangulator.h"
 

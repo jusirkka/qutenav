@@ -7,6 +7,8 @@
 #include <QMap>
 #include <QStack>
 #include "chartdatabase.h"
+#include "chartcover.h"
+#include <QCache>
 
 class Camera;
 class S57Chart;
@@ -127,11 +129,12 @@ private:
   using UpdaterVector = QVector<ChartUpdater*>;
   using ThreadVector = QVector<GL::Thread*>;
 
-  void fillScalesAndChartsTables();
-  void fillChartsetsTable();
-
   void createOutline(const WGS84Point& sw, const WGS84Point& ne);
   void loadPlugins();
+  const ChartCover* getCover(quint32 chart_id,
+                             const WGS84Point& sw,
+                             const WGS84Point& ne,
+                             const GeoProjection* p);
 
 
   using IDVector = QVector<quint32>;
@@ -170,6 +173,10 @@ private:
   ChartReaderVector m_readers;
   ChartFileReader* m_reader;
   FactoryMap m_factories;
+
+  using CoverCache = QCache<quint32, ChartCover>;
+
+  CoverCache m_coverCache;
 
   bool m_hadCharts;
 };

@@ -3,7 +3,7 @@
 #include <QDataStream>
 #include <functional>
 #include <QDate>
-#include "s52presentation.h"
+#include "s52names.h"
 
 
 
@@ -24,6 +24,19 @@ struct Handler {
   HandlerFunc func;
   ~Handler() = default;
 };
+
+using Region = S57ChartOutline::Region;
+using VVec = QVector<glm::vec2>;
+
+const uint UseCoverage = 1;
+const uint UseNoCoverage = 2;
+
+static uint checkCoverage(const Region& cov,
+                          const Region& nocov,
+                          const WGS84PointVector& ps,
+                          GeoProjection* gp);
+
+static WGS84PointVector reduce(const VVec& vs);
 
 S57ChartOutline OsencReader::readOutline(const QString& path) const {
 
@@ -60,6 +73,9 @@ S57ChartOutline OsencReader::readOutline(const QString& path) const {
   QDate mod;
   quint32 scale = 0;
   WGS84PointVector points;
+  auto gp = QScopedPointer<GeoProjection>(GeoProjection::CreateProjection(m_proj->className()));
+  Region cov;
+  Region nocov;
 
   const QMap<SencRecordType, Handler*> handlers {
     {SencRecordType::HEADER_CELL_NAME, new Handler([] (const Buffer& b) {
@@ -115,7 +131,28 @@ S57ChartOutline OsencReader::readOutline(const QString& path) const {
 
         return true;
       })
-    }
+    },
+
+    {SencRecordType::CELL_COVR_RECORD, new Handler([&cov] (const Buffer& b) {
+        // qDebug() << "cell coverage record";
+        auto p = reinterpret_cast<const OSENC_POINT_ARRAY_Record_Payload*>(b.constData());
+        VVec vs(p->count);
+        memcpy(vs.data(), &p->array, p->count * 2 * sizeof(GLfloat));
+        cov.append(reduce(vs));
+        return true;
+      })
+    },
+
+    {SencRecordType::CELL_NOCOVR_RECORD, new Handler([&nocov] (const Buffer& b) {
+        // qDebug() << "cell nocoverage record";
+        auto p = reinterpret_cast<const OSENC_POINT_ARRAY_Record_Payload*>(b.constData());
+        VVec vs(p->count);
+        memcpy(vs.data(), &p->array, p->count * 2 * sizeof(GLfloat));
+        nocov.append(reduce(vs));
+        return true;
+      })
+    },
+
   };
 
   bool done = false;
@@ -148,7 +185,12 @@ S57ChartOutline OsencReader::readOutline(const QString& path) const {
     throw ChartFileError(QString("Invalid osenc header in %1").arg(path));
   }
 
-  return S57ChartOutline(points[0], points[1], points[2], points[3], scale, pub, mod);
+  uint flags = checkCoverage(cov, nocov, points, gp.data());
+  // points = sw, se, ne, nw
+  return S57ChartOutline(points[0], points[2],
+      (flags & UseCoverage) ? cov : Region(),
+      (flags & UseNoCoverage) ? nocov : Region(),
+      scale, pub, mod);
 }
 
 namespace S57 {
@@ -420,18 +462,6 @@ void OsencReader::readChart(GL::VertexVector& vertices,
         return true;
       })
     },
-
-    {SencRecordType::CELL_COVR_RECORD, new Handler([] (const Buffer& b) {
-        // qDebug() << "cell coverage record";
-        return true;
-      })
-    },
-
-    {SencRecordType::CELL_NOCOVR_RECORD, new Handler([] (const Buffer& b) {
-        qDebug() << "cell nocoverage record";
-        return true;
-      })
-    },
   };
 
   bool done = false;
@@ -635,6 +665,83 @@ static QPointF computeAreaCenter(const S57::ElementDataVector &elems,
 
   return s / area;
 }
+
+
+static WGS84PointVector reduce(const VVec& vs) {
+  const float eps = 1.e-8;
+  WGS84PointVector ps;
+  const int N = vs.size();
+  for (int k = 0; k < N; k++) {
+    const glm::vec2 v = vs[k];
+    const glm::vec2 vm = vs[(k + N - 1) % N];
+    const glm::vec2 vp = vs[(k + 1) % N];
+    if (std::abs(v.x - vm.x) < eps && std::abs(v.x - vp.x) < eps) continue;
+    if (std::abs(v.y - vm.y) < eps && std::abs(v.y - vp.y) < eps) continue;
+    ps << WGS84Point::fromLL(v.y, v.x);
+  }
+  return ps;
+}
+
+using PointVector = QVector<QPointF>;
+using PPolygon = QVector<PointVector>;
+
+static float area(const PointVector& ps) {
+  float sum = 0;
+  const int n = ps.size();
+  for (int k = 0; k < n; k++) {
+    const QPointF p0 = ps[k];
+    const QPointF p1 = ps[(k + 1) % n];
+    sum += p0.x() * p1.y() - p0.y() * p1.x();
+  }
+  return .5 * sum;
+}
+
+static uint checkCoverage(const Region& cov,
+                          const Region& nocov,
+                          const WGS84PointVector& ps,
+                          GeoProjection* gp) {
+  gp->setReference(ps[0]);
+  PPolygon covp;
+  for (const WGS84PointVector& vs: cov) {
+    PointVector ps;
+    for (auto v: vs) {
+      ps << gp->fromWGS84(v);
+    }
+    covp.append(ps);
+  }
+  PPolygon nocovp;
+  for (const WGS84PointVector& vs: nocov) {
+    PointVector ps;
+    for (auto v: vs) {
+      ps << gp->fromWGS84(v);
+    }
+    nocovp.append(ps);
+  }
+  PointVector box;
+  for (auto p: ps) {
+    box << gp->fromWGS84(p);
+  }
+
+  const float A = area(box);
+
+  float totcov = 0;
+  for (const PointVector& ps: covp) {
+    totcov += std::abs(area(ps) / A);
+  }
+
+  float totnocov = 0;
+  for (const PointVector& ps: nocovp) {
+    totnocov += std::abs(area(ps) / A);
+  }
+
+  uint ret = 0;
+  // .5: assuming it's a bug
+  if (!cov.isEmpty() && totcov < .8 && totcov != .5) ret += UseCoverage;
+  if (totnocov > .2) ret += UseNoCoverage;
+
+  return ret;
+}
+
 
 QString OsencReaderFactory::name() const {
   return "osenc";

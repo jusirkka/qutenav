@@ -2,7 +2,11 @@
 
 #include "chartfilereader.h"
 
+class OsencReaderFactory;
+
 class OsencReader: public ChartFileReader {
+
+  friend class OsencReaderFactory;
 
 public:
 
@@ -17,9 +21,10 @@ public:
 
   const GeoProjection* geoprojection() const override;
 
-  OsencReader(const QString& name);
 
 private:
+
+  OsencReader(const QString& name);
 
   GeoProjection* m_proj;
 

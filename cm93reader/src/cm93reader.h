@@ -1,7 +1,11 @@
 #pragma once
 #include "chartfilereader.h"
 
+class CM93ReaderFactory;
+
 class CM93Reader: public ChartFileReader {
+
+  friend class CM93ReaderFactory;
 
 public:
 
@@ -15,9 +19,14 @@ public:
 
   const GeoProjection* geoprojection() const override;
 
-  CM93Reader(const QString& name);
+  using PointVector = QVector<QPointF>;
+  using PRegion = QVector<PointVector>;
+  using Region = S57ChartOutline::Region;
+
 
 private:
+
+  CM93Reader(const QString& name);
 
   static const int coord_section_offset = 10;
   static const int size_section_offset = 74;
@@ -45,6 +54,7 @@ private:
   };
   using EdgeVector = QVector<Edge>;
 
+
   QPointF getEndPoint(EP ep,
                       const Edge& e,
                       const GL::VertexVector& vertices) const;
@@ -61,6 +71,14 @@ private:
                           GL::VertexVector& vertices,
                           const EdgeVector& edges,
                           bool triangles) const;
+
+  PointVector addVertices(const Edge& e, const GL::VertexVector& vertices) const;
+
+  PRegion createCoverage(const GL::VertexVector& vertices,
+                         const EdgeVector& edges) const;
+
+  Region transformCoverage(PRegion pcov, WGS84Point& sw, WGS84Point& ne,
+                           const GeoProjection* gp) const;
 
   void triangulate(S57::ElementDataVector& elems,
                    GL::IndexVector& indices,

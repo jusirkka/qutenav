@@ -3,11 +3,12 @@
 #include <QDataStream>
 #include <functional>
 #include <QDate>
-#include "s52presentation.h"
+#include "s52names.h"
 #include "cm93presentation.h"
 #include "triangulator.h"
 #include <QScopedPointer>
 #include <QRegularExpression>
+#include <QFileInfo>
 
 const GeoProjection* CM93Reader::geoprojection() const {
   return m_proj;
@@ -19,83 +20,84 @@ CM93Reader::CM93Reader(const QString &name)
   , m_wgsox(CM93::FindIndex("_wgsox"))
   , m_wgsoy(CM93::FindIndex("_wgsoy"))
   , m_recdat(CM93::FindIndex("RECDAT"))
-  , m_subst{{"ITDARE", S52::FindIndex("DEPARE")},
-            {"SPOGRD", S52::FindIndex("DMPGRD")},
-            {"FSHHAV", S52::FindIndex("FSHFAC")},
-            {"OFSPRD", S52::FindIndex("CTNARE")},
-            {"$ANNCH", S52::FindIndex("VALACM")},
-            {"$CYEAR", S52::FindIndex("RYRMGV")},
-            {"$VARIA", S52::FindIndex("VALMAG")},
-            {"COLMAR", S52::FindIndex("COLOUR")},
-            {"BRTFAC", S52::FindIndex("BERTHS")},
-            {"DSHAER", S52::FindIndex("LNDMRK")},
-            {"FLGSTF", S52::FindIndex("LNDMRK")},
-            {"MSTCON", S52::FindIndex("LNDMRK")},
-            {"WIMCON", S52::FindIndex("LNDMRK")},
-            {"CAIRNS", S52::FindIndex("LNDMRK")},
-            {"CEMTRY", S52::FindIndex("LNDMRK")},
-            {"CHIMNY", S52::FindIndex("LNDMRK")},
-            {"FLASTK", S52::FindIndex("LNDMRK")},
-            {"RADDOM", S52::FindIndex("LNDMRK")},
-            {"WNDMIL", S52::FindIndex("LNDMRK")},
-            {"HILARE", S52::FindIndex("SLOGRD")},
-            {"DUNARE", S52::FindIndex("SLOGRD")},
-            {"DYKARE", S52::FindIndex("SLOGRD")},
-            {"DYKCRW", S52::FindIndex("SLOGRD")},
-            {"PINGOS", S52::FindIndex("SLOGRD")},
-            {"LITHOU", S52::FindIndex("BUISGL")},
-            {"NAMFIX", S52::FindIndex("OFSPLF")},
-            {"PRDINS", S52::FindIndex("OFSPLF")},
-            {"NAMFLO", S52::FindIndex("BOYSPP")},
-            {"NATARE", S52::FindIndex("ADMARE")},
-            {"RMPARE", S52::FindIndex("SLCONS")},
-            {"SLIPWY", S52::FindIndex("SLCONS")},
-            {"LNDSTS", S52::FindIndex("SLCONS")},
-            {"TNKCON", S52::FindIndex("SILTNK")},
-            {"SILBUI", S52::FindIndex("SILTNK")},
-            {"TREPNT", S52::FindIndex("VEGATN")},
-            {"VEGARE", S52::FindIndex("VEGATN")},
-            {"DIFFUS", S52::FindIndex("OBSTRN")},
-            {"LITMOI", S52::FindIndex("LIGHTS")},
-            {"LNDPLC", S52::FindIndex("SMCFAC")},
-            {"ROADPT", S52::FindIndex("ROADWY")},
-            {"RODCRS", S52::FindIndex("ROADWY")},
-            {"SLTPAN", S52::FindIndex("LNDRGN")},
-            {"TELPHC", S52::FindIndex("CONVYR")},
-            {"WIRLNE", S52::FindIndex("DAMCON")}}
-  , m_subst_attrs{{"DSHAER", {S52::FindIndex("CATLMK"), QVariantList{QVariant::fromValue(4)}}},
-                  {"FLGSTF", {S52::FindIndex("CATLMK"), QVariantList{QVariant::fromValue(5)}}},
-                  {"MSTCON", {S52::FindIndex("CATLMK"), QVariantList{QVariant::fromValue(7)}}},
-                  {"WIMCON", {S52::FindIndex("CATLMK"), QVariantList{QVariant::fromValue(13)}}},
-                  {"CAIRNS", {S52::FindIndex("CATLMK"), QVariantList{QVariant::fromValue(1)}}},
-                  {"CEMTRY", {S52::FindIndex("CATLMK"), QVariantList{QVariant::fromValue(2)}}},
-                  {"CHIMNY", {S52::FindIndex("CATLMK"), QVariantList{QVariant::fromValue(3)}}},
-                  {"FLASTK", {S52::FindIndex("CATLMK"), QVariantList{QVariant::fromValue(6)}}},
-                  {"RADDOM", {S52::FindIndex("CATLMK"), QVariantList{QVariant::fromValue(16)}}},
-                  {"WNDMIL", {S52::FindIndex("CATLMK"), QVariantList{QVariant::fromValue(18)}}},
-                  {"HILARE", {S52::FindIndex("CATSLO"), 4}},
-                  {"DUNARE", {S52::FindIndex("CATSLO"), 3}},
-                  {"DYKARE", {S52::FindIndex("CATSLO"), 2}},
-                  {"DYKCRW", {S52::FindIndex("CATSLO"), 2}},
-                  {"PINGOS", {S52::FindIndex("CATSLO"), 6}},
-                  {"NAMFIX", {S52::FindIndex("CATOFP"), QVariantList{QVariant::fromValue(10)}}},
-                  {"PRDINS", {S52::FindIndex("CATOFP"), QVariantList{QVariant::fromValue(2)}}},
-                  {"RMPARE", {S52::FindIndex("CATSLC"), 12}},
-                  {"SLIPWY", {S52::FindIndex("CATSLC"), 13}},
-                  {"LNDSTS", {S52::FindIndex("CATSLC"), 11}},
-                  {"NAMFLO", {S52::FindIndex("CATSPM"), QVariantList{QVariant::fromValue(15)}}},
-                  {"LITHOU", {S52::FindIndex("BUISHP"), 5}},
-                  {"NATARE", {S52::FindIndex("JRSDTN"), 1}},
-                  {"TNKCON", {S52::FindIndex("CATSIL"), 2}},
-                  {"SILBUI", {S52::FindIndex("CATSIL"), 1}},
-                  {"TREPNT", {S52::FindIndex("CATVEG"), QVariantList{QVariant::fromValue(13)}}},
-                  {"DIFFUS", {S52::FindIndex("CATOBS"), 3}},
-                  {"LITMOI", {S52::FindIndex("CATLIT"), QVariantList{QVariant::fromValue(16)}}},
-                  {"LNDPLC", {S52::FindIndex("CATSCF"), QVariantList{QVariant::fromValue(28)}}},
-                  {"RODCRS", {S52::FindIndex("CATROD"), 7}},
-                  {"SLTPAN", {S52::FindIndex("CATLND"), QVariantList{QVariant::fromValue(15)}}},
-                  {"TELPHC", {S52::FindIndex("CATCON"), 1}},
-                  {"WIRLNE", {S52::FindIndex("CATDAM"), 1}}}
+  , m_subst{{"ITDARE", S52::FindCIndex("DEPARE")},
+            {"SPOGRD", S52::FindCIndex("DMPGRD")},
+            {"FSHHAV", S52::FindCIndex("FSHFAC")},
+            {"OFSPRD", S52::FindCIndex("CTNARE")},
+            {"$ANNCH", S52::FindCIndex("VALACM")},
+            {"$CYEAR", S52::FindCIndex("RYRMGV")},
+            {"$VARIA", S52::FindCIndex("VALMAG")},
+            {"COLMAR", S52::FindCIndex("COLOUR")},
+            {"BRTFAC", S52::FindCIndex("BERTHS")},
+            {"DSHAER", S52::FindCIndex("LNDMRK")},
+            {"FLGSTF", S52::FindCIndex("LNDMRK")},
+            {"MSTCON", S52::FindCIndex("LNDMRK")},
+            {"WIMCON", S52::FindCIndex("LNDMRK")},
+            {"CAIRNS", S52::FindCIndex("LNDMRK")},
+            {"CEMTRY", S52::FindCIndex("LNDMRK")},
+            {"CHIMNY", S52::FindCIndex("LNDMRK")},
+            {"FLASTK", S52::FindCIndex("LNDMRK")},
+            {"RADDOM", S52::FindCIndex("LNDMRK")},
+            {"WNDMIL", S52::FindCIndex("LNDMRK")},
+            {"HILARE", S52::FindCIndex("SLOGRD")},
+            {"DUNARE", S52::FindCIndex("SLOGRD")},
+            {"DYKARE", S52::FindCIndex("SLOGRD")},
+            {"DYKCRW", S52::FindCIndex("SLOGRD")},
+            {"PINGOS", S52::FindCIndex("SLOGRD")},
+            {"LITHOU", S52::FindCIndex("BUISGL")},
+            {"NAMFIX", S52::FindCIndex("OFSPLF")},
+            {"PRDINS", S52::FindCIndex("OFSPLF")},
+            {"NAMFLO", S52::FindCIndex("BOYSPP")},
+            {"NATARE", S52::FindCIndex("ADMARE")},
+            {"RMPARE", S52::FindCIndex("SLCONS")},
+            {"SLIPWY", S52::FindCIndex("SLCONS")},
+            {"LNDSTS", S52::FindCIndex("SLCONS")},
+            {"TNKCON", S52::FindCIndex("SILTNK")},
+            {"SILBUI", S52::FindCIndex("SILTNK")},
+            {"TREPNT", S52::FindCIndex("VEGATN")},
+            {"VEGARE", S52::FindCIndex("VEGATN")},
+            {"DIFFUS", S52::FindCIndex("OBSTRN")},
+            {"LITMOI", S52::FindCIndex("LIGHTS")},
+            {"LNDPLC", S52::FindCIndex("SMCFAC")},
+            {"ROADPT", S52::FindCIndex("ROADWY")},
+            {"RODCRS", S52::FindCIndex("ROADWY")},
+            {"SLTPAN", S52::FindCIndex("LNDRGN")},
+            {"TELPHC", S52::FindCIndex("CONVYR")},
+            {"WIRLNE", S52::FindCIndex("DAMCON")},
+            {"_m_sor", S52::FindCIndex("M_COVR")}}
+  , m_subst_attrs{{"DSHAER", {S52::FindCIndex("CATLMK"), QVariantList{QVariant::fromValue(4)}}},
+                  {"FLGSTF", {S52::FindCIndex("CATLMK"), QVariantList{QVariant::fromValue(5)}}},
+                  {"MSTCON", {S52::FindCIndex("CATLMK"), QVariantList{QVariant::fromValue(7)}}},
+                  {"WIMCON", {S52::FindCIndex("CATLMK"), QVariantList{QVariant::fromValue(13)}}},
+                  {"CAIRNS", {S52::FindCIndex("CATLMK"), QVariantList{QVariant::fromValue(1)}}},
+                  {"CEMTRY", {S52::FindCIndex("CATLMK"), QVariantList{QVariant::fromValue(2)}}},
+                  {"CHIMNY", {S52::FindCIndex("CATLMK"), QVariantList{QVariant::fromValue(3)}}},
+                  {"FLASTK", {S52::FindCIndex("CATLMK"), QVariantList{QVariant::fromValue(6)}}},
+                  {"RADDOM", {S52::FindCIndex("CATLMK"), QVariantList{QVariant::fromValue(16)}}},
+                  {"WNDMIL", {S52::FindCIndex("CATLMK"), QVariantList{QVariant::fromValue(18)}}},
+                  {"HILARE", {S52::FindCIndex("CATSLO"), 4}},
+                  {"DUNARE", {S52::FindCIndex("CATSLO"), 3}},
+                  {"DYKARE", {S52::FindCIndex("CATSLO"), 2}},
+                  {"DYKCRW", {S52::FindCIndex("CATSLO"), 2}},
+                  {"PINGOS", {S52::FindCIndex("CATSLO"), 6}},
+                  {"NAMFIX", {S52::FindCIndex("CATOFP"), QVariantList{QVariant::fromValue(10)}}},
+                  {"PRDINS", {S52::FindCIndex("CATOFP"), QVariantList{QVariant::fromValue(2)}}},
+                  {"RMPARE", {S52::FindCIndex("CATSLC"), 12}},
+                  {"SLIPWY", {S52::FindCIndex("CATSLC"), 13}},
+                  {"LNDSTS", {S52::FindCIndex("CATSLC"), 11}},
+                  {"NAMFLO", {S52::FindCIndex("CATSPM"), QVariantList{QVariant::fromValue(15)}}},
+                  {"LITHOU", {S52::FindCIndex("BUISHP"), 5}},
+                  {"NATARE", {S52::FindCIndex("JRSDTN"), 1}},
+                  {"TNKCON", {S52::FindCIndex("CATSIL"), 2}},
+                  {"SILBUI", {S52::FindCIndex("CATSIL"), 1}},
+                  {"TREPNT", {S52::FindCIndex("CATVEG"), QVariantList{QVariant::fromValue(13)}}},
+                  {"DIFFUS", {S52::FindCIndex("CATOBS"), 3}},
+                  {"LITMOI", {S52::FindCIndex("CATLIT"), QVariantList{QVariant::fromValue(16)}}},
+                  {"LNDPLC", {S52::FindCIndex("CATSCF"), QVariantList{QVariant::fromValue(28)}}},
+                  {"RODCRS", {S52::FindCIndex("CATROD"), 7}},
+                  {"SLTPAN", {S52::FindCIndex("CATLND"), QVariantList{QVariant::fromValue(15)}}},
+                  {"TELPHC", {S52::FindCIndex("CATCON"), 1}},
+                  {"WIRLNE", {S52::FindCIndex("CATDAM"), 1}}}
   , m_proj(GeoProjection::CreateProjection("CM93Mercator"))
 {}
 
@@ -437,6 +439,53 @@ Attribute* Attribute::Decode(QDataStream &stream) {
 
 }
 
+using Region = S57ChartOutline::Region;
+
+static void tognuplot(const Region& cov, const WGS84Point& sw,
+                      const WGS84Point& ne, const GeoProjection* gp,
+                      const QString path) {
+
+  if (sw.lng() < -10) return;
+  if (ne.lng() > -5) return;
+  if (sw.lat() < 35) return;
+  if (ne.lat() > 37) return;
+
+  const QString gpath = QString("gnuplot") + path.right(2);
+  qDebug() << "writing to" << gpath;
+  QFile file(gpath);
+  file.open(QFile::ReadWrite);
+  QTextStream stream(&file);
+  stream.seek(file.size());
+
+  QPointF p;
+  stream << "\n";
+  p = gp->fromWGS84(sw);
+  stream << p.x() << " " << p.y() << " 0\n";
+
+  p = gp->fromWGS84(WGS84Point::fromLL(ne.lng(), sw.lat()));
+  stream << p.x() << " " << p.y() << " 0\n";
+
+  p = gp->fromWGS84(ne);
+  stream << p.x() << " " << p.y() << " 0\n";
+
+  p = gp->fromWGS84(WGS84Point::fromLL(sw.lng(), ne.lat()));
+  stream << p.x() << " " << p.y() << " 0\n";
+
+  p = gp->fromWGS84(sw);
+  stream << p.x() << " " << p.y() << " 0\n";
+  stream << "\n";
+
+  for (const WGS84PointVector& ws: cov) {
+    for (const WGS84Point& w: ws) {
+      p = gp->fromWGS84(w);
+      stream << p.x() << " " << p.y() << " 1\n";
+    }
+    p = gp->fromWGS84(ws.first());
+    stream << p.x() << " " << p.y() << " 1\n\n";
+  }
+  file.close();
+}
+
 S57ChartOutline CM93Reader::readOutline(const QString& path) const {
 
   QFile file(path);
@@ -490,31 +539,79 @@ S57ChartOutline CM93Reader::readOutline(const QString& path) const {
   WGS84Point ref = m_proj->toWGS84(QPointF(e_min, n_min));
   // qDebug() << "ref" << ref.print();
 
-  // skip rest of the header and the geom table
-  stream.skipRawData(payload_offset - size_section_offset + geom_table_len);
+  // vector record table: n_vec_records * 2 + n_vec_record_points  * 4 =
+  // byte size of vertex table
+  auto n_vec_records = read_and_decode<quint16>(stream);
+  auto n_vec_record_points = read_and_decode<quint32>(stream);
+
+  stream.skipRawData(24);
+
+  auto n_feat_records = read_and_decode<quint16>(stream);
+
+  stream.skipRawData(32);
 
   // from this point on there are only 32 bit floats
   stream.setFloatingPointPrecision(QDataStream::SinglePrecision);
 
+  // vector record table
+  int offset = 0;
+  EdgeVector mesh;
+  GL::VertexVector vertices;
+  for (int i = 0; i < n_vec_records; i++) {
+    auto n_elems = read_and_decode<quint16>(stream);
+    for (int v = 0; v < n_elems; v++) {
+      vertices << scaling.width() * read_and_decode<quint16>(stream);
+      vertices << scaling.height() * read_and_decode<quint16>(stream);
+    }
+    Edge e;
+    e.count = n_elems;
+    e.offset = offset;
+    mesh.append(e);
+    offset += n_elems;
+  }
+  // skip rest of the geometry table
+  stream.skipRawData(geom_table_len - n_vec_records * 2 - n_vec_record_points * 4);
+
   // feature record table
-  // records with class _m_sor have user offsets and publish dates
-  while (true) {
+  // records with class _m_sor have coverage and publish dates
+  PRegion pcov;
+  QDate pub;
+
+  auto gp = QScopedPointer<GeoProjection>(GeoProjection::CreateProjection(m_proj->className()));
+  gp->setReference(ref);
+
+  bool in_sor = false;
+  for (int featureId = 0; featureId < n_feat_records; featureId++) {
     auto classCode = read_and_decode<quint8>(stream);
     // qDebug() << "[class]" << CM93::GetClassInfo(classCode);
     auto objCode = read_and_decode<quint8>(stream);
     auto n_bytes = read_and_decode<quint16>(stream);
     if (classCode != m_m_sor) {
-      // qDebug() << "skipping feature" << n_bytes - 4 << "bytes";
+      if (in_sor) break;
+      // qDebug() << "skipping" << n_bytes - 4 << "bytes";
       stream.skipRawData(n_bytes - 4);
       continue;
     }
+    in_sor = true;
     auto geoType = as_enum<CM93::GeomType>(objCode & 0x0f, CM93::AllGeomTypes);
     const quint8 flags = (objCode & 0xf0) >> 4;
 
-    auto n_offsets = read_and_decode<quint16>(stream);
+    auto n_records = read_and_decode<quint16>(stream);
     if (geoType == CM93::GeomType::Area ||
         geoType == CM93::GeomType::Line) {
-      stream.skipRawData(n_offsets * 2);
+      EdgeVector edges;
+      for (int i = 0; i < n_records; i++) {
+        auto edgeHeader = read_and_decode<quint16>(stream);
+        auto index = edgeHeader & IndexMask;
+        auto edgeflags = edgeHeader >> IndexBits;
+        Q_ASSERT(index < n_vec_records);
+        Edge e = mesh[index];
+        e.reversed = edgeflags & ReversedBit;
+        e.inner = edgeflags & InnerRingBit;
+        e.border = edgeflags & BorderBit;
+        edges.append(e);
+      }
+      pcov.append(createCoverage(vertices, edges));
     }
 
     if (flags & RelatedBit1) {
@@ -523,24 +620,29 @@ S57ChartOutline CM93Reader::readOutline(const QString& path) const {
     }
 
     if (flags & RelatedBit2) {
-      read_and_decode<quint16>(stream);
+      stream.skipRawData(2);
     }
 
     if (flags & AttributeBit) {
-      QDate pub;
       auto n_elems = read_and_decode<quint8>(stream);
       for (int i = 0; i < n_elems; i++) {
         auto a = QScopedPointer<const CM93::Attribute>(CM93::Attribute::Decode(stream));
         // qDebug() << a->name() << a->type() << a->value();
         if (a->index() == m_recdat) {
           pub = QDate::fromString(a->value().toString(), "yyyyMMdd");
+          // qDebug() << "pub" << pub;
         }
       }
-      return S57ChartOutline(sw, ne, ref, scaling, scale, pub, pub);
     }
   }
 
-  return S57ChartOutline();
+  const Region cov = transformCoverage(pcov, sw, ne, gp.data());
+  // gp->setReference(WGS84Point::fromLL(-5, 35));
+  // tognuplot(cov, sw, ne, gp.data(), path);
+  return S57ChartOutline(sw, ne,
+                         cov,
+                         Region(),
+                         ref, scaling, scale, pub, pub);
 }
 
 
@@ -588,8 +690,8 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
   // skip to size section
   stream.skipRawData(size_section_offset - coord_section_offset);
 
-  // vector record table: n_vec_records * 2 = number of pts in a record
-  // + n_vec_record_points  * 4 = byte size of all vertices
+  // vector record table: n_vec_records * 2
+  // + n_vec_record_points  * 4 = byte size of vertex table
   auto n_vec_records = read_and_decode<quint16>(stream);
 
   // auto n_vec_record_points = read_and_decode<quint32>(stream);
@@ -599,8 +701,8 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
   // qDebug() << "m_4a" << m_4a;
   stream.skipRawData(12);
 
-  // 3d point table: n_p3d_records * 2 = number of pts in a record
-  // + n_p3d_record_points * 6 = total number of 3d points
+  // 3d point table: n_p3d_records * 2
+  // + n_p3d_record_points * 6 = byte size 3d points table
   auto n_p3d_records = read_and_decode<quint16>(stream);
 
   // auto n_p3d_record_points = read_and_decode<quint32>(stream);
@@ -608,7 +710,7 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
   // qDebug() << "m_54" << m_54;
   stream.skipRawData(8);
 
-  // 2d point table: n_p2d_records * 4 = total number of pts
+  // 2d point table: n_p2d_records * 4 = byte size of 2d point table
   auto n_p2d_records = read_and_decode<quint16>(stream);
 
   // auto m_5a = read_and_decode<quint16>(stream);
@@ -706,7 +808,7 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
       featureCode = m_subst[className];
     } else {
       bool ok;
-      featureCode = S52::FindIndex(className, &ok);
+      featureCode = S52::FindCIndex(className, &ok);
       if (!ok) {
         qWarning() << "Unknown class" << CM93::GetClassInfo(classCode) << classCode;
         stream.skipRawData(n_bytes);
@@ -841,7 +943,7 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
           acode = m_subst[a->name()];
         } else {
           bool ok;
-          acode = S52::FindIndex(a->name(), &ok);
+          acode = S52::FindCIndex(a->name(), &ok);
           if (!ok) {
             qWarning() << "Unknown attribute"
                        << S52::GetClassInfo(featureCode)
@@ -953,6 +1055,118 @@ void CM93Reader::createLineElements(S57::ElementDataVector &elems,
   }
 }
 
+using PRegion = CM93Reader::PRegion;
+using PointVector = CM93Reader::PointVector;
+
+static float area(const PointVector& ps) {
+  float sum = 0;
+  const int n = ps.size();
+  for (int k = 0; k < n; k++) {
+    const QPointF p0 = ps[k];
+    const QPointF p1 = ps[(k + 1) % n];
+    sum += p0.x() * p1.y() - p0.y() * p1.x();
+  }
+  return .5 * sum;
+}
+
+static bool checkCoverage(const PRegion& cov,
+                          WGS84Point &sw,
+                          WGS84Point &ne,
+                          const GeoProjection *gp) {
+
+  if (cov.isEmpty()) return false;
+  //  PointVector box;
+  //  box << gp->fromWGS84(sw);
+  //  box << gp->fromWGS84(WGS84Point::fromLL(ne.lng(), sw.lat()));
+  //  box << gp->fromWGS84(ne);
+  //  box << gp->fromWGS84(WGS84Point::fromLL(sw.lng(), ne.lat()));
+
+  // const float A = area(box);
+
+  // compute bounding box
+  QPointF ur(-1.e15, -1.e15);
+  QPointF ll(1.e15, 1.e15);
+  for (const PointVector& ps: cov) {
+    for (const QPointF& p: ps) {
+      ur.setX(qMax(ur.x(), p.x()));
+      ur.setY(qMax(ur.y(), p.y()));
+      ll.setX(qMin(ll.x(), p.x()));
+      ll.setY(qMin(ll.y(), p.y()));
+    }
+  }
+
+  const float A = (ur.x() - ll.x()) * (ur.y() - ll.y());
+  float totcov = 0;
+  for (const PointVector& ps: cov) {
+    totcov += std::abs(area(ps) / A);
+  }
+  sw = gp->toWGS84(ll);
+  ne = gp->toWGS84(ur);
+  if (sw == WGS84Point::fromLL(ne.lng(), sw.lat())) {
+    qDebug() << ll << ur;
+    qDebug() << sw.lng() << sw.lat() << ne.lng() << ne.lat();
+    throw ChartFileError("Too narrow coverage");
+  }
+  if (sw == WGS84Point::fromLL(sw.lng(), ne.lat())) {
+    qDebug() << ll << ur;
+    qDebug() << sw.lng() << sw.lat() << ne.lng() << ne.lat();
+    throw ChartFileError("Too low coverage");
+  }
+  return totcov < .8;
+  // return true;
+}
+
+Region CM93Reader::transformCoverage(PRegion pcov, WGS84Point &sw, WGS84Point &ne,
+                                     const GeoProjection *gp) const {
+  if (!checkCoverage(pcov, sw, ne, gp)) {
+    return Region();
+  }
+  Region cov;
+  for (const PointVector& ps: pcov) {
+    WGS84PointVector ws;
+    for (auto p: ps) {
+      ws << gp->toWGS84(p);
+    }
+    cov.append(ws);
+  }
+  return cov;
+}
+
+PRegion CM93Reader::createCoverage(const GL::VertexVector &vertices,
+                                   const EdgeVector &edges) const {
+  PRegion cov;
+  for (int i = 0; i < edges.size();) {
+    PointVector ps;
+    auto start = getEndPoint(EP::First, edges[i], vertices);
+    auto prevlast = start;
+    while (i < edges.size() && prevlast == getEndPoint(EP::First, edges[i], vertices)) {
+      ps.append(addVertices(edges[i], vertices));
+      prevlast = getEndPoint(EP::Last, edges[i], vertices);
+      i++;
+    }
+    if (prevlast != start) {
+      qDebug() << "Force polygon" << prevlast - getEndPoint(EP::First, edges[i - 1], vertices);
+      // add prevlast
+      ps << getEndPoint(EP::Last, edges[i - 1], vertices);
+    }
+
+    PointVector qs;
+    const int N = ps.size();
+    for (int k = 0; k < N; k++) {
+      const QPointF v = ps[k];
+      const QPointF vm = ps[(k + N - 1) % N];
+      const QPointF vp = ps[(k + 1) % N];
+      if (v.x() == vm.x() && v.x() == vp.x()) continue;
+      if (v.y() == vm.y() && v.y() == vp.y()) continue;
+      qs << v;
+    }
+
+    cov << qs;
+  }
+
+  return cov;
+}
+
 QPointF CM93Reader::getEndPoint(EP ep,
                                 const Edge& e,
                                 const GL::VertexVector& vertices) const {
@@ -997,6 +1211,21 @@ int CM93Reader::addIndices(const Edge& e, GL::IndexVector& indices) const {
     }
   }
   return e.count - 1;
+}
+
+
+CM93Reader::PointVector CM93Reader::addVertices(const Edge &e, const GL::VertexVector &vertices) const {
+  PointVector ps;
+  if (!e.reversed) {
+    for (int i = 0; i < e.count - 1; i++) {
+      ps << getPoint(e.offset + i, vertices);
+    }
+  } else {
+    for (int i = 0; i < e.count - 1; i++) {
+      ps << getPoint(e.offset + e.count - i - 1, vertices);
+    }
+  }
+  return ps;
 }
 
 QPointF CM93Reader::computeAreaCenter(const S57::ElementDataVector &elems,

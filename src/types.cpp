@@ -2,7 +2,7 @@
 #include <cmath>
 #include <QRegularExpression>
 #include "Geodesic.hpp"
-
+#include <QDebug>
 
 double Angle::degrees() const {
   return radians * DEGS_PER_RAD;
@@ -219,15 +219,14 @@ bool operator!= (const WGS84Point& a, const WGS84Point& b) {
 
   const WGS84Point d(a.m_Longitude - b.m_Longitude, a.m_Latitude - b.m_Latitude);
 
-  if (d.m_Longitude > .1) return true;
-  if (d.m_Latitude > .1) return true;
+  if (d.m_Longitude > .1 || d.m_Latitude > .1) return true;
 
-  const double c2 = a.radiansLat() * a.radiansLat();
-  const double dlng2 = d.radiansLat() * d.radiansLat();
-  const double dlat2 = d.radiansLng() * d.radiansLng();
+  const double c = cos(a.radiansLat());
+  const double dlat2 = d.radiansLat() * d.radiansLat();
+  const double dlng2 = d.radiansLng() * d.radiansLng();
 
   // within 20 meters?
-  return sqrt(dlat2 + c2 * dlng2) * WGS84Point::semimajor_axis > WGS84Point::equality_radius;
+  return sqrt(dlat2 + c * c * dlng2) * WGS84Point::semimajor_axis > WGS84Point::equality_radius;
 }
 
 bool operator== (const WGS84Point& a, const WGS84Point& b) {

@@ -1,5 +1,6 @@
 #include "vectorsymbolmanager.h"
 #include "s52presentation.h"
+#include "s52names.h"
 #include <QFile>
 #include <QXmlStreamReader>
 #include <QDebug>

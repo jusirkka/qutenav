@@ -8,6 +8,7 @@
 #define YYLTYPE Private::LocationType
 #define YYSTYPE Private::ValueType
 #include "s52instr_scanner.h"
+#include "s52names.h"
 
 void s52instr_error(Private::LocationType* loc,
                     Private::Presentation*,
@@ -112,10 +113,8 @@ void Private::Presentation::readObjectClasses() {
       qWarning() << className << "already parsed";
       continue;
     }
-    bool meta = parts[parts.length() - 2] == "M";
 
     names[className] = classCode;
-    classes[classCode] = ClassDescription(className, description, meta);
 
   }
 
@@ -123,21 +122,12 @@ void Private::Presentation::readObjectClasses() {
   const quint32 unknownCode = 666666;
   const QString unknownClass("######");
   names[unknownClass] = unknownCode;
-  classes[unknownCode] = ClassDescription(unknownClass, "Unknown object class", false);
 
   file.close();
 }
 
 
 void Private::Presentation::readAttributes() {
-  const QMap<QString, S57::Attribute::Type> typeLookup {
-    {"A", S57::Attribute::Type::String},
-    {"I", S57::Attribute::Type::Integer},
-    {"S", S57::Attribute::Type::String},
-    {"E", S57::Attribute::Type::Integer},
-    {"L", S57::Attribute::Type::IntegerList},
-    {"F", S57::Attribute::Type::Real},
-  };
 
   QFile afile(S52::FindPath("s57attributes.csv"));
   afile.open(QFile::ReadOnly);
@@ -149,39 +139,15 @@ void Private::Presentation::readAttributes() {
     bool ok;
     const quint32 id = parts[0].toUInt(&ok);
     if (!ok) continue;
-    const QString description = parts[1];
     const QString attributeName = parts[2];
     if (names.contains(attributeName)) {
       qWarning() << attributeName << "already parsed";
       continue;
     }
-    const S57::Attribute::Type t = typeLookup[parts[3]];
 
     names[attributeName] = id;
-    attributes[id] = AttributeDescription(attributeName, t, description);
   }
   afile.close();
-
-  QFile dfile(S52::FindPath("attdecode.csv"));
-  dfile.open(QFile::ReadOnly);
-  QTextStream s2(&dfile);
-
-  while (!s2.atEnd()) {
-    const QStringList parts = s2.readLine().split(",");
-    if (parts.length() != 2) continue;
-    const QString attributeName = parts[0];
-    if (attributeName.startsWith("\"")) continue; // skip description line
-    if (!names.contains(attributeName)) {
-      qWarning() << attributeName << "not found";
-      continue;
-    }
-    DescriptionMap* target = &attributes[names[attributeName]].enumDescriptions;
-    QStringList tokens = parts[1].split(";");
-    for (int i = 0; i < tokens.length() / 2; i++) {
-      (*target)[tokens[2 * i].toUInt()] = tokens[2 * i + 1];
-    }
-  }
-  dfile.close();
 }
 
 void Private::Presentation::readChartSymbols() {
@@ -318,20 +284,21 @@ void Private::Presentation::readLookups(QXmlStreamReader& reader) {
         }
         QString value = token.mid(6).simplified();
         const quint32 aid = names[key];
+        S57::Attribute::Type t = S52::GetAttributeType(aid);
         if (value.isEmpty()) {
           attrs[aid] = S57::Attribute(S57::Attribute::Type::Any);
         } else if (value == "?") {
           attrs[aid] = S57::Attribute(S57::Attribute::Type::None);
-        } else if (attributes[aid].type == S57::Attribute::Type::Integer) {
+        } else if (t == S57::Attribute::Type::Integer) {
           attrs[aid] = S57::Attribute(value.toInt());
-        } else if (attributes[aid].type == S57::Attribute::Type::IntegerList) {
+        } else if (t == S57::Attribute::Type::IntegerList) {
           QVariantList values;
           QStringList parts = value.split(",");
           for (auto p: parts) values << QVariant::fromValue(p.toInt());
           attrs[aid] = S57::Attribute(values);
-        } else if (attributes[aid].type == S57::Attribute::Type::Real) {
+        } else if (t == S57::Attribute::Type::Real) {
           attrs[aid] = S57::Attribute(value.toDouble());
-        } else if (attributes[aid].type == S57::Attribute::Type::String) {
+        } else if (t == S57::Attribute::Type::String) {
           attrs[aid] = S57::Attribute(value);
         }
       } else if (ignored.contains(reader.name().toString())) {

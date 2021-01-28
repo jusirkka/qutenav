@@ -18,6 +18,8 @@ public:
 
   void loadCharts(int chartset);
 
+  QString path() const {return m_DB.databaseName();}
+
 private:
 
   void checkError() const;

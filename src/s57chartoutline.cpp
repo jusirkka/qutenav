@@ -10,17 +10,19 @@ S57ChartOutline::S57ChartOutline(S57ChartOutlinePrivate *d)
 {}
 
 S57ChartOutline::S57ChartOutline(const WGS84Point& sw,
-                                 const WGS84Point& se,
                                  const WGS84Point& ne,
-                                 const WGS84Point& nw,
+                                 const Region& cov,
+                                 const Region& nocov,
                                  quint32 scale,
                                  const QDate& pub,
                                  const QDate& mod)
   : d(new S57ChartOutlinePrivate)
 {
-  d->extent = Extent(sw, se, ne, nw);
-  d->center = WGS84Point::fromLL(.5 * (nw.lng() + se.lng()),
-                                 .5 * (nw.lat() + se.lat()));
+  d->extent = Extent(sw, ne);
+  d->cov = cov;
+  d->nocov = nocov;
+  d->center = WGS84Point::fromLL(.5 * (sw.lng() + ne.lng()),
+                                 .5 * (sw.lat() + ne.lat()));
 
   d->scaling = QSizeF(1., 1.);
   d->scale = scale;
@@ -30,6 +32,8 @@ S57ChartOutline::S57ChartOutline(const WGS84Point& sw,
 
 S57ChartOutline::S57ChartOutline(const WGS84Point& sw,
                                  const WGS84Point& ne,
+                                 const Region& cov,
+                                 const Region& nocov,
                                  const WGS84Point& ref,
                                  const QSizeF& scaling,
                                  quint32 scale,
@@ -38,6 +42,8 @@ S57ChartOutline::S57ChartOutline(const WGS84Point& sw,
   : d(new S57ChartOutlinePrivate)
 {
   d->extent = Extent(sw, ne);
+  d->cov = cov;
+  d->nocov = nocov;
   d->center = ref;
   d->scaling = scaling;
   d->scale = scale;
@@ -60,6 +66,14 @@ S57ChartOutline::~S57ChartOutline() {}
 
 const Extent& S57ChartOutline::extent() const {
   return d->extent;
+}
+
+const Region& S57ChartOutline::coverage() const {
+  return d->cov;
+}
+
+const Region& S57ChartOutline::nocoverage() const {
+  return d->nocov;
 }
 
 const WGS84Point& S57ChartOutline::reference() const {

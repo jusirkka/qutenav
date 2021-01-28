@@ -21,6 +21,7 @@ if (DESKTOP)
     Gui
     Xml
     OpenGL
+    DBus
   )
 
   set(KF5_MIN_VERSION "5.56.0")
@@ -52,6 +53,7 @@ else()
     Xml
     Quick
     OpenGL
+    DBus
   )
 
   include(FindPkgConfig)
@@ -80,6 +82,7 @@ find_package(harfbuzz REQUIRED)
 #
 
 add_executable(qopencpn)
+add_executable(qopencpn_dbupdater)
 
 
 set_target_properties(qopencpn
@@ -90,6 +93,7 @@ set_target_properties(qopencpn
 target_sources(qopencpn
   PRIVATE
     src/camera.cpp
+    src/chartcover.cpp
     src/chartdatabase.cpp
     src/chartfilereader.cpp
     src/chartmanager.cpp
@@ -109,6 +113,7 @@ target_sources(qopencpn
     src/perscam.cpp
     src/rastersymbolmanager.cpp
     src/s52functions.cpp
+    src/s52names.cpp
     src/s52presentation.cpp
     src/s52presentation_p.cpp
     src/s57chart.cpp
@@ -149,6 +154,32 @@ BISON_TARGET(S52HParser src/s52hpgl_parser.y ${CMAKE_BINARY_DIR}/s52hpgl_parser.
   DEFINES_FILE ${CMAKE_BINARY_DIR}/s52hpgl_parser.h)
 
 
+set_target_properties(qopencpn_dbupdater
+  PROPERTIES
+    AUTOMOC ON
+)
+
+
+set(dbus_SRCS)
+qt_add_dbus_adaptor(dbus_SRCS
+  src/dbupdater.xml
+  updater.h
+  Updater
+  dbupdater_adaptor
+)
+
+target_sources(qopencpn_dbupdater
+  PRIVATE
+    src/dbupdater.cpp
+    src/chartdatabase.cpp
+    src/chartfilereader.cpp
+    src/geoprojection.cpp
+    src/s52names.cpp
+    src/s57chartoutline.cpp
+    src/types.cpp
+    ${dbus_SRCS}
+)
+
 if (DESKTOP)
 
   target_include_directories(qopencpn
@@ -174,11 +205,24 @@ else()
 
 endif()
 
+target_include_directories(qopencpn_dbupdater
+  PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/dbupdater/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/geographiclib/src
+    ${CMAKE_BINARY_DIR}
+)
+
+
 target_compile_features(qopencpn
   PRIVATE
     cxx_std_17
 )
 
+target_compile_features(qopencpn_dbupdater
+  PRIVATE
+    cxx_std_17
+)
 #
 # subdirectories
 #
@@ -187,6 +231,8 @@ add_subdirectory(geographiclib)
 add_subdirectory(triangulate)
 add_subdirectory(osencreader)
 add_subdirectory(cm93reader)
+add_subdirectory(dbupdater)
+
 
 if (DESKTOP)
 
@@ -238,6 +284,18 @@ else()
 
 endif()
 
+target_link_libraries(qopencpn_dbupdater
+  PRIVATE
+    Osencreader
+    Cm93reader
+    Dbupdater
+    GeographicLib
+    Triangulate
+    Qt5::Core
+    Qt5::Sql
+    Qt5::OpenGL
+)
 
 install(TARGETS qopencpn DESTINATION bin)
+install(TARGETS qopencpn_dbupdater DESTINATION bin)
 
