@@ -6,6 +6,7 @@
 
 #include "s57object.h"
 #include "types.h"
+#include "s57paintdata.h"
 
 namespace S52 {
 

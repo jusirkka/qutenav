@@ -93,6 +93,7 @@ set_target_properties(qopencpn
 target_sources(qopencpn
   PRIVATE
     src/camera.cpp
+    src/cachereader.cpp
     src/chartcover.cpp
     src/chartdatabase.cpp
     src/chartfilereader.cpp
@@ -119,6 +120,7 @@ target_sources(qopencpn
     src/s57chart.cpp
     src/s57chartoutline.cpp
     src/s57object.cpp
+    src/s57paintdata.cpp
     src/settings.cpp
     src/shader.cpp
     src/symboldata.cpp
@@ -176,6 +178,7 @@ target_sources(qopencpn_dbupdater
     src/geoprojection.cpp
     src/s52names.cpp
     src/s57chartoutline.cpp
+    src/s57object.cpp
     src/types.cpp
     ${dbus_SRCS}
 )

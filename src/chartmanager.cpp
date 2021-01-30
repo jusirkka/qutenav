@@ -17,6 +17,7 @@
 #include <QRegion>
 #include <QPluginLoader>
 #include <QLibraryInfo>
+#include "cachereader.h"
 
 
 ChartManager* ChartManager::instance() {
@@ -33,6 +34,8 @@ ChartManager::ChartManager(QObject *parent)
 {
 
   loadPlugins();
+
+  m_readers.append(new CacheReader);
 
   // create readers
   QSqlQuery r = m_db.exec("select name from chartsets");
@@ -163,6 +166,12 @@ void ChartManager::createThreads(QOpenGLContext* ctx) {
     m_threads.append(thread);
     m_workers.append(worker);
   }
+
+  m_cacheThread = new GL::Thread(ctx);
+  m_cacheWorker = new ChartUpdater(m_workers.size());
+  m_cacheWorker->moveToThread(m_cacheThread);
+  connect(m_cacheThread, &QThread::finished, m_cacheWorker, &QObject::deleteLater);
+  m_cacheThread->start();
 }
 
 ChartManager::~ChartManager() {
@@ -171,6 +180,12 @@ ChartManager::~ChartManager() {
     thread->wait();
   }
   qDeleteAll(m_threads);
+
+  m_cacheThread->quit();
+  m_cacheThread->wait();
+  delete m_cacheThread;
+
+  qDeleteAll(m_readers);
 }
 
 const ChartCover* ChartManager::getCover(quint32 chart_id,
@@ -276,7 +291,7 @@ void ChartManager::updateCharts(const Camera *cam, bool force) {
     return la < lb;
   });
 
-  // qDebug() << "scale candidates" << scaleCandidates;
+  qDebug() << "scale candidates" << scaleCandidates;
 
   const WGS84Point sw0 = cam->geoprojection()->toWGS84(m_viewArea.topLeft()); // inverted y-axis
   const WGS84Point ne0 = cam->geoprojection()->toWGS84(m_viewArea.bottomRight()); // inverted y-axis
@@ -330,9 +345,9 @@ void ChartManager::updateCharts(const Camera *cam, bool force) {
 
   m_hadCharts = !m_charts.isEmpty();
 
-  // remove old charts
+  // queue old charts for caching
   for (auto it = m_chartIds.constBegin(); it != m_chartIds.constEnd(); ++it) {
-    delete m_charts[it.value()];
+    m_cacheQueue.append(m_charts[it.value()]);
     m_charts[it.value()] = nullptr;
   }
   ChartVector charts;
@@ -437,6 +452,11 @@ void ChartManager::manageThreads(S57Chart* chart) {
     }
   } else {
     m_idleStack.push(dest->id());
+    while (!m_cacheQueue.isEmpty()) {
+      auto chart = m_cacheQueue.takeFirst();
+      QMetaObject::invokeMethod(m_cacheWorker, "cacheChart",
+                                Q_ARG(S57Chart*, chart));
+    }
   }
 
 
@@ -469,5 +489,31 @@ void ChartUpdater::updateChart(S57Chart *chart, quint32 scale,
                                const WGS84Point& sw, const WGS84Point& ne) {
   chart->updatePaintData(sw, ne, scale);
   emit done(chart);
+}
+
+void ChartUpdater::cacheChart(S57Chart *chart) {
+  auto scoped = QScopedPointer<S57Chart>(chart);
+
+  const auto id = CacheReader::CacheId(chart->path());
+  const auto base = QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation);
+
+  const auto cachePath = QString("%1/%2/%3").arg(base).arg(qAppName()).arg(QString(id));
+
+  if (!QFileInfo(cachePath).exists()) {
+    // not found - cache
+    if (!QDir().mkpath(QString("%1/%2").arg(base).arg(qAppName()))) return;
+    QFile file(cachePath);
+    if (!file.open(QFile::WriteOnly)) return;
+    QDataStream stream(&file);
+    stream.setVersion(QDataStream::Qt_5_6);
+    stream.setByteOrder(QDataStream::LittleEndian);
+    // dummy magic - causes simultaneous read to fail
+    stream.writeRawData("00000000", 8);
+    scoped->encode(stream);
+    // write magic
+    file.seek(0);
+    stream.writeRawData(id.constData(), 8);
+    file.close();
+  }
 }
 

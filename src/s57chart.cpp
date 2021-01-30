@@ -46,6 +46,7 @@ S57Chart::S57Chart(quint32 id, const QString& path)
   , m_paintData(S52::Lookup::PriorityCount)
   , m_updatedPaintData(S52::Lookup::PriorityCount)
   , m_id(id)
+  , m_path(path)
   , m_settings(Settings::instance())
   , m_coordBuffer(QOpenGLBuffer::VertexBuffer)
   , m_indexBuffer(QOpenGLBuffer::IndexBuffer)
@@ -171,6 +172,77 @@ S57Chart::~S57Chart() {
   delete m_nativeProj;
 }
 
+
+void S57Chart::encode(QDataStream& stream) {
+  stream.setFloatingPointPrecision(QDataStream::DoublePrecision);
+
+  // header
+  const auto ref = m_nativeProj->reference();
+  stream << ref.lng() << ref.lat();
+  stream.setFloatingPointPrecision(QDataStream::SinglePrecision);
+
+  using GForm = std::function<glm::vec2 (const glm::vec2&)>;
+
+  GForm gform;
+  // TODO: only mercator transforms supported for now
+  if (geoProjection()->className() == "CM93Mercator") {
+    gform = [] (const glm::vec2& v) {
+      return static_cast<GLfloat>(CM93Mercator::scale) * v;
+    };
+  } else {
+    gform = [] (const glm::vec2& v) {
+      return v;
+    };
+  }
+
+  // vertices
+  m_coordBuffer.bind();
+  auto vertices = reinterpret_cast<const glm::vec2*>(m_coordBuffer.mapRange(0, m_staticVertexOffset, QOpenGLBuffer::RangeRead));
+  const int Nc = m_staticVertexOffset / sizeof(GLfloat) / 2;
+
+  stream << Nc;
+
+  for (int n = 0; n < Nc; n++) {
+    const glm::vec2 v = gform(vertices[n]);
+    stream << v.x << v.y;
+  }
+  m_coordBuffer.unmap();
+  m_coordBuffer.release();
+
+  // indices
+  m_indexBuffer.bind();
+  auto indices = reinterpret_cast<const GLfloat*>(m_indexBuffer.mapRange(0, m_staticElemOffset, QOpenGLBuffer::RangeRead));
+  const int Ni = m_staticElemOffset / sizeof(GLuint);
+
+  stream << Ni;
+
+  for (int n = 0; n < Ni; n++) {
+    stream << indices[n];
+  }
+  m_indexBuffer.unmap();
+  m_indexBuffer.release();
+
+  // objects
+  S57::Transform transform;
+  // TODO: only mercator transforms supported for now
+  if (geoProjection()->className() == "CM93Mercator") {
+    transform = [] (const QPointF& v) {
+      return static_cast<qreal>(CM93Mercator::scale) * v;
+    };
+  } else {
+    transform = [] (const QPointF& v) {
+      return v;
+    };
+  }
+
+  const int No = m_lookups.size();
+  stream << No;
+
+  for (const ObjectLookup& lup: m_lookups) {
+    lup.object->encode(stream, transform);
+  }
+
+}
 
 
 

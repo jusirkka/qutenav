@@ -37,6 +37,7 @@ public slots:
                    const WGS84Point& sw, const WGS84Point& ne);
   void createChart(quint32 id, const QString& path, quint32 scale,
                    const WGS84Point& sw, const WGS84Point& ne);
+  void cacheChart(S57Chart* chart);
 
 signals:
 
@@ -165,6 +166,10 @@ private:
   ThreadVector m_threads;
   IDStack m_idleStack;
   ChartDataStack m_pendingStack;
+
+  GL::Thread* m_cacheThread;
+  ChartUpdater* m_cacheWorker;
+  ChartVector m_cacheQueue;
 
   using ChartsetNameMap = QMap<QString, int>;
   using FactoryMap = QMap<QString, ChartFileReaderFactory*>;

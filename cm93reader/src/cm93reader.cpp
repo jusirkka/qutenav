@@ -443,7 +443,7 @@ using Region = S57ChartOutline::Region;
 
 static void tognuplot(const Region& cov, const WGS84Point& sw,
                       const WGS84Point& ne, const GeoProjection* gp,
-                      const QString path) {
+                      const QString& path) {
 
   if (sw.lng() < -10) return;
   if (ne.lng() > -5) return;

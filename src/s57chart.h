@@ -21,6 +21,7 @@ class S57Chart: public QObject {
 public:
 
   S57Chart(quint32 id, const QString& path);
+  void encode(QDataStream& stream);
 
   void updateModelTransform(const Camera* cam);
 
@@ -36,6 +37,7 @@ public:
   const GeoProjection* geoProjection() const {return m_nativeProj;}
 
   quint32 id() const {return m_id;}
+  const QString& path() {return m_path;}
 
   void updatePaintData(const WGS84Point& sw, const WGS84Point& ne, quint32 scale);
   void finalizePaintData();
@@ -90,6 +92,7 @@ private:
   GL::VertexVector m_updatedPivots;
   GL::VertexVector m_updatedTransforms;
   quint32 m_id;
+  QString m_path;
   Settings* m_settings;
   QOpenGLBuffer m_coordBuffer;
   QOpenGLBuffer m_indexBuffer;
