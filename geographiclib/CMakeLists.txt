@@ -20,3 +20,7 @@ target_compile_features(GeographicLib
     cxx_std_17
 )
 
+target_compile_options(GeographicLib
+  PRIVATE
+    -fPIC
+)

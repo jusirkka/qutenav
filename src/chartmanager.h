@@ -171,6 +171,7 @@ private:
   ChartUpdater* m_cacheWorker;
   ChartVector m_cacheQueue;
 
+
   using ChartsetNameMap = QMap<QString, int>;
   using FactoryMap = QMap<QString, ChartFileReaderFactory*>;
 

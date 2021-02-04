@@ -69,6 +69,7 @@ void VectorSymbolManager::createSymbols() {
   m_indexBuffer.bind();
   m_indexBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
   m_indexBuffer.allocate(indices.constData(), sizeof(GLuint) * indices.size());
+
 }
 
 

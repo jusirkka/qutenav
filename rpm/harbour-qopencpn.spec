@@ -1,7 +1,7 @@
 Name: harbour-qopencpn
 
 Summary: Chart plotter / navigator for Sailfish OS
-Version: 0.01
+Version: 0.05
 Release: 1
 Group: Qt/Qt
 URL: https://github.com/jusirkka/qopencpn
@@ -23,6 +23,8 @@ BuildRequires:  freetype
 BuildRequires:  fontconfig
 
 
+# % global __os_install_post % {nil}
+
 
 %description
 Marine chart plotter / navigator for Sailfish OS. Supports cm93v2, S57
@@ -34,7 +36,7 @@ and OpenCPN/SENC vector charts. Does not support encrypted charts.
 
 %build
 mkdir -p rpmbuilddir-%{_arch}
-cd rpmbuilddir-%{_arch} && cmake -DMOBILE=ON -DCMAKE_BUILD_TYPE=Debug ..
+cd rpmbuilddir-%{_arch} && cmake -DMOBILE=ON -DCMAKE_BUILD_TYPE=Release ..
 cd ..
 make %{?_smp_mflags} -C rpmbuilddir-%{_arch} VERBOSE=1
 
@@ -49,4 +51,5 @@ make -C mobile -f sailfishos.make \
 %{_datadir}/%{name}
 %{_datadir}/applications/%{name}.desktop
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
+%{_userunitdir}/%{name}.service
 

@@ -103,7 +103,6 @@ target_sources(qopencpn
     src/detailmode.cpp
     src/drawable.cpp
     src/geoprojection.cpp
-    src/glcontext.cpp
     src/globe.cpp
     src/glthread.cpp
     src/glyphmanager.cpp
@@ -155,15 +154,20 @@ FLEX_TARGET(S52HScanner src/s52hpgl_scanner.l ${CMAKE_BINARY_DIR}/s52hpgl_scanne
 BISON_TARGET(S52HParser src/s52hpgl_parser.y ${CMAKE_BINARY_DIR}/s52hpgl_parser.cpp
   DEFINES_FILE ${CMAKE_BINARY_DIR}/s52hpgl_parser.h)
 
-
+if (DESKTOP)
 set_target_properties(qopencpn_dbupdater
   PROPERTIES
     AUTOMOC ON
 )
-
+else()
+  set_target_properties(qopencpn_dbupdater
+    PROPERTIES
+      AUTOMOC OFF
+  )
+endif()
 
 set(dbus_SRCS)
-qt_add_dbus_adaptor(dbus_SRCS
+qt5_add_dbus_adaptor(dbus_SRCS
   src/dbupdater.xml
   updater.h
   Updater

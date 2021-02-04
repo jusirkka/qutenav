@@ -5,7 +5,7 @@ uniform mat4 m_pv;
 uniform float angle;
 uniform int vertexOffset;
 
-layout(packed, binding = 0) buffer VertexBufferIn {
+layout(std430, binding = 0) buffer VertexBufferIn {
   vec4 vertices[];
 } vertexBufferIn;
 

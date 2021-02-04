@@ -14,6 +14,7 @@ class TextShaper;
 class QOpenGLTexture;
 class QTimer;
 
+
 struct TextSharedData: public QSharedData {
   TextSharedData()
     : bbox() {}
@@ -133,6 +134,7 @@ private:
   QOpenGLBuffer m_coordBuffer;
   QOpenGLBuffer m_indexBuffer;
   QOpenGLTexture* m_glyphTexture;
+
   GLsizei m_vertexOffset;
   GLsizei m_indexOffset;
   QTimer* m_shapeTimer;

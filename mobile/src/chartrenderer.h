@@ -1,43 +1,36 @@
 #pragma once
 
-#include <QObject>
-#include <QOpenGLFramebufferObject>
+#include <QtQuick/QQuickFramebufferObject>
+#include <QOpenGLVertexArrayObject>
 
 class QQuickWindow;
-class Camera;
 class DetailMode;
-class QOpenGLDebugLogger;
-class QOpenGLFramebufferObject;
 
-class ChartRenderer: public QObject {
-
-  Q_OBJECT
+class ChartRenderer: public QQuickFramebufferObject::Renderer {
 
 public:
 
   ChartRenderer(QQuickWindow *window);
-  void setCamera(const Camera* cam);
-  Camera* cloneCamera() const;
-
-  void updateCharts(const QRectF& va);
-  bool initializeChartMode();
-  bool finalizeChartMode();
-  void chartSetChanged();
-  GLuint textureId() const;
 
   ~ChartRenderer();
 
-public slots:
+protected:
 
-  void paint();
-  void initializeGL();
+  void render() override;
+  void synchronize(QQuickFramebufferObject* parent) override;
+  QOpenGLFramebufferObject* createFramebufferObject(const QSize &size) override;
+
 
 private:
 
+  bool initializeChartMode();
+  bool finalizeChartMode();
+  void initializeGL();
+
   DetailMode* m_mode;
   QQuickWindow* m_window;
-  QOpenGLDebugLogger* m_logger;
-  QOpenGLFramebufferObject* m_fbo;
+  QOpenGLVertexArrayObject m_vao;
+
 
 };
 

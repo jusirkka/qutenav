@@ -9,8 +9,8 @@
 
 GlyphBin::GlyphBin(QMutex *mutex)
   : m_mutex(mutex)
-  , m_width(128)
-  , m_height(128)
+  , m_width(1024)
+  , m_height(1024)
   , m_data(new uchar[m_width * m_height]())
   , m_pad(2)
 {

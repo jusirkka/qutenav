@@ -7,7 +7,7 @@ uniform float depth;
 uniform float windowScale;
 uniform mat4 m_model;
 
-void main(void) {
+void main() {
   float a = 1. / windowScale;
   vec2  pivot = trans.xy;
   float ca = trans.z;

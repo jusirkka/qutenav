@@ -15,7 +15,7 @@ uniform vec2 offset;
 
 out vec2 tex;
 
-void main(void) {
+void main() {
   tex = vec2(texin.x / w_atlas, texin.y / h_atlas);
   const float a = 1. / windowScale;
   const vec2 v = a * (textScale * vertex + offset) + pivot;

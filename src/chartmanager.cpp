@@ -10,7 +10,6 @@
 #include "camera.h"
 #include <QOpenGLContext>
 #include "glthread.h"
-#include "glcontext.h"
 #include "chartfilereader.h"
 #include <QDate>
 #include <QScopedPointer>
@@ -18,7 +17,6 @@
 #include <QPluginLoader>
 #include <QLibraryInfo>
 #include "cachereader.h"
-
 
 ChartManager* ChartManager::instance() {
   static ChartManager* m = new ChartManager();
@@ -156,18 +154,22 @@ void ChartManager::createThreads(QOpenGLContext* ctx) {
   qDebug() << "number of chart updaters =" << numThreads;
   m_workers.clear(); // remove the temporary setting in ctor
   for (int i = 0; i < numThreads; ++i) {
+    qDebug() << "creating thread" << i;
     auto thread = new GL::Thread(ctx);
+    qDebug() << "creating worker" << i;
     auto worker = new ChartUpdater(m_workers.size());
     m_idleStack.push(worker->id());
+    qDebug() << "moving worker to thread" << i;
     worker->moveToThread(thread);
     connect(thread, &QThread::finished, worker, &QObject::deleteLater);
     connect(worker, &ChartUpdater::done, this, &ChartManager::manageThreads);
+    qDebug() << "starting thread" << i;
     thread->start();
     m_threads.append(thread);
     m_workers.append(worker);
   }
 
-  m_cacheThread = new GL::Thread(ctx);
+  m_cacheThread = new GL::Thread(ctx->shareContext());
   m_cacheWorker = new ChartUpdater(m_workers.size());
   m_cacheWorker->moveToThread(m_cacheThread);
   connect(m_cacheThread, &QThread::finished, m_cacheWorker, &QObject::deleteLater);
@@ -422,9 +424,7 @@ void ChartManager::manageThreads(S57Chart* chart) {
 
   if (chart != nullptr) {
 
-    GL::Context::instance()->makeCurrent();
     chart->finalizePaintData();
-    GL::Context::instance()->doneCurrent();
 
     auto chartId = chart->id();
     if (!m_chartIds.contains(chartId)) {

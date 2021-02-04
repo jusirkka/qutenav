@@ -102,7 +102,6 @@ private:
   GLsizei m_staticElemOffset;
 
   QMatrix4x4 m_modelMatrix;
-
 };
 
 Q_DECLARE_METATYPE(S57Chart*)

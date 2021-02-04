@@ -4,6 +4,7 @@
 #include "textmanager.h"
 #include "platform.h"
 #include <QOpenGLExtraFunctions>
+#include <QFile>
 
 GL::Shader::Shader(const QVector<Source>& sources, GLfloat ds)
   : m_depthShift(ds)

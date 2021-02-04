@@ -22,15 +22,40 @@ Page {
     z: 300
   }
 
-  MouseArea {
-    z: 100
+  PinchArea {
     anchors.fill: parent
+    pinch.minimumRotation: -180
+    pinch.maximumRotation: 180
+    pinch.minimumScale: .5
+    pinch.maximumScale: 2
 
-    onPressed: encdis.panStart(mouse.x, mouse.y)
-    onPositionChanged: encdis.pan(mouse.x, mouse.y)
+    onPinchUpdated: {
+      if (pinch.scale > 0) {
+        // zoom in/out
+        var delta;
+        if (pinch.scale > 1) {
+          delta = Math.floor(10 * pinch.scale) - Math.floor(10 * pinch.previousScale);
+          if (delta > 0) {
+            encdis.zoomIn();
+          }
+        } else {
+          delta = Math.floor(10. / pinch.scale) - Math.floor(10. / pinch.previousScale);
+          if (delta > 0) {
+            encdis.zoomOut();
+          }
+        }
+      }
+    }
+    MouseArea {
+      z: 100
+      anchors.fill: parent
+
+      onPressed: encdis.panStart(mouse.x, mouse.y)
+      onPositionChanged: encdis.pan(mouse.x, mouse.y)
+      onDoubleClicked: encdis.northUp()
+
+    }
   }
-
-
 }
 
 

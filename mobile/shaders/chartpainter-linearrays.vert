@@ -12,11 +12,11 @@ uniform float windowScale;
 
 out float texCoord;
 
-layout(packed, binding = 0) buffer VertexBufferIn {
+layout(std430, binding = 0) buffer VertexBufferIn {
   vec2 data[];
 } vertexBufferIn;
 
-void main(void) {
+void main() {
 
   float thickness = lineWidth / windowScale;
   uint index = uint(gl_VertexID / 2);

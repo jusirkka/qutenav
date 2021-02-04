@@ -340,11 +340,12 @@ S57::PaintDataMap S52::CSDepthArea01::execute(const QVector<QVariant>&,
   quint32 sym = m_depit;
   double depth = -1.;
 
-  if (obj->attributeValue(m_drval1).isValid() &&
-      obj->attributeValue(m_drval2).isValid()) {
+  if (obj->attributeValue(m_drval1).isValid()) {
     sym = m_depvs;
-    depth = qMin(obj->attributeValue(m_drval1).toDouble(),
-                 obj->attributeValue(m_drval2).toDouble());
+    depth = obj->attributeValue(m_drval1).toDouble();
+    if (obj->attributeValue(m_drval2).isValid()) {
+      depth = qMin(depth, obj->attributeValue(m_drval2).toDouble());
+    }
   }
 
   const Settings* cfg = Settings::instance();

@@ -2,8 +2,45 @@
 #include "chartmode.h"
 #include "outlinemode.h"
 #include "conf_detailmode.h"
+#include "perscam.h"
+#include "orthocam.h"
 
 DetailMode::DetailMode(QObject *parent): QObject(parent) {}
+
+
+Camera* DetailMode::RestoreCamera() {
+  const float wmm = Conf::DetailMode::widthMM();
+  const float hmm = Conf::DetailMode::heightMM();
+
+  auto p = GeoProjection::CreateProjection(Conf::DetailMode::projection());
+  if (p == nullptr) {
+    p = new SimpleMercator;
+  }
+
+  const QString name = Conf::DetailMode::name();
+  Camera* cam;
+  if (name == "OutlineMode") {
+    cam = new PersCam(wmm, hmm, p);
+  } else if (name == "ChartMode") {
+    cam = new OrthoCam(wmm, hmm, p);
+  } else {
+    throw ModeError("unsupported mode");
+  }
+
+  quint32 scale = Conf::DetailMode::scale();
+  scale = qMin(scale, cam->maxScale());
+  scale = qMax(scale, cam->minScale());
+  cam->setScale(scale);
+
+  WGS84Point e = WGS84Point::parseISO6709(Conf::DetailMode::eye());
+  if (!e.valid()) e = cam->eye();
+
+  const Angle a = Angle::fromDegrees(Conf::DetailMode::northAngle());
+
+  cam->reset(e, a);
+
+  return cam;
+}
 
 DetailMode* DetailMode::RestoreState() {
 

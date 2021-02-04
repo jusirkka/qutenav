@@ -12,6 +12,7 @@ public:
   DetailMode(QObject* parent = nullptr);
 
   static DetailMode* RestoreState();
+  static Camera* RestoreCamera();
   Camera* camera() {return m_camera;}
   const Camera* camera() const {return m_camera;}
   DrawableVector& drawables() {return m_drawables;}

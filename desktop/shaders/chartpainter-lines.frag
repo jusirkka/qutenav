@@ -8,7 +8,7 @@ uniform vec4 base_color;
 in float texCoord;
 out vec4 color;
 
-void main(void) {
+void main() {
 
   if (pattern == SOLID_PATT) {
     color = base_color;

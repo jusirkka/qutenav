@@ -15,7 +15,7 @@ uniform vec2 offset;
 
 out vec2 tex;
 
-void main(void) {
+void main() {
   tex = vec2(texin.x / float(w_atlas), texin.y / float(h_atlas));
   float a = 1. / windowScale;
   vec2 v = a * (textScale * vertex + offset) + pivot;

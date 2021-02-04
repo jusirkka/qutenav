@@ -73,6 +73,8 @@ S57::Geometry::Base* S57::Geometry::Base::Decode(QDataStream &stream) {
     geom = new Line(); break;
   case Type::Area:
     geom = new Area(); break;
+  default:
+    geom = new Meta(); break;
   }
   stream.setFloatingPointPrecision(QDataStream::DoublePrecision);
   stream >> geom->m_center;

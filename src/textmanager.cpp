@@ -1,12 +1,9 @@
 #include "textmanager.h"
-#include <QOpenGLContext>
-#include <QOffscreenSurface>
 #include <QThread>
 #include <QMutexLocker>
 #include <QOpenGLTexture>
 #include <QTimer>
 #include <QDebug>
-#include "glcontext.h"
 
 TextManager::TextManager()
   : QObject()
@@ -33,7 +30,6 @@ TextManager::~TextManager() {
   m_thread->quit();
   m_thread->wait();
   delete m_thread;
-  GL::Context::instance()->makeCurrent();
   delete m_glyphTexture;
 }
 
@@ -43,8 +39,6 @@ TextManager* TextManager::instance() {
 }
 
 void TextManager::createBuffers() {
-
-  GL::Context::instance()->makeCurrent();
 
   // initialize vertex buffer
   m_coordBuffer.create();
@@ -99,8 +93,6 @@ void TextManager::handleShape(const TextKey& key,
   }
 
   m_shapeTimer->start();
-
-  GL::Context::instance()->makeCurrent();
 
   { // scope for QMutexLocker
     auto atlas = m_worker->atlas();

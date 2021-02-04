@@ -9,6 +9,7 @@ DATADIR    = $(DESTDIR)$(PREFIX)/share/$(NAME)
 DESKTOPDIR = $(DESTDIR)$(PREFIX)/share/applications
 ICONDIR    = $(DESTDIR)$(PREFIX)/share/icons/hicolor
 BINDIR     = $(DESTDIR)$(PREFIX)/bin
+LIBDIR     = $(DESTDIR)$(PREFIX)/lib
 
 ICONS = ../data/qopencpn-86x86.png \
         ../data/qopencpn-108x108.png \
@@ -40,22 +41,27 @@ install:
 	cp ../data/qopencpn-108x108.png $(ICONDIR)/108x108/apps/$(NAME).png
 	cp ../data/qopencpn-128x128.png $(ICONDIR)/128x128/apps/$(NAME).png
 	cp ../data/qopencpn-256x256.png $(ICONDIR)/256x256/apps/$(NAME).png
-	@echo "Installing binary..."
+	@echo "Installing binaries..."
 	mkdir -p $(BINDIR)
 	cp ../$(BUILDDIR)/qopencpn $(BINDIR)/$(NAME)
+	cp ../$(BUILDDIR)/qopencpn_dbupdater $(BINDIR)/$(NAME)_dbupdater
 	chmod 755 $(BINDIR)/$(NAME)
+	chmod 755 $(BINDIR)/$(NAME)_dbupdater
 	@echo "Installing wavefront object files..."
 	mkdir -p $(DATADIR)/GSHHS/c
 	cp ../data/globe_l?.obj $(DATADIR)/GSHHS/c
 	@echo "Installing S57 data files..."
 	mkdir -p $(DATADIR)/s57data
-	cp ../data/attdecode.csv $(DATADIR)/s57data
+	cp ../data/s57expectedinput.csv $(DATADIR)/s57data
 	cp ../data/chartsymbols.xml $(DATADIR)/s57data
 	cp ../data/rastersymbols-dark.png $(DATADIR)/s57data
 	cp ../data/rastersymbols-day.png $(DATADIR)/s57data
 	cp ../data/rastersymbols-dusk.png $(DATADIR)/s57data
 	cp ../data/s57attributes.csv $(DATADIR)/s57data
 	cp ../data/s57objectclasses.csv $(DATADIR)/s57data
+	@echo "Installing systemd service file..."
+	mkdir -p $(LIBDIR)/systemd/user
+	cp qopencpn.service $(LIBDIR)/systemd/user/$(NAME).service
 
 
 %.png:

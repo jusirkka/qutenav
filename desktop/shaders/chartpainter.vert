@@ -5,6 +5,6 @@ uniform mat4 m_p;
 uniform float depth;
 uniform mat4 m_model;
 
-void main(void) {
+void main() {
   gl_Position = m_p * m_model * vec4(vertex, depth, 1.);
 }

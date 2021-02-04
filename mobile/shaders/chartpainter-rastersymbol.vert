@@ -12,7 +12,7 @@ uniform vec2 offset;
 
 out vec2 tex;
 
-void main(void) {
+void main() {
   tex = texin;
   float a = 1. / windowScale;
   vec2 v =  a * (vertex + offset) + pivot;

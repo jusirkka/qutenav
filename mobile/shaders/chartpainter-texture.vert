@@ -11,7 +11,7 @@ uniform vec2 scale_tex;
 
 out vec2 tex;
 
-void main(void) {
+void main() {
   tex = tr_tex + scale_tex * texin;
   vec2 v =  tr_vertex + scale_vertex * vertex;
   // place it halfway in visible depth range (-1, 0)

@@ -247,6 +247,7 @@ void S57Chart::encode(QDataStream& stream) {
 
 
 void S57Chart::finalizePaintData() {
+  // TODO update/finalize split is outdated and not needed anymore
   // clear old paint data
   for (S57::PaintDataMap& d: m_paintData) {
     for (S57::PaintMutIterator it = d.begin(); it != d.end(); ++it) {
@@ -541,7 +542,6 @@ void S57Chart::drawAreas(const Camera* cam, int prio) {
   prog->setGlobals(cam, m_modelMatrix);
   prog->setDepth(prio);
 
-
   auto f = QOpenGLContext::currentContext()->extraFunctions();
 
   const S57::PaintIterator end = m_paintData[prio].constEnd();
@@ -570,6 +570,7 @@ void S57Chart::drawAreas(const Camera* cam, int prio) {
     }
     ++elem;
   }
+
 
 }
 

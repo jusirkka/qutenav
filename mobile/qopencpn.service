@@ -1,0 +1,11 @@
+[Unit]
+Description=QOpenCPN database updater
+After=user-session.target
+Requires=dbus.socket
+
+[Service]
+ExecStart=/usr/bin/harbour-qopencpn_dbupdater
+Restart=always
+
+[Install]
+WantedBy=post-user-session.target

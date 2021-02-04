@@ -7,7 +7,7 @@ uniform vec3 lp;
 
 out float diffuse;
 
-void main(void) {
+void main() {
   diffuse = max(0., dot(lp, vertex));
   gl_Position = m_pv * vec4(vertex, 1.);
 }

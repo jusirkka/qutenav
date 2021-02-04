@@ -1,43 +1,74 @@
 #include "chartdisplay.h"
 
-#include <QtQuick/qquickwindow.h>
 #include <QtGui/QOpenGLContext>
-#include "outlinemode.h"
 #include "chartmanager.h"
 #include "textmanager.h"
-#include "glcontext.h"
 #include "rastersymbolmanager.h"
 #include "vectorsymbolmanager.h"
 #include "chartrenderer.h"
 #include "conf_mainwindow.h"
-#include <QSGSimpleTextureNode>
+#include "detailmode.h"
+#include <QQuickWindow>
+#include <QOffscreenSurface>
 
 ChartDisplay::ChartDisplay()
-  : QQuickItem()
-  , m_renderer(nullptr)
-  , m_camera(nullptr)
+  : QQuickFramebufferObject()
+  , m_camera(DetailMode::RestoreCamera())
   , m_initialized(false)
-  , m_leavingChartMode(false)
-  , m_enteringChartMode(false)
-  , m_chartsUpdated(false)
-  , m_chartSetChanged(false)
+  , m_flags(0)
+  , m_orientation(Qt::PortraitOrientation)
 {
-  setFlag(ItemHasContents, true);
-
+  setMirrorVertically(true);
   connect(this, &QQuickItem::windowChanged, this, &ChartDisplay::handleWindowChanged);
+}
+
+
+void ChartDisplay::handleWindowChanged(QQuickWindow *win) {
+  if (!win) return;
+
+  qDebug() << "window changed" << win->size();
+
+  connect(win, &QQuickWindow::openglContextCreated, this, &ChartDisplay::initializeGL, Qt::DirectConnection);
+  connect(win, &QQuickWindow::sceneGraphInitialized, this, &ChartDisplay::initializeSG, Qt::DirectConnection);
+  connect(win, &QQuickWindow::sceneGraphInvalidated, this, &ChartDisplay::finalizeSG, Qt::DirectConnection);
+  connect(win, &QQuickWindow::heightChanged, this, &ChartDisplay::resize, Qt::DirectConnection);
+  connect(win, &QQuickWindow::widthChanged, this, &ChartDisplay::resize, Qt::DirectConnection);
+  connect(win, &QQuickWindow::contentOrientationChanged, this, &ChartDisplay::orient);
+}
+
+void ChartDisplay::finalizeSG() {
+  qDebug() << "finalize SG";
+
+
+  qDebug() << "disconnect";
+  this->disconnect();
+
+  auto chartMgr = ChartManager::instance();
+  qDebug() << "disconnect chartmgr";
+  disconnect(chartMgr, nullptr, this, nullptr);
+
+  auto textMgr = TextManager::instance();
+  qDebug() << "disconnect textmgr";
+  disconnect(textMgr, nullptr, this, nullptr);
+
+  Conf::MainWindow::self()->save();
+}
+
+void ChartDisplay::initializeSG() {
+  qDebug() << "initialize SG";
 
   auto chartMgr = ChartManager::instance();
   connect(this, &ChartDisplay::updateViewport, chartMgr, &ChartManager::updateCharts);
   connect(chartMgr, &ChartManager::idle, this, [this] () {
-    m_leavingChartMode = true;
+    m_flags |= LeavingChartMode;
     update();
   });
   connect(chartMgr, &ChartManager::active, this, [this] () {
-    m_enteringChartMode = true;
+    m_flags |= EnteringChartMode;
     update();
   });
   connect(chartMgr, &ChartManager::chartsUpdated, this, [this] (const QRectF& viewArea) {
-    m_chartsUpdated = true;
+    m_flags |= ChartsUpdated;
     m_viewArea = viewArea;
     update();
   });
@@ -48,39 +79,19 @@ ChartDisplay::ChartDisplay()
     emit updateViewport(m_camera, true);
     update();
   });
-}
 
-
-void ChartDisplay::handleWindowChanged(QQuickWindow *win) {
-  if (!win) return;
-
-  qDebug() << "window changed" << win->size();
-
-  connect(win, &QQuickWindow::sceneGraphInvalidated, this, &ChartDisplay::cleanup, Qt::DirectConnection);
-  connect(win, &QQuickWindow::sceneGraphInitialized, this, &ChartDisplay::initializeGL, Qt::DirectConnection);
-  connect(win, &QQuickWindow::heightChanged, this, &ChartDisplay::resize, Qt::DirectConnection);
-  connect(win, &QQuickWindow::widthChanged, this, &ChartDisplay::resize, Qt::DirectConnection);
-
-  if (!m_renderer) {
-    m_renderer = new ChartRenderer(win);
-  }
-
-  if (!m_camera) {
-    m_camera = m_renderer->cloneCamera();
-  }
-}
-
-void ChartDisplay::cleanup() {
-  delete m_renderer;
-  m_renderer = nullptr;
-  delete m_camera;
-  m_camera = nullptr;
-  qDebug() << "save main state";
-  Conf::MainWindow::self()->save();
+  emit updateViewport(m_camera, true);
 }
 
 ChartDisplay::~ChartDisplay() {
-  cleanup();
+  delete m_camera;
+  delete m_surface;
+  delete m_context;
+}
+
+ChartDisplay::Renderer* ChartDisplay::createRenderer() const {
+  qDebug() << "create renderer";
+  return new ChartRenderer(window());
 }
 
 QString ChartDisplay::defaultChartSet() const {
@@ -105,7 +116,7 @@ QStringList ChartDisplay::chartSets() const {
 void ChartDisplay::setChartSet(const QString &name) {
   ChartManager::instance()->setChartSet(name, m_camera->geoprojection());
   Conf::MainWindow::setChartset(name);
-  m_chartSetChanged = true;
+  m_flags |= ChartSetChanged;
   emit updateViewport(m_camera, true);
   emit chartSetChanged(name);
   update();
@@ -116,67 +127,33 @@ QString ChartDisplay::chartSet() const {
 }
 
 
-static bool consume(bool& var) {
-  const bool ret = var;
-  var = false;
+bool ChartDisplay::consume(quint32 flag) {
+  const bool ret = (m_flags & flag) != 0;
+  m_flags &= ~flag;
   return ret;
 }
 
-QSGNode* ChartDisplay::updatePaintNode(QSGNode* prev, UpdatePaintNodeData*) {
 
-  m_renderer->setCamera(m_camera);
-
-  if (consume(m_chartsUpdated)) {
-    m_renderer->updateCharts(m_viewArea);
-  }
-
-  if (consume(m_enteringChartMode)) {
-    if (m_renderer->initializeChartMode()) {
-      delete m_camera;
-      m_camera = m_renderer->cloneCamera();
-      emit updateViewport(m_camera, true);
-    }
-  }
-
-  if (consume(m_leavingChartMode)) {
-    if (ChartManager::instance()->outlines().isEmpty()) {
-      ChartManager::instance()->setChartSet(defaultChartSet(),
-                                            m_camera->geoprojection());
-    }
-    if (m_renderer->finalizeChartMode()) {
-      delete m_camera;
-      m_camera = m_renderer->cloneCamera();
-      emit updateViewport(m_camera, true);
-    }
-  }
-
-  if (consume(m_chartSetChanged)) {
-    m_renderer->chartSetChanged();
-  }
-
-  m_renderer->paint();
-
-  auto node = static_cast<QSGSimpleTextureNode*>(prev);
-  if (!node) {
-    qDebug() << "new texture node" << m_renderer->textureId() << window()->size();
-    node = new QSGSimpleTextureNode;
-    node->setTexture(window()->createTextureFromId(m_renderer->textureId(),
-                                                   window()->size()));
-    node->setOwnsTexture(false);
-    node->setFiltering(QSGTexture::Linear);
-    node->setTextureCoordinatesTransform(QSGSimpleTextureNode::MirrorVertically);
-  }
-
-  node->setRect(boundingRect());
-  return node;
-}
-
-void ChartDisplay::initializeGL() {
+void ChartDisplay::initializeGL(QOpenGLContext* ctx) {
   if (m_initialized) return;
 
-  GL::Context::instance()->initializeContext(window()->openglContext(), window());
+  m_context = new QOpenGLContext;
+  m_context->setFormat(QSurfaceFormat::defaultFormat());
+  qDebug() << "share context" << ctx->shareContext();
+  m_context->setShareContext(ctx);
+  m_context->setScreen(ctx->screen());
+  m_context->create();
 
-  ChartManager::instance()->createThreads(window()->openglContext());
+  m_surface = new QOffscreenSurface;
+  m_surface->setFormat(m_context->format());
+  m_surface->create();
+
+  m_context->makeCurrent(m_surface);
+
+  m_vao.create();
+  m_vao.bind();
+
+  ChartManager::instance()->createThreads(m_context);
   TextManager::instance()->createBuffers();
   RasterSymbolManager::instance()->createSymbols();
   VectorSymbolManager::instance()->createSymbols();
@@ -187,16 +164,36 @@ void ChartDisplay::initializeGL() {
   }
 
   m_initialized = true;
+  emit updateViewport(m_camera);
 }
 
 void ChartDisplay::resize(int) {
+
+  qDebug() << "resize";
 
   if (m_size == window()->size()) return;
   m_size = window()->size();
   if (m_size.isEmpty()) return;
 
-  const float wmm = window()->width() / dots_per_mm_x;
-  const float hmm = window()->height() / dots_per_mm_y;
+  orient(m_orientation);
+}
+
+void ChartDisplay::orient(Qt::ScreenOrientation orientation) {
+  qDebug() << "orientation" << orientation;
+  if (orientation == Qt::LandscapeOrientation) {
+    m_orientedSize = QSize(m_size.height(), m_size.width());
+  } else if (orientation == Qt::PortraitOrientation) {
+    m_orientedSize = m_size;
+  } else {
+    return;
+  }
+
+  m_orientation = orientation;
+
+  if (m_orientedSize.isEmpty()) return;
+
+  const float wmm = m_orientedSize.width() / dots_per_mm_x;
+  const float hmm = m_orientedSize.height() / dots_per_mm_y;
 
   try {
     m_camera->resize(wmm, hmm);
@@ -204,8 +201,10 @@ void ChartDisplay::resize(int) {
     m_camera->setScale(e.suggestedScale());
     m_camera->resize(wmm, hmm);
   }
+  qDebug() << "WxH =" << m_orientedSize.width() << "x" << m_orientedSize.height();
   qDebug() << "WxH (mm) =" << wmm << "x" << hmm;
-  qDebug() << "WxH (pixels) =" << window()->width() << "x" << window()->height();
+
+  emit updateViewport(m_camera);
 }
 
 
@@ -238,15 +237,15 @@ void ChartDisplay::zoomOut() {
 }
 
 void ChartDisplay::panStart(qreal x, qreal y) {
-  const qreal w = window()->width();
-  const qreal h = window()->height();
+  const qreal w = m_orientedSize.width();
+  const qreal h = m_orientedSize.height();
 
   m_lastPos = QPointF(2 * x / w - 1, 1 - 2 * y / h);
 }
 
 void ChartDisplay::pan(qreal x, qreal y) {
-  const qreal w = window()->width();
-  const qreal h = window()->height();
+  const qreal w = m_orientedSize.width();
+  const qreal h = m_orientedSize.height();
 
   const QPointF c(2 * x / w - 1, 1 - 2 * y / h);
 
@@ -262,5 +261,24 @@ void ChartDisplay::northUp() {
   m_camera->rotateEye(- a);
   emit updateViewport(m_camera);
   update();
+}
+
+void ChartDisplay::rotate(qreal degrees) {
+  Angle a = Angle::fromDegrees(degrees);
+  m_camera->rotateEye(a);
+  emit updateViewport(m_camera);
+  update();
+}
+
+void ChartDisplay::setCamera(Camera *cam) {
+  delete m_camera;
+  m_camera = cam;
+  emit updateViewport(m_camera, true);
+}
+
+void ChartDisplay::checkChartSet() const {
+  if (ChartManager::instance()->outlines().isEmpty()) {
+    ChartManager::instance()->setChartSet(defaultChartSet(), m_camera->geoprojection());
+  }
 }
 

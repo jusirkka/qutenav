@@ -2,6 +2,7 @@
 #include <QCryptographicHash>
 #include <QStandardPaths>
 #include <QFile>
+#include <QDate>
 
 const GeoProjection* CacheReader::geoprojection() const {
   return m_proj;

@@ -8,7 +8,6 @@
 #include <QScreen>
 #include "shader.h"
 #include <QOpenGLFramebufferObject>
-#include "glcontext.h"
 #include <QVector>
 #include "orthocam.h"
 #include "platform.h"
@@ -24,7 +23,6 @@ ChartPainter::ChartPainter(QObject* parent)
 {}
 
 ChartPainter::~ChartPainter() {
-  GL::Context::instance()->makeCurrent();
   delete m_fbo;
 }
 
@@ -75,8 +73,6 @@ void ChartPainter::initializeGL() {
 void ChartPainter::paintGL(const Camera *cam) {
 
   if (!m_viewArea.isValid()) return;
-
-  m_fbo->bindDefault();
 
   auto funcs = QOpenGLContext::currentContext()->functions();
   funcs->glDisable(GL_DEPTH_TEST);

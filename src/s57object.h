@@ -5,6 +5,7 @@
 #include "types.h"
 #include <QDebug>
 #include "geoprojection.h"
+#include <functional>
 
 
 namespace S57 {
