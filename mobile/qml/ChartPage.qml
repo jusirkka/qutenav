@@ -22,6 +22,13 @@ Page {
     z: 300
   }
 
+  ScaleBar {
+    id: scaleBar
+    z: 300
+    scaleWidth: encdis.scaleBarLength
+    onScaleWidthChanged: scaleBar.text = encdis.scaleBarText
+  }
+
   PinchArea {
     anchors.fill: parent
     pinch.minimumRotation: -180

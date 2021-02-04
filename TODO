@@ -1,0 +1,12 @@
+- boat location / auto center
+- tracks
+- routes
+- refactor chartmanager / chart selection / quilting
+- bug: area patterns cover other objects
+- globe to cubemap in outline mode
+- combine update & finalize in S57Chart
+
+- config: mariner params settings
+- object info
+- S57 charts
+- oesenc charts

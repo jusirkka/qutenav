@@ -17,6 +17,7 @@ ChartDisplay::ChartDisplay()
   , m_initialized(false)
   , m_flags(0)
   , m_orientation(Qt::PortraitOrientation)
+  , m_scaleBarLength(100)
 {
   setMirrorVertically(true);
   connect(this, &QQuickItem::windowChanged, this, &ChartDisplay::handleWindowChanged);
@@ -205,6 +206,8 @@ void ChartDisplay::orient(Qt::ScreenOrientation orientation) {
   qDebug() << "WxH (mm) =" << wmm << "x" << hmm;
 
   emit updateViewport(m_camera);
+  computeScaleBar();
+  emit scaleBarLengthChanged(m_scaleBarLength);
 }
 
 
@@ -219,6 +222,8 @@ void ChartDisplay::zoomIn() {
   if (scale > m_camera->minScale()) {
     m_camera->setScale(scale);
     emit updateViewport(m_camera);
+    computeScaleBar();
+    emit scaleBarLengthChanged(m_scaleBarLength);
     update();
   }
 }
@@ -232,6 +237,8 @@ void ChartDisplay::zoomOut() {
   if (scale < m_camera->maxScale()) {
     m_camera->setScale(scale);
     emit updateViewport(m_camera);
+    computeScaleBar();
+    emit scaleBarLengthChanged(m_scaleBarLength);
     update();
   }
 }
@@ -274,6 +281,8 @@ void ChartDisplay::setCamera(Camera *cam) {
   delete m_camera;
   m_camera = cam;
   emit updateViewport(m_camera, true);
+  computeScaleBar();
+  emit scaleBarLengthChanged(m_scaleBarLength);
 }
 
 void ChartDisplay::checkChartSet() const {
@@ -282,3 +291,33 @@ void ChartDisplay::checkChartSet() const {
   }
 }
 
+static QVector<quint32> digits(quint32 v) {
+  // Fails if v = 0, but it's ok
+  QVector<quint32> ds;
+  while (v != 0) {
+    ds.append(v % 10);
+    v /= 10;
+  }
+  return ds;
+}
+
+
+void ChartDisplay::computeScaleBar() {
+  // quarter width of the window in meters
+  const float w = m_camera->heightMM() * m_camera->aspect();
+  const quint32 threshold = 2.5e-4 * w * m_camera->scale();
+  auto ds = digits(threshold);
+  qreal x = ds[ds.size() - 1] * exp10(ds.size() - 1);
+  if (ds.size() > 1 && ds.size() != 4 && ds[ds.size() - 2] >= 5) {
+    x += 5 * exp10(ds.size() - 2);
+  }
+  m_scaleBarLength = dots_per_mm_x * x / m_camera->scale() * 1000;
+  if (ds.size() > 3) {
+    const int n = static_cast<int>(x) / 1000;
+    m_scaleBarText = QString::number(n) + "km";
+  } else {
+    const int n = static_cast<int>(x);
+    m_scaleBarText = QString::number(n) + "m";
+  }
+  qDebug() << "scalebar:" << m_scaleBarText;
+}

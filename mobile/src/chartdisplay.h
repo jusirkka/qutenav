@@ -27,9 +27,14 @@ public:
 
   Q_PROPERTY(QStringList chartSets READ chartSets NOTIFY chartSetsChanged)
   Q_PROPERTY(QString chartSet READ chartSet WRITE setChartSet NOTIFY chartSetChanged)
+  Q_PROPERTY(qreal scaleBarLength READ scaleBarLength NOTIFY scaleBarLengthChanged)
+  Q_PROPERTY(QString scaleBarText READ scaleBarText)
 
   QStringList chartSets() const;
   QString chartSet() const;
+  qreal scaleBarLength() const {return m_scaleBarLength;}
+  QString scaleBarText() const {return m_scaleBarText;}
+
   void setChartSet(const QString& s);
 
   Renderer* createRenderer() const override;
@@ -59,10 +64,12 @@ signals:
   void updateViewport(const Camera* cam, bool force = false);
   void chartSetsChanged(const QStringList& chartSets);
   void chartSetChanged(const QString& chartSet);
+  void scaleBarLengthChanged(qreal len);
 
 private:
 
   QString defaultChartSet() const;
+  void computeScaleBar();
 
   Camera* m_camera;
   bool m_initialized;
@@ -72,6 +79,8 @@ private:
   QSize m_size;
   QSize m_orientedSize;
   Qt::ScreenOrientation m_orientation;
+  qreal m_scaleBarLength;
+  QString m_scaleBarText;
   QPointF m_lastPos;
 
   QOpenGLContext* m_context;

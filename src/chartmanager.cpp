@@ -169,7 +169,7 @@ void ChartManager::createThreads(QOpenGLContext* ctx) {
     m_workers.append(worker);
   }
 
-  m_cacheThread = new GL::Thread(ctx->shareContext());
+  m_cacheThread = new GL::Thread(ctx);
   m_cacheWorker = new ChartUpdater(m_workers.size());
   m_cacheWorker->moveToThread(m_cacheThread);
   connect(m_cacheThread, &QThread::finished, m_cacheWorker, &QObject::deleteLater);
