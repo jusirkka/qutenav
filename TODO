@@ -5,8 +5,10 @@
 - bug: area patterns cover other objects
 - globe to cubemap in outline mode
 - combine update & finalize in S57Chart
+- coverpage.qml
+- symbols & soundings are too small
+- bug: colortable should change rastersymbol texture atlas
 
-- config: mariner params settings
 - object info
 - S57 charts
 - oesenc charts

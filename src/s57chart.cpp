@@ -5,7 +5,6 @@
 #include "s52presentation.h"
 #include "s52names.h"
 #include <QDate>
-#include "settings.h"
 #include "shader.h"
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLContext>
@@ -47,7 +46,6 @@ S57Chart::S57Chart(quint32 id, const QString& path)
   , m_updatedPaintData(S52::Lookup::PriorityCount)
   , m_id(id)
   , m_path(path)
-  , m_settings(Settings::instance())
   , m_coordBuffer(QOpenGLBuffer::VertexBuffer)
   , m_indexBuffer(QOpenGLBuffer::IndexBuffer)
   , m_pivotBuffer(QOpenGLBuffer::VertexBuffer)
@@ -128,7 +126,6 @@ S57Chart::S57Chart(quint32 id, const QString& path)
     findUnderling(overling, underlings, vertices, indices);
   }
 
-
   // fill in the buffers
   if (!m_coordBuffer.create()) qFatal("No can do");
   m_coordBuffer.setUsagePattern(QOpenGLBuffer::DynamicDraw);
@@ -159,6 +156,17 @@ S57Chart::S57Chart(quint32 id, const QString& path)
   m_transformBuffer.allocate(3000 * 4 * sizeof(GLfloat));
 
 }
+
+void S57Chart::updateLookups() {
+  ObjectLookupVector lookups;
+  // Note: Lookup::needUnderling is equal within same feature: no need to update
+  // underlings/overlings
+  for (const ObjectLookup& p: m_lookups) {
+    lookups.append(ObjectLookup(p.object, S52::FindLookup(p.object)));
+  }
+  m_lookups = lookups;
+}
+
 
 S57Chart::~S57Chart() {
   for (ObjectLookup& d: m_lookups) {
@@ -313,9 +321,9 @@ void S57Chart::updatePaintData(const WGS84Point &sw, const WGS84Point &ne, quint
   m_updatedPivots.clear();
   m_updatedTransforms.clear();
 
-  const auto maxcat = as_numeric(m_settings->maxCategory());
+  const auto maxcat = static_cast<quint8>(Conf::MarinerParams::maxCategory());
   const auto today = QDate::currentDate();
-  const bool showMeta = m_settings->showMetaObjects();
+  const bool showMeta = Conf::MarinerParams::showMeta();
   const quint32 qualClass = S52::FindIndex("M_QUAL");
   const quint32 unknownClass = S52::FindIndex("######");
 

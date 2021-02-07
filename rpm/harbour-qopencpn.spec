@@ -36,7 +36,7 @@ and OpenCPN/SENC vector charts. Does not support encrypted charts.
 
 %build
 mkdir -p rpmbuilddir-%{_arch}
-cd rpmbuilddir-%{_arch} && cmake -DMOBILE=ON -DCMAKE_BUILD_TYPE=Release ..
+cd rpmbuilddir-%{_arch} && cmake -DMOBILE=ON -DCMAKE_BUILD_TYPE=Debug ..
 cd ..
 make %{?_smp_mflags} -C rpmbuilddir-%{_arch} VERBOSE=1
 

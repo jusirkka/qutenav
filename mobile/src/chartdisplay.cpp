@@ -7,9 +7,11 @@
 #include "vectorsymbolmanager.h"
 #include "chartrenderer.h"
 #include "conf_mainwindow.h"
+#include "conf_marinerparams.h"
 #include "detailmode.h"
 #include <QQuickWindow>
 #include <QOffscreenSurface>
+#include "settings.h"
 
 ChartDisplay::ChartDisplay()
   : QQuickFramebufferObject()
@@ -52,14 +54,21 @@ void ChartDisplay::finalizeSG() {
   qDebug() << "disconnect textmgr";
   disconnect(textMgr, nullptr, this, nullptr);
 
+  auto settings = Settings::instance();
+  qDebug() << "disconnect settings";
+  disconnect(settings, nullptr, this, nullptr);
+
   Conf::MainWindow::self()->save();
+  Conf::MarinerParams::self()->save();
 }
 
 void ChartDisplay::initializeSG() {
   qDebug() << "initialize SG";
 
   auto chartMgr = ChartManager::instance();
+
   connect(this, &ChartDisplay::updateViewport, chartMgr, &ChartManager::updateCharts);
+
   connect(chartMgr, &ChartManager::idle, this, [this] () {
     m_flags |= LeavingChartMode;
     update();
@@ -75,13 +84,29 @@ void ChartDisplay::initializeSG() {
   });
 
   auto textMgr = TextManager::instance();
+
   connect(textMgr, &TextManager::newStrings, this, [this] () {
     qDebug() << "new strings";
-    emit updateViewport(m_camera, true);
+    emit updateViewport(m_camera, ChartManager::Force);
     update();
   });
 
-  emit updateViewport(m_camera, true);
+  auto settings = Settings::instance();
+
+  connect(settings, &Settings::settingsChanged, this, [this] () {
+    qDebug() << "settings changed";
+    emit updateViewport(m_camera, ChartManager::Force);
+    update();
+  });
+
+  connect(settings, &Settings::lookupUpdateNeeded, this, [this] () {
+    qDebug() << "lookup update needed";
+    emit updateViewport(m_camera, ChartManager::UpdateLookups);
+    update();
+  });
+
+
+  emit updateViewport(m_camera, ChartManager::Force);
 }
 
 ChartDisplay::~ChartDisplay() {
@@ -118,7 +143,7 @@ void ChartDisplay::setChartSet(const QString &name) {
   ChartManager::instance()->setChartSet(name, m_camera->geoprojection());
   Conf::MainWindow::setChartset(name);
   m_flags |= ChartSetChanged;
-  emit updateViewport(m_camera, true);
+  emit updateViewport(m_camera, ChartManager::Force);
   emit chartSetChanged(name);
   update();
 }
@@ -280,7 +305,7 @@ void ChartDisplay::rotate(qreal degrees) {
 void ChartDisplay::setCamera(Camera *cam) {
   delete m_camera;
   m_camera = cam;
-  emit updateViewport(m_camera, true);
+  emit updateViewport(m_camera, ChartManager::Force);
   computeScaleBar();
   emit scaleBarLengthChanged(m_scaleBarLength);
 }

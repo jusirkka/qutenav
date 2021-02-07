@@ -6,6 +6,7 @@
 #include <QPoint>
 #include <QRect>
 #include "s52functions.h"
+#include "conf_marinerparams.h"
 
 
 
@@ -29,12 +30,7 @@ public:
 
   static const int PriorityCount = 10;
 
-  enum class Category: char {
-    Base,
-    Standard,
-    Other,
-    Mariners
-  };
+  using Category = Conf::MarinerParams::EnumMaxCategory::type;
 
   using AttributeMap = QMap<quint32, S57::Attribute>;
 

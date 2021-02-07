@@ -1,7 +1,6 @@
 #pragma once
 
 #include "configgroup.h"
-#include "settings.h"
 
 namespace Conf {
 
@@ -17,6 +16,11 @@ public:
     enum type {Base, Standard, Other, Mariners};
   };
 
+  class EnumColorTable {
+  public:
+    enum type {DayBright, DayBlackBack, DayWhiteBack, Dusk, Night};
+  };
+
   CONF_DECL(twoShades, TwoShades, two_shades, bool, toBool)
   CONF_DECL(safetyContour, SafetyContour, safety_contour, double, toDouble)
   CONF_DECL(safetyDepth, SafetyDepth, safety_depth, double, toDouble)
@@ -28,11 +32,11 @@ public:
   CONF_DECL(showMeta, ShowMeta, show_meta, bool, toBool)
   CONF_DECL(fullLengthSectors, FullLengthSectors, full_length_sectors, bool, toBool)
 
-  static void setColorTable(Settings::ColorTable v) {
+  static void setColorTable(EnumColorTable::type v) {
     self()->m_values["color_table"] = static_cast<uint>(v);
   }
-  static Settings::ColorTable colorTable() {
-    return static_cast<Settings::ColorTable>(self()->m_values["color_table"].toUInt());
+  static EnumColorTable::type colorTable() {
+    return static_cast<EnumColorTable::type>(self()->m_values["color_table"].toUInt());
   }
 
   static void setMaxCategory(EnumMaxCategory::type v) {
@@ -42,22 +46,25 @@ public:
     return static_cast<EnumMaxCategory::type>(self()->m_values["max_category"].toUInt());
   }
 
-  static void setTextGrouping(const QList<int> & v) {
+  static void setTextGrouping(const QList<int>& v) {
+    self()->m_textGrouping = v;
+
     QVariantList items;
     for (auto i: v) items.append(i);
+
     self()->m_values["text_grouping"] = items;
   }
 
   static QList<int> textGrouping() {
-    QList<int> items;
-    QVariantList vitems = self()->m_values["text_grouping"].toList();
-    for (auto v: vitems) items.append(v.toInt());
-    return items;
+    return self()->m_textGrouping;
   }
 
 private:
 
   MarinerParams();
+
+  QList<int> m_textGrouping;
+
 };
 
 }

@@ -2,7 +2,6 @@
 #include "s52presentation.h"
 #include "s52names.h"
 #include "conf_marinerparams.h"
-#include "settings.h"
 #include <cmath>
 #include "types.h"
 #include "textmanager.h"
@@ -215,7 +214,7 @@ S57::PaintDataMap S52::Text::execute(const QVector<QVariant>& vals,
   // qDebug() << "TX:" << as_numeric(obj->geometry()->type()) << txt;
 
   const quint8 group = vals[8].toUInt();
-  if (!Settings::instance()->textGrouping().contains(group)) {
+  if (!Conf::MarinerParams::textGrouping().contains(group)) {
     // qDebug() << "skipping TX in group" << group;
     return S57::PaintDataMap();
   }
@@ -348,18 +347,21 @@ S57::PaintDataMap S52::CSDepthArea01::execute(const QVector<QVariant>&,
     }
   }
 
-  const Settings* cfg = Settings::instance();
+  const qreal safetyC = Conf::MarinerParams::safetyContour();
+  const qreal shallowC = Conf::MarinerParams::shallowContour();
+  const qreal deepC = Conf::MarinerParams::deepContour();
+  const bool twoShades = Conf::MarinerParams::twoShades();
 
-  if (cfg->twoShades() && depth >= cfg->safetyContour()) {
+  if (twoShades && depth >= safetyC) {
     sym = m_depdw;
   } else {
-    if (depth >= cfg->shallowContour()) {
+    if (depth >= shallowC) {
       sym = m_depms;
     }
-    if (depth >= cfg->safetyContour()) {
+    if (depth >= safetyC) {
       sym = m_depmd;
     }
-    if (depth >= cfg->deepContour()) {
+    if (depth >= deepC) {
       sym = m_depdw;
     }
   }
@@ -443,7 +445,7 @@ S57::PaintDataMap S52::CSResArea02::execute(const QVector<QVariant>&,
       const QVector<QVariant> v0 {sym, 0.};
       ps += S52::FindFunction("SY")->execute(v0, obj);
 
-      if (Settings::instance()->plainBoundaries()) {
+      if (Conf::MarinerParams::plainBoundaries()) {
         const QVector<QVariant> vals {as_numeric(S52::LineType::Dashed), 2, m_chmgd};
         ps += S52::FindFunction("LS")->execute(vals, obj);
       } else {
@@ -471,7 +473,7 @@ S57::PaintDataMap S52::CSResArea02::execute(const QVector<QVariant>&,
       const QVector<QVariant> v0 {sym, 0.};
       ps += S52::FindFunction("SY")->execute(v0, obj);
 
-      if (Settings::instance()->plainBoundaries()) {
+      if (Conf::MarinerParams::plainBoundaries()) {
         const QVector<QVariant> vals {as_numeric(S52::LineType::Dashed), 2, m_chmgd};
         ps += S52::FindFunction("LS")->execute(vals, obj);
       } else {
@@ -500,7 +502,7 @@ S57::PaintDataMap S52::CSResArea02::execute(const QVector<QVariant>&,
       const QVector<QVariant> v0 {sym, 0.};
       ps += S52::FindFunction("SY")->execute(v0, obj);
 
-      if (Settings::instance()->plainBoundaries()) {
+      if (Conf::MarinerParams::plainBoundaries()) {
         const QVector<QVariant> vals {as_numeric(S52::LineType::Dashed), 2, m_chmgd};
         ps += S52::FindFunction("LS")->execute(vals, obj);
       } else {
@@ -522,7 +524,7 @@ S57::PaintDataMap S52::CSResArea02::execute(const QVector<QVariant>&,
     const QVector<QVariant> v0 {sym, 0.};
     ps += S52::FindFunction("SY")->execute(v0, obj);
 
-    if (Settings::instance()->plainBoundaries()) {
+    if (Conf::MarinerParams::plainBoundaries()) {
       const QVector<QVariant> vals {as_numeric(S52::LineType::Dashed), 2, m_chmgd};
       ps += S52::FindFunction("LS")->execute(vals, obj);
     } else {
@@ -547,7 +549,7 @@ S57::PaintDataMap S52::CSResArea02::execute(const QVector<QVariant>&,
   const QVector<QVariant> v0 {sym, 0.};
   ps += S52::FindFunction("SY")->execute(v0, obj);
 
-  if (Settings::instance()->plainBoundaries()) {
+  if (Conf::MarinerParams::plainBoundaries()) {
     const QVector<QVariant> vals {as_numeric(S52::LineType::Dashed), 2, m_chmgd};
     ps += S52::FindFunction("LS")->execute(vals, obj);
   } else {
@@ -589,7 +591,7 @@ S52::CSDepthContours02::CSDepthContours02(quint32 index)
 S57::PaintDataMap S52::CSDepthContours02::execute(const QVector<QVariant>&,
                                                   const S57::Object* obj) {
   bool isSafetyContour = false;
-  const double sc = Settings::instance()->safetyContour();
+  const double sc = Conf::MarinerParams::safetyContour();
   if (obj->classCode() == m_depare && obj->geometry()->type() == S57::Geometry::Type::Line) {
     const double d1 = obj->attributeValue(m_drval1).isValid() ? obj->attributeValue(m_drval1).toDouble() : 0.;
     const double d2 = obj->attributeValue(m_drval2).isValid() ? obj->attributeValue(m_drval2).toDouble() : 0.;
@@ -996,7 +998,7 @@ S57::PaintDataMap S52::CSLights05::drawSectors(const S57::Object *obj) const {
   auto s2 = obj->attributeValue(m_sectr2).toDouble() * M_PI / 180.;
 
   double leglen;
-  bool chartUnits = Settings::instance()->fullLengthLightSectors();
+  bool chartUnits = Conf::MarinerParams::fullLengthSectors();
   if (chartUnits) {
     bool ok;
     leglen = obj->attributeValue(m_valnmr).toDouble(&ok);
@@ -1627,7 +1629,7 @@ S57::PaintDataMap S52::CSSoundings02::symbols(double depth, int index,
 
   S57::PaintDataMap ps;
 
-  bool shallow = depth < Settings::instance()->safetyDepth();
+  bool shallow = depth < Conf::MarinerParams::safetyDepth();
   if (obj->attributeValue(m_tecsou).isValid()) {
     QSet<int> tecsou;
     auto items = obj->attributeValue(m_tecsou).toList();
@@ -2014,7 +2016,7 @@ S57::PaintDataMap S52::CSWrecks02::execute(const QVector<QVariant>&,
 S57::PaintDataMap S52::CSWrecks02::dangerData(double depth,
                                               const S57::Object *obj) const {
 
-  auto limit = Settings::instance()->safetyContour();
+  auto limit = Conf::MarinerParams::safetyContour();
 
   if (depth > limit) {
     return S57::PaintDataMap();

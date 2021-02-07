@@ -9,6 +9,7 @@
 #define YYSTYPE Private::ValueType
 #include "s52instr_scanner.h"
 #include "s52names.h"
+#include "settings.h"
 
 void s52instr_error(Private::LocationType* loc,
                     Private::Presentation*,
@@ -23,40 +24,31 @@ Private::Presentation::Presentation()
   : QObject()
   , m_nextSymbolIndex(0)
   , functions(nullptr)
-  , settings(Settings::instance()) {
-
+{
   readAttributes();
   readObjectClasses();
   readChartSymbols();
+  connect(Settings::instance(), &Settings::colorTableChanged,
+          this, &Presentation::setColorTable);
 
-  connect(settings, &Settings::colorTableChanged, this, &Presentation::setColorTable);
-  connect(settings, &Settings::plainBoundariesChanged, this, &Presentation::setPlainBoundaries);
-  connect(settings, &Settings::simplifiedSymbolsChaged, this, &Presentation::setSimplifiedSymbols);
+  setColorTable(static_cast<quint8>(Conf::MarinerParams::colorTable()));
 
-  setColorTable(Conf::MarinerParams::colorTable());
-  setPlainBoundaries(Conf::MarinerParams::plainBoundaries());
-  setSimplifiedSymbols(Conf::MarinerParams::simplifiedSymbols());
 }
 
 
-void Private::Presentation::setColorTable(Settings::ColorTable t) {
-  const QMap<Settings::ColorTable, QString> tables{
-    {Settings::DayBright, "DAY_BRIGHT"},
-    {Settings::DayBlackBack, "DAY_BLACKBACK"},
-    {Settings::DayWhiteBack, "DAY_WHITEBACK"},
-    {Settings::Dusk, "DUSK"},
-    {Settings::Night, "NIGHT"},
+void Private::Presentation::setColorTable(quint8 t) {
+  qDebug() << "setColorTable";
+  using CType = Conf::MarinerParams::EnumColorTable::type;
+  const QMap<CType, QString> tables{
+    {CType::DayBright, "DAY_BRIGHT"},
+    {CType::DayBlackBack, "DAY_BLACKBACK"},
+    {CType::DayWhiteBack, "DAY_WHITEBACK"},
+    {CType::Dusk, "DUSK"},
+    {CType::Night, "NIGHT"},
   };
-  currentColorTable = names[tables[t]];
+  currentColorTable = names[tables[static_cast<CType>(t)]];
 }
 
-void Private::Presentation::setPlainBoundaries(bool v) {
-  plainBoundaries = v;
-}
-
-void Private::Presentation::setSimplifiedSymbols(bool v) {
-  simplifiedSymbols = v;
-}
 
 Private::Presentation* Private::Presentation::instance() {
   static Presentation* p = new Presentation();
@@ -82,11 +74,13 @@ S52::Lookup::Type Private::Presentation::typeFilter(const S57::Object *obj) cons
   const S57::Geometry::Type t = obj->geometry()->type();
   if (t == S57::Geometry::Type::Line) return S52::Lookup::Type::Lines;
   if (t == S57::Geometry::Type::Area) {
-    return plainBoundaries ? S52::Lookup::Type::PlainBoundaries :
-                             S52::Lookup::Type::SymbolizedBoundaries;
+    return Conf::MarinerParams::plainBoundaries() ?
+          S52::Lookup::Type::PlainBoundaries :
+          S52::Lookup::Type::SymbolizedBoundaries;
   }
-  return simplifiedSymbols ? S52::Lookup::Type::Simplified :
-                             S52::Lookup::Type::PaperChart;
+  return Conf::MarinerParams::simplifiedSymbols() ?
+        S52::Lookup::Type::Simplified :
+        S52::Lookup::Type::PaperChart;
 }
 
 
@@ -316,7 +310,6 @@ void Private::Presentation::readLookups(QXmlStreamReader& reader) {
 
     unsortedLookups[name][code].append(lookup);
   }
-
   // sort lookups
   LUPTableIterator tables(unsortedLookups.cbegin());
   while (tables != unsortedLookups.cend()) {

@@ -61,7 +61,7 @@ private slots:
 
 signals:
 
-  void updateViewport(const Camera* cam, bool force = false);
+  void updateViewport(const Camera* cam, quint32 flags = 0);
   void chartSetsChanged(const QStringList& chartSets);
   void chartSetChanged(const QString& chartSet);
   void scaleBarLengthChanged(qreal len);

@@ -49,5 +49,8 @@ add_custom_target(Qml SOURCES
   qml/IconListItem.qml
   qml/MenuButton.qml
   qml/MenuPage.qml
+  qml/PreferencesPage.qml
   qml/ScaleBar.qml
+  qml/SliderPref.qml
+  qml/ValuePref.qml
 )

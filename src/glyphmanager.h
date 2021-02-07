@@ -198,7 +198,7 @@ public:
 private:
 
   static const bool italic = false;
-  static const int pixelSize = 48;
+  static const int pixelSize = 32;
 
   const QString m_family;
 

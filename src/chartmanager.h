@@ -34,7 +34,7 @@ public:
 public slots:
 
   void updateChart(S57Chart* chart, quint32 scale,
-                   const WGS84Point& sw, const WGS84Point& ne);
+                   const WGS84Point& sw, const WGS84Point& ne, bool updLup);
   void createChart(quint32 id, const QString& path, quint32 scale,
                    const WGS84Point& sw, const WGS84Point& ne);
   void cacheChart(S57Chart* chart);
@@ -73,6 +73,10 @@ public:
   const GL::VertexVector& outlines() const {return m_outlines;}
   const ChartReaderVector& readers() const {return m_readers;}
 
+  // flags for updateCharts
+  static const quint32 Force = 1;
+  static const quint32 UpdateLookups = 2;
+
   ~ChartManager();
 
 signals:
@@ -83,7 +87,7 @@ signals:
 
 public slots:
 
-  void updateCharts(const Camera* cam, bool force = false);
+  void updateCharts(const Camera* cam, quint32 flags = 0);
 
 private slots:
 
@@ -94,13 +98,14 @@ private:
   struct ChartData {
 
     ChartData(S57Chart* c,
-              quint32 s, const WGS84Point& sw0, const WGS84Point& ne0)
+              quint32 s, const WGS84Point& sw0, const WGS84Point& ne0, bool upd)
       : chart(c)
       , id(0)
       , path()
       , scale(s)
       , sw(sw0)
       , ne(ne0)
+      , updLup(upd)
     {}
 
     ChartData(quint32 i, const QString& pth,
@@ -111,6 +116,7 @@ private:
       , scale(s)
       , sw(sw0)
       , ne(ne0)
+      , updLup(false)
     {}
 
     S57Chart* chart;
@@ -119,6 +125,7 @@ private:
     quint32 scale;
     WGS84Point sw;
     WGS84Point ne;
+    bool updLup;
 
     ChartData() = default;
     ChartData(const ChartData&) = default;

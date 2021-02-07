@@ -10,7 +10,6 @@
 
 
 class GeoProjection;
-class Settings;
 class Camera;
 class QOpenGLContext;
 
@@ -40,6 +39,7 @@ public:
   const QString& path() {return m_path;}
 
   void updatePaintData(const WGS84Point& sw, const WGS84Point& ne, quint32 scale);
+  void updateLookups();
   void finalizePaintData();
 
   ~S57Chart();
@@ -93,7 +93,6 @@ private:
   GL::VertexVector m_updatedTransforms;
   quint32 m_id;
   QString m_path;
-  Settings* m_settings;
   QOpenGLBuffer m_coordBuffer;
   QOpenGLBuffer m_indexBuffer;
   QOpenGLBuffer m_pivotBuffer;

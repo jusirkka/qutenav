@@ -1,5 +1,24 @@
 #include "settings.h"
-#include "conf_marinerparams.h"
+#include <QDebug>
+
+bool TextGroup::enabled() const {
+  return Conf::MarinerParams::textGrouping().contains(m_group);
+}
+
+void TextGroup::setEnabled(bool v) {
+  auto values = Conf::MarinerParams::textGrouping();
+  if (values.contains(m_group) && v) return;
+  if (!values.contains(m_group) && !v) return;
+
+  if (values.contains(m_group)) {
+    values.removeOne(m_group);
+  } else {
+    values.append(m_group);
+  }
+  Conf::MarinerParams::setTextGrouping(values);
+  emit enabledChanged();
+}
+
 
 Settings* Settings::instance() {
   static Settings* s = new Settings();
@@ -8,50 +27,35 @@ Settings* Settings::instance() {
 
 Settings::Settings(QObject *parent)
   : QObject(parent)
-  , m_twoShades(Conf::MarinerParams::twoShades())
-  , m_safetyContour(Conf::MarinerParams::safetyContour())
-  , m_deepContour(Conf::MarinerParams::deepContour())
-  , m_shallowContour(Conf::MarinerParams::shallowContour())
-  , m_safetyDepth(Conf::MarinerParams::safetyDepth())
-  , m_simplifiedSymbols(Conf::MarinerParams::simplifiedSymbols())
-  , m_plainBoundaries(Conf::MarinerParams::plainBoundaries())
-  , m_showMeta(Conf::MarinerParams::showMeta())
-  , m_fullSectors(Conf::MarinerParams::fullLengthSectors())
-  , m_colorTable(Conf::MarinerParams::colorTable())
+  , m_categories({"Base", "Standard", "Other", "Mariners"})
+  , m_colorTables({"Day Bright", "Day Black/Bg", "Day White/Bg", "Dusk", "Night"})
 {
-  const QMap<Conf::MarinerParams::EnumMaxCategory::type, S52::Lookup::Category> cats{
-    {Conf::MarinerParams::EnumMaxCategory::Base, S52::Lookup::Category::Base},
-    {Conf::MarinerParams::EnumMaxCategory::Standard, S52::Lookup::Category::Standard},
-    {Conf::MarinerParams::EnumMaxCategory::Other, S52::Lookup::Category::Other},
-    {Conf::MarinerParams::EnumMaxCategory::Mariners, S52::Lookup::Category::Mariners},
-  };
+  m_textGroups << new TextGroup(10, "Important text");
+  m_textGroups << new TextGroup(11, "Vertical clearances etc.",
+                                "Vertical clearance of bridges, overhead cable, pipe or conveyor, "
+                                "bearing of navline, recommended route, deep water route centreline, "
+                                "name and communications channel of radio calling-in point.");
+  m_textGroups << new TextGroup(20, "Other text");
+  m_textGroups << new TextGroup(21, "Position names",
+                                "Names for position reporting: "
+                                "name or number of buoys, beacons, daymarks, "
+                                "light vessel, light float, offshore platform.");
+  m_textGroups << new TextGroup(23, "Light descriptions");
+  m_textGroups << new TextGroup(24, "Notes", "Note on chart data or nautical publication.");
+  m_textGroups << new TextGroup(25, "Nature of seabed");
+  m_textGroups << new TextGroup(26, "Geographic names");
+  m_textGroups << new TextGroup(27, "Other values", "Value of magnetic variation or swept depth.");
+  m_textGroups << new TextGroup(28, "Other heights", "Height of islet or land feature");
+  m_textGroups << new TextGroup(29, "Berth numbers");
+  m_textGroups << new TextGroup(31, "National language text");
 
-  m_maxCat = cats[Conf::MarinerParams::maxCategory()];
-
-  for (auto i: Conf::MarinerParams::textGrouping()) m_textGrouping.insert(i);
+  for (auto obj: m_textGroups) {
+    auto group = qobject_cast<TextGroup*>(obj);
+    connect(group, &TextGroup::enabledChanged, this, &Settings::settingsChanged);
+  }
 }
 
 
 Settings::~Settings() {
-
-  Conf::MarinerParams::setTwoShades(m_twoShades);
-  Conf::MarinerParams::setSafetyContour(m_safetyContour);
-  Conf::MarinerParams::setDeepContour(m_deepContour);
-  Conf::MarinerParams::setShallowContour(m_shallowContour);
-  Conf::MarinerParams::setSafetyDepth(m_safetyDepth);
-  Conf::MarinerParams::setSimplifiedSymbols(m_simplifiedSymbols);
-  Conf::MarinerParams::setPlainBoundaries(m_plainBoundaries);
-  Conf::MarinerParams::setColorTable(m_colorTable);
-  Conf::MarinerParams::setShowMeta(m_showMeta);
-
-  const QMap<S52::Lookup::Category, Conf::MarinerParams::EnumMaxCategory::type> cats{
-    {S52::Lookup::Category::Base, Conf::MarinerParams::EnumMaxCategory::Base},
-    {S52::Lookup::Category::Standard, Conf::MarinerParams::EnumMaxCategory::Standard},
-    {S52::Lookup::Category::Other, Conf::MarinerParams::EnumMaxCategory::Other},
-    {S52::Lookup::Category::Mariners, Conf::MarinerParams::EnumMaxCategory::Mariners},
-  };
-
-  Conf::MarinerParams::setMaxCategory(cats[m_maxCat]);
-
-  Conf::MarinerParams::self()->save();
+  qDeleteAll(m_textGroups);
 }

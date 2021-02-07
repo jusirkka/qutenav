@@ -10,6 +10,7 @@
 #include "s52presentation.h"
 #include "textmanager.h"
 #include "s57chart.h"
+#include "settings.h"
 
 Q_IMPORT_PLUGIN(OsencReaderFactory)
 Q_IMPORT_PLUGIN(CM93ReaderFactory)
@@ -43,12 +44,13 @@ int main(int argc, char *argv[]) {
   qRegisterMetaType<S57Chart*>();
   qRegisterMetaType<WGS84Point>();
 
-
   S52::InitPresentation();
 
   // QQmlApplicationEngine engine;
   // engine.load(QUrl("main.qml"));
   QScopedPointer<QQuickView> view(SailfishApp::createView());
+
+  view->rootContext()->setContextProperty("settings", Settings::instance());
 
   view->setSource(SailfishApp::pathTo("qml/harbour-qopencpn.qml"));
   view->show();

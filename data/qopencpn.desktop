@@ -4,6 +4,6 @@ Version=1.0
 Type=Application
 X-Nemo-Application-Type=silica-qt5
 Icon=harbour-qopencpn
-Exec=harbour-qopencpn > ~/world.log 2>&1
+Exec=harbour-qopencpn
 Name=QOpenCPN
 Terminal=true

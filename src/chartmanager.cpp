@@ -174,6 +174,7 @@ void ChartManager::createThreads(QOpenGLContext* ctx) {
   m_cacheWorker->moveToThread(m_cacheThread);
   connect(m_cacheThread, &QThread::finished, m_cacheWorker, &QObject::deleteLater);
   m_cacheThread->start();
+  qDebug() << "threads started";
 }
 
 ChartManager::~ChartManager() {
@@ -244,7 +245,7 @@ const ChartCover* ChartManager::getCover(quint32 chart_id,
   return m_coverCache[chart_id];
 }
 
-void ChartManager::updateCharts(const Camera *cam, bool force) {
+void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
 
   if (m_idleStack.size() != m_workers.size()) return;
 
@@ -255,7 +256,7 @@ void ChartManager::updateCharts(const Camera *cam, bool force) {
   // qDebug() << "ChartManager::updateCharts" << vp;
   if (!vp.isValid()) return;
 
-  if (m_viewport.contains(vp) && cam->scale() == m_scale && !force) return;
+  if (m_viewport.contains(vp) && cam->scale() == m_scale && flags == 0) return;
 
   // setup viewarea
   qreal mw = vp.width() * (viewportFactor - 1) / 2;
@@ -369,7 +370,7 @@ void ChartManager::updateCharts(const Camera *cam, bool force) {
     // Note: inverted y-axis
     const WGS84Point sw = cam->geoprojection()->toWGS84(m_viewArea.topLeft());
     const WGS84Point ne = cam->geoprojection()->toWGS84(m_viewArea.bottomRight());
-    m_pendingStack.push(ChartData(c, m_scale, sw, ne));
+    m_pendingStack.push(ChartData(c, m_scale, sw, ne, (flags & UpdateLookups) != 0));
   }
   // create pending chart creation data
   if (!newCharts.isEmpty()) {
@@ -400,7 +401,8 @@ void ChartManager::updateCharts(const Camera *cam, bool force) {
                                 Q_ARG(S57Chart*, d.chart),
                                 Q_ARG(quint32, d.scale),
                                 Q_ARG(const WGS84Point&, d.sw),
-                                Q_ARG(const WGS84Point&, d.ne));
+                                Q_ARG(const WGS84Point&, d.ne),
+                                Q_ARG(bool, d.updLup));
     } else {
       QMetaObject::invokeMethod(dest, "createChart",
                                 Q_ARG(quint32, d.id),
@@ -441,7 +443,9 @@ void ChartManager::manageThreads(S57Chart* chart) {
                                 Q_ARG(S57Chart*, d.chart),
                                 Q_ARG(quint32, d.scale),
                                 Q_ARG(const WGS84Point&, d.sw),
-                                Q_ARG(const WGS84Point&, d.ne));
+                                Q_ARG(const WGS84Point&, d.ne),
+                                Q_ARG(bool, d.updLup));
+
     } else {
       QMetaObject::invokeMethod(dest, "createChart",
                                 Q_ARG(quint32, d.id),
@@ -486,7 +490,10 @@ void ChartUpdater::createChart(quint32 id, const QString &path, quint32 scale,
 }
 
 void ChartUpdater::updateChart(S57Chart *chart, quint32 scale,
-                               const WGS84Point& sw, const WGS84Point& ne) {
+                               const WGS84Point& sw, const WGS84Point& ne, bool updLup) {
+  if (updLup) {
+    chart->updateLookups();
+  }
   chart->updatePaintData(sw, ne, scale);
   emit done(chart);
 }
