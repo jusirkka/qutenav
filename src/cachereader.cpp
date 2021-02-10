@@ -40,13 +40,21 @@ S57ChartOutline CacheReader::readOutline(const QString &path) const {
   stream >> lng;
   double lat;
   stream >> lat;
-
   auto ref = WGS84Point::fromLL(lng , lat);
 
+  stream >> lng;
+  stream >> lat;
+  auto sw = WGS84Point::fromLL(lng, lat);
+
+  stream >> lng;
+  stream >> lat;
+  auto ne = WGS84Point::fromLL(lng, lat);
+
   file.close();
-  // Only reference point needed
-  return S57ChartOutline(WGS84Point(),
-                         WGS84Point(),
+
+  // Only reference points needed
+  return S57ChartOutline(sw,
+                         ne,
                          S57ChartOutline::Region(),
                          S57ChartOutline::Region(),
                          ref,
@@ -85,7 +93,11 @@ void CacheReader::readChart(GL::VertexVector& vertices,
 
   // header
   double dummy;
+  stream >> dummy; // ref
   stream >> dummy;
+  stream >> dummy; // sw
+  stream >> dummy;
+  stream >> dummy; // ne
   stream >> dummy;
 
   stream.setFloatingPointPrecision(QDataStream::SinglePrecision);

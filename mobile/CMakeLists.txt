@@ -15,6 +15,7 @@ target_sources(Mobile
     src/conf_detailmode.cpp
     src/conf_mainwindow.cpp
     src/conf_marinerparams.cpp
+    src/crosshairs.cpp
     src/linecalculator.cpp
     src/main.cpp
 )
@@ -47,6 +48,7 @@ add_custom_target(Qml SOURCES
   qml/ChartSetCombo.qml
   qml/CoverPage.qml
   qml/IconListItem.qml
+  qml/InfoPage.qml
   qml/MenuButton.qml
   qml/MenuPage.qml
   qml/PreferencesPage.qml

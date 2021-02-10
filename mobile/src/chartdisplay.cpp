@@ -13,6 +13,17 @@
 #include <QOffscreenSurface>
 #include "settings.h"
 
+ObjectObject::ObjectObject(const QString &n, QObject *parent)
+  : QObject(parent)
+  , name(n)
+{}
+
+AttributeObject::AttributeObject(const QString &n, const QString &v, QObject *parent)
+  : QObject(parent)
+  , name(n)
+  , value(v)
+{}
+
 ChartDisplay::ChartDisplay()
   : QQuickFramebufferObject()
   , m_camera(DetailMode::RestoreCamera())
@@ -69,6 +80,9 @@ void ChartDisplay::initializeSG() {
 
   connect(this, &ChartDisplay::updateViewport, chartMgr, &ChartManager::updateCharts);
 
+  connect(this, &ChartDisplay::infoRequest, chartMgr, &ChartManager::requestInfo);
+  connect(chartMgr, &ChartManager::infoResponse, this, &ChartDisplay::handleInfoResponse);
+
   connect(chartMgr, &ChartManager::idle, this, [this] () {
     m_flags |= LeavingChartMode;
     update();
@@ -113,6 +127,7 @@ ChartDisplay::~ChartDisplay() {
   delete m_camera;
   delete m_surface;
   delete m_context;
+  qDeleteAll(m_info);
 }
 
 ChartDisplay::Renderer* ChartDisplay::createRenderer() const {
@@ -302,6 +317,28 @@ void ChartDisplay::rotate(qreal degrees) {
   update();
 }
 
+void ChartDisplay::infoQuery(const QPointF& q) {
+  const qreal w = m_orientedSize.width();
+  const qreal h = m_orientedSize.height();
+
+  const QPointF p(2 * q.x() / w - 1, 1 - 2 * q.y() / h);
+  emit infoRequest(m_camera->location(p));
+}
+
+void ChartDisplay::handleInfoResponse(const S57::InfoType &info) {
+  qDeleteAll(m_info);
+  m_info.clear();
+  for (const S57::Description& d: info) {
+    auto obj = new ObjectObject(d.name);
+    for (const S57::Pair& p: d.attributes) {
+      obj->attributes.append(new AttributeObject(p.key, p.value, obj));
+    }
+    m_info.append(obj);
+  }
+  emit infoQueryReady(m_info);
+  update();
+}
+
 void ChartDisplay::setCamera(Camera *cam) {
   delete m_camera;
   m_camera = cam;
@@ -326,7 +363,6 @@ static QVector<quint32> digits(quint32 v) {
   return ds;
 }
 
-
 void ChartDisplay::computeScaleBar() {
   // quarter width of the window in meters
   const float w = m_camera->heightMM() * m_camera->aspect();
@@ -344,5 +380,5 @@ void ChartDisplay::computeScaleBar() {
     const int n = static_cast<int>(x);
     m_scaleBarText = QString::number(n) + "m";
   }
-  qDebug() << "scalebar:" << m_scaleBarText;
+  // qDebug() << "scalebar:" << m_scaleBarText;
 }

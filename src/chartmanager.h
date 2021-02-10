@@ -38,10 +38,12 @@ public slots:
   void createChart(quint32 id, const QString& path, quint32 scale,
                    const WGS84Point& sw, const WGS84Point& ne);
   void cacheChart(S57Chart* chart);
+  void requestInfo(S57Chart* chart, const WGS84Point& p, quint32 scale, quint32 tid);
 
 signals:
 
   void done(S57Chart* chart);
+  void infoResponse(const S57::InfoType& info, quint32 tid);
 
 private:
 
@@ -77,6 +79,7 @@ public:
   static const quint32 Force = 1;
   static const quint32 UpdateLookups = 2;
 
+
   ~ChartManager();
 
 signals:
@@ -84,14 +87,17 @@ signals:
   void idle();
   void active();
   void chartsUpdated(const QRectF& viewArea);
+  void infoResponse(const S57::InfoType& info);
 
 public slots:
 
   void updateCharts(const Camera* cam, quint32 flags = 0);
+  void requestInfo(const WGS84Point& p);
 
 private slots:
 
   void manageThreads(S57Chart* chart);
+  void manageInfoResponse(const S57::InfoType& info, quint32 tid);
 
 private:
 
@@ -173,6 +179,10 @@ private:
   ThreadVector m_threads;
   IDStack m_idleStack;
   ChartDataStack m_pendingStack;
+
+  QMap<quint32, quint8> m_transactions;
+  quint32 m_transactionCounter;
+  QMap<quint32, S57::InfoType> m_info;
 
   GL::Thread* m_cacheThread;
   ChartUpdater* m_cacheWorker;

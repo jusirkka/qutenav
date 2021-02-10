@@ -331,7 +331,37 @@ enum class AttributeType: uint8_t {
   Any // Not in OgrAttr_t
 };
 
+// Data type for info requests
+struct Pair {
+  Pair(const QString& k, const QString& v)
+    : key(k)
+    , value(v) {}
+
+  Pair() = default;
+
+  QString key;
+  QString value;
+};
+
+using PairVector = QVector<Pair>;
+
+struct Description {
+  Description(const QString& n)
+    : name(n) {}
+
+  Description() = default;
+
+  QString name;
+  PairVector attributes;
+};
+
+using InfoType = QVector<Description>;
+
+
 }
+
+Q_DECLARE_METATYPE(S57::InfoType)
+
 
 namespace QT {
 using ColorVector = QVector<QColor>;

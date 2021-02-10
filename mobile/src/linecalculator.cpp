@@ -1,6 +1,7 @@
 #include "linecalculator.h"
 #include <QOpenGLExtraFunctions>
 #include <glm/glm.hpp>
+#include "utils.h"
 
 GL::LineCalculator* GL::LineCalculator::instance() {
   static LineCalculator* lc = new LineCalculator();
@@ -11,36 +12,6 @@ GL::LineCalculator::LineCalculator()
 {}
 
 GL::LineCalculator::~LineCalculator() {}
-
-static const uint LEFT = 1;
-static const uint RIGHT = 2;
-static const uint BOTTOM = 4;
-static const uint TOP = 8;
-
-static uint locationCode(const glm::vec2& v, const QRectF& va) {
-  uint code = 0;
-  if (v.y > va.bottom()) {
-    code |= TOP;
-  } else if (v.y < va.top()) {
-    code |= BOTTOM;
-  }
-
-  if (v.x > va.right()) {
-    code |= RIGHT;
-  } else if (v.x < va.left()) {
-    code |= LEFT;
-  }
-  return code;
-}
-
-// Cohen-Sutherland test
-bool outsideViewArea(const glm::vec2& v1, const glm::vec2& v2, const QRectF& va) {
-  const uint c1 = locationCode(v1, va);
-  const uint c2 = locationCode(v2, va);
-  if (c1 == 0 && c2 == 0) return false;
-  return (c1 & c2) != 0;
-}
-
 
 void GL::LineCalculator::calculate(VertexVector& transforms,
                                    GLfloat period,
@@ -69,7 +40,7 @@ void GL::LineCalculator::calculate(VertexVector& transforms,
     const glm::vec2 p1 = vertexBufferIn[v1];
     const glm::vec2 p2 = vertexBufferIn[v2];
 
-    if (outsideViewArea(p1, p2, va)) {
+    if (outsideBox(p1, p2, va)) {
       continue;
     }
 

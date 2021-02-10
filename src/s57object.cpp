@@ -82,7 +82,7 @@ S57::Geometry::Base* S57::Geometry::Base::Decode(QDataStream &stream) {
   stream >> lng;
   double lat;
   stream >> lat;
-  geom->m_centerLL == WGS84Point::fromLL(lng, lat);
+  geom->m_centerLL = WGS84Point::fromLL(lng, lat);
   stream.setFloatingPointPrecision(QDataStream::SinglePrecision);
   geom->doDecode(stream);
 

@@ -4,11 +4,11 @@
 - refactor chartmanager / chart selection / quilting
 - bug: area patterns cover other objects
 - globe to cubemap in outline mode
-- combine update & finalize in S57Chart
 - coverpage.qml
 - symbols & soundings are too small
-- bug: colortable should change rastersymbol texture atlas
+- bug: colortable change should change rastersymbolmanager's texture atlas
+- busy spinner while charts are loading
+- switch off/on light symbols?
 
-- object info
 - S57 charts
 - oesenc charts

@@ -27,6 +27,7 @@ ChartManager::ChartManager(QObject *parent)
   : QObject(parent)
   , m_db()
   , m_workers({nullptr}) // temporary, to be replaced in createThreads
+  , m_transactionCounter(0)
   , m_reader(nullptr)
   , m_coverCache(100 * sizeof(ChartCover))
 {
@@ -163,6 +164,7 @@ void ChartManager::createThreads(QOpenGLContext* ctx) {
     worker->moveToThread(thread);
     connect(thread, &QThread::finished, worker, &QObject::deleteLater);
     connect(worker, &ChartUpdater::done, this, &ChartManager::manageThreads);
+    connect(worker, &ChartUpdater::infoResponse, this, &ChartManager::manageInfoResponse);
     qDebug() << "starting thread" << i;
     thread->start();
     m_threads.append(thread);
@@ -425,9 +427,6 @@ void ChartManager::manageThreads(S57Chart* chart) {
   // qDebug() << "chartmanager: manageThreads";
 
   if (chart != nullptr) {
-
-    chart->finalizePaintData();
-
     auto chartId = chart->id();
     if (!m_chartIds.contains(chartId)) {
       m_chartIds[chartId] = m_charts.size();
@@ -475,6 +474,40 @@ void ChartManager::manageThreads(S57Chart* chart) {
   }
 }
 
+void ChartManager::requestInfo(const WGS84Point &p) {
+  int counter = 0;
+  for (auto chart: m_charts) {
+    QMetaObject::invokeMethod(m_workers[counter], "requestInfo",
+                              Q_ARG(S57Chart*, chart),
+                              Q_ARG(const WGS84Point&, p),
+                              Q_ARG(quint32, m_scale),
+                              Q_ARG(quint32, m_transactionCounter));
+    counter = (counter + 1) % m_workers.size();
+  }
+  m_transactionCounter += 1;
+}
+
+void ChartManager::manageInfoResponse(const S57::InfoType& info, quint32 tid) {
+  if (!m_transactions.contains(tid)) {
+    m_transactions[tid] = 1;
+    m_info[tid] = info;
+  } else {
+    m_transactions[tid] = m_transactions[tid] + 1;
+    if (m_info[tid].isEmpty()) {
+      m_info[tid] = info;
+    } else {
+      qWarning() << "Object info in more than one chart";
+    }
+  }
+
+  if (m_transactions[tid] == m_charts.size()) {
+    S57::InfoType info = m_info[tid];
+    m_info.remove(tid);
+    m_transactions.remove(tid);
+    qDebug() << "ChartManager::manageInfoResponse";
+    emit infoResponse(info);
+  }
+}
 
 void ChartUpdater::createChart(quint32 id, const QString &path, quint32 scale,
                                const WGS84Point& sw, const WGS84Point& ne) {
@@ -522,5 +555,12 @@ void ChartUpdater::cacheChart(S57Chart *chart) {
     stream.writeRawData(id.constData(), 8);
     file.close();
   }
+}
+
+void ChartUpdater::requestInfo(S57Chart *chart, const WGS84Point &p,
+                               quint32 scale, quint32 tid) {
+  auto info = chart->objectInfo(p, scale);
+  qDebug() << "ChartUpdater::requestInfo";
+  emit infoResponse(info, tid);
 }
 

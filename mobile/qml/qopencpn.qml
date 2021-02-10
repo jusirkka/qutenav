@@ -36,6 +36,10 @@ ApplicationWindow {
     pageStack.push(Qt.resolvedUrl("MenuPage.qml"))
   }
 
+  function showInfo(data) {
+    pageStack.push(Qt.resolvedUrl("InfoPage.qml"), {content: data});
+  }
+
   function setPixelRatio() {
     // Return path to icon suitable for user's screen,
     // finding the closest match to Theme.pixelRatio.

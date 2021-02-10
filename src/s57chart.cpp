@@ -15,6 +15,7 @@
 #include "chartfilereader.h"
 #include "camera.h"
 #include "chartmanager.h"
+#include "utils.h"
 
 
 //
@@ -43,7 +44,6 @@ public:
 S57Chart::S57Chart(quint32 id, const QString& path)
   : QObject()
   , m_paintData(S52::Lookup::PriorityCount)
-  , m_updatedPaintData(S52::Lookup::PriorityCount)
   , m_id(id)
   , m_path(path)
   , m_coordBuffer(QOpenGLBuffer::VertexBuffer)
@@ -64,6 +64,8 @@ S57Chart::S57Chart(quint32 id, const QString& path)
     reader = candidate;
     break;
   }
+
+  m_extent = outline.extent();
 
   if (reader == nullptr) {
     throw ChartFileError(QString("%1 is not a supported chart file").arg(path));
@@ -187,6 +189,11 @@ void S57Chart::encode(QDataStream& stream) {
   // header
   const auto ref = m_nativeProj->reference();
   stream << ref.lng() << ref.lat();
+
+  stream << m_extent.sw().lng() << m_extent.sw().lat();
+  stream << m_extent.ne().lng() << m_extent.ne().lat();
+
+  // coordinates
   stream.setFloatingPointPrecision(QDataStream::SinglePrecision);
 
   using GForm = std::function<glm::vec2 (const glm::vec2&)>;
@@ -219,7 +226,7 @@ void S57Chart::encode(QDataStream& stream) {
 
   // indices
   m_indexBuffer.bind();
-  auto indices = reinterpret_cast<const GLfloat*>(m_indexBuffer.mapRange(0, m_staticElemOffset, QOpenGLBuffer::RangeRead));
+  auto indices = reinterpret_cast<const GLuint*>(m_indexBuffer.mapRange(0, m_staticElemOffset, QOpenGLBuffer::RangeRead));
   const int Ni = m_staticElemOffset / sizeof(GLuint);
 
   stream << Ni;
@@ -254,72 +261,18 @@ void S57Chart::encode(QDataStream& stream) {
 
 
 
-void S57Chart::finalizePaintData() {
-  // TODO update/finalize split is outdated and not needed anymore
+void S57Chart::updatePaintData(const WGS84Point &sw, const WGS84Point &ne, quint32 scale) {
+
   // clear old paint data
   for (S57::PaintDataMap& d: m_paintData) {
     for (S57::PaintMutIterator it = d.begin(); it != d.end(); ++it) {
       delete it.value();
     }
+    d.clear();
   }
-
-  m_paintData = m_updatedPaintData;
-
-  // update vertex buffer
-  m_coordBuffer.bind();
-  GLsizei dataLen = m_staticVertexOffset + sizeof(GLfloat) * m_updatedVertices.size();
-  if (dataLen > m_coordBuffer.size()) {
-    auto staticData = new uchar[m_staticVertexOffset];
-    auto coords = m_coordBuffer.map(QOpenGLBuffer::ReadOnly);
-    memcpy(staticData, coords, m_staticVertexOffset);
-    m_coordBuffer.unmap();
-    m_coordBuffer.allocate(dataLen);
-    m_coordBuffer.write(0, staticData, m_staticVertexOffset);
-    delete [] staticData;
-  }
-
-  m_coordBuffer.write(m_staticVertexOffset, m_updatedVertices.constData(), dataLen - m_staticVertexOffset);
-
-  // update pivot buffer
-  m_pivotBuffer.bind();
-  dataLen = sizeof(GLfloat) * m_updatedPivots.size();
-  if (dataLen > m_pivotBuffer.size()) {
-    m_pivotBuffer.allocate(dataLen);
-  }
-
-  m_pivotBuffer.write(0, m_updatedPivots.constData(), dataLen);
-
-  // LC updates to the transform buffer
-  for (int prio = 0; prio < S52::Lookup::PriorityCount; prio++) {
-    const S57::PaintMutIterator end = m_paintData[prio].end();
-    S57::PaintMutIterator elem = m_paintData[prio].find(S57::PaintData::Type::VectorLineStyles);
-    while (elem != end && elem.key() == S57::PaintData::Type::VectorLineStyles) {
-      auto d = dynamic_cast<S57::LineStylePaintData*>(elem.value());
-      d->createTransforms(m_updatedTransforms,
-                          m_coordBuffer,
-                          m_indexBuffer,
-                          m_staticVertexOffset);
-      ++elem;
-    }
-  }
-
-  // update transform buffer
-  m_transformBuffer.bind();
-  dataLen = sizeof(GLfloat) * m_updatedTransforms.size();
-  if (dataLen > m_transformBuffer.size()) {
-    m_transformBuffer.allocate(dataLen);
-  }
-
-  m_transformBuffer.write(0, m_updatedTransforms.constData(), dataLen);
-}
-
-void S57Chart::updatePaintData(const WGS84Point &sw, const WGS84Point &ne, quint32 scale) {
-
-  // clear old updates
-  for (S57::PaintDataMap& d: m_updatedPaintData) d.clear();
-  m_updatedVertices.clear();
-  m_updatedPivots.clear();
-  m_updatedTransforms.clear();
+  GL::VertexVector vertices;
+  GL::VertexVector pivots;
+  GL::VertexVector transforms;
 
   const auto maxcat = static_cast<quint8>(Conf::MarinerParams::maxCategory());
   const auto today = QDate::currentDate();
@@ -345,12 +298,12 @@ void S57Chart::updatePaintData(const WGS84Point &sw, const WGS84Point &ne, quint
     }
   };
 
-  auto handleLine = [this, sf] (const S57::PaintMutIterator& it, int prio) {
+  auto handleLine = [this, sf, &vertices] (const S57::PaintMutIterator& it, int prio) {
     auto p = dynamic_cast<S57::Globalizer*>(it.value());
-    auto pn = p->globalize(m_staticVertexOffset + m_updatedVertices.size() * sizeof(GLfloat));
-    m_updatedVertices += p->vertices(sf);
+    auto pn = p->globalize(m_staticVertexOffset + vertices.size() * sizeof(GLfloat));
+    vertices += p->vertices(sf);
     delete p;
-    m_updatedPaintData[prio].insert(pn->type(), pn);
+    m_paintData[prio].insert(pn->type(), pn);
   };
 
   auto mergeSymbols = [sf, viewArea] (SymbolPriorityVector& symbols, S57::PaintMutIterator it, int prio) {
@@ -447,7 +400,7 @@ void S57Chart::updatePaintData(const WGS84Point &sw, const WGS84Point &ne, quint
     parseLocals(S57::PaintData::Type::VectorPatterns, pd, prio, mergeVectorSymbols);
     parseLocals(S57::PaintData::Type::VectorLineStyles, pd, prio, mergeVectorSymbols);
 
-    m_updatedPaintData[prio] += pd;
+    m_paintData[prio] += pd;
   }
 
   // move merged symbols & patterns to paintdatamap
@@ -457,13 +410,61 @@ void S57Chart::updatePaintData(const WGS84Point &sw, const WGS84Point &ne, quint
       for (SymbolMutIterator it = merged.begin(); it != merged.end(); ++it) {
         auto s = dynamic_cast<S57::SymbolPaintDataBase*>(it.value());
         s->getPivots(data);
-        m_updatedPaintData[i].insert(it.value()->type(), it.value());
+        m_paintData[i].insert(it.value()->type(), it.value());
       }
     }
   };
 
-  updatePaintDatamap(rastersymbols, m_updatedPivots);
-  updatePaintDatamap(vectorsymbols, m_updatedTransforms);
+  updatePaintDatamap(rastersymbols, pivots);
+  updatePaintDatamap(vectorsymbols, transforms);
+
+  // update vertex buffer
+  m_coordBuffer.bind();
+  GLsizei dataLen = m_staticVertexOffset + sizeof(GLfloat) * vertices.size();
+  if (dataLen > m_coordBuffer.size()) {
+    auto staticData = new uchar[m_staticVertexOffset];
+    auto coords = m_coordBuffer.map(QOpenGLBuffer::ReadOnly);
+    memcpy(staticData, coords, m_staticVertexOffset);
+    m_coordBuffer.unmap();
+    m_coordBuffer.allocate(dataLen);
+    m_coordBuffer.write(0, staticData, m_staticVertexOffset);
+    delete [] staticData;
+  }
+
+  m_coordBuffer.write(m_staticVertexOffset, vertices.constData(), dataLen - m_staticVertexOffset);
+
+  // Symbolized line updates to the transform buffer
+  for (int prio = 0; prio < S52::Lookup::PriorityCount; prio++) {
+    const S57::PaintMutIterator end = m_paintData[prio].end();
+    S57::PaintMutIterator elem = m_paintData[prio].find(S57::PaintData::Type::VectorLineStyles);
+    while (elem != end && elem.key() == S57::PaintData::Type::VectorLineStyles) {
+      auto d = dynamic_cast<S57::LineStylePaintData*>(elem.value());
+      d->createTransforms(transforms,
+                          m_coordBuffer,
+                          m_indexBuffer,
+                          m_staticVertexOffset);
+      ++elem;
+    }
+  }
+
+  // update transform buffer
+  m_transformBuffer.bind();
+  dataLen = sizeof(GLfloat) * transforms.size();
+  if (dataLen > m_transformBuffer.size()) {
+    m_transformBuffer.allocate(dataLen);
+  }
+
+  m_transformBuffer.write(0, transforms.constData(), dataLen);
+
+  // update pivot buffer
+  m_pivotBuffer.bind();
+  dataLen = sizeof(GLfloat) * pivots.size();
+  if (dataLen > m_pivotBuffer.size()) {
+    m_pivotBuffer.allocate(dataLen);
+  }
+
+  m_pivotBuffer.write(0, pivots.constData(), dataLen);
+
 }
 
 qreal S57Chart::scaleFactor(const WGS84Point &sw, const WGS84Point &ne,
@@ -502,34 +503,20 @@ void S57Chart::findUnderling(S57::Object *overling,
     return indices[first + 1] == indices[last - 1];
   };
 
-  // https://wrf.ecse.rpi.edu//Research/Short_Notes/pnpoly.html
-  auto inpolygon = [vertices, indices] (const S57::ElementData& elem, const QPointF& p) {
-    bool c = false;
-    const int n = elem.count - 3;
-    const int first = elem.offset / sizeof(GLuint) + 1;
-    auto q = reinterpret_cast<const glm::vec2*>(vertices.constData());
-    for (int i0 = 0, j0 = n - 1; i0 < n; j0 = i0++) {
-      auto i = indices[first + i0];
-      auto j = indices[first + j0];
-      if (((q[i].y > p.y()) != (q[j].y > p.y())) &&
-          (p.x() < (q[j].x - q[i].x) * (p.y() - q[i].y) / (q[j].y - q[i].y) + q[i].x)) {
-        c = !c;
-      }
-    }
-    return c;
-  };
+  auto qs = reinterpret_cast<const glm::vec2*>(vertices.constData());
+  auto is = indices.constData();
 
   for (S57::Object* c: candidates) {
     auto geom = dynamic_cast<const S57::Geometry::Line*>(c->geometry());
     const S57::ElementDataVector elems = geom->lineElements();
     if (!closed(elems.first())) continue;
     if (!inbox(elems.first(), p)) continue;
-    if (!inpolygon(elems.first(), p)) continue;
+    if (!insidePolygon(elems.first().count, elems.first().offset, qs, is, p)) continue;
     bool isUnderling = true;
     for (int i = 1; i < elems.count(); i++) {
       if (!closed(elems[i])) continue;
       if (!inbox(elems[i], p)) continue;
-      isUnderling = !inpolygon(elems[i], p);
+      isUnderling = !insidePolygon(elems[i].count, elems[i].offset, qs, is, p);
       if (!isUnderling) break;
     }
     if (isUnderling) {

@@ -215,6 +215,13 @@ QString S52::FindPath(const QString& s) {
   return dataDir.absoluteFilePath(file);
 }
 
+QString S52::GetClassDescription(quint32 code) {
+  auto p = Names::instance();
+  if (!p->classes.contains(code)) return QString();
+  auto cl = p->classes[code];
+  return cl.description;
+}
+
 QString S52::GetClassInfo(quint32 code) {
   auto p = Names::instance();
   if (!p->classes.contains(code)) return QString();
@@ -238,6 +245,47 @@ QString S52::GetAttributeDescription(quint32 index) {
   auto p = Names::instance();
   if (!p->attributes.contains(index)) return QString();
   return p->attributes[index].description;
+}
+
+QString S52::GetAttributeValueDescription(quint32 index, const QVariant& v) {
+  auto p = Names::instance();
+  if (!p->attributes.contains(index)) return QString();
+
+  QString info;
+  switch (GetAttributeType(index)) {
+  case S57::AttributeType::Real:
+    info = QString::number(v.toDouble());
+    break;
+  case S57::AttributeType::String:
+    info = v.toString();
+    break;
+  case S57::AttributeType::Integer: {
+    auto descr = GetAttributeEnumDescription(index, v.toInt());
+    if (!descr.isEmpty()) {
+      info = descr;
+    } else {
+      info = QString::number(v.toInt());
+    }
+    break;
+  }
+  case S57::AttributeType::IntegerList:
+  {
+    auto items = v.toList();
+    for (auto a: items) {
+      auto descr = GetAttributeEnumDescription(index, a.toInt());
+      if (!descr.isEmpty()) {
+        info += descr + ", ";
+      } else {
+        info += QString::number(a.toInt()) + ", ";
+      }
+    }
+    if (!items.isEmpty()) info.remove(info.length() - 2, 2);
+  }
+    break;
+  default:
+    ; // do nothing
+  }
+  return info;
 }
 
 QString S52::GetAttributeEnumDescription(quint32 aid, quint32 eid) {

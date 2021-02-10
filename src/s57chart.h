@@ -40,7 +40,8 @@ public:
 
   void updatePaintData(const WGS84Point& sw, const WGS84Point& ne, quint32 scale);
   void updateLookups();
-  void finalizePaintData();
+
+  S57::InfoType objectInfo(const WGS84Point& p, quint32 scale);
 
   ~S57Chart();
 
@@ -87,12 +88,9 @@ private:
   LocationHash m_locations;
   ContourVector m_contours;
   PaintPriorityVector m_paintData;
-  PaintPriorityVector m_updatedPaintData;
-  GL::VertexVector m_updatedVertices;
-  GL::VertexVector m_updatedPivots;
-  GL::VertexVector m_updatedTransforms;
   quint32 m_id;
   QString m_path;
+  Extent m_extent;
   QOpenGLBuffer m_coordBuffer;
   QOpenGLBuffer m_indexBuffer;
   QOpenGLBuffer m_pivotBuffer;

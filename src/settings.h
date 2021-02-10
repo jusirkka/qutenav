@@ -58,8 +58,10 @@ public:
   }
 
   void setPlainBoundaries(bool v) {
-    Conf::MarinerParams::setPlainBoundaries(v);
-    emit lookupUpdateNeeded();
+    if (v != plainBoundaries()) {
+      Conf::MarinerParams::setPlainBoundaries(v);
+      emit lookupUpdateNeeded();
+    }
   }
 
   Q_PROPERTY(bool simplifiedSymbols
@@ -240,13 +242,13 @@ signals:
   // dummies to keep qtquick from moaning about missing signals
   void categoriesChanged(const QStringList&);
   void colorTablesChanged(const QStringList&);
-  void textGroupsChanged(const QList<QObject*>&);
+  void textGroupsChanged(const QObjectList&);
 
 private:
 
   Settings(QObject* parent = nullptr);
 
-  QList<QObject*> m_textGroups;
+  QObjectList m_textGroups;
   QStringList m_categories;
   QStringList m_colorTables;
 

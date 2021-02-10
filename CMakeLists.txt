@@ -117,6 +117,7 @@ target_sources(qopencpn
     src/s52presentation.cpp
     src/s52presentation_p.cpp
     src/s57chart.cpp
+    src/s57chart_objectinfo.cpp
     src/s57chartoutline.cpp
     src/s57object.cpp
     src/s57paintdata.cpp
@@ -126,6 +127,7 @@ target_sources(qopencpn
     src/textmanager.cpp
     src/tiny_sdf.cpp
     src/types.cpp
+    src/utils.cpp
     src/vectorsymbolmanager.cpp
     src/wfreader.cpp
     ${CMAKE_BINARY_DIR}/wavefront_parser.cpp

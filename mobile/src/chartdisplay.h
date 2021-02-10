@@ -2,11 +2,72 @@
 
 #include <QtQuick/QQuickFramebufferObject>
 #include <QOpenGLVertexArrayObject>
+#include "types.h"
 
 class DetailMode;
 class Camera;
 class QOpenGLContext;
 class QOffscreenSurface;
+
+class AttributeObject: public QObject {
+
+  Q_OBJECT
+
+public:
+
+  AttributeObject(const QString& n, const QString& v, QObject* parent = nullptr);
+
+  Q_PROPERTY(QString name
+             MEMBER name
+             WRITE setValue
+             NOTIFY nameChanged)
+
+  Q_PROPERTY(QString value
+             MEMBER value
+             WRITE setValue
+             NOTIFY valueChanged)
+
+  QString name;
+  QString value;
+
+  void setName(const QString&) {/* noop */}
+  void setValue(const QString&) {/* noop */}
+
+signals:
+
+  void nameChanged();
+  void valueChanged();
+};
+
+class ObjectObject: public QObject {
+
+  Q_OBJECT
+
+public:
+
+  ObjectObject(const QString& n, QObject* parent = nullptr);
+
+  Q_PROPERTY(QString name
+             MEMBER name
+             WRITE setName
+             NOTIFY nameChanged)
+
+  Q_PROPERTY(QList<QObject*> attributes
+             MEMBER attributes
+             WRITE setAttributes
+             NOTIFY attributesChanged)
+
+  QString name;
+  QList<QObject*> attributes;
+
+  void setName(const QString&) {/* noop */}
+  void setAttributes(const QList<QObject*>&) {/* noop */}
+
+signals:
+
+  void nameChanged();
+  void attributesChanged();
+};
 
 
 class ChartDisplay: public QQuickFramebufferObject {
@@ -24,11 +85,23 @@ public:
   Q_INVOKABLE void pan(qreal x, qreal y);
   Q_INVOKABLE void northUp();
   Q_INVOKABLE void rotate(qreal degrees);
+  Q_INVOKABLE void infoQuery(const QPointF& p);
 
-  Q_PROPERTY(QStringList chartSets READ chartSets NOTIFY chartSetsChanged)
-  Q_PROPERTY(QString chartSet READ chartSet WRITE setChartSet NOTIFY chartSetChanged)
-  Q_PROPERTY(qreal scaleBarLength READ scaleBarLength NOTIFY scaleBarLengthChanged)
-  Q_PROPERTY(QString scaleBarText READ scaleBarText)
+  Q_PROPERTY(QStringList chartSets
+             READ chartSets
+             NOTIFY chartSetsChanged)
+
+  Q_PROPERTY(QString chartSet
+             READ chartSet
+             WRITE setChartSet
+             NOTIFY chartSetChanged)
+
+  Q_PROPERTY(qreal scaleBarLength
+             READ scaleBarLength
+             NOTIFY scaleBarLengthChanged)
+
+  Q_PROPERTY(QString scaleBarText
+             READ scaleBarText)
 
   QStringList chartSets() const;
   QString chartSet() const;
@@ -59,12 +132,16 @@ private slots:
   void resize(int);
   void orient(Qt::ScreenOrientation orientation);
 
+  void handleInfoResponse(const S57::InfoType& info);
+
 signals:
 
   void updateViewport(const Camera* cam, quint32 flags = 0);
   void chartSetsChanged(const QStringList& chartSets);
   void chartSetChanged(const QString& chartSet);
   void scaleBarLengthChanged(qreal len);
+  void infoQueryReady(const QList<QObject*>& info);
+  void infoRequest(const WGS84Point& p);
 
 private:
 
@@ -86,5 +163,7 @@ private:
   QOpenGLContext* m_context;
   QOffscreenSurface* m_surface;
   QOpenGLVertexArrayObject m_vao;
+
+  QObjectList m_info;
 
 };
