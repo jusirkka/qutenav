@@ -475,8 +475,36 @@ void ChartManager::manageThreads(S57Chart* chart) {
 }
 
 void ChartManager::requestInfo(const WGS84Point &p) {
+
+  QString sql("select chart_id, swx, swy, nex, ney "
+              "from m.charts "
+              "where chart_id in (");
+  sql += QString("?,").repeated(m_charts.size());
+  sql = sql.replace(sql.length() - 1, 1, ")");
+
+  QSqlQuery r = m_db.prepare(sql);
+  for (int i = 0; i < m_charts.size(); i++) {
+    r.bindValue(i, m_charts[i]->id());
+  }
+
+  m_db.exec(r);
+  ChartVector reqs;
+  while (r.next()) {
+    if (p.containedBy(WGS84Point::fromLL(r.value(1).toDouble(), r.value(2).toDouble()),
+                      WGS84Point::fromLL(r.value(3).toDouble(), r.value(4).toDouble()))) {
+      auto index = m_chartIds[r.value(0).toUInt()];
+      reqs.append(m_charts[index]);
+    }
+  }
+
+  if (reqs.isEmpty()) {
+    qInfo() << p.print() << "is outside of area covered by current chartset";
+    return;
+  }
+
+  m_transactions[m_transactionCounter] = m_charts.size() - reqs.size();
   int counter = 0;
-  for (auto chart: m_charts) {
+  for (auto chart: reqs) {
     QMetaObject::invokeMethod(m_workers[counter], "requestInfo",
                               Q_ARG(S57Chart*, chart),
                               Q_ARG(const WGS84Point&, p),
@@ -488,16 +516,12 @@ void ChartManager::requestInfo(const WGS84Point &p) {
 }
 
 void ChartManager::manageInfoResponse(const S57::InfoType& info, quint32 tid) {
-  if (!m_transactions.contains(tid)) {
-    m_transactions[tid] = 1;
+  m_transactions[tid] = m_transactions[tid] + 1;
+
+  if (m_info[tid].isEmpty()) {
     m_info[tid] = info;
   } else {
-    m_transactions[tid] = m_transactions[tid] + 1;
-    if (m_info[tid].isEmpty()) {
-      m_info[tid] = info;
-    } else {
-      qWarning() << "Object info in more than one chart";
-    }
+    qWarning() << "Object info in more than one chart";
   }
 
   if (m_transactions[tid] == m_charts.size()) {

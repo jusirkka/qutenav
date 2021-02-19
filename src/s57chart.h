@@ -90,7 +90,6 @@ private:
   PaintPriorityVector m_paintData;
   quint32 m_id;
   QString m_path;
-  Extent m_extent;
   QOpenGLBuffer m_coordBuffer;
   QOpenGLBuffer m_indexBuffer;
   QOpenGLBuffer m_pivotBuffer;

@@ -13,7 +13,7 @@ CacheReader::CacheReader()
   , m_proj(GeoProjection::CreateProjection("SimpleMercator"))
 {}
 
-S57ChartOutline CacheReader::readOutline(const QString &path) const {
+GeoProjection* CacheReader::configuredProjection(const QString &path) const {
   auto id = CacheId(path);
   const auto base = QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation);
 
@@ -42,19 +42,49 @@ S57ChartOutline CacheReader::readOutline(const QString &path) const {
   stream >> lat;
   auto ref = WGS84Point::fromLL(lng , lat);
 
-  stream >> lng;
-  stream >> lat;
-  auto sw = WGS84Point::fromLL(lng, lat);
+  file.close();
 
+  auto gp = GeoProjection::CreateProjection(m_proj->className());
+  gp->setReference(ref);
+  return gp;
+
+}
+
+
+S57ChartOutline CacheReader::readOutline(const QString &path, const GeoProjection*) const {
+  auto id = CacheId(path);
+  const auto base = QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation);
+
+  const auto cachePath = QString("%1/%2/%3").arg(base).arg(qAppName()).arg(QString(id));
+
+  QFile file(cachePath);
+  if (!file.open(QFile::ReadOnly)) {
+    throw ChartFileError(QString("Cannot open %1 for reading").arg(cachePath));
+  }
+  QDataStream stream(&file);
+
+  stream.setVersion(QDataStream::Qt_5_6);
+  stream.setByteOrder(QDataStream::LittleEndian);
+  QByteArray magic(8, '0');
+  stream.readRawData(magic.data(), 8);
+  if (magic != id) {
+    throw ChartFileError(QString("%1 is not a proper cached chart file").arg(cachePath));
+  }
+
+  stream.setFloatingPointPrecision(QDataStream::DoublePrecision);
+
+  // header
+  double lng;
   stream >> lng;
+  double lat;
   stream >> lat;
-  auto ne = WGS84Point::fromLL(lng, lat);
+  auto ref = WGS84Point::fromLL(lng , lat);
 
   file.close();
 
-  // Only reference points needed
-  return S57ChartOutline(sw,
-                         ne,
+  // Only reference point needed
+  return S57ChartOutline(WGS84Point(),
+                         WGS84Point(),
                          S57ChartOutline::Region(),
                          S57ChartOutline::Region(),
                          ref,
@@ -68,7 +98,7 @@ void CacheReader::readChart(GL::VertexVector& vertices,
                             GL::IndexVector& indices,
                             S57::ObjectVector& objects,
                             const QString& path,
-                            const GeoProjection* /*proj*/) const {
+                            const GeoProjection*) const {
 
   auto id = CacheId(path);
   const auto base = QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation);
@@ -94,10 +124,6 @@ void CacheReader::readChart(GL::VertexVector& vertices,
   // header
   double dummy;
   stream >> dummy; // ref
-  stream >> dummy;
-  stream >> dummy; // sw
-  stream >> dummy;
-  stream >> dummy; // ne
   stream >> dummy;
 
   stream.setFloatingPointPrecision(QDataStream::SinglePrecision);

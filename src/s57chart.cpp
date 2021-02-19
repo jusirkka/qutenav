@@ -53,10 +53,10 @@ S57Chart::S57Chart(quint32 id, const QString& path)
 {
 
   ChartFileReader* reader = nullptr;
-  S57ChartOutline outline;
+
   for (ChartFileReader* candidate: ChartManager::instance()->readers()) {
     try {
-      outline = candidate->readOutline(path);
+      m_nativeProj = candidate->configuredProjection(path);
     } catch (ChartFileError& e) {
       qDebug() << e.msg();
       continue;
@@ -65,22 +65,16 @@ S57Chart::S57Chart(quint32 id, const QString& path)
     break;
   }
 
-  m_extent = outline.extent();
 
   if (reader == nullptr) {
     throw ChartFileError(QString("%1 is not a supported chart file").arg(path));
   }
-
-  m_nativeProj = GeoProjection::CreateProjection(reader->geoprojection()->className());
-  m_nativeProj->setReference(outline.reference());
-  m_nativeProj->setScaling(outline.scaling());
 
   S57::ObjectVector objects;
   GL::VertexVector vertices;
   GL::IndexVector indices;
 
   reader->readChart(vertices, indices, objects, path, m_nativeProj);
-
   // Assume scaling has been applied in reader->readChart
   m_nativeProj->setScaling(QSizeF(1., 1.));
 
@@ -189,9 +183,6 @@ void S57Chart::encode(QDataStream& stream) {
   // header
   const auto ref = m_nativeProj->reference();
   stream << ref.lng() << ref.lat();
-
-  stream << m_extent.sw().lng() << m_extent.sw().lat();
-  stream << m_extent.ne().lng() << m_extent.ne().lat();
 
   // coordinates
   stream.setFloatingPointPrecision(QDataStream::SinglePrecision);

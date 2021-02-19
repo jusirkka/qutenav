@@ -9,7 +9,10 @@ public:
 
   CacheReader();
 
-  S57ChartOutline readOutline(const QString& path) const override;
+  const GeoProjection* geoprojection() const override;
+  GeoProjection* configuredProjection(const QString &path) const override;
+
+  S57ChartOutline readOutline(const QString& path, const GeoProjection* gp) const override;
 
   void readChart(GL::VertexVector& vertices,
                  GL::IndexVector& indices,
@@ -17,7 +20,6 @@ public:
                  const QString& path,
                  const GeoProjection* proj) const override;
 
-  const GeoProjection* geoprojection() const override;
 
   static QByteArray CacheId(const QString& path);
 

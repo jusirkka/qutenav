@@ -9,7 +9,10 @@ class CM93Reader: public ChartFileReader {
 
 public:
 
-  S57ChartOutline readOutline(const QString& path) const override;
+  const GeoProjection* geoprojection() const override;
+  GeoProjection* configuredProjection(const QString &path) const override;
+
+  S57ChartOutline readOutline(const QString& path, const GeoProjection* proj) const override;
 
   void readChart(GL::VertexVector& vertices,
                  GL::IndexVector& indices,
@@ -17,7 +20,6 @@ public:
                  const QString& path,
                  const GeoProjection* proj) const override;
 
-  const GeoProjection* geoprojection() const override;
 
   using PointVector = QVector<QPointF>;
   using PRegion = QVector<PointVector>;
@@ -79,15 +81,6 @@ private:
 
   Region transformCoverage(PRegion pcov, WGS84Point& sw, WGS84Point& ne,
                            const GeoProjection* gp) const;
-
-  void triangulate(S57::ElementDataVector& elems,
-                   GL::IndexVector& indices,
-                   const GL::VertexVector& vertices,
-                   const S57::ElementDataVector& edges) const;
-
-  QPointF computeAreaCenter(const S57::ElementDataVector &elems,
-                            const GL::VertexVector& vertices,
-                            const GL::IndexVector& indices) const;
 
   static const inline QMap<QString, quint32> scales = {{"Z", 20000000},
                                                        {"A",  3000000},

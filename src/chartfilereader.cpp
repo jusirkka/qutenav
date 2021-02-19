@@ -1,4 +1,5 @@
 #include "chartfilereader.h"
+#include "triangulator.h"
 
 
 ChartFileReader* ChartFileReaderFactory::loadReader() const {
@@ -35,6 +36,20 @@ QRectF ChartFileReader::computeBBox(S57::ElementDataVector &elems,
   }
   return ret;
 }
+
+QRectF ChartFileReader::computeSoundingsBBox(const S57::Geometry::PointVector &ps) {
+  QPointF ur(-1.e15, -1.e15);
+  QPointF ll(1.e15, 1.e15);
+  for (int i = 0; i < ps.size() / 3; i++) {
+    const QPointF q(ps[3 * i], ps[3 * i + 1]);
+    ur.setX(qMax(ur.x(), q.x()));
+    ur.setY(qMax(ur.y(), q.y()));
+    ll.setX(qMin(ll.x(), q.x()));
+    ll.setY(qMin(ll.y(), q.y()));
+  }
+  return QRectF(ll, ur);
+}
+
 
 QPointF ChartFileReader::computeLineCenter(const S57::ElementDataVector &elems,
                                            const GL::VertexVector& vertices,
@@ -81,6 +96,77 @@ QPointF ChartFileReader::computeLineCenter(const S57::ElementDataVector &elems,
   const QPointF p0(vertices[2 * i0], vertices[2 * i0 + 1]);
   return p0 + (len - halfLen) / lengths[i - 1] * (p1 - p0);
 
+}
+
+QPointF ChartFileReader::computeAreaCenter(const S57::ElementDataVector &elems,
+                                           const GL::VertexVector& vertices,
+                                           const GL::IndexVector& indices) {
+  float area = 0;
+  QPointF s(0, 0);
+  for (const S57::ElementData& elem: elems) {
+    if (elem.mode == GL_TRIANGLES) {
+      int first = elem.offset / sizeof(GLuint);
+      for (uint i = 0; i < elem.count / 3; i++) {
+        const QPointF p0(vertices[2 * indices[first + 3 * i + 0] + 0],
+                         vertices[2 * indices[first + 3 * i + 0] + 1]);
+        const QPointF p1(vertices[2 * indices[first + 3 * i + 1] + 0],
+                         vertices[2 * indices[first + 3 * i + 1] + 1]);
+        const QPointF p2(vertices[2 * indices[first + 3 * i + 2] + 0],
+                         vertices[2 * indices[first + 3 * i + 2] + 1]);
+
+        const float da = std::abs((p1.x() - p0.x()) * (p2.y() - p0.y()) - (p2.x() - p0.x()) * (p1.y() - p0.y()));
+        area += da;
+        s.rx() += da / 3. * (p0.x() + p1.x() + p2.x());
+        s.ry() += da / 3. * (p0.y() + p1.y() + p2.y());
+      }
+    } else {
+      Q_ASSERT_X(false, "computeAreaCenter", "Unknown primitive");
+    }
+  }
+
+  return s / area;
+}
+
+
+
+void ChartFileReader::triangulate(S57::ElementDataVector &elems,
+                                  GL::IndexVector &indices,
+                                  const GL::VertexVector &vertices,
+                                  const S57::ElementDataVector& edges) {
+
+
+  if (edges.isEmpty()) return;
+
+  Triangulator tri(vertices, indices);
+  int first = edges.first().offset / sizeof(GLuint) + 1;
+  int count = edges.first().count - 3;
+  // skip open ended linestrings
+  if (indices[first] != indices[first + count]) {
+    qWarning() << "Cannot triangulate";
+    return;
+  }
+  tri.addPolygon(first, count);
+
+  for (int i = 1; i < edges.size(); i++) {
+    first = edges[i].offset / sizeof(GLuint) + 1;
+    count = edges[i].count - 3;
+    // skip open ended linestrings
+    if (indices[first] != indices[first + count]) {
+      qDebug() << "TRIANGULATE: skipping";
+      continue;
+    }
+    tri.addHole(first, count);
+  }
+
+  auto triangles = tri.triangulate();
+
+  S57::ElementData e;
+  e.mode = GL_TRIANGLES;
+  e.count = triangles.size();
+  e.offset = indices.size() * sizeof(GLuint);
+  elems.append(e);
+
+  indices.append(triangles);
 }
 
 

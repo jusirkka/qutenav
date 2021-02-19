@@ -9,7 +9,6 @@
 #include "textmanager.h"
 #include "rastersymbolmanager.h"
 #include "vectorsymbolmanager.h"
-#include "glcontext.h"
 #include <QGuiApplication>
 #include <QScreen>
 #include "conf_mainwindow.h"
@@ -42,7 +41,6 @@ void GLWindow::setChartSet(const QString &s) {
   ChartManager::instance()->setChartSet(s, m_mode->camera()->geoprojection());
   makeCurrent();
   initializeGL();
-  doneCurrent();
   emit updateViewport(m_mode->camera(), true);
   update();
 }
@@ -66,14 +64,7 @@ void GLWindow::initializeGL() {
       qFatal("Doh!");
     }
 
-    GL::Context::instance()->initializeContext(context(), this);
-    // From textureinthread qt example:
-    // "Some GL implementations requres that the currently bound context is
-    // made non-current before we set up sharing, so we doneCurrent here
-    // and makeCurrent down below while setting up our own context."
-    doneCurrent();
     ChartManager::instance()->createThreads(context());
-    makeCurrent();
     TextManager::instance()->createBuffers();
     RasterSymbolManager::instance()->createSymbols();
     VectorSymbolManager::instance()->createSymbols();
@@ -241,9 +232,7 @@ void GLWindow::initializeChartMode() {
   if (mode == nullptr) return;
   delete m_mode;
   m_mode = mode;
-  makeCurrent();
   initializeGL();
-  doneCurrent();
   emit updateViewport(m_mode->camera(), true);
   update();
 }
@@ -256,7 +245,6 @@ void GLWindow::finalizeChartMode() {
   m_mode = mode;
   makeCurrent();
   initializeGL();
-  doneCurrent();
   emit updateViewport(m_mode->camera(), true);
   update();
 }
@@ -280,7 +268,6 @@ void GLWindow::updateCharts(const QRectF& viewArea) {
   for (Drawable* d: m_mode->drawables()) {
     d->updateCharts(m_mode->camera(), viewArea);
   }
-  doneCurrent();
   update();
 }
 
@@ -289,6 +276,5 @@ void GLWindow::updateCharts(const QRectF& viewArea) {
 GLWindow::~GLWindow() {
   makeCurrent();
   m_vao.destroy();
-  doneCurrent();
   delete m_mode;
 }

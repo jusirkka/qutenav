@@ -16,7 +16,6 @@ target_sources(Mobile
     src/conf_mainwindow.cpp
     src/conf_marinerparams.cpp
     src/crosshairs.cpp
-    src/linecalculator.cpp
     src/main.cpp
 )
 

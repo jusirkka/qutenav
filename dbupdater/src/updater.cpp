@@ -7,6 +7,7 @@
 #include <QDirIterator>
 #include <QStandardPaths>
 #include <QFileSystemWatcher>
+#include <QScopedPointer>
 
 
 Updater::Updater(QObject* parent)
@@ -160,6 +161,7 @@ void Updater::checkChartsDir(const QString& dir, bool notify) {
     return;
   }
 
+
   QDirIterator it(dir,
                   m_factories[name]->filters(),
                   QDir::Files | QDir::Readable,
@@ -167,8 +169,9 @@ void Updater::checkChartsDir(const QString& dir, bool notify) {
   while (it.hasNext()) {
     const QString path = it.next();
     try {
+      auto gp = QScopedPointer<GeoProjection>(m_readers[name]->configuredProjection(path));
       // qDebug() << "reading outline" << path;
-      S57ChartOutline ch = m_readers[name]->readOutline(path);
+      S57ChartOutline ch = m_readers[name]->readOutline(path, gp.data());
       if (!scales.contains(ch.scale())) {
         auto r4 = m_db.prepare("insert into main.scales"
                                "(chartset_id, scale) "
@@ -310,15 +313,17 @@ void Updater::update(const QVariant &id, const S57ChartOutline &ch) {
   while (r0.next()) {
     cov.append(r0.value(0).toUInt());
   }
-
-  QString sql = "delete from main.polygons where cov_id in (";
-  sql += QString("?,").repeated(cov.size());
-  sql = sql.replace(sql.length() - 1, 1, ")");
-  QSqlQuery r1 = m_db.prepare(sql);
-  for (int i = 0; i < cov.size(); i++) {
-    r1.bindValue(i, cov[i]);
+  qDebug() << id.toUInt() << cov;
+  if (!cov.isEmpty()) {
+    QString sql = "delete from main.polygons where cov_id in (";
+    sql += QString("?,").repeated(cov.size());
+    sql = sql.replace(sql.length() - 1, 1, ")");
+    QSqlQuery r1 = m_db.prepare(sql);
+    for (int i = 0; i < cov.size(); i++) {
+      r1.bindValue(i, cov[i]);
+    }
+    m_db.exec(r1);
   }
-  m_db.exec(r1);
 
   QSqlQuery r2 = m_db.prepare("delete from main.coverage "
                               "where chart_id=?");

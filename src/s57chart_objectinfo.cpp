@@ -117,12 +117,8 @@ static S57::Description soundingDesc(const S57::Object* obj,
 S57::InfoType S57Chart::objectInfo(const WGS84Point& p, quint32 scale) {
   const auto q = m_nativeProj->fromWGS84(p);
 
-  const QRectF va(m_nativeProj->fromWGS84(m_extent.sw()),
-                  m_nativeProj->fromWGS84(m_extent.ne()));
-  if (!va.contains(q)) return S57::InfoType();
-
   // 20 pixel resolution mapped to meters
-  const float res = 20. / dots_per_mm_y * 0.001 * scale;
+  const float res = 0.001 / dots_per_mm_y * KV::PeepHoleSize * scale;
   const QRectF box(q - .5 * QPointF(res, res), QSizeF(res, res));
 
   QSet<quint32> handled;

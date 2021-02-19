@@ -25,6 +25,7 @@
 #include <QSGFlatColorMaterial>
 #include <QQuickWindow>
 #include <QDebug>
+#include "types.h"
 
 CrossHairs::CrossHairs(QQuickItem *parent)
   : QQuickItem(parent)
@@ -67,18 +68,19 @@ QSGNode *CrossHairs::updatePaintNode(QSGNode* oldNode, UpdatePaintNodeData*)
   }
   const float x0 = static_cast<float>(m_peepHole.x());
   const float y0 = static_cast<float>(m_peepHole.y());
+  const float d = .5 * KV::PeepHoleSize;
   QSGGeometry::Point2D* vertices = geometry->vertexDataAsPoint2D();
 
-  vertices[0].set(x0 - lineWidth * 1.5, y0);
+  vertices[0].set(x0 - d, y0);
   vertices[1].set(0, y0);
 
-  vertices[2].set(x0, y0 + lineWidth * 1.5);
+  vertices[2].set(x0, y0 + d);
   vertices[3].set(x0, window()->height());
 
-  vertices[4].set(x0 + lineWidth * 1.5, y0);
+  vertices[4].set(x0 + d, y0);
   vertices[5].set(window()->width(), y0);
 
-  vertices[6].set(x0, y0 - lineWidth * 1.5);
+  vertices[6].set(x0, y0 - dKV);
   vertices[7].set(x0, 0);
 
   node->markDirty(QSGNode::DirtyGeometry);

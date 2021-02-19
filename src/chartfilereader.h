@@ -8,17 +8,20 @@
 class ChartFileReader {
 public:
 
-  virtual S57ChartOutline readOutline(const QString& path) const = 0;
+  virtual const GeoProjection* geoprojection() const = 0;
+  virtual GeoProjection* configuredProjection(const QString& path) const = 0;
+
+  virtual S57ChartOutline readOutline(const QString& path,
+                                      const GeoProjection* gp) const = 0;
 
   virtual void readChart(GL::VertexVector& vertices,
                          GL::IndexVector& indices,
                          S57::ObjectVector& objects,
                          const QString& path,
-                         const GeoProjection* proj) const = 0;
+                         const GeoProjection* gp) const = 0;
 
   const QString& name() const {return m_name;}
 
-  virtual const GeoProjection* geoprojection() const = 0;
 
   virtual ~ChartFileReader() = default;
 
@@ -27,13 +30,25 @@ protected:
   ChartFileReader(const QString& name)
     : m_name(name) {}
 
+
   static QRectF computeBBox(S57::ElementDataVector &elems,
                             const GL::VertexVector& vertices,
                             const GL::IndexVector& indices);
 
+  static QRectF computeSoundingsBBox(const S57::Geometry::PointVector& ps);
+
   static QPointF computeLineCenter(const S57::ElementDataVector &elems,
                                    const GL::VertexVector& vertices,
                                    const GL::IndexVector& indices);
+
+  static QPointF computeAreaCenter(const S57::ElementDataVector &elems,
+                                   const GL::VertexVector& vertices,
+                                   const GL::IndexVector& indices);
+
+  static void triangulate(S57::ElementDataVector& elems,
+                          GL::IndexVector& indices,
+                          const GL::VertexVector& vertices,
+                          const S57::ElementDataVector& edges);
 
   QString m_name;
 

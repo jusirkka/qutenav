@@ -106,6 +106,8 @@ public:
   // ensure that returned value is larger than the lng of the reference point
   double lng(const WGS84Point& ref) const;
 
+  bool containedBy(const WGS84Point& sw, const WGS84Point& ne) const;
+
   double radiansLng() const;
   double radiansLat() const;
 
@@ -326,9 +328,10 @@ enum class AttributeType: uint8_t {
   Integer,
   IntegerList,
   Real,
-  None, // OgrAttr_t has RealLst here
+  None,
   String,
-  Any // Not in OgrAttr_t
+  Any,
+  Deleted,
 };
 
 // Data type for info requests
@@ -363,8 +366,10 @@ using InfoType = QVector<Description>;
 Q_DECLARE_METATYPE(S57::InfoType)
 
 
-namespace QT {
+namespace KV {
 using ColorVector = QVector<QColor>;
+// For mobile/crosshairs
+static const int PeepHoleSize = 20;
 }
 
 namespace GL {

@@ -5,7 +5,6 @@
 #include <QDate>
 #include "s52names.h"
 #include "cm93presentation.h"
-#include "triangulator.h"
 #include <QScopedPointer>
 #include <QRegularExpression>
 #include <QFileInfo>
@@ -486,7 +485,51 @@ using Region = S57ChartOutline::Region;
 //  file.close();
 //}
 
-S57ChartOutline CM93Reader::readOutline(const QString& path) const {
+GeoProjection* CM93Reader::configuredProjection(const QString& path) const {
+
+  QFile file(path);
+  if (!file.open(QFile::ReadOnly)) {
+    throw ChartFileError(QString("Cannot open %1 for reading").arg(path));
+  }
+  QDataStream stream(&file);
+  stream.setByteOrder(QDataStream::LittleEndian);
+
+  // length of prolog + header (10 + 128)
+  auto header_len = read_and_decode<quint16>(stream);
+  if (header_len != 138) {
+    throw ChartFileError(QString("%1 is not a proper CM93 file").arg(path));
+  }
+  auto geom_table_len = read_and_decode<qint32>(stream);
+  auto feature_table_len = read_and_decode<qint32>(stream);
+  if (header_len + geom_table_len + feature_table_len != file.size()) {
+    throw ChartFileError(QString("%1 is not a proper CM93 file").arg(path));
+  }
+
+  // header 64/128 bytes
+
+  stream.skipRawData(32); // lng_min, lat_min, lng_max, lat_max
+
+  auto e_min = read_and_decode<double>(stream);
+  auto n_min = read_and_decode<double>(stream);
+
+  auto e_max = read_and_decode<double>(stream);
+  auto n_max = read_and_decode<double>(stream);
+
+  if (e_max < e_min) {
+    e_max += 2 * M_PI * CM93Mercator::zC;
+  }
+  Q_ASSERT(n_max > n_min);
+
+  QSizeF scaling((e_max - e_min) / 65535., (n_max - n_min) / 65535.);
+  WGS84Point ref = m_proj->toWGS84(QPointF(e_min, n_min));
+
+  auto gp = GeoProjection::CreateProjection(m_proj->className());
+  gp->setReference(ref);
+  gp->setScaling(scaling);
+  return gp;
+}
+
+S57ChartOutline CM93Reader::readOutline(const QString& path, const GeoProjection* gp) const {
 
   QFile file(path);
   if (!file.open(QFile::ReadOnly)) {
@@ -523,21 +566,7 @@ S57ChartOutline CM93Reader::readOutline(const QString& path) const {
   WGS84Point ne = WGS84Point::fromLL(lng_max, lat_max);
   // qDebug() << "ne" << ne.print();
 
-  auto e_min = read_and_decode<double>(stream);
-  auto n_min = read_and_decode<double>(stream);
-
-  auto e_max = read_and_decode<double>(stream);
-  auto n_max = read_and_decode<double>(stream);
-
-  if (e_max < e_min) {
-    e_max += 2 * M_PI * CM93Mercator::zC;
-  }
-  Q_ASSERT(n_max > n_min);
-
-  QSizeF scaling((e_max - e_min) / 65535., (n_max - n_min) / 65535.);
-
-  WGS84Point ref = m_proj->toWGS84(QPointF(e_min, n_min));
-  // qDebug() << "ref" << ref.print();
+  stream.skipRawData(32); // emin, nmin, emax, nmax
 
   // vector record table: n_vec_records * 2 + n_vec_record_points  * 4 =
   // byte size of vertex table
@@ -560,8 +589,8 @@ S57ChartOutline CM93Reader::readOutline(const QString& path) const {
   for (int i = 0; i < n_vec_records; i++) {
     auto n_elems = read_and_decode<quint16>(stream);
     for (int v = 0; v < n_elems; v++) {
-      vertices << scaling.width() * read_and_decode<quint16>(stream);
-      vertices << scaling.height() * read_and_decode<quint16>(stream);
+      vertices << gp->scaling().width() * read_and_decode<quint16>(stream);
+      vertices << gp->scaling().height() * read_and_decode<quint16>(stream);
     }
     Edge e;
     e.count = n_elems;
@@ -577,13 +606,10 @@ S57ChartOutline CM93Reader::readOutline(const QString& path) const {
   PRegion pcov;
   QDate pub;
 
-  auto gp = QScopedPointer<GeoProjection>(GeoProjection::CreateProjection(m_proj->className()));
-  gp->setReference(ref);
-
   bool in_sor = false;
   for (int featureId = 0; featureId < n_feat_records; featureId++) {
     auto classCode = read_and_decode<quint8>(stream);
-    // qDebug() << "[class]" << CM93::GetClassInfo(classCode);
+    // qDebug() << "[class]" << CM93::GetClassInfo(classCode) << featureId << "/" << n_feat_records;
     auto objCode = read_and_decode<quint8>(stream);
     auto n_bytes = read_and_decode<quint16>(stream);
     if (classCode != m_m_sor) {
@@ -625,6 +651,7 @@ S57ChartOutline CM93Reader::readOutline(const QString& path) const {
 
     if (flags & AttributeBit) {
       auto n_elems = read_and_decode<quint8>(stream);
+      // qDebug() << "attributes" << n_elems;
       for (int i = 0; i < n_elems; i++) {
         auto a = QScopedPointer<const CM93::Attribute>(CM93::Attribute::Decode(stream));
         // qDebug() << a->name() << a->type() << a->value();
@@ -636,13 +663,21 @@ S57ChartOutline CM93Reader::readOutline(const QString& path) const {
     }
   }
 
-  const Region cov = transformCoverage(pcov, sw, ne, gp.data());
+  if (!pub.isValid()) {
+    throw ChartFileError(QString("Error parsing %1: Feature _m_sor not found").arg(path));
+  }
+
+  // projection without scaling
+  auto gpsc = QScopedPointer<GeoProjection>(GeoProjection::CreateProjection(gp->className()));
+  gpsc->setReference(gp->reference());
+
+  const Region cov = transformCoverage(pcov, sw, ne, gpsc.data());
   // gp->setReference(WGS84Point::fromLL(-5, 35));
-  // tognuplot(cov, sw, ne, gp.data(), path);
+  // tognuplot(cov, sw, ne, gpsc.data(), path);
   return S57ChartOutline(sw, ne,
                          cov,
                          Region(),
-                         ref, scaling, scale, pub, pub);
+                         gp->reference(), gp->scaling(), scale, pub, pub);
 }
 
 
@@ -894,17 +929,8 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
     case CM93::GeomType::Sounding: {
       auto index = read_and_decode<quint16>(stream);
       auto ps = soundings[index];
-      // compute bounding box
-      QPointF ur(-1.e15, -1.e15);
-      QPointF ll(1.e15, 1.e15);
-      for (int i = 0; i < ps.size() / 3; i++) {
-        const QPointF q(ps[3 * i], ps[3 * i + 1]);
-        ur.setX(qMax(ur.x(), q.x()));
-        ur.setY(qMax(ur.y(), q.y()));
-        ll.setX(qMin(ll.x(), q.x()));
-        ll.setY(qMin(ll.y(), q.y()));
-      }
-      helper.cm93SetGeometry(object, new S57::Geometry::Point(ps, projSc.data()), QRectF(ll, ur));
+      auto bbox = computeSoundingsBBox(ps);
+      helper.cm93SetGeometry(object, new S57::Geometry::Point(ps, projSc.data()), bbox);
       n_bytes -= 2;
       break;
     }
@@ -961,45 +987,6 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
 }
 
 
-void CM93Reader::triangulate(S57::ElementDataVector &elems,
-                             GL::IndexVector &indices,
-                             const GL::VertexVector &vertices,
-                             const S57::ElementDataVector& edges) const {
-
-
-  if (edges.isEmpty()) return;
-
-  Triangulator tri(vertices, indices);
-  int first = edges.first().offset / sizeof(GLuint) + 1;
-  int count = edges.first().count - 3;
-  // skip open ended linestrings
-  if (indices[first] != indices[first + count]) {
-    qWarning() << "Cannot triangulate";
-    return;
-  }
-  tri.addPolygon(first, count);
-
-  for (int i = 1; i < edges.size(); i++) {
-    first = edges[i].offset / sizeof(GLuint) + 1;
-    count = edges[i].count - 3;
-    // skip open ended linestrings
-    if (indices[first] != indices[first + count]) {
-      qDebug() << "TRIANGULATE: skipping";
-      continue;
-    }
-    tri.addHole(first, count);
-  }
-
-  auto triangles = tri.triangulate();
-
-  S57::ElementData e;
-  e.mode = GL_TRIANGLES;
-  e.count = triangles.size();
-  e.offset = indices.size() * sizeof(GLuint);
-  elems.append(e);
-
-  indices.append(triangles);
-}
 
 void CM93Reader::createLineElements(S57::ElementDataVector &elems,
                                     GL::IndexVector &indices,
@@ -1173,7 +1160,7 @@ QPointF CM93Reader::getPoint(int index,
 }
 
 int CM93Reader::getEndPointIndex(EP ep,
-                                     const Edge& e) const {
+                                 const Edge& e) const {
   if ((ep == EP::Last && !e.reversed) || (ep == EP::First && e.reversed)) {
     return e.offset + e.count - 1;
   }
@@ -1216,35 +1203,6 @@ CM93Reader::PointVector CM93Reader::addVertices(const Edge &e, const GL::VertexV
     }
   }
   return ps;
-}
-
-QPointF CM93Reader::computeAreaCenter(const S57::ElementDataVector &elems,
-                                      const GL::VertexVector& vertices,
-                                      const GL::IndexVector& indices) const {
-  float area = 0;
-  QPoint s(0, 0);
-  for (const S57::ElementData& elem: elems) {
-    if (elem.mode == GL_TRIANGLES) {
-      int first = elem.offset / sizeof(GLuint);
-      for (uint i = 0; i < elem.count / 3; i++) {
-        const QPointF p0(vertices[2 * indices[first + 3 * i + 0] + 0],
-                         vertices[2 * indices[first + 3 * i + 0] + 1]);
-        const QPointF p1(vertices[2 * indices[first + 3 * i + 1] + 0],
-                         vertices[2 * indices[first + 3 * i + 1] + 1]);
-        const QPointF p2(vertices[2 * indices[first + 3 * i + 2] + 0],
-                         vertices[2 * indices[first + 3 * i + 2] + 1]);
-
-        const float da = std::abs((p1.x() - p0.x()) * (p2.y() - p0.y()) - (p2.x() - p0.x()) * (p1.y() - p0.y()));
-        area += da;
-        s.rx() += da / 3. * (p0.x() + p1.x() + p2.x());
-        s.ry() += da / 3. * (p0.y() + p1.y() + p2.y());
-      }
-    } else {
-      Q_ASSERT_X(false, "computeAreaCenter", "Unknown primitive");
-    }
-  }
-
-  return s / area;
 }
 
 

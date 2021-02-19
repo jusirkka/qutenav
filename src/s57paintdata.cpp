@@ -287,7 +287,7 @@ void S57::RasterSymbolPaintData::merge(const SymbolPaintDataBase* other, qreal, 
 S57::VectorSymbolPaintData::VectorSymbolPaintData(quint32 index,
                                                   const QPointF& pivot,
                                                   const Angle& rot,
-                                                  const QT::ColorVector& colors,
+                                                  const KV::ColorVector& colors,
                                                   const ElementDataVector& elems)
   : SymbolPaintData(Type::VectorSymbols, index, QPoint(), new VectorHelper(), pivot)
 {
@@ -412,7 +412,7 @@ S57::VectorPatternPaintData::VectorPatternPaintData(quint32 index,
                                                     const QRectF& bbox,
                                                     const PatternAdvance& advance,
                                                     const Angle& rot,
-                                                    const QT::ColorVector& colors,
+                                                    const KV::ColorVector& colors,
                                                     const ElementDataVector& elems)
   : PatternPaintData(Type::VectorPatterns, index, QPoint(), new VectorHelper(),
                      aelems, aoffset, indexed, bbox, advance)
@@ -458,7 +458,7 @@ S57::LineStylePaintData::LineStylePaintData(quint32 index,
                                             GLsizei loffset,
                                             const QRectF& bbox,
                                             const PatternAdvance& advance,
-                                            const QT::ColorVector& colors,
+                                            const KV::ColorVector& colors,
                                             const ElementDataVector& elems)
   : SymbolPaintDataBase(Type::VectorLineStyles, S52::SymbolType::LineStyle, index, QPoint(), new VectorHelper)
   , m_lineElements()

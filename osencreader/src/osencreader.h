@@ -10,7 +10,10 @@ class OsencReader: public ChartFileReader {
 
 public:
 
-  S57ChartOutline readOutline(const QString& path) const override;
+  const GeoProjection* geoprojection() const override;
+  GeoProjection* configuredProjection(const QString &path) const override;
+
+  S57ChartOutline readOutline(const QString& path, const GeoProjection* proj) const override;
 
   void readChart(GL::VertexVector& vertices,
                  GL::IndexVector& indices,
@@ -19,10 +22,12 @@ public:
                  const GeoProjection* proj) const override;
 
 
-  const GeoProjection* geoprojection() const override;
-
-
 private:
+
+  QPointF computeAreaCenter(const S57::ElementDataVector &elems,
+                            const GL::VertexVector& vertices,
+                            GLsizei offset) const;
+
 
   OsencReader(const QString& name);
 

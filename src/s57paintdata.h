@@ -312,7 +312,7 @@ public:
   VectorSymbolPaintData(quint32 index,
                         const QPointF& pivot,
                         const Angle& rot,
-                        const QT::ColorVector& colors,
+                        const KV::ColorVector& colors,
                         const ElementDataVector& elems);
 
   const ColorElementVector& elements() const {return m_elems;}
@@ -395,7 +395,7 @@ public:
                          const QRectF& bbox,
                          const PatternAdvance& advance,
                          const Angle& rot,
-                         const QT::ColorVector& colors,
+                         const KV::ColorVector& colors,
                          const ElementDataVector& elems);
 
   const ColorElementVector& elements() const {return m_elems;}
@@ -421,7 +421,7 @@ public:
                      GLsizei loffset,
                      const QRectF& bbox,
                      const PatternAdvance& advance,
-                     const QT::ColorVector& colors,
+                     const KV::ColorVector& colors,
                      const ElementDataVector& elems);
 
   void merge(const SymbolPaintDataBase* other, qreal scale, const QRectF& va) override;

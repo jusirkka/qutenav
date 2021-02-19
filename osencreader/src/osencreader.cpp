@@ -34,11 +34,122 @@ const uint UseNoCoverage = 2;
 static uint checkCoverage(const Region& cov,
                           const Region& nocov,
                           const WGS84PointVector& ps,
-                          GeoProjection* gp);
+                          const GeoProjection* gp);
 
 static WGS84PointVector reduce(const VVec& vs);
 
-S57ChartOutline OsencReader::readOutline(const QString& path) const {
+GeoProjection* OsencReader::configuredProjection(const QString &path) const {
+
+  QFile file(path);
+  if (!file.open(QFile::ReadOnly)) {
+    throw ChartFileError(QString("Cannot open %1 for reading").arg(path));
+  }
+  QDataStream stream(&file);
+
+  Buffer buffer;
+
+  buffer.resize(sizeof(OSENC_Record_Base));
+  if (stream.readRawData(buffer.data(), buffer.size()) == -1) {
+    throw ChartFileError(QString("Error reading %1 bytes from %2").arg(buffer.size()).arg(path));
+  }
+
+  //  For identification purposes, the very first record must be the OSENC Version Number Record
+  auto record = reinterpret_cast<OSENC_Record_Base*>(buffer.data());
+
+  // Check Record
+  if (record->record_type != SencRecordType::HEADER_SENC_VERSION){
+    throw ChartFileError(QString("%1 is not a supported senc file").arg(path));
+  }
+
+  //  This is the correct record type (OSENC Version Number Record), so read it
+  buffer.resize(record->record_length - sizeof(OSENC_Record_Base));
+  if (stream.readRawData(buffer.data(), buffer.size()) == -1) {
+    throw ChartFileError(QString("Error reading %1 bytes from %2").arg(buffer.size()).arg(path));
+  }
+  // auto p16 = reinterpret_cast<quint16*>(buffer.data());
+  // qDebug() << "senc version =" << *p16;
+
+  WGS84Point ref;
+
+  const QMap<SencRecordType, Handler*> handlers {
+    {SencRecordType::HEADER_CELL_NAME, new Handler([] (const Buffer& b) {
+        return true;
+      })
+    },
+    {SencRecordType::HEADER_CELL_PUBLISHDATE, new Handler([] (const Buffer& b) {
+        return true;
+      })
+    },
+    {SencRecordType::HEADER_CELL_UPDATEDATE, new Handler([] (const Buffer& b) {
+        return true;
+      })
+    },
+    {SencRecordType::HEADER_CELL_EDITION, new Handler([] (const Buffer& b) {
+        return true;
+      })
+    },
+    {SencRecordType::HEADER_CELL_UPDATE, new Handler([] (const Buffer& b) {
+        return true;
+      })
+    },
+    {SencRecordType::HEADER_CELL_NATIVESCALE, new Handler([] (const Buffer& b) {
+        return true;
+      })
+    },
+    {SencRecordType::HEADER_CELL_SENCCREATEDATE, new Handler([] (const Buffer& b) {
+        return true;
+      })
+    },
+    {SencRecordType::CELL_EXTENT_RECORD, new Handler([&ref] (const Buffer& b) {
+        // qDebug() << "cell extent record";
+        const OSENC_EXTENT_Record_Payload* p = reinterpret_cast<const OSENC_EXTENT_Record_Payload*>(b.constData());
+
+        auto sw = WGS84Point::fromLL(p->extent_sw_lon, p->extent_sw_lat);
+        auto ne = WGS84Point::fromLL(p->extent_ne_lon, p->extent_ne_lat);
+
+        ref = WGS84Point::fromLL(.5 * (sw.lng() + ne.lng()),
+                                 .5 * (sw.lat() + ne.lat()));
+
+        return true;
+      })
+    },
+
+
+  };
+
+  bool done = false;
+
+  while (!done) {
+
+    buffer.resize(sizeof(OSENC_Record_Base));
+    if (stream.readRawData(buffer.data(), buffer.size()) == -1) {
+      done = true;
+      continue;
+    }
+    record = reinterpret_cast<OSENC_Record_Base*>(buffer.data());
+    // copy, record_type will be overwritten in the next stream.readRawData
+    SencRecordType rec_type = record->record_type;
+    if (!handlers.contains(rec_type)) {
+      done = true;
+      continue;
+    }
+    buffer.resize(record->record_length - sizeof(OSENC_Record_Base));
+    if (stream.readRawData(buffer.data(), buffer.size()) == -1) {
+      done = true;
+      continue;
+    }
+
+    done = !(handlers[rec_type])->func(buffer);
+
+  }
+  qDeleteAll(handlers);
+
+  auto gp = GeoProjection::CreateProjection(m_proj->className());
+  gp->setReference(ref);
+  return gp;
+}
+
+S57ChartOutline OsencReader::readOutline(const QString &path, const GeoProjection *gp) const {
 
   QFile file(path);
   if (!file.open(QFile::ReadOnly)) {
@@ -73,7 +184,6 @@ S57ChartOutline OsencReader::readOutline(const QString& path) const {
   QDate mod;
   quint32 scale = 0;
   WGS84PointVector points;
-  auto gp = QScopedPointer<GeoProjection>(GeoProjection::CreateProjection(m_proj->className()));
   Region cov;
   Region nocov;
 
@@ -185,13 +295,14 @@ S57ChartOutline OsencReader::readOutline(const QString& path) const {
     throw ChartFileError(QString("Invalid osenc header in %1").arg(path));
   }
 
-  uint flags = checkCoverage(cov, nocov, points, gp.data());
+  uint flags = checkCoverage(cov, nocov, points, gp);
   // points = sw, se, ne, nw
   return S57ChartOutline(points[0], points[2],
       (flags & UseCoverage) ? cov : Region(),
       (flags & UseNoCoverage) ? nocov : Region(),
       scale, pub, mod);
 }
+
 
 namespace S57 {
 
@@ -235,16 +346,13 @@ static GLsizei addIndices(GLuint first,
 static GLuint addAdjacent(GLuint endp,
                           GLuint nbor,
                           GL::VertexVector& vertices);
-static QPointF computeAreaCenter(const S57::ElementDataVector &elems,
-                                 const GL::VertexVector& vertices,
-                                 GLsizei offset);
 
 
 void OsencReader::readChart(GL::VertexVector& vertices,
                             GL::IndexVector& indices,
                             S57::ObjectVector& objects,
                             const QString& path,
-                            const GeoProjection* proj) const {
+                            const GeoProjection* gp) const {
 
   QFile file(path);
   file.open(QFile::ReadOnly);
@@ -339,14 +447,14 @@ void OsencReader::readChart(GL::VertexVector& vertices,
       })
     },
 
-    {SencRecordType::FEATURE_GEOMETRY_RECORD_POINT, new Handler([&current, &objectHandle, helper, proj] (const Buffer& b) {
+    {SencRecordType::FEATURE_GEOMETRY_RECORD_POINT, new Handler([&current, &objectHandle, helper, gp] (const Buffer& b) {
         // qDebug() << "feature geometry/point record";
         if (!current) return false;
         auto p = reinterpret_cast<const OSENC_PointGeometry_Record_Payload*>(b.constData());
-        auto p0 = proj->fromWGS84(WGS84Point::fromLL(p->lon, p->lat));
+        auto p0 = gp->fromWGS84(WGS84Point::fromLL(p->lon, p->lat));
         objectHandle.last().type = S57::Geometry::Type::Point;
         QRectF bb(p0 - QPointF(10, 10), QSizeF(20, 20));
-        return helper.osEncSetGeometry(current, new S57::Geometry::Point(p0, proj), bb);
+        return helper.osEncSetGeometry(current, new S57::Geometry::Point(p0, gp), bb);
       })
     },
 
@@ -387,7 +495,7 @@ void OsencReader::readChart(GL::VertexVector& vertices,
       })
     },
 
-    {SencRecordType::FEATURE_GEOMETRY_RECORD_MULTIPOINT, new Handler([&current, &objectHandle, helper, proj] (const Buffer& b) {
+    {SencRecordType::FEATURE_GEOMETRY_RECORD_MULTIPOINT, new Handler([&current, &objectHandle, helper, gp] (const Buffer& b) {
         // qDebug() << "feature geometry/multipoint record";
         if (!current) return false;
         auto p = reinterpret_cast<const OSENC_MultipointGeometry_Record_Payload*>(b.constData());
@@ -404,7 +512,7 @@ void OsencReader::readChart(GL::VertexVector& vertices,
           ll.setX(qMin(ll.x(), q.x()));
           ll.setY(qMin(ll.y(), q.y()));
         }
-        return helper.osEncSetGeometry(current, new S57::Geometry::Point(ps, proj), QRectF(ll, ur));
+        return helper.osEncSetGeometry(current, new S57::Geometry::Point(ps, gp), QRectF(ll, ur));
       })
     },
 
@@ -569,7 +677,7 @@ void OsencReader::readChart(GL::VertexVector& vertices,
       const QPointF c = computeLineCenter(elems, vertices, indices);
       const QRectF bbox = computeBBox(elems, vertices, indices);
       helper.osEncSetGeometry(d.object,
-                              new S57::Geometry::Line(elems, c, 0, proj),
+                              new S57::Geometry::Line(elems, c, 0, gp),
                               bbox);
 
     } else if (d.type == S57::Geometry::Type::Area) {
@@ -584,7 +692,7 @@ void OsencReader::readChart(GL::VertexVector& vertices,
       const QPointF c = computeAreaCenter(telems, vertices, offset);
       const QRectF bbox = computeBBox(lelems, vertices, indices);
       helper.osEncSetGeometry(d.object,
-                              new S57::Geometry::Area(lelems, c, telems, offset, false, proj),
+                              new S57::Geometry::Area(lelems, c, telems, offset, false, gp),
                               bbox);
     }
 
@@ -619,9 +727,9 @@ static GLuint addAdjacent(GLuint endp, GLuint nbor, GL::VertexVector& vertices) 
 }
 
 
-static QPointF computeAreaCenter(const S57::ElementDataVector &elems,
-                                 const GL::VertexVector& vertices,
-                                 GLsizei offset) {
+QPointF OsencReader::computeAreaCenter(const S57::ElementDataVector &elems,
+                                       const GL::VertexVector& vertices,
+                                       GLsizei offset) const {
   float area = 0;
   QPoint s(0, 0);
   for (const S57::ElementData& elem: elems) {
@@ -699,8 +807,7 @@ static float area(const PointVector& ps) {
 static uint checkCoverage(const Region& cov,
                           const Region& nocov,
                           const WGS84PointVector& ps,
-                          GeoProjection* gp) {
-  gp->setReference(ps[0]);
+                          const GeoProjection* gp) {
   PPolygon covp;
   for (const WGS84PointVector& vs: cov) {
     PointVector ps;

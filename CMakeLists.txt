@@ -107,6 +107,7 @@ target_sources(qopencpn
     src/glthread.cpp
     src/glyphmanager.cpp
     src/hpglparser.cpp
+    src/linecalculator.cpp
     src/orthocam.cpp
     src/outlinemode.cpp
     src/outliner.cpp
@@ -219,6 +220,7 @@ target_include_directories(qopencpn_dbupdater
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/dbupdater/src
     ${CMAKE_CURRENT_SOURCE_DIR}/geographiclib/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/triangulate/src
     ${CMAKE_BINARY_DIR}
 )
 
@@ -240,6 +242,7 @@ add_subdirectory(geographiclib)
 add_subdirectory(triangulate)
 add_subdirectory(osencreader)
 add_subdirectory(cm93reader)
+add_subdirectory(s57reader)
 add_subdirectory(dbupdater)
 
 
@@ -263,6 +266,7 @@ if (DESKTOP)
       Desktop
       Osencreader
       Cm93reader
+      S57reader
       Qt5::Core
       Qt5::OpenGL
       KF5::I18n
@@ -282,6 +286,7 @@ else()
       Mobile
       Osencreader
       Cm93reader
+      S57reader
       Qt5::Quick
       Qt5::Gui
       Qt5::Sql
@@ -297,6 +302,7 @@ target_link_libraries(qopencpn_dbupdater
   PRIVATE
     Osencreader
     Cm93reader
+    S57reader
     Dbupdater
     GeographicLib
     Triangulate

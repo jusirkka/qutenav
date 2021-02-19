@@ -211,6 +211,18 @@ double WGS84Point::lng(const WGS84Point& ref) const {
   return m_Longitude;
 }
 
+bool WGS84Point::containedBy(const WGS84Point &sw, const WGS84Point &ne) const {
+  Q_ASSERT(ne.lat() >= sw.lat());
+  if (m_Latitude < sw.lat() || m_Latitude > ne.lat()) return false;
+
+  double a = ne.lng() - sw.lng();
+  while (a < 0) a += 360.;
+
+  double b = m_Longitude - sw.lng();
+  while (b < 0) b += 360.;
+
+  return b <= a;
+}
 
 
 bool operator!= (const WGS84Point& a, const WGS84Point& b) {

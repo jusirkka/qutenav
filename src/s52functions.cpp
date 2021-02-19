@@ -72,7 +72,7 @@ S57::PaintDataMap S52::AreaPattern::execute(const QVector<QVariant>& vals,
     //      qDebug() << GetAttributeInfo(k, obj);
     //    }
 
-    QT::ColorVector colors;
+    KV::ColorVector colors;
     for (const S52::Color& c: s.colors()) {
       auto color = S52::GetColor(c.index);
       color.setAlpha(255 - as_numeric(c.alpha) * 255 / 4);
@@ -127,7 +127,7 @@ S57::PaintDataMap S52::LineComplex::execute(const QVector<QVariant>& vals,
   //   qDebug() << GetAttributeInfo(k, obj);
   // }
 
-  QT::ColorVector colors;
+  KV::ColorVector colors;
   for (const S52::Color& c: s.colors()) {
     auto color = S52::GetColor(c.index);
     color.setAlpha(255 - as_numeric(c.alpha) * 255 / 4);
@@ -187,7 +187,7 @@ S57::PaintDataMap S52::PointSymbol::execute(const QVector<QVariant>& vals,
                                        s.element());
   } else {
 
-    QT::ColorVector colors;
+    KV::ColorVector colors;
     for (const S52::Color& c: s.colors()) {
       auto color = S52::GetColor(c.index);
       color.setAlpha(255 - as_numeric(c.alpha) * 255 / 4);
@@ -763,15 +763,11 @@ S57::PaintDataMap S52::CSLights05::execute(const QVector<QVariant>&,
 
   if (!catlit.isEmpty()) {
     if (catlit.contains(floodlight) || catlit.contains(spotlight)) {
-      QVector<QVariant> vals;
-      vals.append(QVariant::fromValue(m_lights82));
-      vals.append(QVariant::fromValue(0.));
+      const QVector<QVariant> vals {m_lights82, 0.};
       return S52::FindFunction("SY")->execute(vals, obj);
     }
     if (catlit.contains(striplight)) {
-      QVector<QVariant> vals;
-      vals.append(QVariant::fromValue(m_lights81));
-      vals.append(QVariant::fromValue(0.));
+      const QVector<QVariant> vals {m_lights81, 0.};
       return S52::FindFunction("SY")->execute(vals, obj);
     }
   }
@@ -845,6 +841,7 @@ S57::PaintDataMap S52::CSLights05::execute(const QVector<QVariant>&,
       } else {
         vals.clear();
         vals.append(QVariant::fromValue(m_quesmrk1));
+        vals.append(QVariant::fromValue(0.));
         ps = S52::FindFunction("SY")->execute(vals, obj);
       }
     } else {
@@ -1443,6 +1440,7 @@ S57::PaintDataMap S52::CSRestrEntry01::execute(const QVector<QVariant>&,
   } else {
     vals.append(QVariant::fromValue(m_rsrdef51));
   }
+  vals.append(QVariant::fromValue(0.));
   return S52::FindFunction("SY")->execute(vals, obj);
 }
 
@@ -1468,8 +1466,7 @@ S57::PaintDataMap S52::CSShorelineQualOfPos03::execute(const QVector<QVariant>&,
 
   if (obj->geometry()->type() == S57::Geometry::Type::Point) {
     if (inaccurate) {
-      QVector<QVariant> vals;
-      vals.append(QVariant::fromValue(m_lowacc01));
+      const QVector<QVariant> vals {m_lowacc01, 0.};
       return S52::FindFunction("SY")->execute(vals, obj);
     }
     return S57::PaintDataMap();

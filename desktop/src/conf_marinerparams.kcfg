@@ -4,7 +4,6 @@
       xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0
       http://www.kde.org/standards/kcfg/1.0/kcfg.xsd" >
   <kcfgfile name="qopencpnrc"/>
-  <include>settings.h</include>
   <group name="MarinerParams">
     <entry name="TwoShades" key="two_shades" type="Bool">
       <label>Flag indicating selection of just two depth shades.</label>
@@ -32,8 +31,14 @@
     </entry>
     <entry name="ColorTable" key="color_table" type="Enum">
       <label>Current color scheme.</label>
-      <default>Settings::DayBright</default>
-      <choices name="Settings::ColorTable"/>
+      <default>DayBright</default>
+      <choices>
+        <choice name="DayBright"/>
+        <choice name="DayBlackBack"/>
+        <choice name="DayWhiteBack"/>
+        <choice name="Dusk"/>
+        <choice name="Night"/>
+      </choices>
     </entry>
     <entry name="PlainBoundaries" key="plain_boundaries" type="Bool">
       <label>Draw plain area boundaries instead of symbolized ones.</label>
@@ -45,7 +50,7 @@
     </entry>
     <entry name="TextGrouping" key="text_grouping" type="IntList">
       <label>Text display groups.</label>
-      <default>10,11,20,21,22,23,24,25,26,27,29,31</default>
+      <default>10,11,20,21,23,24,25,26,27,28,29,31</default>
     </entry>
     <entry name="MaxCategory" key="max_category" type="Enum">
       <label>Draw only objects included within this category.</label>
