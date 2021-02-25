@@ -42,6 +42,9 @@ struct FieldData {
   QByteArray bytes;
 };
 
+using LexLevel = S57::Record::LexLevel::palette;
+
+
 class FieldSource {
 
   static const quint8 fieldControlLen = 9;
@@ -53,7 +56,10 @@ class FieldSource {
 public:
   FieldSource(QFile* file, const QString& path);
   S57::Record* nextRecord();
-  QStringList tags() const {return m_tags;}
+  void setLexicalLevels(LexLevel alevel, LexLevel nlevel) {
+    m_attfLevel = alevel;
+    m_natfLevel = nlevel;
+  }
 
 private:
 
@@ -63,6 +69,8 @@ private:
   FieldInfoVector readDirectory(quint32 hlen, quint8 flen, quint8 plen);
   QDataStream m_stream;
   QStringList m_tags;
+  LexLevel m_attfLevel;
+  LexLevel m_natfLevel;
 
 };
 
@@ -93,12 +101,18 @@ S57::Record* FieldSource::nextRecord() {
     m_stream.readRawData(block.data(), f.len - 1);
     quint8 term;
     m_stream >> term;
+    // only NATF can have UCS-2 text
+    if (f.tag == "NATF" && term == 0x00) {
+      term = block.back();
+      block.chop(1);
+    }
     Q_ASSERT(term == fieldTerminator);
+    auto rec = S57::Record::Create(f.tag, block, m_attfLevel, m_natfLevel);
     if (!head) {
-      head = S57::Record::Create(f.tag, block);
+      head = rec;
       p = head;
     } else {
-      p->next = S57::Record::Create(f.tag, block);
+      p->next = rec;
       p = p->next;
     }
   } while (!fieldInfo.isEmpty());
@@ -124,6 +138,8 @@ QVector<FieldInfo> FieldSource::readDirectory(quint32 hlen, quint8 flen, quint8 
 
 FieldSource::FieldSource(QFile* file, const QString& path)
   : m_stream(file)
+  , m_attfLevel(LexLevel::N_A)
+  , m_natfLevel(LexLevel::N_A)
 {
   // read leader
   m_stream.skipRawData(5); // reclen
@@ -155,9 +171,9 @@ FieldSource::FieldSource(QFile* file, const QString& path)
     Q_ASSERT(typeCode == 5 || typeCode == 6); // mixed or binary
     m_stream.skipRawData(7); // "00;&-A "
     int len;
-    read_string_until(m_stream, unitTerminator, len); // fieldName
-    read_string_until(m_stream, unitTerminator, len); // arrayDescr
-    read_string_until(m_stream, fieldTerminator, len); // fmtControls
+    read_bytes_until(m_stream, unitTerminator, len); // fieldName
+    read_bytes_until(m_stream, unitTerminator, len); // arrayDescr
+    read_bytes_until(m_stream, fieldTerminator, len); // fmtControls
   }
 }
 
@@ -549,6 +565,7 @@ S57ChartOutline S57Reader::readOutline(const QString& path, const GeoProjection*
 
     FieldSource source(&file, updpth);
 
+
     bool done = false;
     inCov = false;
 
@@ -630,6 +647,8 @@ void S57Reader::readChart(GL::VertexVector& vertices,
   RawEdgeMap edges;
   RawObjectMap features;
 
+  FieldSource* currentSource = nullptr;
+
   using SoundingVector = QVector<S57::SG3D::Sounding>;
   using SoundingMap = QMap<quint32, SoundingVector>;
 
@@ -637,7 +656,11 @@ void S57Reader::readChart(GL::VertexVector& vertices,
 
   const QMap<RT, Handler*> handlers {
 
-    {RT::DS, new Handler([] (const S57::Record*) {
+    {RT::DS, new Handler([&currentSource] (const S57::Record* rec) {
+        auto dssi = dynamic_cast<const S57::DSSI*>(rec->find("DSSI"));
+        if (dssi != nullptr) {
+          currentSource->setLexicalLevels(dssi->attfLevel.value, dssi->natfLevel.value);
+        }
         return true;
       })
     },
@@ -945,6 +968,7 @@ void S57Reader::readChart(GL::VertexVector& vertices,
     FieldSource source(&file, updpth);
 
     bool done = false;
+    currentSource = &source;
 
     while (!done) {
       S57::Record* rec = source.nextRecord();
@@ -975,7 +999,7 @@ void S57Reader::readChart(GL::VertexVector& vertices,
   };
 
   auto getSnd = [soundings, mulfac, gp] (quint32 id) {
-    S57::Geometry::PointVector ps;
+    GL::VertexVector ps;
     for (const S57::SG3D::Sounding& s: soundings[id]) {
       const QPointF ll = s.location / mulfac;
       auto p = gp->fromWGS84(WGS84Point::fromLL(ll.x(), ll.y()));

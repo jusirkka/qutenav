@@ -121,7 +121,6 @@ protected:
   void doDecode(QDataStream& stream) override;
 };
 
-using PointVector = QVector<double>;
 
 class Point: public Base {
 public:
@@ -134,7 +133,7 @@ public:
     m_points.append(p.y());
   }
 
-  Point(const PointVector& ps, const GeoProjection* proj)
+  Point(const GL::VertexVector& ps, const GeoProjection* proj)
     : Base(Type::Point, QPointF(), WGS84Point())
     , m_points(ps) {
     QPointF s(0, 0);
@@ -147,7 +146,7 @@ public:
     m_centerLL = proj->toWGS84(m_center);
   }
 
-  const PointVector& points() const {return m_points;}
+  const GL::VertexVector& points() const {return m_points;}
 
 protected:
 
@@ -156,7 +155,7 @@ protected:
 
 private:
 
-  PointVector m_points;
+  GL::VertexVector m_points;
 };
 
 

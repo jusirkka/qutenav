@@ -174,7 +174,7 @@ S57::PaintDataMap S52::PointSymbol::execute(const QVector<QVariant>& vals,
     auto pt = dynamic_cast<const S57::Geometry::Point*>(obj->geometry());
     if (pt->points().size() > 2) {
       int i = vals[2].toInt();
-      const S57::Geometry::PointVector ps = pt->points();
+      const auto ps = pt->points();
       loc = QPointF(ps[3 * i], ps[3 * i + 1]);
     }
   }
@@ -1613,7 +1613,7 @@ S57::PaintDataMap S52::CSSoundings02::execute(const QVector<QVariant>&,
   }
 
   S57::PaintDataMap ps;
-  const S57::Geometry::PointVector pts = pt->points();
+  const auto pts = pt->points();
   for (int index = 0; index  < pts.size() / 3; index++) {
     ps += symbols(pts[3 * index + 2], index, obj);
   }

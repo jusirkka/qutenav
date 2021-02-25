@@ -33,7 +33,7 @@ QString read_string(QDataStream& stream, int n) {
   return bytes;
 }
 
-QByteArray read_string_until(QDataStream& stream, quint8 term, int& len) {
+QByteArray read_bytes_until(QDataStream& stream, quint8 term, int& len) {
 
   quint8 byte;
   stream >> byte;
@@ -61,7 +61,8 @@ QByteArray read_remaining(QDataStream& stream) {
 
 #define CASE(NAME) if (name == #NAME) return new NAME(bytes)
 
-S57::Record* S57::Record::Create(const QString &name, const QByteArray& bytes) {
+S57::Record* S57::Record::Create(const QString &name, const QByteArray &bytes,
+                                 LexLevel::palette attfLevel, LexLevel::palette natfLevel) {
   CASE(DSID);
   CASE(DSSI);
   CASE(DSPM);
@@ -73,13 +74,20 @@ S57::Record* S57::Record::Create(const QString &name, const QByteArray& bytes) {
   CASE(VRPT);
   CASE(FRID);
   CASE(FOID);
-  CASE(ATTF);
-  CASE(NATF);
   CASE(ATTV);
   CASE(FSPT);
   CASE(FSPC);
   CASE(FFPT);
   CASE(FFPC);
+
+  if (name == "ATTF") {
+    return new ATTF(bytes, attfLevel);
+  }
+
+  if (name == "NATF") {
+    return new NATF(bytes, natfLevel);
+  }
+
   qDebug() << name;
   Q_ASSERT(false);
   return nullptr;
@@ -118,9 +126,9 @@ S57::DSID::DSID(const QByteArray& bytes): Record("DSID") {
   exPurp = ExPurp(read_value<quint8>(stream));
   // qDebug() << exPurp.print();
   read_value<quint8>(stream);
-  read_string_until(stream, unitTerminator, len);
-  read_string_until(stream, unitTerminator, len);
-  read_string_until(stream, unitTerminator, len);
+  read_bytes_until(stream, unitTerminator, len);
+  read_bytes_until(stream, unitTerminator, len);
+  read_bytes_until(stream, unitTerminator, len);
   // uadt, isdt
   updated = QDate::fromString(read_string(stream, 8), "yyyyMMdd");
   // qDebug() << updated;
@@ -130,11 +138,11 @@ S57::DSID::DSID(const QByteArray& bytes): Record("DSID") {
   read_string(stream, 4);
   prodSpec = ProdSpec(read_value<quint8>(stream));
   // qDebug() << prodSpec.print();
-  read_string_until(stream, unitTerminator, len);
-  read_string_until(stream, unitTerminator, len);
+  read_bytes_until(stream, unitTerminator, len);
+  read_bytes_until(stream, unitTerminator, len);
   read_value<quint8>(stream);
   read_value<quint16>(stream);
-  read_string_until(stream, unitTerminator, len);
+  read_bytes_until(stream, unitTerminator, len);
 }
 
 
@@ -145,7 +153,7 @@ S57::DSSI::DSSI(const QByteArray& bytes): Record("DSSI") {
   // qDebug() << topology.print();
   attfLevel = LexLevel(read_value<quint8>(stream));
   // qDebug() << attfLevel.print();
-  nttfLevel = LexLevel(read_value<quint8>(stream));
+  natfLevel = LexLevel(read_value<quint8>(stream));
   // qDebug() << nttfLevel.print();
 
   // numbers of meta, carto, geo, collection, isolated, connected, edge, face
@@ -182,7 +190,7 @@ S57::DSPM::DSPM(const QByteArray& bytes): Record("DSPM") {
   soundingFactor = read_value<quint32>(stream);
 
   int len;
-  const QString comment = read_string_until(stream, unitTerminator, len);
+  const QString comment = read_bytes_until(stream, unitTerminator, len);
   if (!comment.isEmpty()) qDebug() << "DSPM: comment" << comment;
 
   //  for (S57::AttributeMap::const_iterator it = attributes.cbegin();
@@ -327,25 +335,45 @@ S57::FOID::FOID(const QByteArray& bytes): Record("FOID") {
   // qDebug() << id.agency << id.id << id.subid;
 }
 
+using LX = S57::Record::LexLevel::palette;
 
-S57::Attribute S57::Record::decode_attribute(quint16 acode, const QByteArray& v) {
+
+S57::Attribute S57::Record::decode_attribute(quint16 acode, const QByteArray& v, LX level) {
 
   if (v.isEmpty()) {
+    qDebug() << "S57::AttributeType::Any";
     return S57::Attribute(S57::AttributeType::Any);
   }
 
+  if (v.front() == S57::Record::attributeDeleter) {
+    qDebug() << "S57::AttributeType::Deleted";
+    return S57::Attribute(S57::AttributeType::Deleted);
+  }
+
+
   if (v == "?") {
+    qDebug() << "S57::AttributeType::None";
     return S57::Attribute(S57::AttributeType::None);
   }
 
-  if (v.back() == S57::Record::attributeDeleter) {
-    return S57::Attribute(S57::AttributeType::Deleted);
-  }
 
   auto t = S52::GetAttributeType(acode);
 
   if (t == S57::AttributeType::String) {
-    return S57::Attribute(QString(v));
+
+    QString s;
+    if (level == LX::UCS2) {
+      QDataStream stream(v);
+      stream.setByteOrder(QDataStream::LittleEndian);
+      QVector<QChar> unicode;
+      while (!stream.atEnd()) unicode << read_value<quint16>(stream);
+      s = QString(unicode.constData(), unicode.size());
+      qDebug() << "LX::UCS2" << s;
+    } else {
+      s = QString::fromLatin1(v);
+    }
+
+    return S57::Attribute(s);
   }
 
   if (t == S57::AttributeType::Integer) {
@@ -374,8 +402,8 @@ S57::ATTV::ATTV(const QByteArray& bytes): Record("ATTV") {
   int len;
   do {
     auto acode = read_value<quint16>(stream);
-    auto s = read_string_until(stream, unitTerminator, len);
-    attributes[acode] = decode_attribute(acode, s);
+    auto s = read_bytes_until(stream, unitTerminator, len);
+    attributes[acode] = decode_attribute(acode, s, LX::ASCII);
   } while (!stream.atEnd());
 
 //  for (S57::AttributeMap::const_iterator it = attributes.cbegin();
@@ -385,14 +413,15 @@ S57::ATTV::ATTV(const QByteArray& bytes): Record("ATTV") {
 //  }
 }
 
-S57::ATTF::ATTF(const QByteArray& bytes): Record("ATTF") {
+
+S57::ATTF::ATTF(const QByteArray &bytes, LX lexLevel): Record("ATTF") {
   QDataStream stream(bytes);
   stream.setByteOrder(QDataStream::LittleEndian);
   int len;
   do {
     auto acode = read_value<quint16>(stream);
-    auto s = read_string_until(stream, unitTerminator, len);
-    attributes[acode] = decode_attribute(acode, s);
+    auto s = read_bytes_until(stream, unitTerminator, len);
+    attributes[acode] = decode_attribute(acode, s, lexLevel);
   } while (!stream.atEnd());
 
   //  for (S57::AttributeMap::const_iterator it = attributes.cbegin();
@@ -403,14 +432,19 @@ S57::ATTF::ATTF(const QByteArray& bytes): Record("ATTF") {
 }
 
 
-S57::NATF::NATF(const QByteArray& bytes): Record("NATF") {
+S57::NATF::NATF(const QByteArray& bytes, LX lexLevel): Record("NATF") {
   QDataStream stream(bytes);
   stream.setByteOrder(QDataStream::LittleEndian);
   int len;
   do {
     auto acode = read_value<quint16>(stream);
-    auto s = read_string_until(stream, unitTerminator, len);
-    attributes[acode] = decode_attribute(acode, s);
+    auto s = read_bytes_until(stream, unitTerminator, len);
+    if (lexLevel == LX::UCS2) {
+      quint8 term;
+      stream >> term;
+      Q_ASSERT(term == 0x00);
+    }
+    attributes[acode] = decode_attribute(acode, s, lexLevel);
   } while (!stream.atEnd());
 
   //  for (S57::AttributeMap::const_iterator it = attributes.cbegin();
@@ -428,7 +462,7 @@ S57::FFPT::FFPT(const QByteArray& bytes): Record("FFPT") {
     auto id = LongName(stream);
     auto rel = Relation(read_value<quint8>(stream));
 
-    const QString comment = read_string_until(stream, unitTerminator, len);
+    const QString comment = read_bytes_until(stream, unitTerminator, len);
     if (!comment.isEmpty()) qDebug() << "FFPT: comment:" << comment;
 
     pointers.append(PointerField(id, rel));

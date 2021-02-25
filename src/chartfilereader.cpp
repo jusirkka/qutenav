@@ -37,7 +37,7 @@ QRectF ChartFileReader::computeBBox(S57::ElementDataVector &elems,
   return ret;
 }
 
-QRectF ChartFileReader::computeSoundingsBBox(const S57::Geometry::PointVector &ps) {
+QRectF ChartFileReader::computeSoundingsBBox(const GL::VertexVector &ps) {
   QPointF ur(-1.e15, -1.e15);
   QPointF ll(1.e15, 1.e15);
   for (int i = 0; i < ps.size() / 3; i++) {

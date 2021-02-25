@@ -163,7 +163,7 @@ void Earcut<N>::operator()(const Polygon& points) {
     int threshold = 80;
     std::size_t len = 0;
 
-    for (size_t i = 0; threshold >= 0 && i < points.size(); i++) {
+    for (size_t i = 0; threshold >= 0 && i < static_cast<size_t>(points.size()); i++) {
         threshold -= static_cast<int>(points[i].size());
         len += points[i].size();
     }

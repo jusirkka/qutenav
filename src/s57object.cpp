@@ -98,8 +98,7 @@ void S57::Geometry::Meta::doDecode(QDataStream&/*stream*/) {
 }
 
 void S57::Geometry::Point::doEncode(QDataStream &stream, Transform transform) const {
-  stream.setFloatingPointPrecision(QDataStream::DoublePrecision);
-  PointVector ps;
+  GL::VertexVector ps;
   if (m_points.size() == 2) {
     const QPointF p = transform(QPointF(m_points[0], m_points[1]));
     ps << p.x() << p.y();
@@ -112,13 +111,10 @@ void S57::Geometry::Point::doEncode(QDataStream &stream, Transform transform) co
     }
   }
   stream << ps;
-  stream.setFloatingPointPrecision(QDataStream::SinglePrecision);
 }
 
 void S57::Geometry::Point::doDecode(QDataStream &stream) {
-  stream.setFloatingPointPrecision(QDataStream::DoublePrecision);
   stream >> m_points;
-  stream.setFloatingPointPrecision(QDataStream::SinglePrecision);
 }
 
 void S57::Geometry::Line::doEncode(QDataStream& stream, Transform /*transform*/) const {

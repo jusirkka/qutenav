@@ -13,9 +13,10 @@
 #include "s57chart.h"
 #include "settings.h"
 
-Q_IMPORT_PLUGIN(OsencReaderFactory)
 Q_IMPORT_PLUGIN(CM93ReaderFactory)
 Q_IMPORT_PLUGIN(S57ReaderFactory)
+Q_IMPORT_PLUGIN(OsencReaderFactory)
+Q_IMPORT_PLUGIN(OesencReaderFactory)
 
 int main(int argc, char *argv[]) {
 

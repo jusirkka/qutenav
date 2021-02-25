@@ -25,17 +25,11 @@ public:
 
   virtual ~ChartFileReader() = default;
 
-protected:
-
-  ChartFileReader(const QString& name)
-    : m_name(name) {}
-
-
   static QRectF computeBBox(S57::ElementDataVector &elems,
                             const GL::VertexVector& vertices,
                             const GL::IndexVector& indices);
 
-  static QRectF computeSoundingsBBox(const S57::Geometry::PointVector& ps);
+  static QRectF computeSoundingsBBox(const GL::VertexVector& ps);
 
   static QPointF computeLineCenter(const S57::ElementDataVector &elems,
                                    const GL::VertexVector& vertices,
@@ -49,6 +43,14 @@ protected:
                           GL::IndexVector& indices,
                           const GL::VertexVector& vertices,
                           const S57::ElementDataVector& edges);
+
+
+protected:
+
+  ChartFileReader(const QString& name)
+    : m_name(name) {}
+
+
 
   QString m_name;
 

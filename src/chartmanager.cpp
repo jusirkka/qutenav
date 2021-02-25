@@ -186,6 +186,12 @@ ChartManager::~ChartManager() {
   }
   qDeleteAll(m_threads);
 
+  // Cache charts before quitting
+  for (auto chart: m_charts) {
+    QMetaObject::invokeMethod(m_cacheWorker, "cacheChart",
+                              Q_ARG(S57Chart*, chart));
+  }
+
   m_cacheThread->quit();
   m_cacheThread->wait();
   delete m_cacheThread;
@@ -296,7 +302,7 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
     return la < lb;
   });
 
-  qDebug() << "scale candidates" << scaleCandidates;
+  // qDebug() << "scale candidates" << scaleCandidates;
 
   const WGS84Point sw0 = cam->geoprojection()->toWGS84(m_viewArea.topLeft()); // inverted y-axis
   const WGS84Point ne0 = cam->geoprojection()->toWGS84(m_viewArea.bottomRight()); // inverted y-axis
@@ -321,7 +327,7 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
     bool covered = false;
     while (r.next()) {
       chartids.append(r.value(0).toUInt());
-      qDebug() << chartids.last();
+      // qDebug() << chartids.last();
       if (!covered) {
         auto sw = WGS84Point::fromLL(r.value(1).toDouble(), r.value(2).toDouble());
         auto ne = WGS84Point::fromLL(r.value(3).toDouble(), r.value(4).toDouble());
@@ -329,10 +335,10 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
         covered = c->covers(m_viewArea.center(), cam->geoprojection());
       }
     }
-    qDebug() << "chart cover is" << covered;
-    qDebug() << "Number of charts" << chartids.size();
-    qDebug() << "Nominal scale" << selectedScale;
-    qDebug() << "True scale   " << m_scale;
+    //    qDebug() << "chart cover is" << covered;
+    //    qDebug() << "Number of charts" << chartids.size();
+    //    qDebug() << "Nominal scale" << selectedScale;
+    //    qDebug() << "True scale   " << m_scale;
     // select next scale if there's no coverage
     if (covered) {
       break;

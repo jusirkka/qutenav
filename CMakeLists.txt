@@ -111,6 +111,7 @@ target_sources(qopencpn
     src/orthocam.cpp
     src/outlinemode.cpp
     src/outliner.cpp
+    src/osenc.cpp
     src/perscam.cpp
     src/rastersymbolmanager.cpp
     src/s52functions.cpp
@@ -183,6 +184,7 @@ target_sources(qopencpn_dbupdater
     src/chartdatabase.cpp
     src/chartfilereader.cpp
     src/geoprojection.cpp
+    src/osenc.cpp
     src/s52names.cpp
     src/s57chartoutline.cpp
     src/s57object.cpp
@@ -241,6 +243,7 @@ target_compile_features(qopencpn_dbupdater
 add_subdirectory(geographiclib)
 add_subdirectory(triangulate)
 add_subdirectory(osencreader)
+add_subdirectory(oesencreader)
 add_subdirectory(cm93reader)
 add_subdirectory(s57reader)
 add_subdirectory(dbupdater)
@@ -265,6 +268,7 @@ if (DESKTOP)
       Triangulate
       Desktop
       Osencreader
+      Oesencreader
       Cm93reader
       S57reader
       Qt5::Core
@@ -285,6 +289,7 @@ else()
       Triangulate
       Mobile
       Osencreader
+      Oesencreader
       Cm93reader
       S57reader
       Qt5::Quick
@@ -301,6 +306,7 @@ endif()
 target_link_libraries(qopencpn_dbupdater
   PRIVATE
     Osencreader
+    Oesencreader
     Cm93reader
     S57reader
     Dbupdater

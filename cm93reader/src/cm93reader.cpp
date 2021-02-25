@@ -800,10 +800,10 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
   }
 
   // soundings table
-  QVector<S57::Geometry::PointVector> soundings;
+  QVector<GL::VertexVector> soundings;
   for (int i = 0; i < n_p3d_records; i++) {
     auto n_vertices = read_and_decode<quint16>(stream);
-    S57::Geometry::PointVector ss;
+    GL::VertexVector ss;
     for (int v = 0; v < n_vertices; v++) {
       ss << proj->scaling().width() * read_and_decode<quint16>(stream);
       ss << proj->scaling().height() * read_and_decode<quint16>(stream);

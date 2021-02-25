@@ -182,7 +182,8 @@ public:
     palette value;
   };
 
-  static Record* Create(const QString& name, const QByteArray& bytes);
+  static Record* Create(const QString& name, const QByteArray& bytes,
+                        LexLevel::palette attfLevel, LexLevel::palette natfLevel);
 
   const QString& name() const {return m_name;}
   const Type& type() const {return m_type;}
@@ -210,7 +211,7 @@ protected:
 
   void decodeName(QDataStream& stream);
 
-  static S57::Attribute decode_attribute(quint16 acode, const QByteArray& v);
+  static S57::Attribute decode_attribute(quint16 acode, const QByteArray& v, LexLevel::palette level);
 
 
 protected:
@@ -236,7 +237,7 @@ public:
   DSSI(const QByteArray& bytes);
   Topology topology;
   LexLevel attfLevel;
-  LexLevel nttfLevel;
+  LexLevel natfLevel;
   quint32 numMeta;
   quint32 numCartographic;
   quint32 numGeo;
@@ -354,13 +355,13 @@ public:
 
 class ATTF: public Record {
 public:
-  ATTF(const QByteArray& bytes);
+  ATTF(const QByteArray& bytes, LexLevel::palette lexLevel);
   S57::AttributeMap attributes;
 };
 
 class NATF: public Record {
 public:
-  NATF(const QByteArray& bytes);
+  NATF(const QByteArray& bytes, LexLevel::palette lexLevel);
   S57::AttributeMap attributes;
 };
 
@@ -438,6 +439,6 @@ template<typename T> T read_value(QDataStream& stream) {
 }
 
 QString read_string(QDataStream& stream, int n);
-QByteArray read_string_until(QDataStream& stream, quint8 term, int& len);
+QByteArray read_bytes_until(QDataStream& stream, quint8 term, int& len);
 
 

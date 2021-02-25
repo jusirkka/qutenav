@@ -1,7 +1,7 @@
 - boat location / auto center
 - tracks
 - routes
-- refactor chartmanager / chart selection / quilting
+- bug: fix chartmanager / chart selection / quilting
 - bug: area patterns cover other objects
 - globe to cubemap in outline mode
 - coverpage.qml
@@ -9,6 +9,6 @@
 - bug: colortable change should change rastersymbolmanager's texture atlas
 - busy spinner while charts are loading
 - switch off/on light symbols?
-
-- S57 charts
-- oesenc charts
+- switch off/on quality of measurements
+- bug: area patterns are off in neighbouring charts
+- handle dbus/synced signal from dbupdater in chartmanager

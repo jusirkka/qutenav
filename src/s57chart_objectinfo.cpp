@@ -27,7 +27,7 @@
 static bool contains(const QRectF& box, const S57::Geometry::Point* ps, int& index) {
   if (ps->points().size() < 3) return box.contains(ps->center());
   const int N = ps->points().size() / 3;
-  const S57::Geometry::PointVector ss = ps->points();
+  const auto ss = ps->points();
   for (int k = 0; k < N; k++) {
     const QPointF p(ss[3 * k], ss[3 * k + 1]);
     if (box.contains(p)) {

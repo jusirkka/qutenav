@@ -2,11 +2,11 @@
 
 #include "chartfilereader.h"
 
-class OsencReaderFactory;
+class OesencReaderFactory;
 
-class OsencReader: public ChartFileReader {
+class OesencReader: public ChartFileReader {
 
-  friend class OsencReaderFactory;
+  friend class OesencReaderFactory;
 
 public:
 
@@ -24,13 +24,13 @@ public:
 
 private:
 
-  OsencReader(const QString& name);
+  OesencReader(const QString& name);
 
   GeoProjection* m_proj;
 
 };
 
-class OsencReaderFactory: public QObject, public ChartFileReaderFactory {
+class OesencReaderFactory: public QObject, public ChartFileReaderFactory {
 
   Q_OBJECT
   Q_PLUGIN_METADATA(IID "net.kvanttiapina.qopencpn.ChartFileReaderFactory/1.0")
