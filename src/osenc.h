@@ -31,6 +31,56 @@ private:
                             const GL::VertexVector& vertices,
                             GLsizei offset) const;
 
+  struct RawEdge {
+    quint32 first;
+    quint32 count;
+  };
+
+  using RawEdgeMap = QMap<quint32, RawEdge>;
+  using REMIter = RawEdgeMap::const_iterator;
+
+  using PointRefMap = QMap<quint32, quint32>;
+
+  struct TrianglePatch {
+    GLenum mode;
+    GL::VertexVector vertices;
+  };
+
+  using TrianglePatchVector = QVector<TrianglePatch>;
+
+  struct RawEdgeRef {
+    quint32 begin;
+    quint32 end;
+    quint32 index;
+    bool reversed;
+  };
+
+  using RawEdgeRefVector = QVector<RawEdgeRef>;
+
+  struct ObjectWrapper {
+    explicit ObjectWrapper(S57::Object* obj = nullptr)
+      : object(obj)
+      , edgeRefs()
+      , triangles()
+      , geom(S57::Geometry::Type::Meta) {}
+
+
+    S57::Object* object;
+    RawEdgeRefVector edgeRefs; // lines, areas
+    TrianglePatchVector triangles;
+    S57::Geometry::Type geom;
+  };
+
+  using ObjectWrapperVector = QVector<ObjectWrapper>;
+
+  enum class AttributeRecType: quint8 {
+    Integer = 0,
+    Real = 2,
+    String = 4
+  };
+
+  static const inline QVector<quint8> AllAttrTypes {0, 2, 4};
+
 };
 
 

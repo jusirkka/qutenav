@@ -44,6 +44,26 @@ public:
                           const GL::VertexVector& vertices,
                           const S57::ElementDataVector& edges);
 
+  struct Edge {
+    Edge() = default;
+    Edge(const Edge& other) = default;
+    Edge& operator =(const Edge& other) = default;
+    quint32 begin;
+    quint32 end;
+    quint32 first;
+    quint32 count;
+    bool reversed;
+    bool inner;
+  };
+  using EdgeVector = QVector<Edge>;
+  using EdgeMap = QMap<quint32, Edge>;
+
+  static S57::ElementDataVector createLineElements(GL::IndexVector& indices,
+                                                   GL::VertexVector& vertices,
+                                                   const EdgeVector& edges);
+
+  static int addIndices(const Edge& e, GL::IndexVector& indices);
+
 
 protected:
 

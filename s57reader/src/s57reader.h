@@ -71,19 +71,6 @@ private:
   using RawObjectMap = QMap<quint32, RawObject>;
   using ROMIter = RawObjectMap::const_iterator;
 
-  struct Edge {
-    Edge() = default;
-    Edge(const Edge& other) = default;
-    Edge& operator =(const Edge& other) = default;
-    quint32 begin;
-    quint32 end;
-    quint32 first;
-    quint32 count;
-    bool reversed;
-    bool inner;
-  };
-  using EdgeVector = QVector<Edge>;
-  using EdgeMap = QMap<quint32, Edge>;
 
 
   bool checkCoverage(const PRegion& cov,
@@ -101,12 +88,6 @@ private:
                           const GeoProjection* gp) const;
 
   Region transformCoverage(PRegion pcov, const GeoProjection* gp, WGS84Point* corners) const;
-
-  S57::ElementDataVector createLineElements(GL::IndexVector& indices,
-                                            GL::VertexVector& vertices,
-                                            const EdgeVector& edges) const;
-
-  int addIndices(const Edge& e, GL::IndexVector& indices) const;
 
 
   S57Reader(const QString& name);

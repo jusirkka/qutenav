@@ -169,4 +169,79 @@ void ChartFileReader::triangulate(S57::ElementDataVector &elems,
   indices.append(triangles);
 }
 
+int ChartFileReader::addIndices(const Edge& e, GL::IndexVector& indices) {
+  const int N = e.count;
+  if (!e.reversed) {
+    indices << e.begin;
+    for (int i = 0; i < N; i++) {
+      indices << e.first + i;
+    }
+  } else {
+    indices << e.end;
+    for (int i = 0; i < N; i++) {
+      indices << e.first + e.count - 1 - i;
+    }
+  }
+  return e.count + 1;
+}
+
+static int addAdjacent(int ep, int nbor, GL::VertexVector& vertices) {
+  const float x1 = vertices[2 * ep];
+  const float y1 = vertices[2 * ep + 1];
+  const float x2 = vertices[2 * nbor];
+  const float y2 = vertices[2 * nbor + 1];
+  vertices << 2 * x1 - x2 << 2 * y1 - y2;
+
+  return (vertices.size() - 1) / 2;
+}
+
+
+S57::ElementDataVector ChartFileReader::createLineElements(GL::IndexVector &indices,
+                                                           GL::VertexVector &vertices,
+                                                           const EdgeVector &edges) {
+
+  auto getBeginPoint = [edges] (int i) {
+    return edges[i].reversed ? edges[i].end : edges[i].begin;
+  };
+
+  auto getEndPoint = [edges] (int i) {
+    return edges[i].reversed ? edges[i].begin : edges[i].end;
+  };
+
+  S57::ElementDataVector elems;
+
+  for (int i = 0; i < edges.size();) {
+    S57::ElementData e;
+    e.mode = GL_LINE_STRIP_ADJACENCY_EXT;
+    e.offset = indices.size() * sizeof(GLuint);
+    indices.append(0); // dummy index to account adjacency
+    e.count = 1;
+    auto start = getBeginPoint(i);
+    auto prevlast = start;
+    while (i < edges.size() && prevlast == getBeginPoint(i)) {
+      e.count += addIndices(edges[i], indices);
+      prevlast = getEndPoint(i);
+      i++;
+    }
+    // finalize current element
+    const int adj = e.offset / sizeof(GLuint);
+    if (prevlast == start) {
+      // polygon
+      indices[adj] = indices.last(); // prev
+      indices.append(indices[adj + 1]); // close polygon
+      indices.append(indices[adj + 2]); // adjacent = next of first
+    } else {
+      // line string
+      auto prev = indices.last();
+      indices.append(getEndPoint(i - 1));
+      indices.append(addAdjacent(indices.last(), prev, vertices));
+      indices[adj] = addAdjacent(indices[adj + 1], indices[adj + 2], vertices);
+    }
+    e.count += 2;
+    elems.append(e);
+  }
+
+  return elems;
+}
+
 

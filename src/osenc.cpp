@@ -160,7 +160,7 @@ S57ChartOutline Osenc::readOutline(QIODevice *device, const GeoProjection* gp) c
 
   //  This is the correct record type (OSENC Version Number Record), so read it
   buffer.resize(record->record_length - baseSize);
-  if (stream.readRawData(buffer.data(), buffer.size()) == -1) {
+  if (stream.readRawData(buffer.data(), buffer.size()) < buffer.size()) {
     throw ChartFileError(QString("Error reading %1 bytes from device").arg(buffer.size()));
   }
   // auto p16 = reinterpret_cast<quint16*>(buffer.data());
@@ -309,6 +309,19 @@ public:
     obj->m_attributes[acode] = a;
   }
   void osEncAddString(S57::Object* obj, quint16 acode, const QString& s) const {
+
+    if (s.isEmpty()) {
+      qDebug() << "S57::AttributeType::Any";
+      obj->m_attributes[acode] = S57::Attribute(S57::AttributeType::Any);
+      return;
+    }
+
+    if (s == "?") {
+      qDebug() << "S57::AttributeType::None";
+      obj->m_attributes[acode] = S57::Attribute(S57::AttributeType::None);
+      return;
+    }
+
     if (S52::GetAttributeType(acode) == S57::Attribute::Type::IntegerList) {
       const QStringList tokens = s.split(",");
       QVariantList vs;
@@ -321,6 +334,7 @@ public:
       obj->m_attributes[acode] = S57::Attribute(s);
     }
   }
+
   bool osEncSetGeometry(S57::Object* obj, S57::Geometry::Base* g, const QRectF& bb) const {
     if (obj->m_geometry != nullptr) {
       // qDebug() << as_numeric(obj->m_geometry->type());
@@ -334,15 +348,6 @@ public:
 
 }
 
-static GLsizei addIndices(GLuint first,
-                          GLuint mid1,
-                          GLuint mid2,
-                          bool reversed,
-                          GL::IndexVector& indices);
-static GLuint addAdjacent(GLuint endp,
-                          GLuint nbor,
-                          GL::VertexVector& vertices);
-
 
 void Osenc::readChart(GL::VertexVector& vertices,
                             GL::IndexVector& indices,
@@ -350,51 +355,35 @@ void Osenc::readChart(GL::VertexVector& vertices,
                             QIODevice* device,
                             const GeoProjection* gp) const {
 
-  QDataStream stream(device);
+
+  PointRefMap connected;
+  RawEdgeMap edges;
 
   S57::Object* current = nullptr;
+  ObjectWrapperVector features;
+
   S57::ObjectBuilder helper;
 
-  struct TrianglePatch {
-    GLenum mode;
-    GL::VertexVector vertices;
-  };
+  bool hasReversed = false;
 
-  using LineHandle = QVector<int>;
-  using TriangleHandle = QVector<TrianglePatch>;
+  QDataStream stream(device);
 
-  struct OData {
-    explicit OData(S57::Object* obj = nullptr)
-      : object(obj)
-      , lines()
-      , triangles()
-      , type(S57::Geometry::Type::Meta) {}
-
-
-    S57::Object* object;
-    LineHandle lines;
-    TriangleHandle triangles;
-    S57::Geometry::Type type;
-  };
-
-
-  struct EdgeExtent {
-    int first;
-    int last;
-  };
-
-  QMap<int, int> connMap;
-  QMap<int, EdgeExtent> edgeMap;
-
-  QVector<OData> objectHandle;
 
   const QMap<SencRecordType, Handler*> handlers {
 
-    {SencRecordType::FEATURE_ID_RECORD, new Handler([&current, &objectHandle] (const Buffer& b) {
+    {SencRecordType::HEADER_SENC_VERSION, new Handler([&hasReversed] (const Buffer& b) {
+        quint16 version = *(reinterpret_cast<const quint16*>(b.constData()));
+        qDebug() << "senc version" << version;
+        hasReversed = version > 200;
+        return true;
+      })
+    },
+
+    {SencRecordType::FEATURE_ID_RECORD, new Handler([&current, &features] (const Buffer& b) {
         // qDebug() << "feature id record";
         auto p = reinterpret_cast<const OSENC_Feature_Identification_Record_Payload*>(b.constData());
         current = new S57::Object(p->feature_ID, p->feature_type_code);
-        objectHandle.append(OData(current));
+        features.append(ObjectWrapper(current));
         return true;
       })
     },
@@ -402,10 +391,9 @@ void Osenc::readChart(GL::VertexVector& vertices,
     {SencRecordType::FEATURE_ATTRIBUTE_RECORD, new Handler([&current, helper] (const Buffer& b) {
         if (!current) return false;
         auto p = reinterpret_cast<const OSENC_Attribute_Record_Payload*>(b.constData());
-        auto t = static_cast<S57::Attribute::Type>(p->attribute_value_type);
-        // qDebug() << "feature attribute record" << p->attribute_type_code << S52::GetAttributeName(p->attribute_type_code) << p->attribute_value_type;
+        auto t = as_enum<AttributeRecType>(p->attribute_value_type, AllAttrTypes);
         switch (t) {
-        case S57::Attribute::Type::Integer: {
+        case AttributeRecType::Integer: {
           int v;
           memcpy(&v, &p->attribute_data, sizeof(int));
           helper.osEncAddAttribute(current,
@@ -413,7 +401,7 @@ void Osenc::readChart(GL::VertexVector& vertices,
                                    S57::Attribute(v));
           return true;
         }
-        case S57::Attribute::Type::Real: {
+        case AttributeRecType::Real: {
           double v;
           memcpy(&v, &p->attribute_data, sizeof(double));
           helper.osEncAddAttribute(current,
@@ -421,18 +409,12 @@ void Osenc::readChart(GL::VertexVector& vertices,
                                    S57::Attribute(v));
           return true;
         }
-        case S57::Attribute::Type::String: {
+        case AttributeRecType::String: {
           const char* s = &p->attribute_data; // null terminated string
           // handles strings and integer lists
           helper.osEncAddString(current,
                                 p->attribute_type_code,
                                 QString::fromUtf8(s));
-          return true;
-        }
-        case S57::Attribute::Type::None: {
-          helper.osEncAddAttribute(current,
-                                   p->attribute_type_code,
-                                   S57::Attribute(S57::Attribute::Type::None));
           return true;
         }
         default: return false;
@@ -441,36 +423,52 @@ void Osenc::readChart(GL::VertexVector& vertices,
       })
     },
 
-    {SencRecordType::FEATURE_GEOMETRY_RECORD_POINT, new Handler([&current, &objectHandle, helper, gp] (const Buffer& b) {
+    {SencRecordType::FEATURE_GEOMETRY_RECORD_POINT, new Handler([&current, &features, helper, gp] (const Buffer& b) {
         // qDebug() << "feature geometry/point record";
         if (!current) return false;
         auto p = reinterpret_cast<const OSENC_PointGeometry_Record_Payload*>(b.constData());
         auto p0 = gp->fromWGS84(WGS84Point::fromLL(p->lon, p->lat));
-        objectHandle.last().type = S57::Geometry::Type::Point;
+        features.last().geom = S57::Geometry::Type::Point;
         QRectF bb(p0 - QPointF(10, 10), QSizeF(20, 20));
         return helper.osEncSetGeometry(current, new S57::Geometry::Point(p0, gp), bb);
       })
     },
 
-    {SencRecordType::FEATURE_GEOMETRY_RECORD_LINE, new Handler([&objectHandle] (const Buffer& b) {
+    {SencRecordType::FEATURE_GEOMETRY_RECORD_LINE, new Handler([&features, &hasReversed] (const Buffer& b) {
         // qDebug() << "feature geometry/line record";
         auto p = reinterpret_cast<const OSENC_LineGeometry_Record_Payload*>(b.constData());
-        LineHandle es(p->edgeVector_count * 3);
-        memcpy(es.data(), &p->edge_data, p->edgeVector_count * 3 * sizeof(int));
-        objectHandle.last().lines.append(es);
-        objectHandle.last().type = S57::Geometry::Type::Line;
+        const uint stride = hasReversed ? 4 : 3;
+        QVector<int> es(p->edgeVector_count * stride);
+        memcpy(es.data(), &p->edge_data, p->edgeVector_count * stride * sizeof(int));
+        RawEdgeRefVector refs;
+        for (uint i = 0; i < p->edgeVector_count; i++) {
+          RawEdgeRef ref;
+          ref.begin = es[stride * i];
+          ref.index = std::abs(es[stride * i + 1]);
+          ref.end = es[stride * i + 2];
+          if (hasReversed) {
+            ref.reversed = es[stride * i + stride - 1] != 0;
+          } else {
+            ref.reversed = es[stride * i + 1] < 0;
+          }
+          refs.append(ref);
+        }
+        features.last().edgeRefs.append(refs);
+        features.last().geom = S57::Geometry::Type::Line;
         return true;
       })
     },
 
-    {SencRecordType::FEATURE_GEOMETRY_RECORD_AREA, new Handler([&objectHandle] (const Buffer& b) {
+    {SencRecordType::FEATURE_GEOMETRY_RECORD_AREA, new Handler([&features, &hasReversed] (const Buffer& b) {
         // qDebug() << "feature geometry/area record";
         auto p = reinterpret_cast<const OSENC_AreaGeometry_Record_Payload*>(b.constData());
-        LineHandle es(p->edgeVector_count * 3);
+
         const uint8_t* ptr = &p->edge_data;
+
         // skip contour counts
         ptr += p->contour_count * sizeof(int);
-        TriangleHandle ts(p->triprim_count);
+
+        TrianglePatchVector ts(p->triprim_count);
         for (uint i = 0; i < p->triprim_count; i++) {
           ts[i].mode = static_cast<GLenum>(*ptr); // Note: relies on GL_TRIANGLE* to be less than 128
           ptr++;
@@ -481,36 +479,46 @@ void Osenc::readChart(GL::VertexVector& vertices,
           memcpy(ts[i].vertices.data(), ptr, nvert * 2 * sizeof(float));
           ptr += nvert * 2 * sizeof(float);
         }
-        memcpy(es.data(), ptr, p->edgeVector_count * 3 * sizeof(int));
-        objectHandle.last().lines.append(es);
-        objectHandle.last().triangles.append(ts);
-        objectHandle.last().type = S57::Geometry::Type::Area;
+
+        features.last().triangles.append(ts);
+        features.last().geom = S57::Geometry::Type::Area;
+
+        const uint stride = hasReversed ? 4 : 3;
+        QVector<int> es(p->edgeVector_count * stride);
+        memcpy(es.data(), ptr, p->edgeVector_count * stride * sizeof(int));
+
+        RawEdgeRefVector refs;
+        for (uint i = 0; i < p->edgeVector_count; i++) {
+          RawEdgeRef ref;
+          ref.begin = es[stride * i];
+          ref.index = std::abs(es[stride * i + 1]);
+          ref.end = es[stride * i + 2];
+          if (hasReversed) {
+            ref.reversed = es[stride * i + stride - 1] != 0;
+          } else {
+            ref.reversed = es[stride * i + 1] < 0;
+          }
+          refs.append(ref);
+        }
+        features.last().edgeRefs.append(refs);
+
         return true;
       })
     },
 
-    {SencRecordType::FEATURE_GEOMETRY_RECORD_MULTIPOINT, new Handler([&current, &objectHandle, helper, gp] (const Buffer& b) {
+    {SencRecordType::FEATURE_GEOMETRY_RECORD_MULTIPOINT, new Handler([&current, &features, helper, gp] (const Buffer& b) {
         // qDebug() << "feature geometry/multipoint record";
         if (!current) return false;
         auto p = reinterpret_cast<const OSENC_MultipointGeometry_Record_Payload*>(b.constData());
         GL::VertexVector ps(p->point_count * 3);
         memcpy(ps.data(), &p->point_data, p->point_count * 3 * sizeof(GLfloat));
-        objectHandle.last().type = S57::Geometry::Type::Point;
-        // compute bounding box
-        QPointF ur(-1.e15, -1.e15);
-        QPointF ll(1.e15, 1.e15);
-        for (uint i = 0; i < p->point_count; i++) {
-          const QPointF q(ps[3 * i], ps[3 * i + 1]);
-          ur.setX(qMax(ur.x(), q.x()));
-          ur.setY(qMax(ur.y(), q.y()));
-          ll.setX(qMin(ll.x(), q.x()));
-          ll.setY(qMin(ll.y(), q.y()));
-        }
-        return helper.osEncSetGeometry(current, new S57::Geometry::Point(ps, gp), QRectF(ll, ur));
+        features.last().geom = S57::Geometry::Type::Point;
+        auto bbox = ChartFileReader::computeSoundingsBBox(ps);
+        return helper.osEncSetGeometry(current, new S57::Geometry::Point(ps, gp), bbox);
       })
     },
 
-    {SencRecordType::VECTOR_EDGE_NODE_TABLE_RECORD, new Handler([&vertices, &edgeMap] (const Buffer& b) {
+    {SencRecordType::VECTOR_EDGE_NODE_TABLE_RECORD, new Handler([&vertices, &edges] (const Buffer& b) {
         // qDebug() << "vector edge node table record";
         const char* ptr = b.constData();
 
@@ -525,21 +533,21 @@ void Osenc::readChart(GL::VertexVector& vertices,
           auto pcnt = *reinterpret_cast<const quint32*>(ptr);
           ptr += sizeof(quint32);
 
-          QVector<float> edges(2 * pcnt);
-          memcpy(edges.data(), ptr, 2 * pcnt * sizeof(float));
+          QVector<float> points(2 * pcnt);
+          memcpy(points.data(), ptr, 2 * pcnt * sizeof(float));
           ptr += 2 * pcnt * sizeof(float);
 
-          EdgeExtent edge;
+          RawEdge edge;
           edge.first = vertices.size() / 2;
-          edge.last = edge.first + pcnt - 1;
-          edgeMap[index] = edge;
-          vertices.append(edges);
+          edge.count = pcnt;
+          edges[index] = edge;
+          vertices.append(points);
         }
         return true;
       })
     },
 
-    {SencRecordType::VECTOR_CONNECTED_NODE_TABLE_RECORD, new Handler([&vertices, &connMap] (const Buffer& b) {
+    {SencRecordType::VECTOR_CONNECTED_NODE_TABLE_RECORD, new Handler([&vertices, &connected] (const Buffer& b) {
         // qDebug() << "vector connected node table record";
         const char* ptr = b.constData();
 
@@ -557,7 +565,7 @@ void Osenc::readChart(GL::VertexVector& vertices,
           auto y = *reinterpret_cast<const float*>(ptr);
           ptr += sizeof(float);
 
-          connMap[index] = vertices.size() / 2;
+          connected[index] = vertices.size() / 2;
           vertices.append(x);
           vertices.append(y);
         }
@@ -620,52 +628,10 @@ void Osenc::readChart(GL::VertexVector& vertices,
   }
   qDeleteAll(handlers);
 
-  auto lineGeometry = [&indices, &vertices, edgeMap, connMap] (const LineHandle& geom, S57::ElementDataVector& elems) {
-    const int cnt = geom.size() / 3;
-    // qDebug() << geom;
-    for (int i = 0; i < cnt;) {
-      S57::ElementData e;
-      e.mode = GL_LINE_STRIP_ADJACENCY_EXT;
-      e.offset = indices.size() * sizeof(GLuint);
-      indices.append(0); // dummy index to account adjacency
-      e.count = 1;
-      int np = 3 * i;
-      while (i < cnt && geom[3 * i] == geom[np]) {
-        const int c1 = connMap[geom[3 * i]];
-        const int m = geom[3 * i + 1];
-        if (edgeMap.contains(std::abs(m))) {
-          const int first = edgeMap[std::abs(m)].first;
-          const int last = edgeMap[std::abs(m)].last;
-          e.count += addIndices(c1, first, last, m < 0, indices);
-        } else {
-          indices.append(c1);
-          e.count += 1;
-        }
-        np = 3 * i + 2;
-        i++;
-      }
-      const GLuint last = connMap[geom[3 * i - 1]];
-      // account adjacency
-      const int adj = e.offset / sizeof(GLuint);
-      const GLuint first = indices[adj + 1];
-      if (last == first) {
-        indices[adj] = indices.last(); // prev
-        indices.append(last); // last real index
-        indices.append(indices[adj + 2]); // adjacent = next of first
-      } else {
-        auto prev = indices.last();
-        indices.append(last);
-        indices.append(addAdjacent(last, prev, vertices));
-        indices[adj] = addAdjacent(first, indices[adj + 2], vertices);
-      }
-      e.count += 2;
-      elems.append(e);
-    }
-  };
 
-  auto triangleGeometry = [&vertices] (const TriangleHandle& geom, S57::ElementDataVector& elems) {
+  auto triangleGeometry = [&vertices] (const TrianglePatchVector& triangles, S57::ElementDataVector& elems) {
     GLint offset = 0;
-    for (const TrianglePatch& p: geom) {
+    for (const TrianglePatch& p: triangles) {
       S57::ElementData d;
       d.mode = p.mode;
       d.offset = offset;
@@ -676,73 +642,64 @@ void Osenc::readChart(GL::VertexVector& vertices,
     }
   };
 
-  for (OData& d: objectHandle) {
+  using Edge = ChartFileReader::Edge;
+  using EdgeVector = ChartFileReader::EdgeVector;
 
+  for (ObjectWrapper& w: features) {
     // setup meta, line and area geometries
-    if (d.type == S57::Geometry::Type::Meta) {
-      helper.osEncSetGeometry(d.object, new S57::Geometry::Meta(), QRectF());
-    } else if (d.type == S57::Geometry::Type::Line) {
 
-      S57::ElementDataVector elems;
-      lineGeometry(d.lines, elems);
+    if (w.geom == S57::Geometry::Type::Meta) {
 
-      const QPointF c = ChartFileReader::computeLineCenter(elems, vertices, indices);
-      const QRectF bbox = ChartFileReader::computeBBox(elems, vertices, indices);
-      helper.osEncSetGeometry(d.object,
-                              new S57::Geometry::Line(elems, c, 0, gp),
-                              bbox);
+      helper.osEncSetGeometry(w.object, new S57::Geometry::Meta(), QRectF());
 
-    } else if (d.type == S57::Geometry::Type::Area) {
+    } else if (w.geom == S57::Geometry::Type::Line || w.geom == S57::Geometry::Type::Area) {
+      EdgeVector shape;
+      for (const RawEdgeRef& ref: w.edgeRefs) {
+        Edge e;
+        e.begin = connected[ref.begin];
+        e.end = connected[ref.end];
+        e.first = edges[ref.index].first;
+        e.count = edges[ref.index].count;
+        e.reversed = ref.reversed;
+        e.inner = false; // not used
+        shape.append(e);
+      }
+      auto lines = ChartFileReader::createLineElements(indices, vertices, shape);
+      auto bbox = ChartFileReader::computeBBox(lines, vertices, indices);
 
-      S57::ElementDataVector lelems;
-      lineGeometry(d.lines, lelems);
+      if (w.geom == S57::Geometry::Type::Area) {
+        GLsizei offset = vertices.size() * sizeof(GLfloat);
+        S57::ElementDataVector triangles;
+        triangleGeometry(w.triangles, triangles);
 
-      GLsizei offset = vertices.size() * sizeof(GLfloat);
-      S57::ElementDataVector telems;
-      triangleGeometry(d.triangles, telems);
+        auto center = computeAreaCenter(triangles, vertices, offset);
 
-      const QPointF c = computeAreaCenter(telems, vertices, offset);
-      const QRectF bbox = ChartFileReader::computeBBox(lelems, vertices, indices);
-      helper.osEncSetGeometry(d.object,
-                              new S57::Geometry::Area(lelems, c, telems, offset, false, gp),
-                              bbox);
+        helper.osEncSetGeometry(w.object,
+                                new S57::Geometry::Area(lines,
+                                                        center,
+                                                        triangles,
+                                                        offset,
+                                                        false,
+                                                        gp),
+                                bbox);
+
+      } else {
+        auto center = ChartFileReader::computeLineCenter(lines, vertices, indices);
+        helper.osEncSetGeometry(w.object,
+                                new S57::Geometry::Line(lines, center, 0, gp),
+                                bbox);
+      }
     }
 
-    objects.append(d.object);
+    objects.append(w.object);
   }
-}
-
-
-
-static GLsizei addIndices(GLuint first, GLuint mid1, GLuint mid2, bool reversed, GL::IndexVector& indices) {
-  indices.append(first);
-  if (!reversed) {
-    for (uint i = mid1; i <= mid2; i++) {
-      indices.append(i);
-    }
-  } else {
-    for (int i = mid2; i >= static_cast<int>(mid1); i--) {
-      indices.append(i);
-    }
-  }
-  return 1 + mid2 - mid1 + 1;
-}
-
-static GLuint addAdjacent(GLuint endp, GLuint nbor, GL::VertexVector& vertices) {
-  const float x1 = vertices[2 * endp];
-  const float y1 = vertices[2 * endp + 1];
-  const float x2 = vertices[2 * nbor];
-  const float y2 = vertices[2 * nbor + 1];
-  vertices.append(2 * x1 - x2);
-  vertices.append(2 * y1 - y2);
-  return (vertices.size() - 1) / 2;
 }
 
 
 QPointF Osenc::computeAreaCenter(const S57::ElementDataVector &elems,
                                  const GL::VertexVector& vertices,
                                  GLsizei offset) const {
-  float area = 0;
+  float tot = 0;
   QPointF s(0, 0);
   for (const S57::ElementData& elem: elems) {
     if (elem.mode == GL_TRIANGLES) {
@@ -752,7 +709,7 @@ QPointF Osenc::computeAreaCenter(const S57::ElementDataVector &elems,
         const QPointF p1(vertices[first + 6 * i + 2], vertices[first + 6 * i + 3]);
         const QPointF p2(vertices[first + 6 * i + 4], vertices[first + 6 * i + 5]);
         const float da = std::abs((p1.x() - p0.x()) * (p2.y() - p0.y()) - (p2.x() - p0.x()) * (p1.y() - p0.y()));
-        area += da;
+        tot += da;
         s.rx() += da / 3. * (p0.x() + p1.x() + p2.x());
         s.ry() += da / 3. * (p0.y() + p1.y() + p2.y());
       }
@@ -763,7 +720,7 @@ QPointF Osenc::computeAreaCenter(const S57::ElementDataVector &elems,
         const QPointF p1(vertices[first + 2 * i + 2], vertices[first + 2 * i + 3]);
         const QPointF p2(vertices[first + 2 * i + 4], vertices[first + 2 * i + 5]);
         const float da = std::abs((p1.x() - p0.x()) * (p2.y() - p0.y()) - (p2.x() - p0.x()) * (p1.y() - p0.y()));
-        area += da;
+        tot += da;
         s.rx() += da / 3. * (p0.x() + p1.x() + p2.x());
         s.ry() += da / 3. * (p0.y() + p1.y() + p2.y());
       }
@@ -774,7 +731,7 @@ QPointF Osenc::computeAreaCenter(const S57::ElementDataVector &elems,
         const QPointF p1(vertices[first + 2 * i + 2], vertices[first + 2 * i + 3]);
         const QPointF p2(vertices[first + 2 * i + 4], vertices[first + 2 * i + 5]);
         const float da = std::abs((p1.x() - p0.x()) * (p2.y() - p0.y()) - (p2.x() - p0.x()) * (p1.y() - p0.y()));
-        area += da;
+        tot += da;
         s.rx() += da / 3. * (p0.x() + p1.x() + p2.x());
         s.ry() += da / 3. * (p0.y() + p1.y() + p2.y());
       }
@@ -783,7 +740,7 @@ QPointF Osenc::computeAreaCenter(const S57::ElementDataVector &elems,
     }
   }
 
-  return s / area;
+  return s / tot;
 }
 
 
