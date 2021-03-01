@@ -121,11 +121,11 @@ S57::PaintDataMap S52::LineComplex::execute(const QVector<QVariant>& vals,
   auto geom = dynamic_cast<const S57::Geometry::Line*>(obj->geometry());
   Q_ASSERT(geom != nullptr);
 
-  // qDebug() << "[LineStyle:Class]" << S52::GetClassInfo(obj->classCode()) << obj->classCode();
-  // qDebug() << "[LineStyle:Symbol]" << S52::GetSymbolInfo(index, S52::SymbolType::LineStyle) << index;
-  // for (auto k: obj->attributes().keys()) {
-  //   qDebug() << GetAttributeInfo(k, obj);
-  // }
+  //  qDebug() << "[LineStyle:Class]" << S52::GetClassInfo(obj->classCode()) << obj->classCode();
+  //  qDebug() << "[LineStyle:Symbol]" << S52::GetSymbolInfo(index, S52::SymbolType::LineStyle) << index;
+  //  for (auto k: obj->attributes().keys()) {
+  //    qDebug() << GetAttributeInfo(k, obj);
+  //  }
 
   KV::ColorVector colors;
   for (const S52::Color& c: s.colors()) {
@@ -207,15 +207,28 @@ S57::PaintDataMap S52::PointSymbol::execute(const QVector<QVariant>& vals,
 S57::PaintDataMap S52::Text::execute(const QVector<QVariant>& vals,
                                      const S57::Object* obj) {
 
-  QString txt = vals[0].toString();
+
+  QString txt;
+
+  const QMetaType::Type t = static_cast<QMetaType::Type>(vals[0].type());
+  if (t == QMetaType::UInt) {
+    const quint32 index = vals[0].toUInt();
+    txt = GetAttributeValueDescription(index, obj->attributeValue(index));
+  } else if (t == QMetaType::QString) {
+    txt = vals[0].toString();
+  } else {
+    return S57::PaintDataMap();
+  }
+
   if (txt.isEmpty()) {
     return S57::PaintDataMap();
   }
+
   // qDebug() << "TX:" << as_numeric(obj->geometry()->type()) << txt;
 
   const quint8 group = vals[8].toUInt();
   if (!Conf::MarinerParams::textGrouping().contains(group)) {
-    // qDebug() << "skipping TX in group" << group;
+    qDebug() << "skipping TX in group" << group;
     return S57::PaintDataMap();
   }
 
@@ -255,7 +268,17 @@ S57::PaintDataMap S52::Text::execute(const QVector<QVariant>& vals,
 
   const QColor color = S52::GetColor(vals[7].toUInt());
 
-  S57::PaintData* p = new S57::TextElemData(obj->geometry()->center(),
+  QPointF loc = obj->geometry()->center();
+  if (obj->geometry()->type() == S57::Geometry::Type::Point) {
+    auto pt = dynamic_cast<const S57::Geometry::Point*>(obj->geometry());
+    if (pt->points().size() > 2) {
+      int i = vals[9].toInt();
+      const auto ps = pt->points();
+      loc = QPointF(ps[3 * i], ps[3 * i + 1]);
+    }
+  }
+
+  S57::PaintData* p = new S57::TextElemData(loc,
                                             d.bbox().bottomLeft(), // inverted y-axis
                                             dPivot,
                                             dMM,
@@ -290,6 +313,7 @@ S57::PaintDataMap S52::TextExtended::execute(const QVector<QVariant>& vals,
       sprintf(buf, format, vals[2 + i].toDouble());
       break;
     case QMetaType::Int:
+    case QMetaType::UInt:
       sprintf(buf, format, vals[2 + i].toInt());
       break;
     case QMetaType::UnknownType: // Empty QVariant
@@ -1528,6 +1552,8 @@ S57::PaintDataMap S52::CSShorelineQualOfPos03::execute(const QVector<QVariant>&,
 
 S52::CSSoundings02::CSSoundings02(quint32 index)
   : Function("SOUNDG02", index)
+  , m_chblk(FindIndex("CHBLK"))
+  , m_chgrd(FindIndex("CHGRD"))
   , m_tecsou(FindIndex("TECSOU"))
   , m_soundsb1(FindIndex("SOUNDSB1"))
   , m_soundgb1(FindIndex("SOUNDGB1"))
@@ -1538,66 +1564,6 @@ S52::CSSoundings02::CSSoundings02(quint32 index)
   , m_quapos(FindIndex("QUAPOS"))
   , m_doubtful_set {3, 4, 5, 8, 9}
   , m_approximate_set {2, 3, 4, 5, 6, 7, 8, 9}
-  , m_0 {FindIndex("SOUNDG00"), FindIndex("SOUNDG01"),
-         FindIndex("SOUNDG02"), FindIndex("SOUNDG03"),
-         FindIndex("SOUNDG04"), FindIndex("SOUNDG05"),
-         FindIndex("SOUNDG06"), FindIndex("SOUNDG07"),
-         FindIndex("SOUNDG08"), FindIndex("SOUNDG09")}
-  , m_1 {FindIndex("SOUNDG10"), FindIndex("SOUNDG11"),
-         FindIndex("SOUNDG12"), FindIndex("SOUNDG13"),
-         FindIndex("SOUNDG14"), FindIndex("SOUNDG15"),
-         FindIndex("SOUNDG16"), FindIndex("SOUNDG17"),
-         FindIndex("SOUNDG18"), FindIndex("SOUNDG19")}
-  , m_2 {FindIndex("SOUNDG20"), FindIndex("SOUNDG21"),
-         FindIndex("SOUNDG22"), FindIndex("SOUNDG23"),
-         FindIndex("SOUNDG24"), FindIndex("SOUNDG25"),
-         FindIndex("SOUNDG26"), FindIndex("SOUNDG27"),
-         FindIndex("SOUNDG28"), FindIndex("SOUNDG29")}
-  , m_3 {FindIndex("SOUNDG30"), FindIndex("SOUNDG31"),
-         FindIndex("SOUNDG32"), FindIndex("SOUNDG33"),
-         FindIndex("SOUNDG34"), FindIndex("SOUNDG35"),
-         FindIndex("SOUNDG36"), FindIndex("SOUNDG37"),
-         FindIndex("SOUNDG38"), FindIndex("SOUNDG39")}
-  , m_4 {FindIndex("SOUNDG40"), FindIndex("SOUNDG41"),
-         FindIndex("SOUNDG42"), FindIndex("SOUNDG43"),
-         FindIndex("SOUNDG44"), FindIndex("SOUNDG45"),
-         FindIndex("SOUNDG46"), FindIndex("SOUNDG47"),
-         FindIndex("SOUNDG48"), FindIndex("SOUNDG49")}
-  , m_5 {FindIndex("SOUNDG50"), FindIndex("SOUNDG51"),
-         FindIndex("SOUNDG52"), FindIndex("SOUNDG53"),
-         FindIndex("SOUNDG54"), FindIndex("SOUNDG55"),
-         FindIndex("SOUNDG56"), FindIndex("SOUNDG57"),
-         FindIndex("SOUNDG58"), FindIndex("SOUNDG59")}
-  , m_0_shallow {FindIndex("SOUNDS00"), FindIndex("SOUNDS01"),
-                 FindIndex("SOUNDS02"), FindIndex("SOUNDS03"),
-                 FindIndex("SOUNDS04"), FindIndex("SOUNDS05"),
-                 FindIndex("SOUNDS06"), FindIndex("SOUNDS07"),
-                 FindIndex("SOUNDS08"), FindIndex("SOUNDS09")}
-  , m_1_shallow {FindIndex("SOUNDS10"), FindIndex("SOUNDS11"),
-                 FindIndex("SOUNDS12"), FindIndex("SOUNDS13"),
-                 FindIndex("SOUNDS14"), FindIndex("SOUNDS15"),
-                 FindIndex("SOUNDS16"), FindIndex("SOUNDS17"),
-                 FindIndex("SOUNDS18"), FindIndex("SOUNDS19")}
-  , m_2_shallow {FindIndex("SOUNDS20"), FindIndex("SOUNDS21"),
-                 FindIndex("SOUNDS22"), FindIndex("SOUNDS23"),
-                 FindIndex("SOUNDS24"), FindIndex("SOUNDS25"),
-                 FindIndex("SOUNDS26"), FindIndex("SOUNDS27"),
-                 FindIndex("SOUNDS28"), FindIndex("SOUNDS29")}
-  , m_3_shallow {FindIndex("SOUNDS30"), FindIndex("SOUNDS31"),
-                 FindIndex("SOUNDS32"), FindIndex("SOUNDS33"),
-                 FindIndex("SOUNDS34"), FindIndex("SOUNDS35"),
-                 FindIndex("SOUNDS36"), FindIndex("SOUNDS37"),
-                 FindIndex("SOUNDS38"), FindIndex("SOUNDS39")}
-  , m_4_shallow {FindIndex("SOUNDS40"), FindIndex("SOUNDS41"),
-                 FindIndex("SOUNDS42"), FindIndex("SOUNDS43"),
-                 FindIndex("SOUNDS44"), FindIndex("SOUNDS45"),
-                 FindIndex("SOUNDS46"), FindIndex("SOUNDS47"),
-                 FindIndex("SOUNDS48"), FindIndex("SOUNDS49")}
-  , m_5_shallow {FindIndex("SOUNDS50"), FindIndex("SOUNDS51"),
-                 FindIndex("SOUNDS52"), FindIndex("SOUNDS53"),
-                 FindIndex("SOUNDS54"), FindIndex("SOUNDS55"),
-                 FindIndex("SOUNDS56"), FindIndex("SOUNDS57"),
-                 FindIndex("SOUNDS58"), FindIndex("SOUNDS59")}
 {}
 
 S57::PaintDataMap S52::CSSoundings02::execute(const QVector<QVariant>&,
@@ -1658,119 +1624,40 @@ S57::PaintDataMap S52::CSSoundings02::symbols(double depth, int index,
     ps += S52::FindFunction("SY")->execute(vals, obj);
   }
 
-  // continuation A
-  if (depth < 10) {
-    auto lead = static_cast<int>(std::abs(depth));
-    const QVector<QVariant> v1 {shallow ? m_1_shallow[lead] : m_1[lead], 0., index};
-    ps += S52::FindFunction("SY")->execute(v1, obj);
-    auto frac = static_cast<int>((std::abs(depth) - lead) * 10);
-    const QVector<QVariant> v2 {shallow ? m_5_shallow[frac] : m_5[frac], 0., index};
-    ps += S52::FindFunction("SY")->execute(v2, obj);
-
-    if (depth < 0) {
-      const QVector<QVariant> vals {m_soundsa1, 0., index};
-      ps += S52::FindFunction("SY")->execute(vals, obj);
-    }
-
-    return ps;
+  if (depth < 0) {
+    const QVector<QVariant> vals {m_soundsa1, 0., index};
+    ps += S52::FindFunction("SY")->execute(vals, obj);
   }
 
+  auto txt = QString::number(static_cast<int>(std::abs(depth)));
+
+  bool hasFrac = false;
   if (depth < 31) {
-    auto leads = static_cast<int>(depth);
-    auto frac = static_cast<int>((depth - leads) * 10);
-    if (frac > 0) {
-      auto lead2 = leads / 10;
-      const QVector<QVariant> v1 {shallow ? m_2_shallow[lead2] : m_2[lead2], 0., index};
-      ps += S52::FindFunction("SY")->execute(v1, obj);
-
-      auto lead1 = leads % 10;
-      const QVector<QVariant> v2 {shallow ? m_1_shallow[lead1] : m_1[lead1], 0., index};
-      ps += S52::FindFunction("SY")->execute(v2, obj);
-
-      const QVector<QVariant> v3 {shallow ? m_5_shallow[frac] : m_5[frac], 0., index};
-      ps += S52::FindFunction("SY")->execute(v3, obj);
-
-      return ps;
+    auto lead = static_cast<int>(std::abs(depth));
+    auto frac = static_cast<int>((std::abs(depth) - lead) * 10);
+    if (depth < 10 || frac != 0) {
+      txt = txt + QChar(0x2080 + frac);
+      hasFrac = true;
+      // qDebug() << "Depth" << txt;
     }
   }
 
-  if (depth < 100) {
-    auto leads = static_cast<int>(depth);
-
-    auto lead1 = leads / 10;
-    const QVector<QVariant> v1 {shallow ? m_1_shallow[lead1] : m_1[lead1], 0., index};
-    ps += S52::FindFunction("SY")->execute(v1, obj);
-
-    auto lead0 = leads % 10;
-    const QVector<QVariant> v2 {shallow ? m_0_shallow[lead0] : m_0[lead0], 0., index};
-    ps += S52::FindFunction("SY")->execute(v2, obj);
-
-    return ps;
-  }
-
-  if (depth < 1000) {
-    auto leads = static_cast<int>(depth);
-
-    auto lead2 = leads / 100;
-    const QVector<QVariant> v1 {shallow ? m_2_shallow[lead2] : m_2[lead2], 0., index};
-    ps += S52::FindFunction("SY")->execute(v1, obj);
-
-    auto lead1 = (leads % 100) / 10;
-    const QVector<QVariant> v2 {shallow ? m_1_shallow[lead1] : m_1[lead1], 0., index};
-    ps += S52::FindFunction("SY")->execute(v2, obj);
-
-    auto lead0 = leads % 10;
-    const QVector<QVariant> v3 {shallow ? m_0_shallow[lead0] : m_0[lead0], 0., index};
-    ps += S52::FindFunction("SY")->execute(v3, obj);
-
-    return ps;
-  }
-
-  if (depth < 10000) {
-    auto leads = static_cast<int>(depth);
-
-    auto lead2 = leads / 1000;
-    const QVector<QVariant> v1 {shallow ? m_2_shallow[lead2] : m_2[lead2], 0., index};
-    ps += S52::FindFunction("SY")->execute(v1, obj);
-
-    auto lead1 = (leads % 1000) / 100;
-    const QVector<QVariant> v2 {shallow ? m_1_shallow[lead1] : m_1[lead1], 0., index};
-    ps += S52::FindFunction("SY")->execute(v2, obj);
-
-    auto lead0 = (leads % 100) / 10;
-    const QVector<QVariant> v3 {shallow ? m_0_shallow[lead0] : m_0[lead0], 0., index};
-    ps += S52::FindFunction("SY")->execute(v3, obj);
-
-    auto lead4 = leads % 10;
-    const QVector<QVariant> v4 {shallow ? m_4_shallow[lead4] : m_4[lead4], 0., index};
-    ps += S52::FindFunction("SY")->execute(v4, obj);
-
-    return ps;
-  }
-
-  auto leads = static_cast<int>(depth);
-
-  auto lead3 = leads / 10000;
-  const QVector<QVariant> v0 {shallow ? m_3_shallow[lead3] : m_3[lead3], 0., index};
-  ps += S52::FindFunction("SY")->execute(v0, obj);
-
-  auto lead2 = (leads % 10000) / 1000;
-  const QVector<QVariant> v1 {shallow ? m_2_shallow[lead2] : m_2[lead2], 0., index};
-  ps += S52::FindFunction("SY")->execute(v1, obj);
-
-  auto lead1 = (leads % 1000) / 100;
-  const QVector<QVariant> v2 {shallow ? m_1_shallow[lead1] : m_1[lead1], 0., index};
-  ps += S52::FindFunction("SY")->execute(v2, obj);
-
-  auto lead0 = (leads % 100) / 10;
-  const QVector<QVariant> v3 {shallow ? m_0_shallow[lead0] : m_0[lead0], 0., index};
-  ps += S52::FindFunction("SY")->execute(v3, obj);
-
-  auto lead4 = leads % 10;
-  const QVector<QVariant> v4 {shallow ? m_4_shallow[lead4] : m_4[lead4], 0., index};
-  ps += S52::FindFunction("SY")->execute(v4, obj);
+  QVector<QVariant> vs;
+  vs.append(QVariant::fromValue(txt));
+  vs.append(QVariant::fromValue(1)); // hcenter justified
+  vs.append(QVariant::fromValue(2)); // vcenter justified
+  vs.append(QVariant::fromValue(2)); // std spacing
+  vs.append(QVariant::fromValue(hasFrac ? QStringLiteral("15110") :
+                                          QStringLiteral("15107"))); // style, weight, slant, size
+  vs.append(QVariant::fromValue(0)); // x-offset
+  vs.append(QVariant::fromValue(0)); // y-offset
+  vs.append(QVariant::fromValue(shallow ? m_chblk : m_chgrd)); // color
+  vs.append(QVariant::fromValue(12)); // non-standard soundings text group
+  vs.append(QVariant::fromValue(index));
+  ps += S52::FindFunction("TX")->execute(vs, obj);
 
   return ps;
+
 }
 
 S52::CSTopmarks01::CSTopmarks01(quint32 index)

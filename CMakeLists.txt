@@ -34,9 +34,6 @@ if (DESKTOP)
     XmlGui
   )
 
-  set(GDAL_MIN_VERSION "3.0.0")
-  find_package(GDAL ${GDAL_MIN_VERSION} REQUIRED)
-
   set(FONTCONFIG_MIN_VERSION "2.13")
   find_package(Fontconfig ${FONTCONFIG_MIN_VERSION} REQUIRED)
 
@@ -251,7 +248,6 @@ add_subdirectory(dbupdater)
 
 if (DESKTOP)
 
-  add_subdirectory(triglobe)
   add_subdirectory(desktop)
 
 else()

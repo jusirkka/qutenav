@@ -209,7 +209,14 @@ QByteArray OeDevice::CacheId(const QString& path) {
 }
 
 void OeDevice::Kickoff() {
+  int cnt = 10;
   auto serverEP = ::open(serverEPName, O_WRONLY | O_NDELAY);
+  while (serverEP < 0 && cnt > 0) {
+    qDebug() << strerror(errno);
+    usleep(20000);
+    serverEP = ::open(serverEPName, O_WRONLY | O_NDELAY);
+    cnt--;
+  }
   if (serverEP > 0) {
     qDebug() << "oeserverd already running";
     ::close(serverEP);
@@ -220,7 +227,7 @@ void OeDevice::Kickoff() {
   qDebug() << "launched" << serverName << ", status =" << ok;
 
   serverEP = ::open(serverEPName, O_WRONLY | O_NDELAY);
-  int cnt = 20;
+  cnt = 20;
   while (serverEP < 0 && cnt > 0) {
     qDebug() << strerror(errno);
     usleep(10000);

@@ -35,6 +35,7 @@ Settings::Settings(QObject *parent)
                                 "Vertical clearance of bridges, overhead cable, pipe or conveyor, "
                                 "bearing of navline, recommended route, deep water route centreline, "
                                 "name and communications channel of radio calling-in point.");
+  m_textGroups << new TextGroup(12, "Soundings");
   m_textGroups << new TextGroup(20, "Other text");
   m_textGroups << new TextGroup(21, "Position names",
                                 "Names for position reporting: "

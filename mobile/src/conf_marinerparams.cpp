@@ -23,7 +23,7 @@ Conf::MarinerParams::MarinerParams()
   m_defaults["full_length_sectors"] = false;
 
   QVariantList items;
-  items << 10 << 11 << 20 << 21 << 23 << 24 << 25 << 26 << 27 << 28 << 29 << 31;
+  items << 10 << 11 << 12 << 20 << 21 << 23 << 24 << 25 << 26 << 27 << 28 << 29 << 31;
   m_defaults["text_grouping"] = items;
 
   load();

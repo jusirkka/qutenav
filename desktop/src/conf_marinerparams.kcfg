@@ -50,7 +50,7 @@
     </entry>
     <entry name="TextGrouping" key="text_grouping" type="IntList">
       <label>Text display groups.</label>
-      <default>10,11,20,21,23,24,25,26,27,28,29,31</default>
+      <default>10,11,12,20,21,23,24,25,26,27,28,29,31</default>
     </entry>
     <entry name="MaxCategory" key="max_category" type="Enum">
       <label>Draw only objects included within this category.</label>
@@ -64,7 +64,7 @@
     </entry>
     <entry name="ShowMeta" key="show_meta" type="Bool">
       <label>Show meta-objects.</label>
-      <default>true</default>
+      <default>false</default>
     </entry>
     <entry name="FullLengthSectors" key="full_length_sectors" type="Bool">
       <label>Show light sectors in their nominal length.</label>

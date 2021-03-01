@@ -367,7 +367,6 @@ void S57::PatternPaintData::merge(const SymbolPaintDataBase *other, qreal scale,
     m_areaArrays.append(r->m_areaArrays);
     m_areaElements.append(r->m_areaElements);
   }
-  m_instanceCount = m_pivots.size() / 2;
 }
 
 
@@ -402,6 +401,7 @@ void S57::RasterPatternPaintData::createPivots(const QRectF& bbox, qreal scale) 
       m_pivots << kx * X + x1 << ky * Y;
     }
   }
+  m_instanceCount = m_pivots.size() / 2;
 }
 
 
@@ -450,6 +450,7 @@ void S57::VectorPatternPaintData::createPivots(const QRectF& bbox, qreal scale) 
       m_pivots << kx * X + x1 << ky * Y << m_c << m_s;
     }
   }
+  m_instanceCount = m_pivots.size() / 4;
 }
 
 

@@ -2,7 +2,7 @@
 #include <QDebug>
 #include <QOpenGLContext>
 #include <QOpenGLExtraFunctions>
-#include <QFile>
+#include <QOpenGLTexture>
 #include <QDir>
 #include <QRegularExpression>
 #include <QTextStream>
@@ -15,60 +15,18 @@ Globe::Globe(QObject *parent)
   , m_coordBuffer(QOpenGLBuffer::VertexBuffer)
   , m_indexBuffer(QOpenGLBuffer::IndexBuffer)
   , m_program(nullptr)
-{
+  , m_globeTexture(new QOpenGLTexture(QOpenGLTexture::TargetCubeMap))
+{}
 
-  QStringList charts;
-  QDir chartDir;
-  QStringList locs;
-
-  for (const QString& loc: QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation)) {
-    locs << QString("%1/%2/GSHHS/c").arg(loc).arg(qAppName());
-  }
-
-  for (const QString& loc: locs) {
-    chartDir = QDir(loc);
-    charts = chartDir.entryList(QStringList() << "globe_l?.obj",
-                                QDir::Files | QDir::Readable, QDir::Name);
-    if (!charts.isEmpty()) break;
-  }
-
-  if (charts.isEmpty()) {
-    throw ChartFileError(QString("Could not find a valid chart directory in %1").arg(locs.join(", ")));
-  }
-
-  initLayers();
-
-
-  WFReader p;
-  size_t elemSize = 0;
-  GLsizei offset = 0;
-  for (const QString& chart: charts) {
-    auto path = chartDir.absoluteFilePath(chart);
-    p.parse(path);
-
-    m_coords.append(p.vertices());
-
-    int i = indexFromChartName(chart);
-
-
-    m_layerData[i].offset = offset;
-
-    m_layerData[i].elem.offset = elemSize;
-    m_layerData[i].elem.size = p.triangles().size();
-
-    m_strips.append(p.triangles());
-
-    elemSize += p.triangles().size() * sizeof(GLuint);
-    offset += p.vertices().size() * sizeof(GLfloat);
-
-    p.reset();
-  }
+Globe::~Globe() {
+  delete m_program;
+  delete m_globeTexture;
 }
 
 void Globe::initializeGL() {
   if (m_program != nullptr) return;
 
-  m_program = new QOpenGLShaderProgram(this);
+  m_program = new QOpenGLShaderProgram;
 
   struct Source {
     QOpenGLShader::ShaderTypeBit stype;
@@ -90,32 +48,58 @@ void Globe::initializeGL() {
     qFatal("Failed to link the globe program: %s", m_program->log().toUtf8().data());
   }
 
-  // buffers
+  // locations
+  m_program->bind();
+  m_locations.globe = m_program->uniformLocation("globe");
+  m_locations.m_pv = m_program->uniformLocation("m_pv");
+  m_locations.lp = m_program->uniformLocation("lp");
+
+  QStringList objectFiles;
+  QDir globeDir;
+  QStringList locs;
+
+  for (const QString& loc: QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation)) {
+    locs << QString("%1/%2/globe").arg(loc).arg(qAppName());
+  }
+
+  for (const QString& loc: locs) {
+    globeDir = QDir(loc);
+    objectFiles = globeDir.entryList(QStringList() << "sphere.obj",
+                                     QDir::Files | QDir::Readable);
+    if (!objectFiles.isEmpty()) break;
+  }
+
+  if (objectFiles.isEmpty()) {
+    throw ChartFileError(QString("Could not find a valid globe directory in %1").arg(locs.join(", ")));
+  }
+
+  WFReader p;
+
+  auto path = globeDir.absoluteFilePath(objectFiles.first());
+  p.parse(path);
+
+  // copy vertices/indices to buffers
   m_coordBuffer.create();
   m_coordBuffer.bind();
   m_coordBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
-  GLsizei dataLen = m_coords.size() * sizeof(GLfloat);
-  m_coordBuffer.allocate(dataLen);
-
-  m_coordBuffer.write(0, m_coords.constData(), dataLen);
-
-  // not needed anymore
-  m_coords.clear();
+  GLsizei dataLen = p.vertices().size() * sizeof(GLfloat);
+  m_coordBuffer.allocate(p.vertices().constData(), dataLen);
 
   m_indexBuffer.create();
   m_indexBuffer.bind();
   m_indexBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
-  GLsizei elemLen = m_strips.size() * sizeof(GLuint);
-  m_indexBuffer.allocate(elemLen);
-  m_indexBuffer.write(0, m_strips.constData(), elemLen);
-  // not needed anymore
-  m_strips.clear();
+  GLsizei elemLen = p.triangles().size() * sizeof(GLuint);
+  m_indexBuffer.allocate(p.triangles().constData(), elemLen);
 
-  // locations
-  m_program->bind();
-  m_locations.base_color = m_program->uniformLocation("base_color");
-  m_locations.m_pv = m_program->uniformLocation("m_pv");
-  m_locations.lp = m_program->uniformLocation("lp");
+  m_indexCount = p.triangles().size();
+
+  const int stride = 3 * sizeof(GLfloat);
+  m_program->setAttributeBuffer(0, GL_FLOAT, 0, 3, stride);
+
+  m_program->enableAttributeArray(0);
+
+  // cubemap
+  loadImages(globeDir);
 }
 
 void Globe::updateCharts(const Camera* /*cam*/, const QRectF& /*viewArea*/)  {
@@ -123,77 +107,118 @@ void Globe::updateCharts(const Camera* /*cam*/, const QRectF& /*viewArea*/)  {
 }
 
 void Globe::paintGL(const Camera *cam) {
-  auto gl = QOpenGLContext::currentContext()->functions();
-  gl->glDisable(GL_BLEND);
-  gl->glEnable(GL_DEPTH_TEST);
-  gl->glEnable(GL_STENCIL_TEST);
-  gl->glEnable(GL_CULL_FACE);
-  gl->glFrontFace(GL_CW);
-  gl->glCullFace(GL_BACK);
-  gl->glStencilFunc(GL_EQUAL, 0, 0xff);
-  gl->glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
-  gl->glStencilMask(0xff);
+  auto f = QOpenGLContext::currentContext()->functions();
+  f->glDisable(GL_BLEND);
+  f->glEnable(GL_DEPTH_TEST);
+  f->glEnable(GL_STENCIL_TEST);
+  f->glEnable(GL_CULL_FACE);
+  f->glFrontFace(GL_CW);
+  f->glCullFace(GL_BACK);
+  f->glStencilFunc(GL_EQUAL, 0, 0xff);
+  f->glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
+  f->glStencilMask(0xff);
   m_program->bind();
 
   m_program->enableAttributeArray(0);
   m_coordBuffer.bind();
   m_indexBuffer.bind();
 
+  m_globeTexture->bind();
+
+  m_program->setUniformValue(m_locations.globe, 0);
   const QVector3D eye = cam->view().inverted().column(3).toVector3D();
   // light direction = eye direction
   m_program->setUniformValue(m_locations.lp, eye.normalized());
   m_program->setUniformValue(m_locations.m_pv, cam->projection() * cam->view());
 
-  for (int i = LAYERS - 1; i >= 0; i--) {
-    auto layer = m_layerData[i];
-    ElementData e = layer.elem;
-    if (e.size == 0) continue;
-    m_program->setUniformValue(m_locations.base_color, layer.color);
-    m_program->setAttributeBuffer(0, GL_FLOAT, layer.offset, 3, 0);
-    gl->glDrawElements(GL_TRIANGLES, e.size, GL_UNSIGNED_INT,
-                       reinterpret_cast<const void*>(e.offset));
-  }
+  f->glDrawElements(GL_TRIANGLES, m_indexCount, GL_UNSIGNED_INT, nullptr);
+
 }
 
+void Globe::loadImages(const QDir& imageDir) {
+  QVector<QImage> images;
+  // nex, nexy, nexz, posx, posy, posz
+  auto imageFiles = imageDir.entryList(QStringList() << "*.jpg",
+                                       QDir::Files | QDir::Readable, QDir::Name);
+  qDebug() << imageFiles;
 
-void Globe::initLayers() {
-  // sea
-  m_layerData[0].color = QColor("#d4eaee");
-  m_layerData[0].offset = 0;
-  m_layerData[0].elem.size = 0;
-  // continents
-  m_layerData[1].color = QColor("#faf1a4");
-  m_layerData[1].offset = 0;
-  m_layerData[1].elem.size = 0;
-  // lakes
-  m_layerData[2].color = QColor("#9fc7fd");
-  m_layerData[2].offset = 0;
-  m_layerData[2].elem.size = 0;
-  // isles
-  m_layerData[3].color = QColor("#faf1a4");
-  m_layerData[3].offset = 0;
-  m_layerData[3].elem.size = 0;
-  // ponds
-  m_layerData[4].color = QColor("#9fc7fd");
-  m_layerData[4].offset = 0;
-  m_layerData[4].elem.size = 0;
-  // antarctica/ice
-  m_layerData[5].color = QColor("#dddddd");
-  m_layerData[5].offset = 0;
-  m_layerData[5].elem.size = 0;
-  // antarctica/ground
-  m_layerData[6].color = QColor("#84b496");
-  m_layerData[6].offset = 0;
-  m_layerData[6].elem.size = 0;
+  for (const QString& imageFile: imageFiles) {
+    auto image = QImage(imageDir.absoluteFilePath(imageFile));
+    images << image.convertToFormat(QImage::Format_RGBA8888);
+  }
+
+  m_globeTexture->create();
+  m_globeTexture->bind();
+
+  m_globeTexture->setSize(images.first().width(), images.first().height(), images.first().depth());
+
+  m_globeTexture->setFormat(QOpenGLTexture::RGBA8_UNorm);
+  m_globeTexture->allocateStorage();
+
+  QVector<QOpenGLTexture::CubeMapFace> faces {
+    QOpenGLTexture::CubeMapNegativeX,
+    QOpenGLTexture::CubeMapNegativeY,
+    QOpenGLTexture::CubeMapNegativeZ,
+    QOpenGLTexture::CubeMapPositiveX,
+    QOpenGLTexture::CubeMapPositiveY,
+    QOpenGLTexture::CubeMapPositiveZ,
+  };
+
+  for (int i = 0; i < images.size(); i++) {
+    m_globeTexture->setData(0, 0, faces[i],
+                            QOpenGLTexture::RGBA, QOpenGLTexture::UInt8,
+                            images[i].constBits(), nullptr);
+  }
+
+  m_globeTexture->setWrapMode(QOpenGLTexture::ClampToEdge);
+  m_globeTexture->setMinificationFilter(QOpenGLTexture::LinearMipMapLinear);
+  m_globeTexture->setMagnificationFilter(QOpenGLTexture::Linear);
+
 }
 
+void Globe::loadImage(const QDir& imageDir) {
+  auto imageFiles = imageDir.entryList(QStringList() << "texture.png",
+                                       QDir::Files | QDir::Readable, QDir::Name);
+  qDebug() << imageFiles;
 
-int Globe::indexFromChartName(const QString &name) {
-  static const QRegularExpression re(".*_l(\\d)\\.obj$");
-  QRegularExpressionMatch match = re.match(name);
-  if (!match.hasMatch()) {
-    throw ChartFileError(QString("Error parsing chart name %1").arg(name));
+  auto image = QImage(imageDir.absoluteFilePath(imageFiles.first()))
+      .convertToFormat(QImage::Format_RGBA8888);
+
+  m_globeTexture->create();
+  m_globeTexture->bind();
+
+  const int w = image.width() / 4;
+  const int h = image.height() / 3;
+  m_globeTexture->setSize(w, h, image.depth());
+
+  m_globeTexture->setFormat(QOpenGLTexture::RGBA8_UNorm);
+  m_globeTexture->allocateStorage();
+
+  struct CubeData {
+    QOpenGLTexture::CubeMapFace face;
+    int xOffset;
+    int yOffset;
+  };
+
+  QVector<CubeData> faces {
+    {QOpenGLTexture::CubeMapNegativeX, 0, h}, // left
+    {QOpenGLTexture::CubeMapPositiveX, 2 * w, h}, // right
+    {QOpenGLTexture::CubeMapNegativeY, w, 2 * h}, // bottom
+    {QOpenGLTexture::CubeMapPositiveY, w, 0}, // top
+    {QOpenGLTexture::CubeMapNegativeZ, 3 * w, h}, // back
+    {QOpenGLTexture::CubeMapPositiveZ, w, h}, // front
+  };
+
+  for (const CubeData face: faces) {
+    auto subimage = image.copy(face.xOffset, face.yOffset, w, h);
+    m_globeTexture->setData(0, 0, face.face,
+                            QOpenGLTexture::RGBA, QOpenGLTexture::UInt8,
+                            subimage.constBits(), nullptr);
   }
-  return match.captured(1).toInt();
+
+  m_globeTexture->setWrapMode(QOpenGLTexture::ClampToEdge);
+  m_globeTexture->setMinificationFilter(QOpenGLTexture::LinearMipMapLinear);
+  m_globeTexture->setMagnificationFilter(QOpenGLTexture::Linear);
+
 }
 

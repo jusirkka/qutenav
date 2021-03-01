@@ -278,7 +278,20 @@ GL::Mesh* Font::shapeText(const HB::Text &txt, hb_buffer_t *buf, bool* newGlyphs
 
   // qDebug() << "Language:" << QString::fromUtf8(hb_language_to_string(hb_buffer_get_language(buf)));
 
-  const QByteArray data = txt.string.toUtf8();
+  QByteArray data;
+
+  // a hack for sounding subscripts = fractional part
+  bool hasFrac = false;
+  const quint16 frac = txt.string.back().unicode();
+  if (frac >= 0x2080 && frac <= 0x2089) {
+    QString depth = txt.string.left(txt.string.length() - 1) + QChar('0' + frac - 0x2080);
+    data = depth.toUtf8();
+    // qDebug() << "Depth" << depth << txt.string;
+    hasFrac = true;
+  } else {
+    data = txt.string.toUtf8();
+  }
+
   hb_buffer_add_utf8(buf, data.constData(), data.length(), 0, data.length());
 
   uint glyphCount;
@@ -300,7 +313,10 @@ GL::Mesh* Font::shapeText(const HB::Text &txt, hb_buffer_t *buf, bool* newGlyphs
   *newGlyphs = false;
   float ymin = 1.e15;
   float ymax = -1.e15;
-  for(uint i = 0; i < glyphCount; ++i) {
+
+  const uint count = hasFrac ? glyphCount - 1 : glyphCount;
+
+  for(uint i = 0; i < count; ++i) {
     bool newGlyph;
     auto glyph = getGlyph(codepoints[i], &newGlyph);
     *newGlyphs = *newGlyphs || newGlyph;
@@ -328,6 +344,34 @@ GL::Mesh* Font::shapeText(const HB::Text &txt, hb_buffer_t *buf, bool* newGlyphs
     if (p0.y() > ymax) ymax = p0.y();
     if (p1.y() < ymin) ymin = p1.y();
   }
+
+  if (hasFrac) {
+    bool newGlyph;
+    auto glyph = getGlyph(codepoints[count], &newGlyph);
+    *newGlyphs = *newGlyphs || newGlyph;
+
+    const QPointF shift(0., -.3 * glyph->size().height());
+    // upper left
+    const QPointF p0 = pen + HB::offset(glyphPos[count]) + glyph->offset() + shift;
+    // lower right
+    const QPointF p1 = p0 + QPointF(glyph->size().width(), - glyph->size().height());
+
+    const QPointF t0 = glyph->texUL();
+    const QPointF t1 = glyph->texLR();
+
+    mesh->vertices << p0.x() << p0.y() << t0.x() << t0.y();
+    mesh->vertices << p1.x() << p0.y() << t1.x() << t0.y();
+    mesh->vertices << p1.x() << p1.y() << t1.x() << t1.y();
+    mesh->vertices << p0.x() << p1.y() << t0.x() << t1.y();
+
+    for (GLuint t: triangles) {
+      mesh->indices << ioffset + t;
+    }
+
+    if (p0.y() > ymax) ymax = p0.y();
+    if (p1.y() < ymin) ymin = p1.y();
+  }
+
   const float xmin = mesh->vertices.first();
   const float xmax = mesh->vertices[mesh->vertices.size() - 8];
 

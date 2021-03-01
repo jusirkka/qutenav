@@ -76,7 +76,7 @@ void Outliner::paintGL(const Camera* cam) {
 
   // uniforms
   m_program->setUniformValue(m_locations.m_pv, cam->projection() * cam->view());
-  GLfloat angle = qMax(1.e-5, GLfloat(cam->scale()) / cam->maxScale() * 0.005);
+  GLfloat angle = qMax(2.e-4, GLfloat(cam->scale()) / cam->maxScale() * 0.01);
   m_program->setUniformValue(m_locations.angle, angle);
 
   for (const Rectangle& outline: m_outlines) {

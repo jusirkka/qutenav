@@ -374,6 +374,8 @@ public:
 
 private:
 
+  const quint32 m_chblk;
+  const quint32 m_chgrd;
   const quint32 m_tecsou;
   const quint32 m_soundsb1;
   const quint32 m_soundgb1;
@@ -385,20 +387,6 @@ private:
 
   const QSet<int> m_doubtful_set;
   const QSet<int> m_approximate_set;
-
-  const QVector<quint32> m_0;
-  const QVector<quint32> m_1;
-  const QVector<quint32> m_2;
-  const QVector<quint32> m_3;
-  const QVector<quint32> m_4;
-  const QVector<quint32> m_5;
-
-  const QVector<quint32> m_0_shallow;
-  const QVector<quint32> m_1_shallow;
-  const QVector<quint32> m_2_shallow;
-  const QVector<quint32> m_3_shallow;
-  const QVector<quint32> m_4_shallow;
-  const QVector<quint32> m_5_shallow;
 
 };
 

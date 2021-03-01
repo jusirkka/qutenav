@@ -171,8 +171,9 @@ varstring: VARIABLE {
   if ($$) {
     S52::ByteCoder bc;
 
-    bc.setCode(lookup, S52::Lookup::Code::Var);
-    bc.setRef(lookup, reader->names[$1]);
+    // attribute value is interpreted as string in TX procedure
+    bc.setCode(lookup, S52::Lookup::Code::Immed);
+    bc.setImmed(lookup, QVariant::fromValue(reader->names[$1]));
     // qDebug() << $1 << reader->names[$1];
   } else {
     qWarning() << "TX: attribute not found" << $1;

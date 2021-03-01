@@ -1,12 +1,13 @@
 #version 450 core
 
 
-uniform vec4 base_color;
+uniform samplerCube globe;
 
 in float diffuse;
+in vec3 texCoord;
 
 out vec4 color;
 
 void main() {
-  color = diffuse * base_color;
+  color = diffuse * textureCube(globe, texCoord);
 }

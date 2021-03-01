@@ -250,8 +250,6 @@ void S57Chart::encode(QDataStream& stream) {
 
 }
 
-
-
 void S57Chart::updatePaintData(const WGS84Point &sw, const WGS84Point &ne, quint32 scale) {
 
   // clear old paint data
@@ -268,7 +266,6 @@ void S57Chart::updatePaintData(const WGS84Point &sw, const WGS84Point &ne, quint
   const auto maxcat = static_cast<quint8>(Conf::MarinerParams::maxCategory());
   const auto today = QDate::currentDate();
   const bool showMeta = Conf::MarinerParams::showMeta();
-  const quint32 qualClass = S52::FindIndex("M_QUAL");
   const quint32 unknownClass = S52::FindIndex("######");
 
   const QRectF viewArea(m_nativeProj->fromWGS84(sw),
@@ -336,7 +333,7 @@ void S57Chart::updatePaintData(const WGS84Point &sw, const WGS84Point &ne, quint
         // qDebug() << "Filtering out" << S52::GetClassInfo(d.object->classCode());
         continue;
       }
-      if (!showMeta && d.object->classCode() != qualClass) {
+      if (!showMeta) {
         continue;
       }
     }
