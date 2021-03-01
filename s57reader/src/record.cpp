@@ -345,7 +345,7 @@ S57::Attribute S57::Record::decode_attribute(quint16 acode, const QByteArray& v,
     return S57::Attribute(S57::AttributeType::Any);
   }
 
-  if (v.front() == S57::Record::attributeDeleter) {
+  if (v.at(0) == S57::Record::attributeDeleter) {
     qDebug() << "S57::AttributeType::Deleted";
     return S57::Attribute(S57::AttributeType::Deleted);
   }

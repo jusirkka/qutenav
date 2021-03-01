@@ -103,7 +103,7 @@ S57::Record* FieldSource::nextRecord() {
     m_stream >> term;
     // only NATF can have UCS-2 text
     if (f.tag == "NATF" && term == 0x00) {
-      term = block.back();
+      term = block.at(block.size() - 1);
       block.chop(1);
     }
     Q_ASSERT(term == fieldTerminator);
@@ -848,11 +848,15 @@ void S57Reader::readChart(GL::VertexVector& vertices,
 
           auto attf = dynamic_cast<const S57::ATTF*>(frid->find("ATTF"));
           if (attf != nullptr) {
-            feature.attributes.insert(attf->attributes);
+            for (auto it = attf->attributes.cbegin(); it != attf->attributes.cend(); ++it) {
+              feature.attributes.insert(it.key(), it.value());
+            }
           }
           auto natf = dynamic_cast<const S57::NATF*>(frid->find("NATF"));
           if (natf != nullptr) {
-            feature.attributes.insert(natf->attributes);
+            for (auto it = natf->attributes.cbegin(); it != natf->attributes.cend(); ++it) {
+              feature.attributes.insert(it.key(), it.value());
+            }
           }
 
           auto fspt = dynamic_cast<const S57::FSPT*>(frid->find("FSPT"));
@@ -882,11 +886,15 @@ void S57Reader::readChart(GL::VertexVector& vertices,
         S57::AttributeMap attributes;
         auto attf = dynamic_cast<const S57::ATTF*>(frid->find("ATTF"));
         if (attf != nullptr) {
-          attributes.insert(attf->attributes);
+          for (auto it = attf->attributes.cbegin(); it != attf->attributes.cend(); ++it) {
+            attributes.insert(it.key(), it.value());
+          }
         }
         auto natf = dynamic_cast<const S57::NATF*>(frid->find("NATF"));
         if (natf != nullptr) {
-          attributes.insert(natf->attributes);
+          for (auto it = natf->attributes.cbegin(); it != natf->attributes.cend(); ++it) {
+            attributes.insert(it.key(), it.value());
+          }
         }
         for (S57::AttributeIterator it = attributes.cbegin(); it != attributes.cend(); ++it) {
           if (it.value().type() == S57::AttributeType::Deleted) {

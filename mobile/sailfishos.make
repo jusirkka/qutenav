@@ -47,9 +47,20 @@ install:
 	cp ../$(BUILDDIR)/qopencpn_dbupdater $(BINDIR)/$(NAME)_dbupdater
 	chmod 755 $(BINDIR)/$(NAME)
 	chmod 755 $(BINDIR)/$(NAME)_dbupdater
+	@echo "Installing oeserverd binaries..."
+	mkdir -p $(LIBDIR)
+	cp ../data-$(ARCH)/oeserverd $(BINDIR)
+	cp ../data-$(ARCH)/libsgl*.so $(LIBDIR)
 	@echo "Installing wavefront object files..."
-	mkdir -p $(DATADIR)/GSHHS/c
-	cp ../data/globe_l?.obj $(DATADIR)/GSHHS/c
+	mkdir -p $(DATADIR)/globe
+	cp ../data/sphere.obj $(DATADIR)/globe
+	@echo "Installing world map files..."
+	cp ../data/negx.jpg $(DATADIR)/globe
+	cp ../data/negy.jpg $(DATADIR)/globe
+	cp ../data/negz.jpg $(DATADIR)/globe
+	cp ../data/posx.jpg $(DATADIR)/globe
+	cp ../data/posy.jpg $(DATADIR)/globe
+	cp ../data/posz.jpg $(DATADIR)/globe
 	@echo "Installing S57 data files..."
 	mkdir -p $(DATADIR)/s57data
 	cp ../data/s57expectedinput.csv $(DATADIR)/s57data

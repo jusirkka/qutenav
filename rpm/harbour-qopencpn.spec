@@ -36,20 +36,21 @@ and OpenCPN/SENC vector charts. Does not support encrypted charts.
 
 %build
 mkdir -p rpmbuilddir-%{_arch}
-cd rpmbuilddir-%{_arch} && cmake -DMOBILE=ON -DCMAKE_BUILD_TYPE=Debug ..
+#cd rpmbuilddir-%{_arch} && cmake -DMOBILE=ON -DCMAKE_BUILD_TYPE=Debug ..
+cd rpmbuilddir-%{_arch} && cmake -DMOBILE=ON -DCMAKE_BUILD_TYPE=Release ..
 cd ..
 make %{?_smp_mflags} -C rpmbuilddir-%{_arch} VERBOSE=1
 
 %install
 make -C mobile -f sailfishos.make \
   DESTDIR=%{buildroot} VERSION=%{version} \
-  PREFIX=/usr BUILDDIR=rpmbuilddir-%{_arch} install
+  PREFIX=/usr BUILDDIR=rpmbuilddir-%{_arch} ARCH=%{_arch} install
 
 %files
 %defattr(-,root,root,-)
+%{_libdir}
 %{_bindir}
 %{_datadir}/%{name}
 %{_datadir}/applications/%{name}.desktop
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
-%{_userunitdir}/%{name}.service
 

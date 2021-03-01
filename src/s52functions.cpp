@@ -228,7 +228,7 @@ S57::PaintDataMap S52::Text::execute(const QVector<QVariant>& vals,
 
   const quint8 group = vals[8].toUInt();
   if (!Conf::MarinerParams::textGrouping().contains(group)) {
-    qDebug() << "skipping TX in group" << group;
+    // qDebug() << "skipping TX in group" << group;
     return S57::PaintDataMap();
   }
 

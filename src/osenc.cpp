@@ -116,6 +116,13 @@ GeoProjection* Osenc::configuredProjection(QIODevice *device, const QString &cls
       continue;
     }
     record = reinterpret_cast<OSENC_Record_Base*>(buffer.data());
+
+    if (record->record_length <= baseSize) {
+      done = true;
+      qWarning() << "Record length is too small" << buffer;
+      continue;
+    }
+
     // copy, record_type will be overwritten in the next stream.readRawData
     SencRecordType rec_type = record->record_type;
     if (!handlers.contains(rec_type)) {
@@ -133,6 +140,7 @@ GeoProjection* Osenc::configuredProjection(QIODevice *device, const QString &cls
   }
   qDeleteAll(handlers);
 
+  Q_ASSERT(ref.valid());
   auto gp = GeoProjection::CreateProjection(clsName);
   gp->setReference(ref);
   return gp;
@@ -266,6 +274,13 @@ S57ChartOutline Osenc::readOutline(QIODevice *device, const GeoProjection* gp) c
       continue;
     }
     record = reinterpret_cast<OSENC_Record_Base*>(buffer.data());
+
+    if (record->record_length <= baseSize) {
+      done = true;
+      qWarning() << "Record length is too small" << buffer;
+      continue;
+    }
+
     // copy, record_type will be overwritten in the next stream.readRawData
     SencRecordType rec_type = record->record_type;
     if (!handlers.contains(rec_type)) {
@@ -311,7 +326,7 @@ public:
   void osEncAddString(S57::Object* obj, quint16 acode, const QString& s) const {
 
     if (s.isEmpty()) {
-      qDebug() << "S57::AttributeType::Any";
+      // qDebug() << "S57::AttributeType::Any";
       obj->m_attributes[acode] = S57::Attribute(S57::AttributeType::Any);
       return;
     }
@@ -380,7 +395,7 @@ void Osenc::readChart(GL::VertexVector& vertices,
     },
 
     {SencRecordType::FEATURE_ID_RECORD, new Handler([&current, &features] (const Buffer& b) {
-        // qDebug() << "feature id record";
+        // qDebug() << "id record";
         auto p = reinterpret_cast<const OSENC_Feature_Identification_Record_Payload*>(b.constData());
         current = new S57::Object(p->feature_ID, p->feature_type_code);
         features.append(ObjectWrapper(current));
@@ -389,6 +404,7 @@ void Osenc::readChart(GL::VertexVector& vertices,
     },
 
     {SencRecordType::FEATURE_ATTRIBUTE_RECORD, new Handler([&current, helper] (const Buffer& b) {
+        // qDebug() << "attribute record";
         if (!current) return false;
         auto p = reinterpret_cast<const OSENC_Attribute_Record_Payload*>(b.constData());
         auto t = as_enum<AttributeRecType>(p->attribute_value_type, AllAttrTypes);
@@ -574,16 +590,19 @@ void Osenc::readChart(GL::VertexVector& vertices,
     },
 
     {SencRecordType::FEATURE_GEOMETRY_RECORD_AREA_EXT, new Handler([] (const Buffer& b) {
+        qDebug() << "feature geometry/area ext record";
         throw NotImplementedError(QStringLiteral("FEATURE_GEOMETRY_RECORD_AREA_EXT not implemented"));
         return true;
       })
     },
     {SencRecordType::VECTOR_EDGE_NODE_TABLE_EXT_RECORD, new Handler([] (const Buffer& b) {
+        qDebug() << "edge node ext record";
         throw NotImplementedError(QStringLiteral("VECTOR_EDGE_NODE_TABLE_EXT_RECORD not implemented"));
         return true;
       })
     },
     {SencRecordType::VECTOR_CONNECTED_NODE_TABLE_EXT_RECORD, new Handler([] (const Buffer& b) {
+        qDebug() << "connected node ext record";
         throw NotImplementedError(QStringLiteral("VECTOR_CONNECTED_NODE_TABLE_EXT_RECORD not implemented"));
         return true;
       })
@@ -607,8 +626,15 @@ void Osenc::readChart(GL::VertexVector& vertices,
 
     auto record = reinterpret_cast<OSENC_Record_Base*>(buffer.data());
 
+    if (record->record_length <= baseSize) {
+      done = true;
+      qWarning() << "Record length is too small" << buffer;
+      continue;
+    }
+
     // copy, record_type will be overwritten in the next stream.readRawData
     SencRecordType rec_type = record->record_type;
+
     buffer.resize(record->record_length - baseSize);
     if (stream.readRawData(buffer.data(), buffer.size()) < buffer.size()) {
       done = true;

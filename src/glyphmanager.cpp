@@ -282,7 +282,7 @@ GL::Mesh* Font::shapeText(const HB::Text &txt, hb_buffer_t *buf, bool* newGlyphs
 
   // a hack for sounding subscripts = fractional part
   bool hasFrac = false;
-  const quint16 frac = txt.string.back().unicode();
+  const quint16 frac = txt.string[txt.string.length() - 1].unicode();
   if (frac >= 0x2080 && frac <= 0x2089) {
     QString depth = txt.string.left(txt.string.length() - 1) + QChar('0' + frac - 0x2080);
     data = depth.toUtf8();

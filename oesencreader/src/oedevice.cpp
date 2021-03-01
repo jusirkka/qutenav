@@ -165,14 +165,14 @@ bool OeDevice::open(OpenMode mode) {
   return true;
 }
 
-#define READ_SIZE 64000UL
+#define READ_SIZE 64000LL
 #define MAX_TRIES 100
 
 qint64 OeDevice::readData(char* data, qint64 len) {
 
   if (m_clientEP < 0) return -1;
 
-  size_t remains = len;
+  qint64 remains = len;
   size_t bytesRead = 0;
   int sleepCnt = MAX_TRIES;
 

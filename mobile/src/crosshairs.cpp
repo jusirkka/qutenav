@@ -80,7 +80,7 @@ QSGNode *CrossHairs::updatePaintNode(QSGNode* oldNode, UpdatePaintNodeData*)
   vertices[4].set(x0 + d, y0);
   vertices[5].set(window()->width(), y0);
 
-  vertices[6].set(x0, y0 - dKV);
+  vertices[6].set(x0, y0 - d);
   vertices[7].set(x0, 0);
 
   node->markDirty(QSGNode::DirtyGeometry);
