@@ -1,13 +1,13 @@
 - boat location / auto center
 - tracks
 - routes
+- tides
 - coverpage.qml
 - symbols & soundings are too small in mobile app
 - busy spinner while charts are loading
-- instanced (glyph) text rendering
+- instanced text (glyph) rendering
 
-- bug: colortable change should change rastersymbolmanager's texture atlas
+- bug: area patterns cover other objects
 - bug: light sectors & borders are missing in some places
 - handle dbus/synced signal from dbupdater in chartmanager
 - bug: fix chartmanager / chart selection / quilting
-- bug: area patterns cover other objects

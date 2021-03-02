@@ -5,13 +5,15 @@
 #include <QFile>
 #include <QXmlStreamReader>
 #include <QDebug>
-
+#include "settings.h"
 
 RasterSymbolManager::RasterSymbolManager()
-  : m_invalid()
+  : QObject()
+  , m_invalid()
   , m_coordBuffer(QOpenGLBuffer::VertexBuffer)
   , m_indexBuffer(QOpenGLBuffer::IndexBuffer)
   , m_symbolTexture(nullptr)
+  , m_symbolAtlas()
 {}
 
 
@@ -37,10 +39,21 @@ void RasterSymbolManager::bind() {
   m_symbolTexture->bind();
 }
 
+void RasterSymbolManager::changeSymbolAtlas() {
+  auto atlas = S52::GetRasterFileName();
+  if (atlas != m_symbolAtlas) {
+    m_symbolAtlas = atlas;
+    delete m_symbolTexture;
+    m_symbolTexture = new QOpenGLTexture(QImage(atlas), QOpenGLTexture::DontGenerateMipMaps);
+  }
+}
 
 void RasterSymbolManager::createSymbols() {
 
-  m_symbolTexture = new QOpenGLTexture(QImage(S52::GetRasterFileName()), QOpenGLTexture::DontGenerateMipMaps);
+  changeSymbolAtlas();
+
+  connect(Settings::instance(), &Settings::colorTableChanged,
+          this, &RasterSymbolManager::changeSymbolAtlas);
 
   QFile file(S52::FindPath("chartsymbols.xml"));
   file.open(QFile::ReadOnly);

@@ -12,7 +12,9 @@ class QOpenGLTexture;
 class QXmlStreamReader;
 
 
-class RasterSymbolManager {
+class RasterSymbolManager: public QObject {
+
+  Q_OBJECT
 
 public:
 
@@ -27,6 +29,9 @@ public:
 
   ~RasterSymbolManager();
 
+private slots:
+
+  void changeSymbolAtlas();
 
 private:
 
@@ -55,4 +60,5 @@ private:
   QOpenGLBuffer m_coordBuffer;
   QOpenGLBuffer m_indexBuffer;
   QOpenGLTexture* m_symbolTexture;
+  QString m_symbolAtlas;
 };
