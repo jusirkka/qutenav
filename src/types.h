@@ -284,7 +284,9 @@ static const inline QVector<quint8> AllSymbols {1, 2, 3};
 enum class Alpha: quint8 {P0 = 0, P25 = 1, P50 = 2, P75 = 3, P100 = 4, Unset = 5};
 static const inline QVector<quint8> AllAlphas {0, 1, 2, 3, 4, 5};
 
-enum class LineType: uint {Solid = 0x3ffff, Dashed = 0x3ffc0, Dotted = 0x30c30};
+enum class LineType: uint {Solid = 0x3ffff,
+                           Dashed = 0x3ffc0, // 2W 10B 6W
+                           Dotted = 0x30c30}; // 2B 4W 2B 4W 2B 4W
 static const inline QVector<uint> AllLineTypes {0x3ffff, 0x3ffc0, 0x30c30};
 
 inline GLfloat LineWidthMM(GLfloat lw) {

@@ -7,7 +7,6 @@
 - busy spinner while charts are loading
 - instanced text (glyph) rendering
 
-- bug: area patterns cover other objects
-- bug: light sectors & borders are missing in some places
+- desktop app preferences
 - handle dbus/synced signal from dbupdater in chartmanager
 - bug: fix chartmanager / chart selection / quilting

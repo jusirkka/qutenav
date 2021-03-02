@@ -1021,9 +1021,9 @@ S57::PaintDataMap S52::CSLights05::drawSectors(const S57::Object *obj) const {
   double leglen;
   bool chartUnits = Conf::MarinerParams::fullLengthSectors();
   if (chartUnits) {
-    bool ok;
-    leglen = obj->attributeValue(m_valnmr).toDouble(&ok);
-    if (!ok) {
+    if (obj->attributeValue(m_valnmr).isValid()) {
+      leglen = obj->attributeValue(m_valnmr).toDouble();
+    } else {
       leglen = 9. * 1852.;
     }
   } else {
@@ -1124,7 +1124,7 @@ S52::CSObstruction04::CSObstruction04(quint32 index)
   , m_danger01(FindIndex("DANGER01"))
   , m_danger51(FindIndex("DANGER51"))
   , m_danger52(FindIndex("DANGER52"))
-  , m_danger53(FindIndex("DANGER03")) //  DANGER53 missing chartsymbols
+  , m_danger53(FindIndex("DANGER03")) //  DANGER53 missing in chartsymbols
   , m_lndare01(FindIndex("LNDARE01"))
   , m_obstrn01(FindIndex("OBSTRN01"))
   , m_obstrn03(FindIndex("OBSTRN03"))

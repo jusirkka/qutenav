@@ -64,5 +64,9 @@ void main() {
     }
   }
 
-  texCoord = length(p2.xy - p1.xy);
+  if ((gl_VertexID / 2) % 2 == 1) {
+    texCoord = 2. * length(p2.xy - p1.xy) * windowScale;
+  } else {
+    texCoord = 0.;
+  }
 }

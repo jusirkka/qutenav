@@ -714,7 +714,6 @@ void S57Chart::drawRasterPatterns(const Camera *cam) {
 
   auto f = QOpenGLContext::currentContext()->extraFunctions();
   f->glEnable(GL_STENCIL_TEST);
-  f->glDisable(GL_DEPTH_TEST);
 
   const auto t = S57::PaintData::Type::RasterPatterns;
   using Data = S57::PatternPaintData::AreaData;
@@ -782,7 +781,6 @@ void S57Chart::drawRasterPatterns(const Camera *cam) {
     }
   }
 
-  f->glEnable(GL_DEPTH_TEST);
   f->glDisable(GL_STENCIL_TEST);
 }
 
@@ -791,7 +789,6 @@ void S57Chart::drawVectorPatterns(const Camera *cam) {
 
   auto f = QOpenGLContext::currentContext()->extraFunctions();
   f->glEnable(GL_STENCIL_TEST);
-  f->glDisable(GL_DEPTH_TEST);
 
   const auto t = S57::PaintData::Type::VectorPatterns;
   using Data = S57::PatternPaintData::AreaData;
