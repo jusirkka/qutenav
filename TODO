@@ -4,6 +4,7 @@
 - coverpage.qml
 - symbols & soundings are too small in mobile app
 - busy spinner while charts are loading
+- instanced (glyph) text rendering
 
 - bug: colortable change should change rastersymbolmanager's texture atlas
 - bug: light sectors & borders are missing in some places

@@ -93,9 +93,7 @@ void Globe::initializeGL() {
 
   m_indexCount = p.triangles().size();
 
-  const int stride = 3 * sizeof(GLfloat);
-  m_program->setAttributeBuffer(0, GL_FLOAT, 0, 3, stride);
-
+  m_program->setAttributeBuffer(0, GL_FLOAT, 0, 3, 0);
   m_program->enableAttributeArray(0);
 
   // cubemap
@@ -122,6 +120,9 @@ void Globe::paintGL(const Camera *cam) {
   m_program->enableAttributeArray(0);
   m_coordBuffer.bind();
   m_indexBuffer.bind();
+
+  m_program->setAttributeBuffer(0, GL_FLOAT, 0, 3, 0);
+
 
   m_globeTexture->bind();
 

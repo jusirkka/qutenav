@@ -11,7 +11,7 @@
 
 Outliner::Outliner(QObject* parent)
   : Drawable(parent)
-  , m_coordBuffer(QOpenGLBuffer::VertexBuffer)
+  , m_cornerBuffer(QOpenGLBuffer::VertexBuffer)
   , m_program(nullptr)
   , m_manager(ChartManager::instance())
 {}
@@ -39,8 +39,8 @@ void Outliner::initializeGL() {
       qFatal("Failed to link the outliner program: %s", m_program->log().toUtf8().data());
     }
 
-    m_coordBuffer.create();
-    m_coordBuffer.setUsagePattern(QOpenGLBuffer::DynamicDraw);
+    m_cornerBuffer.create();
+    m_cornerBuffer.setUsagePattern(QOpenGLBuffer::DynamicDraw);
 
     // locations
     m_program->bind();
@@ -48,7 +48,7 @@ void Outliner::initializeGL() {
     m_locations.m_pv = m_program->uniformLocation("m_pv");
     m_locations.center = m_program->uniformLocation("center");
     m_locations.angle = m_program->uniformLocation("angle");
-    m_locations.vertexOffset = m_program->uniformLocation("vertexOffset");
+    m_locations.nump = m_program->uniformLocation("nump");
 
   }
 
@@ -60,97 +60,58 @@ void Outliner::updateCharts(const Camera* /*cam*/, const QRectF& /*viewArea*/) {
 }
 
 void Outliner::paintGL(const Camera* cam) {
+
+  m_cornerBuffer.bind();
+
+  m_program->bind();
+  m_program->enableAttributeArray(0);
+  m_program->setAttributeBuffer(0, GL_FLOAT, 0, 4, 0);
+
   auto f = QOpenGLContext::currentContext()->extraFunctions();
+  f->glVertexAttribDivisor(0, 1);
+
 
   f->glEnable(GL_DEPTH_TEST);
   f->glDisable(GL_BLEND);
   f->glDisable(GL_STENCIL_TEST);
   f->glEnable(GL_CULL_FACE);
-  f->glFrontFace(GL_CCW);
+  f->glFrontFace(GL_CW);
   f->glCullFace(GL_BACK);
-
-  m_program->bind();
-
-  // data buffers
-  f->glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_coordBuffer.bufferId());
 
   // uniforms
   m_program->setUniformValue(m_locations.m_pv, cam->projection() * cam->view());
   GLfloat angle = qMax(1.e-5, GLfloat(cam->scale()) / cam->maxScale() * 0.005);
   m_program->setUniformValue(m_locations.angle, angle);
+  m_program->setUniformValue(m_locations.nump, 10);
+  m_program->setUniformValue(m_locations.base_color, QColor("#ff0000"));
 
-  for (const Rectangle& outline: m_outlines) {
-    m_program->setUniformValue(m_locations.base_color, outline.color);
-    m_program->setUniformValue(m_locations.center, outline.center);
-    m_program->setUniformValue(m_locations.vertexOffset, outline.offset);
-    f->glDrawArrays(GL_TRIANGLE_STRIP, 0, 2 * outline.outline.size());
-  }
+  f->glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 2 * (4 * 10 + 1), m_instances);
+
+  f->glVertexAttribDivisor(0, 0);
+
 }
 
 
 void Outliner::updateBuffers() {
-  m_coordBuffer.bind();
 
-  m_outlines.clear();
+  m_cornerBuffer.bind();
 
-  const int cnt = m_manager->outlines().size() / 8;
-  DataVector outlines;
-  for (int i = 0; i < cnt; ++i) {
-    m_outlines.append(Rectangle(m_manager->outlines(), i, outlines.size()));
-    outlines.append(m_outlines.last().outline);
+
+  m_instances = m_manager->outlines().size() / 8;
+
+  GL::VertexVector corners;
+
+  const GL::VertexVector &d = m_manager->outlines();
+
+  for (int i = 0; i < m_instances; ++i) {
+    const int first = 8 * i;
+    // sw, ne
+    corners << d[first + 2] << d[first + 3] << d[first + 6] << d[first + 7];
   }
 
-  GLsizei dataLen = outlines.size() * sizeof(glm::vec4);
-  m_coordBuffer.allocate(dataLen);
-  m_coordBuffer.write(0, outlines.constData(), dataLen);
+  GLsizei dataLen = corners.size() * sizeof(GLfloat);
+  m_cornerBuffer.allocate(dataLen);
+  m_cornerBuffer.write(0, corners.constData(), dataLen);
 
-  qDebug() << "number of rectangles =" << cnt;
+  qDebug() << "number of rectangles =" << m_instances;
 }
-
-Outliner::Rectangle::Rectangle(const GL::VertexVector &d, int rectIndex, size_t cnt)
-  : color("#ff0000")
-  , offset(cnt)
-{
-  const float eps = 1.e-6;
-  const float r = 1. + 1.e-4;
-
-  int first = rectIndex * 8;
-  glm::vec4 sum(0.);
-  for (int i = 0; i < 4; i++) {
-    const int i1 = (i + 1) % 4;
-    const float lng1 = d[first + 2 * i] * M_PI / 180;
-    const float lat1 = d[first + 2 * i + 1] * M_PI / 180;
-    const float lng2 = d[first + 2 * i1] * M_PI / 180;
-    const float lat2 = d[first + 2 * i1 + 1] * M_PI / 180;
-    if (std::abs(lng2 - lng1) < eps) {
-      Q_ASSERT(std::abs(lat2 - lat1) > eps);
-      const int n = qMin(100, qMax(1, static_cast<int>(std::abs(lat2 - lat1) * 90 / M_PI)));
-      for (int j = 0; j < n; j++) {
-        const float lat = lat1 + j * (lat2 - lat1) / n;
-        const glm::vec4 p(r * cos(lng1) * cos(lat),
-                          r * sin(lng1) * cos(lat),
-                          r * sin(lat),
-                          1.);
-        outline.append(p);
-        if (j == 0) sum += p;
-      }
-    } else {
-      Q_ASSERT(std::abs(lng2 - lng1) > eps);
-      const int n = qMin(100, qMax(1, static_cast<int>(std::abs(lng2 - lng1) * 90 / M_PI)));
-      for (int j = 0; j < n; j++) {
-        const float lng = lng1 + j * (lng2 - lng1) / n;
-        const glm::vec4 p(r * cos(lng) * cos(lat1),
-                          r * sin(lng) * cos(lat1),
-                          r * sin(lat1),
-                          1.);
-        outline.append(p);
-        if (j == 0) sum += p;
-      }
-    }
-  }
-  // close the loop
-  outline.append(outline.first());
-
-  center = QVector3D(sum.x, sum.y, sum.z).normalized();
-}
-

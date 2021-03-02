@@ -25,29 +25,18 @@ private:
 
   void updateBuffers();
 
-  QOpenGLBuffer m_coordBuffer;
+  QOpenGLBuffer m_cornerBuffer;
+  int m_instances;
   QOpenGLShaderProgram* m_program;
-
-  using DataVector = QVector<glm::vec4>;
-
-  struct Rectangle {
-    Rectangle(const GL::VertexVector& d, int i, size_t off);
-    Rectangle() = default;
-    DataVector outline;
-    QVector3D center;
-    QColor color;
-    int offset;
-  };
-
-  QVector<Rectangle> m_outlines;
 
   struct _locations {
     int base_color;
     int m_pv;
     int center;
     int angle;
-    int vertexOffset;
+    int nump;
   } m_locations;
+
 
   ChartManager* m_manager;
 
