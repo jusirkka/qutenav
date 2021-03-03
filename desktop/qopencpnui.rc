@@ -37,6 +37,8 @@
     </Menu>
 
     <Menu name="settings">
+      <Separator/>
+      <Action name="preferences"/>
     </Menu>
 
 </MenuBar>

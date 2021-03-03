@@ -6,11 +6,13 @@
 #include <KAboutData>
 #include <QApplication>
 #include "conf_mainwindow.h"
+#include "conf_marinerparams.h"
 #include <QCloseEvent>
 #include <QStatusBar>
 #include <QMenu>
 #include "chartmanager.h"
 #include <QMenuBar>
+#include "preferences.h"
 
 MainWindow::MainWindow()
   : KXmlGuiWindow()
@@ -57,6 +59,8 @@ MainWindow::MainWindow()
     Conf::MainWindow::setChartset(sel);
     Conf::MainWindow::self()->save();
   }
+
+  m_preferences = new KV::PreferencesDialog(this);
 }
 
 void MainWindow::on_quit_triggered() {
@@ -108,6 +112,9 @@ void MainWindow::on_zoomOut_triggered() {
   m_GLWindow->zoomOut();
 }
 
+void MainWindow::on_preferences_triggered() {
+  m_preferences->show();
+}
 
 void MainWindow::readSettings() {
   m_fallbackGeom = QRect();
@@ -131,9 +138,12 @@ void MainWindow::writeSettings() {
   }
   Conf::MainWindow::setFullScreen(action("fullScreen")->isChecked());
   QList<QActionGroup*> groups = actionCollection()->actionGroups();
-  Q_ASSERT(groups.size() == 1);
-  Conf::MainWindow::setChartset(groups.first()->checkedAction()->objectName());
+  if (!groups.isEmpty()) {
+    Conf::MainWindow::setChartset(groups.first()->checkedAction()->objectName());
+  }
+
   Conf::MainWindow::self()->save();
+  Conf::MarinerParams::self()->save();
 }
 
 void MainWindow::addActions() {
@@ -160,6 +170,7 @@ void MainWindow::addActions() {
     {"northUp", "North Up", "N", "", "Reset North upwards", true, false, false},
     {"rotateCCW", "Rotate CCW", "B", "", "Rotate chart counterclockwise", true, false, false},
     {"rotateCW", "Rotate CW", "M", "", "Rotate chart clockwise", true, false, false},
+    {"preferences", "Preferences...", "", "configure", "", true, false, false},
   };
 
   for (auto d: actionData) {

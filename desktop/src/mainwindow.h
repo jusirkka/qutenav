@@ -6,6 +6,10 @@
 
 class GLWindow;
 
+namespace KV {
+class PreferencesDialog;
+}
+
 class MainWindow: public KXmlGuiWindow {
   Q_OBJECT
 
@@ -30,6 +34,7 @@ private slots:
   void on_rotateCCW_triggered();
   void on_zoomIn_triggered();
   void on_zoomOut_triggered();
+  void on_preferences_triggered();
 
 private:
 
@@ -41,6 +46,7 @@ private:
 
   GLWindow* m_GLWindow;
   QRect m_fallbackGeom;
+  KV::PreferencesDialog* m_preferences;
 
 };
 

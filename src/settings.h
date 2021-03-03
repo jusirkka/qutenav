@@ -6,10 +6,11 @@
 class TextGroup: public QObject {
   Q_OBJECT
 public:
-  TextGroup(int group, const QString& text, const QString& desc = QString())
+  TextGroup(int group, bool defval, const QString& text, const QString& desc = QString())
     : m_group(group)
     , m_text(text)
     , m_description(desc)
+    , m_default(defval)
   {}
 
   Q_PROPERTY(bool enabled
@@ -29,6 +30,9 @@ public:
 
   const QString& description() const {return m_description;}
 
+  void setDefault();
+  bool getDefault() const;
+
 signals:
 
   void enabledChanged();
@@ -38,6 +42,7 @@ private:
   int m_group;
   QString m_text;
   QString m_description;
+  bool m_default;
 };
 
 class Settings: public QObject {
@@ -79,16 +84,16 @@ public:
     }
   }
 
-  Q_PROPERTY(bool fullSectors
-             READ fullSectors
-             WRITE setFullSectors)
+  Q_PROPERTY(bool fullLengthSectors
+             READ fullLengthSectors
+             WRITE setFullLengthSectors)
 
-  bool fullSectors() const {
+  bool fullLengthSectors() const {
     return Conf::MarinerParams::fullLengthSectors();
   }
 
-  void setFullSectors(bool v) {
-    if (v != fullSectors()) {
+  void setFullLengthSectors(bool v) {
+    if (v != fullLengthSectors()) {
       Conf::MarinerParams::setFullLengthSectors(v);
       emit settingsChanged();
     }
@@ -124,11 +129,11 @@ public:
     }
   }
 
-  Q_PROPERTY(QStringList categories
-             READ categories
-             NOTIFY categoriesChanged)
+  Q_PROPERTY(QStringList maxCategoryNames
+             READ maxCategoryNames
+             NOTIFY maxCategoryNamesChanged)
 
-  QStringList categories() const {return m_categories;}
+  QStringList maxCategoryNames() const {return m_categories;}
 
   Q_PROPERTY(quint8 maxCategory
              READ maxCategory
@@ -145,11 +150,11 @@ public:
     }
   }
 
-  Q_PROPERTY(QStringList colorTables
-             READ colorTables
-             NOTIFY colorTablesChanged)
+  Q_PROPERTY(QStringList colorTableNames
+             READ colorTableNames
+             NOTIFY colorTableNamesChanged)
 
-  QStringList colorTables() const {return m_colorTables;}
+  QStringList colorTableNames() const {return m_colorTables;}
 
   Q_PROPERTY(quint8 colorTable
              READ colorTable
@@ -233,15 +238,18 @@ public:
 
   QList<QObject*> textGroups() const {return m_textGroups;}
 
-signals:
+  void setDefault(const QString& prop);
+  QVariant getDefault(const QString& prop) const;
+
+  signals:
 
   void colorTableChanged(quint8 t);
   void settingsChanged();
   void lookupUpdateNeeded();
 
   // dummies to keep qtquick from moaning about missing signals
-  void categoriesChanged(const QStringList&);
-  void colorTablesChanged(const QStringList&);
+  void maxCategoryNamesChanged(const QStringList&);
+  void colorTableNamesChanged(const QStringList&);
   void textGroupsChanged(const QObjectList&);
 
 private:

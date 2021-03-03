@@ -3,10 +3,11 @@
 - routes
 - tides
 - coverpage.qml
-- symbols & soundings are too small in mobile app
+- symbols & line widths are too small in mobile app
 - busy spinner while charts are loading
-- instanced text (glyph) rendering
 
-- desktop app preferences
 - handle dbus/synced signal from dbupdater in chartmanager
 - bug: fix chartmanager / chart selection / quilting
+- bug: full sector lengths not shown
+- instanced text (glyph) rendering
+- instanced raster symbol rendering: merge more aggressively

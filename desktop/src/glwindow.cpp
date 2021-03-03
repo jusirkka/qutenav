@@ -12,6 +12,7 @@
 #include <QGuiApplication>
 #include <QScreen>
 #include "conf_mainwindow.h"
+#include "settings.h"
 
 GLWindow::GLWindow()
   : QOpenGLWindow()
@@ -32,7 +33,21 @@ GLWindow::GLWindow()
   auto textMgr = TextManager::instance();
   connect(textMgr, &TextManager::newStrings, this, [this] () {
     qDebug() << "new strings";
-    emit updateViewport(m_mode->camera(), true);
+    emit updateViewport(m_mode->camera(), ChartManager::Force);
+    update();
+  });
+
+  auto settings = Settings::instance();
+
+  connect(settings, &Settings::settingsChanged, this, [this] () {
+    qDebug() << "settings changed";
+    emit updateViewport(m_mode->camera(), ChartManager::Force);
+    update();
+  });
+
+  connect(settings, &Settings::lookupUpdateNeeded, this, [this] () {
+    qDebug() << "lookup update needed";
+    emit updateViewport(m_mode->camera(), ChartManager::UpdateLookups);
     update();
   });
 }
@@ -41,7 +56,7 @@ void GLWindow::setChartSet(const QString &s) {
   ChartManager::instance()->setChartSet(s, m_mode->camera()->geoprojection());
   makeCurrent();
   initializeGL();
-  emit updateViewport(m_mode->camera(), true);
+  emit updateViewport(m_mode->camera(), ChartManager::Force);
   update();
 }
 
@@ -233,7 +248,7 @@ void GLWindow::initializeChartMode() {
   delete m_mode;
   m_mode = mode;
   initializeGL();
-  emit updateViewport(m_mode->camera(), true);
+  emit updateViewport(m_mode->camera(), ChartManager::Force);
   update();
 }
 
@@ -245,7 +260,7 @@ void GLWindow::finalizeChartMode() {
   m_mode = mode;
   makeCurrent();
   initializeGL();
-  emit updateViewport(m_mode->camera(), true);
+  emit updateViewport(m_mode->camera(), ChartManager::Force);
   update();
 }
 

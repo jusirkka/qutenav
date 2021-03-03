@@ -4,16 +4,21 @@ set_target_properties(Desktop
   PROPERTIES
     AUTOMOC ON
     AUTORCC ON
+    AUTOUIC ON
 )
 
 target_sources(Desktop
   PRIVATE
     shaders.qrc
     files.qrc
+    src/preferencesdialog.ui
     src/glwindow.cpp
     src/main.cpp
     src/mainwindow.cpp
+    src/optionmodel.cpp
+    src/preferences.cpp
 )
+
 
 kconfig_add_kcfg_files(Desktop
   src/conf_mainwindow.kcfgc
