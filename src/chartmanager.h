@@ -16,6 +16,7 @@ class S57ChartOutline;
 class QOpenGLContext;
 class ChartFileReader;
 class ChartFileReaderFactory;
+class UpdaterInterface;
 
 namespace GL {
 class Thread;
@@ -68,7 +69,7 @@ public:
   void createThreads(QOpenGLContext* ctx);
 
   QStringList chartSets() const;
-  void setChartSet(const QString& charts, const GeoProjection* vproj);
+  void setChartSet(const QString& charts, const GeoProjection* vproj, bool force = false);
   QString chartSet() const;
 
   const ChartVector& charts() const {return m_charts;}
@@ -88,6 +89,7 @@ signals:
   void active();
   void chartsUpdated(const QRectF& viewArea);
   void infoResponse(const S57::InfoType& info);
+  void chartSetsUpdated();
 
 public slots:
 
@@ -98,6 +100,7 @@ private slots:
 
   void manageThreads(S57Chart* chart);
   void manageInfoResponse(const S57::InfoType& info, quint32 tid);
+  void updateChartSets();
 
 private:
 
@@ -197,10 +200,14 @@ private:
   ChartFileReader* m_reader;
   FactoryMap m_factories;
 
+  UpdaterInterface* m_updater;
+
+
   using CoverCache = QCache<quint32, ChartCover>;
 
   CoverCache m_coverCache;
 
   bool m_hadCharts;
+
 };
 

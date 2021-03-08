@@ -17,6 +17,7 @@
 #include <QPluginLoader>
 #include <QLibraryInfo>
 #include "cachereader.h"
+#include "dbupdater_interface.h"
 
 ChartManager* ChartManager::instance() {
   static ChartManager* m = new ChartManager();
@@ -29,6 +30,7 @@ ChartManager::ChartManager(QObject *parent)
   , m_workers({nullptr}) // temporary, to be replaced in createThreads
   , m_transactionCounter(0)
   , m_reader(nullptr)
+  , m_updater(new UpdaterInterface(this))
   , m_coverCache(100 * sizeof(ChartCover))
 {
 
@@ -36,16 +38,54 @@ ChartManager::ChartManager(QObject *parent)
 
   m_readers.append(new CacheReader);
 
-  // create readers
+  // create readers & chartsets
+  updateChartSets();
+
+  connect(m_updater, &UpdaterInterface::ready, this, &ChartManager::updateChartSets);
+}
+
+void ChartManager::updateChartSets() {
+
+  qDebug() << "updateChartSets";
+
+  auto prevSets = m_chartSets.keys();
+
   QSqlQuery r = m_db.exec("select name from chartsets");
   while (r.next()) {
     const QString name = r.value(0).toString();
+
     if (!m_factories.contains(name)) continue;
-    auto reader = m_factories[name]->loadReader();
-    if (reader == nullptr) continue;
-    m_chartSets[m_factories[name]->displayName()] = m_readers.size();
-    m_readers.append(reader);
+
+    if (m_chartSets.contains(m_factories[name]->displayName())) {
+      prevSets.removeOne(m_factories[name]->displayName());
+    } else {
+      auto it = std::find_if(m_readers.cbegin(), m_readers.cend(), [name] (const ChartFileReader* r) {
+        return r->name() == name;
+      });
+      auto index = std::distance(m_readers.cbegin(), it);
+
+      if (index < m_readers.size()) { // already created
+        m_chartSets[m_factories[name]->displayName()] = index;
+      } else {
+        auto reader = m_factories[name]->loadReader();
+        if (reader == nullptr) continue;
+        m_chartSets[m_factories[name]->displayName()] = m_readers.size();
+        m_readers.append(reader);
+      }
+    }
   }
+
+  for (auto dname: prevSets) {
+    if (m_readers[m_chartSets[dname]] == m_reader) {
+      m_reader = m_readers.first();
+    }
+    m_chartSets.remove(dname);
+  }
+
+  qDebug() << "chartsets" << m_chartSets.keys();
+  if (m_reader != nullptr) qDebug() << "selected set" << m_reader->name();
+
+  emit chartSetsUpdated();
 }
 
 void ChartManager::loadPlugins() {
@@ -87,13 +127,13 @@ QString ChartManager::chartSet() const {
   return "None";
 }
 
-void ChartManager::setChartSet(const QString &name, const GeoProjection* vproj) {
+void ChartManager::setChartSet(const QString &name, const GeoProjection* vproj, bool force) {
 
   if (!m_chartSets.contains(name)) {
     qWarning() << "Unknown chartset" << name;
     return;
   }
-  if (m_reader == m_readers[m_chartSets[name]]) {
+  if (!force && m_reader == m_readers[m_chartSets[name]]) {
     qDebug() << "Current chartset is already" << name;
     return;
   }
@@ -422,7 +462,7 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
   }
 
   if (noCharts) {
-    qDebug() << "ChartManager::updateCharts: idle";
+    // qDebug() << "ChartManager::updateCharts: idle";
     emit idle();
   }
 }

@@ -28,7 +28,8 @@ ChartDatabase::ChartDatabase()
   m_Query.exec("create table if not exists scales ("
                "id integer primary key autoincrement, "
                "chartset_id integer not null, "
-               "scale int not null)");
+               "scale int not null, "
+               "unique (chartset_id, scale))");
   checkError();
 
   m_Query.exec("create table if not exists charts ("

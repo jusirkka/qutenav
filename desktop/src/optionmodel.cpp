@@ -18,7 +18,7 @@ using namespace KV;
 OptionModel::OptionModel(QObject *parent)
   : KPageModel(parent)
 {
-  m_icons["Symbols"] = "application-menu";
+  m_icons["Symbols"] = "preferences-desktop-icons";
   m_icons["Chart Object Filter"] = "view-filter";
   m_icons["Depths & Contours"] = "draw-freehand";
   m_icons["Colors"] = "color-picker";
@@ -156,7 +156,7 @@ void OptionModel::addOption(const QString& category,
 OptionWidget* OptionModel::createOptionWidget(const QString &prop,
                                               const QString &displayName,
                                               const QString &description, const int index) {
-  if (index > 0) {
+  if (index >= 0) {
     return new BooleanWidget(index, displayName, description);
   }
 

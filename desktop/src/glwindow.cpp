@@ -52,8 +52,10 @@ GLWindow::GLWindow()
   });
 }
 
-void GLWindow::setChartSet(const QString &s) {
-  ChartManager::instance()->setChartSet(s, m_mode->camera()->geoprojection());
+void GLWindow::setChartSet(const QString &s, bool force) {
+  // a hack: noop until we have a GL context
+  if (!m_logger) return;
+  ChartManager::instance()->setChartSet(s, m_mode->camera()->geoprojection(), force);
   makeCurrent();
   initializeGL();
   emit updateViewport(m_mode->camera(), ChartManager::Force);
@@ -253,7 +255,7 @@ void GLWindow::initializeChartMode() {
 }
 
 void GLWindow::finalizeChartMode() {
-  qDebug() << "Finalize chart mode";
+  // qDebug() << "Finalize chart mode";
   DetailMode* mode = m_mode->largerScaleMode();
   if (mode == nullptr) return;
   delete m_mode;

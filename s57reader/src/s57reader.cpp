@@ -555,7 +555,7 @@ S57ChartOutline S57Reader::readOutline(const QString& path, const GeoProjection*
 
   for (const QString& update: updates) {
 
-    qDebug() << update;
+    // qDebug() << update;
 
     const QString updpth = dir.absoluteFilePath(update);
     QFile file(updpth);
@@ -588,7 +588,7 @@ S57ChartOutline S57Reader::readOutline(const QString& path, const GeoProjection*
 
   RawEdgeRefVector cv;
   for (CovEdgeRefIter it = covRefs.cbegin(); it != covRefs.cend(); ++it) {
-    qDebug() << "Coverage" << it.key() << it.value().cov;
+    // qDebug() << "Coverage" << it.key() << it.value().cov;
     if (it.value().cov) {
       cv.append(it.value().refs);
     }
@@ -598,10 +598,10 @@ S57ChartOutline S57Reader::readOutline(const QString& path, const GeoProjection*
   PRegion pcov;
   PRegion pnocov;
   createCoverage(pcov, pnocov, cv, edges, connected, mulfac, gp);
-  qDebug() << "nocov areas" << pnocov.size();
-  qDebug() << "cov areas" << pcov.size();
+  // qDebug() << "nocov areas" << pnocov.size();
+  // qDebug() << "cov areas" << pcov.size();
 
-  qDebug() << pub << mod << scale;
+  // qDebug() << pub << mod << scale;
 
   if (!pub.isValid() || !mod.isValid() || scale == 0 || pcov.isEmpty()) {
     throw ChartFileError(QString("Invalid S57 header in %1").arg(path));
@@ -1134,7 +1134,7 @@ void S57Reader::createCoverage(PRegion &cov, PRegion &nocov,
     }
     Q_ASSERT(prevlast == start);
     bool inner = edges[i - 1].inner;
-    qDebug() << "Reducing" << cov.size() << "Inner" << inner;
+    // qDebug() << "Reducing" << cov.size() << "Inner" << inner;
     PointVector qs;
     const int N = ps.size();
     for (int k = 0; k < N; k++) {
@@ -1144,7 +1144,7 @@ void S57Reader::createCoverage(PRegion &cov, PRegion &nocov,
       if (v.x() == vm.x() && v.x() == vp.x()) continue;
       if (v.y() == vm.y() && v.y() == vp.y()) continue;
       qs << v;
-      qDebug() << v.x() << v.y();
+      // qDebug() << v.x() << v.y();
     }
 
     if (inner) {
@@ -1241,7 +1241,7 @@ bool S57Reader::checkCoverage(const PRegion& cov,
     qDebug() << sw.lng() << sw.lat() << ne.lng() << ne.lat();
     throw ChartFileError("Too low coverage");
   }
-  qDebug() << "totcov" << totcov;
+  // qDebug() << "totcov" << totcov;
   return totcov < .8;
 }
 

@@ -6,35 +6,46 @@
 #include <QDir>
 #include <QDirIterator>
 #include <QStandardPaths>
-#include <QFileSystemWatcher>
 #include <QScopedPointer>
 
 
 Updater::Updater(QObject* parent)
   : QObject(parent)
   , m_db()
-  , m_watcher(new QFileSystemWatcher)
   , m_chartDirs()
-  , m_idle(true)
 {
   loadPlugins();
-  sync();
-  connect(m_watcher, &QFileSystemWatcher::directoryChanged, this, [this] (const QString& dir) {
-    checkChartsDir(dir, true);
-  });
 }
 
 Updater::~Updater() {
   qDeleteAll(m_readers);
-  delete m_watcher;
 }
 
 void Updater::sync() {
   checkChartDirs();
-  for (auto& path: m_chartDirs) {
-    checkChartsDir(path, false);
+
+  IdSet prevCharts;
+  QSqlQuery r = m_db.exec("select id from main.charts");
+  while (r.next()) {
+    prevCharts << r.value(0).toUInt();
   }
+
+  for (auto& path: m_chartDirs) {
+    checkChartsDir(path, prevCharts);
+  }
+
+  // remove old rows
+  deleteCharts(prevCharts);
+
+  // delete empty chartsets & unused scales
+  cleanupDB();
+
+  qDebug() << "emit ready";
   emit ready();
+}
+
+QString Updater::ping() const {
+  return "pong";
 }
 
 void Updater::loadPlugins() {
@@ -62,8 +73,6 @@ void Updater::loadPlugins() {
 }
 
 void Updater::checkChartDirs() {
-
-
   // qopencpn or harbour-qopencpn
   const QString baseapp = qAppName().split("_").first();
   QStringList locs;
@@ -72,8 +81,8 @@ void Updater::checkChartDirs() {
   }
   qDebug() << locs;
 
-  QSet<QString> readers;
-  QStringList presentChartDirs = m_chartDirs;
+  m_chartDirs.clear();
+  QSet<QString> chartSets;
 
   for (const QString& loc: locs) {
     QDir dataDir(loc);
@@ -81,45 +90,34 @@ void Updater::checkChartDirs() {
                                                QDir::Dirs | QDir::Readable);
     for (auto dir: dirs) {
       if (m_factories.contains(dir)) {
-        readers << dir;
-        auto path = dataDir.absoluteFilePath(dir);
-        if (!m_chartDirs.contains(path)) {
-          m_chartDirs << path;
-          m_watcher->addPath(path);
-        } else if (presentChartDirs.contains(path)) {
-          presentChartDirs.removeAll(path);
+        if (!m_readers.contains(dir)) {
+          qDebug() << "loading reader" << dir;
+          m_readers[dir] = m_factories[dir]->loadReader();
         }
+        chartSets << dir;
+        auto path = dataDir.absoluteFilePath(dir);
+        m_chartDirs << path;
       }
     }
   }
 
-  for (auto& path: presentChartDirs) {
-    m_watcher->removePath(path);
-  }
+  // Insert new chartsets
 
-  for (auto name: readers) {
-    qDebug() << "loading reader" << name;
-    m_readers[name] = m_factories[name]->loadReader();
-  }
+  // remove known chartsets
+  QSqlQuery s = m_db.exec("select name from main.chartsets");
+  while (s.next()) chartSets.remove(s.value(0).toString());
 
-  QSqlQuery s = m_db.exec("select name "
-                          "from main.chartsets");
-  while (s.next()) {
-    readers.remove(s.value(0).toString());
-  }
-
-  for (auto& name: readers) {
+  // remaining are the new ones
+  for (auto& chartSet: chartSets) {
     // insert
-    QSqlQuery r = m_db.prepare("insert into main.chartsets (name) values(?)");
-    r.bindValue(0, name);
+    QSqlQuery r = m_db.prepare("insert into main.chartsets (name) values (?)");
+    r.bindValue(0, chartSet);
     m_db.exec(r);
   }
 }
 
 
-void Updater::checkChartsDir(const QString& dir, bool notify) {
-
-  if (!m_chartDirs.contains(dir)) return;
+void Updater::checkChartsDir(const QString& dir, IdSet& prevCharts) {
 
   const QString name = QFileInfo(dir).baseName();
   qDebug() << "checkChartsDir" << dir << name;
@@ -127,27 +125,14 @@ void Updater::checkChartsDir(const QString& dir, bool notify) {
   QSqlQuery r1 = m_db.prepare("select id "
                               "from main.chartsets "
                               "where name=?");
-  r1.bindValue(0, QVariant::fromValue(name));
+  r1.bindValue(0, name);
   m_db.exec(r1);
   r1.first();
   uint set_id = r1.value(0).toUInt();
 
-
-  QVector<quint32> oldCharts;
-  QSqlQuery r2 = m_db.prepare("select c.id "
-                              "from main.charts c "
-                              "join main.scales s on c.scale_id = s.id "
-                              "where s.chartset_id=?");
-  r2.bindValue(0, set_id);
-  m_db.exec(r2);
-  while (r2.next()) {
-    oldCharts.append(r2.value(0).toUInt());
-  }
-
-
   ScaleMap scales;
-  QSqlQuery r3 = m_db.prepare("select s.id, s.scale "
-                              "from main.scales s "
+  QSqlQuery r3 = m_db.prepare("select id, scale "
+                              "from main.scales "
                               "where chartset_id=?");
   r3.bindValue(0, set_id);
   m_db.exec(r3);
@@ -193,7 +178,7 @@ void Updater::checkChartsDir(const QString& dir, bool notify) {
 
       } else {
 
-        oldCharts.removeOne(s.value(0).toInt());
+        prevCharts.remove(s.value(0).toInt());
         if (ch.published().toJulianDay() == s.value(1).toInt() &&
             ch.modified().toJulianDay() == s.value(2).toInt()) {
           continue;
@@ -207,25 +192,97 @@ void Updater::checkChartsDir(const QString& dir, bool notify) {
     }
   }
 
-  // remove old rows
-  if (!oldCharts.isEmpty()) {
-    QString sql = "delete from charts where id in (";
-    sql += QString("?,").repeated(oldCharts.size());
-    sql = sql.replace(sql.length() - 1, 1, ")");
-    QSqlQuery s = m_db.prepare(sql);
-    for (int i = 0; i < oldCharts.size(); i++) {
-      s.bindValue(i, QVariant::fromValue(oldCharts[i]));
-    }
-    m_db.exec(s);
-  }
-
   if (!m_db.commit()) {
     qWarning() << "DB commit failed!";
   }
+}
 
-  if (notify) {
-    emit ready();
+void Updater::deleteCharts(const IdSet& c_ids) {
+
+  if (c_ids.isEmpty()) return;
+
+  QString sql = "select p.id, v.id from "
+                "main.polygons p join "
+                "main.coverage v on p.cov_id = v.id "
+                "where v.chart_id in (";
+  sql += QString("?,").repeated(c_ids.size());
+  sql = sql.replace(sql.length() - 1, 1, ")");
+  QSqlQuery r0 = m_db.prepare(sql);
+  int index = 0;
+  for (auto c_id: c_ids) {
+    r0.bindValue(index, QVariant::fromValue(c_id));
+    index++;
   }
+  m_db.exec(r0);
+
+  IdSet v_ids;
+  IdSet p_ids;
+
+  while (r0.next()) {
+    p_ids << r0.value(0).toUInt();
+    v_ids << r0.value(1).toUInt();
+  }
+
+  deleteFrom("main.charts", c_ids);
+  deleteFrom("main.coverage", v_ids);
+  deleteFrom("main.polygons", p_ids);
+}
+
+
+void Updater::cleanupDB() {
+  // delete empty chartsets
+  IdSet set_ids;
+  QSqlQuery r1 = m_db.exec("select id from main.chartsets");
+  while (r1.next()) set_ids << r1.value(0).toUInt();
+
+  IdSet s_ids;
+  for (auto set_id: set_ids) {
+    QSqlQuery r2 = m_db.prepare("select c.id from "
+                                "main.charts c join "
+                                "main.scales s on c.scale_id = s.id "
+                                "where s.chartset_id = ? limit 1");
+    r2.bindValue(0, set_id);
+    m_db.exec(r2);
+    if (!r2.first()) {
+      s_ids << set_id;
+    }
+  }
+
+  deleteFrom("main.chartsets", s_ids);
+
+  // delete unused scales
+  IdSet scale_ids;
+  QSqlQuery r3 = m_db.exec("select id from main.scales");
+  while (r3.next()) scale_ids << r3.value(0).toUInt();
+
+  IdSet sc_ids;
+  for (auto scale_id: scale_ids) {
+    QSqlQuery r4 = m_db.prepare("select id from main.charts "
+                                "where scale_id = ? limit 1");
+    r4.bindValue(0, scale_id);
+    m_db.exec(r4);
+    if (!r4.first()) {
+      sc_ids << scale_id;
+    }
+  }
+
+  deleteFrom("main.scales", sc_ids);
+
+}
+
+void Updater::deleteFrom(const QString &chartName, const IdSet &ids) {
+  if (ids.isEmpty()) return;
+
+  auto sql = QString("delete from %1 where id in (").arg(chartName);
+  sql += QString("?,").repeated(ids.size());
+  sql = sql.replace(sql.length() - 1, 1, ")");
+  QSqlQuery r0 = m_db.prepare(sql);
+  int index = 0;
+  for (auto id: ids) {
+    r0.bindValue(index, QVariant::fromValue(id));
+    index++;
+  }
+  m_db.exec(r0);
 }
 
 void Updater::insert(const QString &path, const S57ChartOutline &ch, const ScaleMap& scales) {
@@ -304,26 +361,16 @@ void Updater::update(const QVariant &id, const S57ChartOutline &ch) {
   m_db.exec(t);
 
   // delete old cov & polygon rows
-  QVector<quint32> cov;
+  IdSet cov;
   QSqlQuery r0 = m_db.prepare("select id "
                               "from main.coverage "
                               "where chart_id=?");
   r0.bindValue(0, id);
   m_db.exec(r0);
   while (r0.next()) {
-    cov.append(r0.value(0).toUInt());
+    cov << r0.value(0).toUInt();
   }
-  qDebug() << id.toUInt() << cov;
-  if (!cov.isEmpty()) {
-    QString sql = "delete from main.polygons where cov_id in (";
-    sql += QString("?,").repeated(cov.size());
-    sql = sql.replace(sql.length() - 1, 1, ")");
-    QSqlQuery r1 = m_db.prepare(sql);
-    for (int i = 0; i < cov.size(); i++) {
-      r1.bindValue(i, cov[i]);
-    }
-    m_db.exec(r1);
-  }
+  deleteFrom("main.polygons", cov);
 
   QSqlQuery r2 = m_db.prepare("delete from main.coverage "
                               "where chart_id=?");

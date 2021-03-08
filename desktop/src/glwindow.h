@@ -25,7 +25,7 @@ public:
   void zoomOut();
   void compassPan(Angle bearing, float pixels = 1.);
   void rotateEye(Angle amount);
-  void setChartSet(const QString& s);
+  void setChartSet(const QString& s, bool force = false);
 
 protected:
 
@@ -41,7 +41,7 @@ protected:
 
 signals:
 
-  void updateViewport(const Camera* cam, bool force = false);
+  void updateViewport(const Camera* cam, quint32 flags = 0);
   void pointerChanged(const WGS84Point& loc);
 
 private slots:

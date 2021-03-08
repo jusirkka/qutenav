@@ -322,7 +322,7 @@ void S57Chart::updatePaintData(const WGS84Point &sw, const WGS84Point &ne, quint
     // check display category
     if (!d.lookup->canOverride() &&
         as_numeric(d.lookup->category()) > maxcat) {
-      qDebug() << "Skipping by category" << S52::GetClassInfo(d.object->classCode());
+      // qDebug() << "Skipping by category" << S52::GetClassInfo(d.object->classCode());
       continue;
     }
 

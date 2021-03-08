@@ -9,6 +9,7 @@
   <MenuBar>
     <Menu name="file">
       <text>File</text>
+      <Action name="checkCharts"/>
       <Separator/>
       <Action name="quit"/>
     </Menu>
@@ -37,8 +38,8 @@
     </Menu>
 
     <Menu name="settings">
-      <Separator/>
       <Action name="preferences"/>
+      <Separator/>
     </Menu>
 
 </MenuBar>

@@ -341,12 +341,12 @@ using LX = S57::Record::LexLevel::palette;
 S57::Attribute S57::Record::decode_attribute(quint16 acode, const QByteArray& v, LX level) {
 
   if (v.isEmpty()) {
-    qDebug() << "S57::AttributeType::Any";
+    // qDebug() << "S57::AttributeType::Any";
     return S57::Attribute(S57::AttributeType::Any);
   }
 
   if (v.at(0) == S57::Record::attributeDeleter) {
-    qDebug() << "S57::AttributeType::Deleted";
+    // qDebug() << "S57::AttributeType::Deleted";
     return S57::Attribute(S57::AttributeType::Deleted);
   }
 

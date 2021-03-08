@@ -776,10 +776,10 @@ static bool overlaps_and_smaller(float s1, float s2,
 
 S57::PaintDataMap S52::CSLights05::execute(const QVector<QVariant>&,
                                            const S57::Object* obj) {
-  // qDebug() << "[CSLights05:Class]" << S52::GetClassInfo(obj->classCode()) << obj->classCode();
-  // for (auto k: obj->attributes().keys()) {
-  //   qDebug() << GetAttributeInfo(k, obj);
-  //}
+  //  qDebug() << "[CSLights05:Class]" << S52::GetClassInfo(obj->classCode()) << obj->classCode();
+  //  for (auto k: obj->attributes().keys()) {
+  //    qDebug() << GetAttributeInfo(k, obj);
+  //  }
 
   QSet<int> catlit;
   auto items = obj->attributeValue(m_catlit).toList();
@@ -820,9 +820,7 @@ S57::PaintDataMap S52::CSLights05::execute(const QVector<QVariant>&,
     sectorColor = m_chmgd;
   }
 
-
   // continuation A
-
 
   const bool isSector = obj->attributeValue(m_sectr1).isValid() && obj->attributeValue(m_sectr2).isValid();
 
@@ -930,7 +928,7 @@ S57::PaintDataMap S52::CSLights05::execute(const QVector<QVariant>&,
     auto v1 = it.value()->attributeValue(m_sectr1);
     auto v2 = it.value()->attributeValue(m_sectr2);
     if (overlaps_and_smaller(s1, s2, v1, v2, smin)) {
-      qDebug() << "Extended radius";
+      // qDebug() << "Extended radius";
       arc_radius = 25;
       break;
     }
@@ -971,15 +969,16 @@ S57::PaintDataMap S52::CSLights05::drawDirection(const S57::Object *obj) const {
   auto point = dynamic_cast<const S57::Geometry::Point*>(obj->geometry());
   Q_ASSERT(point != nullptr);
 
-  bool ok;
-  const double orient = obj->attributeValue(m_orient).toDouble(&ok) * M_PI / 180.;
-  if (!ok) {
+  if (!obj->attributeValue(m_orient).isValid()) {
     qDebug() << "CSLights05::drawDirection: Orient not present";
     return S57::PaintDataMap();
   }
+  const double orient = obj->attributeValue(m_orient).toDouble() * M_PI / 180.;
 
-  double valnmr = obj->attributeValue(m_valnmr).toDouble(&ok);
-  if (!ok) {
+  double valnmr;
+  if (obj->attributeValue(m_valnmr).isValid()) {
+    valnmr = obj->attributeValue(m_valnmr).toDouble() * 1852.;
+  } else {
     valnmr = 9. * 1852.;
   }
 
@@ -1022,7 +1021,7 @@ S57::PaintDataMap S52::CSLights05::drawSectors(const S57::Object *obj) const {
   bool chartUnits = Conf::MarinerParams::fullLengthSectors();
   if (chartUnits) {
     if (obj->attributeValue(m_valnmr).isValid()) {
-      leglen = obj->attributeValue(m_valnmr).toDouble();
+      leglen = obj->attributeValue(m_valnmr).toDouble() * 1852.;
     } else {
       leglen = 9. * 1852.;
     }

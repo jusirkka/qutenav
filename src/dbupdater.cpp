@@ -1,7 +1,6 @@
 #include <QCoreApplication>
 #include <QDebug>
 #include <QtPlugin>
-#include <QScopedPointer>
 #include <QtDBus/QDBusConnection>
 
 #include "dbupdater_adaptor.h"
@@ -16,13 +15,13 @@ int main(int argc, char *argv[]) {
   QCoreApplication app(argc, argv);
 
   S52::InitNames();
-  auto updater = QScopedPointer<Updater>(new Updater);
-  QScopedPointer<UpdaterAdaptor>(new UpdaterAdaptor(updater.data()));
+  auto updater = new Updater;
+  new UpdaterAdaptor(updater);
 
   QDBusConnection conn = QDBusConnection::sessionBus();
   conn.registerObject("/Updater",
-                      updater.data(),
-                      QDBusConnection::ExportAllSlots | QDBusConnection::ExportAllSignals);
+                      updater,
+                      QDBusConnection::ExportAdaptors | QDBusConnection::ExportAllContents);
   conn.registerService("net.kvanttiapina.qopencpn");
 
   return app.exec();

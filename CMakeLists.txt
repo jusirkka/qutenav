@@ -97,6 +97,7 @@ target_sources(qopencpn
     src/chartmanager.cpp
     src/chartmode.cpp
     src/chartpainter.cpp
+    src/dbupdater_interface.cpp
     src/detailmode.cpp
     src/drawable.cpp
     src/geoprojection.cpp
@@ -155,20 +156,21 @@ FLEX_TARGET(S52HScanner src/s52hpgl_scanner.l ${CMAKE_BINARY_DIR}/s52hpgl_scanne
 BISON_TARGET(S52HParser src/s52hpgl_parser.y ${CMAKE_BINARY_DIR}/s52hpgl_parser.cpp
   DEFINES_FILE ${CMAKE_BINARY_DIR}/s52hpgl_parser.h)
 
-if (DESKTOP)
-set_target_properties(qopencpn_dbupdater
-  PROPERTIES
-    AUTOMOC ON
-)
-else()
+# automoc generates duplicate mocs for dbus adaptor files in older versions
+if (${CMAKE_VERSION} VERSION_LESS "3.18")
   set_target_properties(qopencpn_dbupdater
     PROPERTIES
       AUTOMOC OFF
   )
+else()
+  set_target_properties(qopencpn_dbupdater
+    PROPERTIES
+      AUTOMOC ON
+  )
 endif()
 
-set(dbus_SRCS)
-qt5_add_dbus_adaptor(dbus_SRCS
+set(dbus_adaptor_SRCS)
+qt5_add_dbus_adaptor(dbus_adaptor_SRCS
   src/dbupdater.xml
   updater.h
   Updater
@@ -186,7 +188,7 @@ target_sources(qopencpn_dbupdater
     src/s57chartoutline.cpp
     src/s57object.cpp
     src/types.cpp
-    ${dbus_SRCS}
+    ${dbus_adaptor_SRCS}
 )
 
 if (DESKTOP)

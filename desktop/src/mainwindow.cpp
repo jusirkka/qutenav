@@ -13,10 +13,15 @@
 #include "chartmanager.h"
 #include <QMenuBar>
 #include "preferences.h"
+#include "dbupdater_interface.h"
+#include <QTimer>
+#include <QProcess>
 
 MainWindow::MainWindow()
   : KXmlGuiWindow()
   , m_GLWindow(new GLWindow())
+  , m_preferences(new KV::PreferencesDialog(this))
+  , m_updater(new UpdaterInterface(this))
 {
   setWindowTitle(qAppName());
 
@@ -29,6 +34,43 @@ MainWindow::MainWindow()
   QMetaObject::connectSlotsByName(this);
   readSettings();
 
+  auto bus = QDBusConnection::sessionBus();
+  actionCollection()->action("checkCharts")->setEnabled(bus.isConnected());
+
+
+  updateChartSets();
+  // save the chart set name for initialization in glwindow
+  auto curr = currentChartSet();
+  if (!curr.isEmpty()) {
+    Conf::MainWindow::setChartset(curr);
+    Conf::MainWindow::self()->save();
+  }
+
+  auto chartGroup = chartSetGroup();
+  connect(chartGroup, &QActionGroup::triggered, this, [this] (QAction* a) {
+    qDebug() << "setting chartset" <<  a->objectName();
+    m_GLWindow->setChartSet(a->objectName());
+  });
+
+  connect(ChartManager::instance(), &ChartManager::chartSetsUpdated,
+          this, &MainWindow::updateChartSets);
+
+}
+
+QActionGroup* MainWindow::chartSetGroup() {
+  for (auto group: actionCollection()->actionGroups()) {
+    if (group->objectName() == "chartSets") {
+      return group;
+    }
+  }
+
+  auto chartgroup = new QActionGroup(this);
+  chartgroup->setObjectName("chartSets");
+  return chartgroup;
+}
+
+void MainWindow::updateChartSets() {
+
   QList<QAction*>::const_iterator p = std::find_if(menuBar()->actions().cbegin(),
                                                    menuBar()->actions().cend(),
                                                    [] (const QAction* a) {
@@ -36,9 +78,20 @@ MainWindow::MainWindow()
   });
   auto chartmenu = (*p)->menu();
 
-  auto chartgroup = new QActionGroup(this);
+  auto curr = currentChartSet();
+  qDebug() << "current chartset" << curr;
+
+
+  auto chartgroup = chartSetGroup();
+  auto prevActions = chartgroup->actions();
   auto chartsets = ChartManager::instance()->chartSets();
   for (auto s: chartsets) {
+    if (actionCollection()->action(s) != nullptr) {
+      prevActions.removeOne(actionCollection()->action(s));
+      qDebug()  << actionCollection()->action(s)->objectName() << "already present";
+      continue;
+    }
+    qDebug()  << "adding" << s;
     auto a = new QAction(this);
     a->setText(s);
     a->setCheckable(true);
@@ -47,20 +100,25 @@ MainWindow::MainWindow()
     actionCollection()->addAction(s, a);
   }
 
-  connect(chartmenu, &QMenu::triggered, this, [this] (QAction* a) {
-    m_GLWindow->setChartSet(a->objectName());
-  });
-
-  if (!chartsets.isEmpty()) {
-    auto sel = Conf::MainWindow::chartset();
-    if (!chartsets.contains(sel)) sel = chartsets.first();
-    actionCollection()->action(sel)->setChecked(true);
-    // save the chart set name for initialization in glwindow
-    Conf::MainWindow::setChartset(sel);
-    Conf::MainWindow::self()->save();
+  for (auto act: prevActions) {
+    qDebug()  << "removing" << act->objectName();
+    chartgroup->removeAction(act);
+    chartmenu->removeAction(act);
+    actionCollection()->removeAction(act);
   }
 
-  m_preferences = new KV::PreferencesDialog(this);
+  if (!chartsets.isEmpty()) {
+    QString sel;
+    if (!curr.isEmpty() && actionCollection()->action(curr) != nullptr) {
+      sel = curr;
+    } else {
+      sel = Conf::MainWindow::chartset();
+    }
+    if (!chartsets.contains(sel)) sel = chartsets.first();
+    qDebug() << "current chartset" << sel;
+    actionCollection()->action(sel)->setChecked(true);
+    m_GLWindow->setChartSet(sel, true);
+  }
 }
 
 void MainWindow::on_quit_triggered() {
@@ -116,6 +174,23 @@ void MainWindow::on_preferences_triggered() {
   m_preferences->show();
 }
 
+void MainWindow::on_checkCharts_triggered() {
+  auto resp = m_updater->ping();
+  // qDebug() << resp.isValid();
+  if (!resp.isValid()) {
+    qDebug() << resp.error().name() << resp.error().message();
+    qDebug() << "Launching dbupdater";
+    auto updater = QString("%1_dbupdater").arg(qAppName());
+    bool ok = QProcess::startDetached(updater, QStringList());
+    qDebug() << "Launched" << updater << ", status =" << ok;
+    if (ok) {
+      QTimer::singleShot(200, this, &MainWindow::on_checkCharts_triggered);
+    }
+  } else {
+    m_updater->sync();
+  }
+}
+
 void MainWindow::readSettings() {
   m_fallbackGeom = QRect();
   if (Conf::MainWindow::fullScreen()) {
@@ -132,14 +207,29 @@ void MainWindow::readSettings() {
   }
 }
 
+QString MainWindow::currentChartSet() const {
+  QList<QActionGroup*> groups = actionCollection()->actionGroups();
+  for (auto group: groups) {
+    if (group->objectName() == "chartSets") {
+      auto act = group->checkedAction();
+      if (act == nullptr) {
+        return QString();
+      }
+      return act->objectName();
+    }
+  }
+  return QString();
+}
+
 void MainWindow::writeSettings() {
   if (m_fallbackGeom.isValid()) {
     Conf::MainWindow::setLastGeom(m_fallbackGeom);
   }
   Conf::MainWindow::setFullScreen(action("fullScreen")->isChecked());
-  QList<QActionGroup*> groups = actionCollection()->actionGroups();
-  if (!groups.isEmpty()) {
-    Conf::MainWindow::setChartset(groups.first()->checkedAction()->objectName());
+
+  auto curr = currentChartSet();
+  if (!curr.isEmpty()) {
+    Conf::MainWindow::setChartset(curr);
   }
 
   Conf::MainWindow::self()->save();
@@ -171,6 +261,7 @@ void MainWindow::addActions() {
     {"rotateCCW", "Rotate CCW", "B", "", "Rotate chart counterclockwise", true, false, false},
     {"rotateCW", "Rotate CW", "M", "", "Rotate chart clockwise", true, false, false},
     {"preferences", "Preferences...", "", "configure", "", true, false, false},
+    {"checkCharts", "Update charts", "Ctrl+Shift+U", "", "", true, false, false},
   };
 
   for (auto d: actionData) {
