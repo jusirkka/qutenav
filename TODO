@@ -3,12 +3,11 @@
 - routes
 - tides
 - coverpage.qml
-- symbols & line widths are too small in mobile app
 - busy spinner while charts are loading
-- bug: dash/dot length varies in dashed/dotted lines
 - symbolized lines: draw simple line in the remaining part of the symbol fill string.
-- bug: sometimes safety contour line is drawn incorrectly
 - draw chart outlines
 - move anonymous functions of s57chart.cpp to header / template functions to avoid boilerplate
+- bug: sometimes safety contour line is drawn incorrectly
+- bug: dash/dot length varies in dashed/dotted lines
 - bug: overlapping charts not handled properly
 

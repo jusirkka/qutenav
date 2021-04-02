@@ -13,10 +13,19 @@
 
 namespace Conf {
 
+class DummyItem {
+public:
+  QVariant getDefault() const {return QVariant();}
+};
+
 class ConfigGroup {
 public:
 
   void save();
+
+  DummyItem* findItem(const QString&) const {return m_dummy;}
+
+  virtual ~ConfigGroup();
 
 protected:
 
@@ -29,6 +38,8 @@ protected:
   QVariantMap m_defaults;
   QString m_group;
   QString m_path;
+
+  DummyItem* m_dummy;
 
 };
 

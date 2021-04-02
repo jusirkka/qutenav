@@ -13,3 +13,4 @@ Conf::MainWindow::MainWindow()
   load();
 }
 
+Conf::MainWindow::~MainWindow() {/*noop*/}

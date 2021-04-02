@@ -26,6 +26,7 @@
 #include <QFileInfo>
 #include <QDir>
 #include <QFile>
+#include <QStandardPaths>
 
 ChartData::ChartData(S57Chart* c, quint32 s, const WGS84PointVector& cs, bool upd)
   : chart(c)

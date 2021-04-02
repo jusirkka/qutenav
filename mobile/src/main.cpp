@@ -12,6 +12,7 @@
 #include "textmanager.h"
 #include "s57chart.h"
 #include "settings.h"
+#include "chartupdater.h"
 
 Q_IMPORT_PLUGIN(CM93ReaderFactory)
 Q_IMPORT_PLUGIN(S57ReaderFactory)
@@ -26,8 +27,7 @@ int main(int argc, char *argv[]) {
   qmlRegisterType<CrossHairs>("org.qopencpn", 1, 0, "CrossHairs");
 
   QSurfaceFormat format;
-  // format.setVersion(4, 6);
-  format.setVersion(3, 1);
+  format.setVersion(3, 2);
   format.setRenderableType(QSurfaceFormat::OpenGLES);
   format.setProfile(QSurfaceFormat::CoreProfile);
   format.setOption(QSurfaceFormat::DebugContext);
@@ -36,7 +36,6 @@ int main(int argc, char *argv[]) {
   QSurfaceFormat::setDefaultFormat(format);
 
   QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
-  // QGuiApplication app(argc, argv);
   // Set up QML engine.
   QScopedPointer<QGuiApplication> app(SailfishApp::application(argc, argv));
   // remove stutter
@@ -48,11 +47,10 @@ int main(int argc, char *argv[]) {
   qRegisterMetaType<S57Chart*>();
   qRegisterMetaType<WGS84Point>();
   qRegisterMetaType<S57::InfoType>();
+  qRegisterMetaType<ChartData>();
 
   S52::InitPresentation();
 
-  // QQmlApplicationEngine engine;
-  // engine.load(QUrl("main.qml"));
   QScopedPointer<QQuickView> view(SailfishApp::createView());
 
   view->rootContext()->setContextProperty("settings", Settings::instance());
@@ -60,6 +58,5 @@ int main(int argc, char *argv[]) {
   view->setSource(SailfishApp::pathTo("qml/harbour-qopencpn.qml"));
   view->show();
 
-  // return app.exec();
   return app->exec();
 }

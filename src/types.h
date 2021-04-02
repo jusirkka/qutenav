@@ -315,7 +315,7 @@ inline uint qHash(const Color& key) {
 
 static const inline double DefaultDepth = - 15.;
 
-inline GLfloat LineWidthMM(int lw) {
+inline GLfloat LineWidthMM(float lw) {
   return lw * 0.32;
 }
 

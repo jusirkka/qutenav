@@ -1,4 +1,4 @@
-#version 310 es
+#version 320 es
 layout (location = 0) in vec2 vertex;
 
 uniform mat4 m_p;

@@ -94,7 +94,7 @@ Page {
                      "Selected category includes the previous ones in the list."
         menu: ContextMenu {
           Repeater {
-            model: settings.categories
+            model: settings.maxCategoryNames
             MenuItem {text: modelData}
           }
         }
@@ -192,7 +192,7 @@ Page {
         description: "Select colortable for chart colors."
         menu: ContextMenu {
           Repeater {
-            model: settings.colorTables
+            model: settings.colorTableNames
             MenuItem {text: modelData}
           }
         }

@@ -165,7 +165,8 @@ void GL::RasterSymbolShader::setGlobals(const Camera *cam, const QMatrix4x4 &mt)
   m_program->setUniformValue(m_locations.m_p, cam->projection());
   m_program->setUniformValue(m_locations.m_model, mt);
 
-  const float s = .5 * cam->heightMM() * cam->projection()(1, 1);
+  const float ds = Settings::instance()->displayRasterSymbolScaling();
+  const float s = .5 * cam->heightMM() * cam->projection()(1, 1) * ds;
   m_program->setUniformValue(m_locations.windowScale, s);
 
   const int texOffset = 2 * sizeof(GLfloat);

@@ -195,7 +195,7 @@ void ChartDisplay::initializeGL(QOpenGLContext* ctx) {
   m_vao.bind();
 
   ChartManager::instance()->createThreads(m_context);
-  TextManager::instance()->createBuffers();
+  TextManager::instance()->createTexture(512, 512);
   RasterSymbolManager::instance()->createSymbols();
   VectorSymbolManager::instance()->createSymbols();
 

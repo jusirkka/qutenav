@@ -1,4 +1,4 @@
-#version 310 es
+#version 320 es
 
 precision mediump float;
 
@@ -16,7 +16,7 @@ void main() {
     color = base_color;
   } else {
     // create a filter with period patlen.
-    uint bitpos = uint(round(texCoord)) % PAT_LEN;
+    uint bitpos = uint(round(10. * texCoord)) % PAT_LEN;
     uint bit = (1U << bitpos);
     // discard the bit if it doesn't match the masking pattern
     if ((pattern & bit) == 0U) {

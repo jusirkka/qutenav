@@ -78,15 +78,28 @@ void Settings::setDefault(const QString& prop) {
 }
 
 float Settings::displayLengthScaling() const {
-  return dots_per_mm_y / nominal_dpmm;
+  const float y0 = 6.2 / nominal_dpmm;
+  const float y1 = 9.0 / nominal_dpmm;
+  const float t = (dots_per_mm_y - dpmm0) / delta_dpmm1;
+  return y1 * t + y0 * (1 - t);
 }
 
 float Settings::displayTextSizeScaling() const {
-  return .7 * dots_per_mm_y;
+  return .5 * dots_per_mm_y;
 }
 
 float Settings::displayLineWidthScaling() const {
-  return .7;
+  const float y0 = .7;
+  const float y1 = .3;
+  const float t = (dots_per_mm_y - dpmm0) / delta_dpmm1;
+  return y1 * t + y0 * (1 - t);
+}
+
+float Settings::displayRasterSymbolScaling() const {
+  const float y0 = 1.;
+  const float y1 = .5;
+  const float t = (dots_per_mm_y - dpmm0) / delta_dpmm1;
+  return y1 * t + y0 * (1 - t);
 }
 
 Settings::~Settings() {

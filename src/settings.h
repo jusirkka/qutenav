@@ -244,6 +244,7 @@ public:
   float displayLengthScaling() const;
   float displayTextSizeScaling() const;
   float displayLineWidthScaling() const;
+  float displayRasterSymbolScaling() const;
 
 signals:
 
@@ -263,6 +264,9 @@ private:
   QObjectList m_textGroups;
   QStringList m_categories;
   QStringList m_colorTables;
+
+  static inline const float dpmm0 = 6.2;
+  static inline const float delta_dpmm1 = 9.7;
 
 };
 

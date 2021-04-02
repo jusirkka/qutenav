@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.11 FATAL_ERROR)
 
-enable_testing()
+# enable_testing()
 
 project(qopencpn LANGUAGES CXX C)
 
@@ -253,7 +253,6 @@ add_subdirectory(oesencreader)
 add_subdirectory(cm93reader)
 add_subdirectory(s57reader)
 add_subdirectory(dbupdater)
-add_subdirectory(tests)
 
 
 
@@ -261,6 +260,7 @@ add_subdirectory(tests)
 if (DESKTOP)
 
   add_subdirectory(desktop)
+  add_subdirectory(tests)
 
 else()
 
@@ -303,6 +303,7 @@ else()
       Qt5::Quick
       Qt5::Gui
       Qt5::Sql
+      Qt5::DBus
       Freetype::Freetype
       fontconfig
       harfbuzz::harfbuzz

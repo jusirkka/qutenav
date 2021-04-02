@@ -959,11 +959,11 @@ S57::PaintDataMap S52::CSLights05::execute(const QVector<QVariant>&,
   items = obj->attributeValue(m_litvis).toList();
   for (auto i: items) litvis.insert(i.toInt());
   if (litvis.intersects(m_set_faint)) {
-    ps += drawArc(obj, arc_radius, 1, S52::LineType::Dashed, m_chblk);
+    ps += drawArc(obj, arc_radius, 2, S52::LineType::Dashed, m_chblk);
   } else {
-    ps += drawArc(obj, arc_radius - S52::LineWidthMM(1.5), 1, S52::LineType::Solid, m_outlw);
-    ps += drawArc(obj, arc_radius, 2, S52::LineType::Solid, sectorColor);
-    ps += drawArc(obj, arc_radius + S52::LineWidthMM(1.5), 1, S52::LineType::Solid, m_outlw);
+    ps += drawArc(obj, arc_radius - S52::LineWidthMM(2.25), 1.5, S52::LineType::Solid, m_outlw);
+    ps += drawArc(obj, arc_radius, 3, S52::LineType::Solid, sectorColor);
+    ps += drawArc(obj, arc_radius + S52::LineWidthMM(2.25), 1.5, S52::LineType::Solid, m_outlw);
   }
 
   return ps;
@@ -1067,7 +1067,7 @@ S57::PaintDataMap S52::CSLights05::drawSectors(const S57::Object *obj) const {
 
 S57::PaintDataMap S52::CSLights05::drawArc(const S57::Object *obj,
                                            float r,
-                                           uint lw,
+                                           float lw,
                                            S52::LineType t,
                                            quint32 c) {
 

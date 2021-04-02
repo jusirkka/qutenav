@@ -255,7 +255,7 @@ private:
   S57::PaintDataMap drawSectors(const S57::Object* obj) const;
   S57::PaintDataMap drawArc(const S57::Object* obj,
                             float radius,
-                            uint lineWidth,
+                            float lineWidth,
                             S52::LineType lineType,
                             quint32 color);
 

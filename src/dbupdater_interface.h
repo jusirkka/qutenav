@@ -25,15 +25,15 @@ class UpdaterInterface: public QDBusAbstractInterface {
 
 public:
 
-  static inline const char *staticInterfaceName() {
+  static const char *staticInterfaceName() {
     return "net.kvanttiapina.qopencpn.Updater";
   }
 
-  static inline const char *staticServiceName() {
+  static const char *staticServiceName() {
     return "net.kvanttiapina.qopencpn";
   }
 
-  static inline const char *staticPathName() {
+  static const char *staticPathName() {
     return "/Updater";
   }
 
@@ -45,11 +45,11 @@ public:
 
 public slots:
 
-  inline QDBusPendingReply<> sync() {
+  QDBusPendingReply<> sync() {
     return asyncCall(QStringLiteral("sync"));
   }
 
-  inline QDBusReply<QString> ping() {
+  QDBusReply<QString> ping() {
     return call(QStringLiteral("ping"));
   }
 
