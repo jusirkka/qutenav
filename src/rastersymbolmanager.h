@@ -36,10 +36,10 @@ private slots:
 private:
 
   struct ParseData {
-    QPoint offset;
-    QSize size;
-    int minDist;
-    int maxDist;
+    QPointF offset;
+    QSizeF size;
+    qreal minDist;
+    qreal maxDist;
     S57::ElementData elements;
   };
 

@@ -137,9 +137,6 @@ private:
     int w_atlas;
     int h_atlas;
     int windowScale;
-    int textScale;
-    int pivot;
-    int offset;
     int base_color;
   } m_locations;
 };

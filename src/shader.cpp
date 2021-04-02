@@ -5,6 +5,7 @@
 #include "platform.h"
 #include <QOpenGLExtraFunctions>
 #include <QFile>
+#include "settings.h"
 
 GL::Shader::Shader(const QVector<Source>& sources, GLfloat ds)
   : m_depthShift(ds)
@@ -37,6 +38,8 @@ GL::Shader::~Shader() {
 void GL::Shader::initializePaint() {
   m_program->bind();
   m_program->enableAttributeArray(0);
+  auto f = QOpenGLContext::currentContext()->extraFunctions();
+  f->glVertexAttribDivisor(0, 0);
 }
 
 GL::AreaShader* GL::AreaShader::instance() {
@@ -68,7 +71,7 @@ GL::LineElemShader* GL::LineElemShader::instance() {
 void GL::LineElemShader::setGlobals(const Camera *cam, const QMatrix4x4 &mt) {
   m_program->setUniformValue(m_locations.m_p, cam->projection());
   m_program->setUniformValue(m_locations.m_model, mt);
-  const float s = .5 * cam->heightMM() * dots_per_mm_y * cam->projection()(1, 1);
+  const float s = .5 * cam->heightMM() * cam->projection()(1, 1);
   m_program->setUniformValue(m_locations.windowScale, s);
 }
 
@@ -96,7 +99,7 @@ GL::LineArrayShader* GL::LineArrayShader::instance() {
 void GL::LineArrayShader::setGlobals(const Camera *cam, const QMatrix4x4 &mt) {
   m_program->setUniformValue(m_locations.m_p, cam->projection());
   m_program->setUniformValue(m_locations.m_model, mt);
-  const float s = .5 * cam->heightMM() * dots_per_mm_y * cam->projection()(1, 1);
+  const float s = .5 * cam->heightMM() * cam->projection()(1, 1);
   m_program->setUniformValue(m_locations.windowScale, s);
 }
 
@@ -138,9 +141,6 @@ GL::TextShader::TextShader()
   m_locations.w_atlas = m_program->uniformLocation("w_atlas");
   m_locations.h_atlas = m_program->uniformLocation("h_atlas");
   m_locations.windowScale = m_program->uniformLocation("windowScale");
-  m_locations.textScale = m_program->uniformLocation("textScale");
-  m_locations.pivot = m_program->uniformLocation("pivot");
-  m_locations.offset = m_program->uniformLocation("offset");
   m_locations.base_color = m_program->uniformLocation("base_color");
 }
 
@@ -148,8 +148,11 @@ void GL::TextShader::initializePaint() {
   m_program->bind();
   m_program->enableAttributeArray(0);
   m_program->enableAttributeArray(1);
+  m_program->enableAttributeArray(2);
   auto f = QOpenGLContext::currentContext()->extraFunctions();
-  f->glVertexAttribDivisor(1, 0);
+  f->glVertexAttribDivisor(0, 1);
+  f->glVertexAttribDivisor(1, 1);
+  f->glVertexAttribDivisor(2, 1);
 }
 
 
@@ -161,7 +164,8 @@ GL::RasterSymbolShader* GL::RasterSymbolShader::instance() {
 void GL::RasterSymbolShader::setGlobals(const Camera *cam, const QMatrix4x4 &mt) {
   m_program->setUniformValue(m_locations.m_p, cam->projection());
   m_program->setUniformValue(m_locations.m_model, mt);
-  const float s = .5 * cam->heightMM() * dots_per_mm_y * cam->projection()(1, 1);
+
+  const float s = .5 * cam->heightMM() * cam->projection()(1, 1);
   m_program->setUniformValue(m_locations.windowScale, s);
 
   const int texOffset = 2 * sizeof(GLfloat);
@@ -187,6 +191,7 @@ void GL::RasterSymbolShader::initializePaint() {
   m_program->enableAttributeArray(1);
   m_program->enableAttributeArray(2);
   auto f = QOpenGLContext::currentContext()->extraFunctions();
+  f->glVertexAttribDivisor(0, 0);
   f->glVertexAttribDivisor(1, 0);
   f->glVertexAttribDivisor(2, 1);
 }
@@ -200,8 +205,8 @@ void GL::VectorSymbolShader::setGlobals(const Camera *cam, const QMatrix4x4 &mt)
   m_program->setUniformValue(m_locations.m_p, cam->projection());
   m_program->setUniformValue(m_locations.m_model, mt);
 
-  // Vector symbol data specified in .01 mm units
-  const float s = 100 * cam->heightMM() * cam->projection()(1, 1);
+  auto ds = Settings::instance()->displayLengthScaling();
+  const float s = .5 * cam->heightMM() * cam->projection()(1, 1) * ds;
   m_program->setUniformValue(m_locations.windowScale, s);
 
   m_program->setAttributeBuffer(0, GL_FLOAT, 0, 2, 0);
@@ -223,6 +228,7 @@ void GL::VectorSymbolShader::initializePaint() {
   m_program->enableAttributeArray(0);
   m_program->enableAttributeArray(1);
   auto f = QOpenGLContext::currentContext()->extraFunctions();
+  f->glVertexAttribDivisor(0, 0);
   f->glVertexAttribDivisor(1, 1);
 }
 
@@ -302,5 +308,6 @@ void GL::TextureShader::initializePaint() {
   m_program->enableAttributeArray(0);
   m_program->enableAttributeArray(1);
   auto f = QOpenGLContext::currentContext()->extraFunctions();
+  f->glVertexAttribDivisor(0, 0);
   f->glVertexAttribDivisor(1, 0);
 }

@@ -306,8 +306,6 @@ GL::Mesh* Font::shapeText(const HB::Text &txt, hb_buffer_t *buf, bool* newGlyphs
   const hb_glyph_position_t *glyphPos = hb_buffer_get_glyph_positions(buf, &glyphCount);
 
   QPointF pen(0, 0);
-  const QVector<GLuint> triangles {0, 1, 2, 0, 2, 3};
-  uint ioffset = 0;
   auto mesh = new GL::Mesh;
 
   *newGlyphs = false;
@@ -329,15 +327,10 @@ GL::Mesh* Font::shapeText(const HB::Text &txt, hb_buffer_t *buf, bool* newGlyphs
     const QPointF t0 = glyph->texUL();
     const QPointF t1 = glyph->texLR();
 
-    mesh->vertices << p0.x() << p0.y() << t0.x() << t0.y();
-    mesh->vertices << p1.x() << p0.y() << t1.x() << t0.y();
-    mesh->vertices << p1.x() << p1.y() << t1.x() << t1.y();
-    mesh->vertices << p0.x() << p1.y() << t0.x() << t1.y();
-
-    for (GLuint t: triangles) {
-      mesh->indices << ioffset + t;
-    }
-    ioffset += 4;
+    mesh->vertices << p0.x() << p0.y() << p1.x() << p1.y();
+    mesh->vertices << t0.x() << t0.y() << t1.x() << t1.y();
+    // reserve space for pivot
+    mesh->vertices << 0. << 0.;
 
     pen += HB::advance(glyphPos[i]);
 
@@ -359,14 +352,10 @@ GL::Mesh* Font::shapeText(const HB::Text &txt, hb_buffer_t *buf, bool* newGlyphs
     const QPointF t0 = glyph->texUL();
     const QPointF t1 = glyph->texLR();
 
-    mesh->vertices << p0.x() << p0.y() << t0.x() << t0.y();
-    mesh->vertices << p1.x() << p0.y() << t1.x() << t0.y();
-    mesh->vertices << p1.x() << p1.y() << t1.x() << t1.y();
-    mesh->vertices << p0.x() << p1.y() << t0.x() << t1.y();
-
-    for (GLuint t: triangles) {
-      mesh->indices << ioffset + t;
-    }
+    mesh->vertices << p0.x() << p0.y() << p1.x() << p1.y();
+    mesh->vertices << t0.x() << t0.y() << t1.x() << t1.y();
+    // reserve space for pivot
+    mesh->vertices << 0. << 0.;
 
     if (p0.y() > ymax) ymax = p0.y();
     if (p1.y() < ymin) ymin = p1.y();

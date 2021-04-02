@@ -22,6 +22,7 @@ void GL::LineCalculator::calculate(VertexVector& transforms,
     qWarning() << "GL::LineCalculator: Period is too small" << period;
     return;
   }
+   // qDebug() << "period" << period;
 
   vertices.buffer.bind();
   auto vertexBufferIn = reinterpret_cast<const glm::vec2*>(
@@ -48,18 +49,24 @@ void GL::LineCalculator::calculate(VertexVector& transforms,
     if (r < 1.e-10) {
       continue;
     }
-    const glm::vec2 u = (p2 - p1) / r;
     float n = floor(r / period);
-    const float r0 = period * (n + .5);
-    if (r > r0 || n == 0) {
-      n = n + 1;
-    }
-    const float s = r / (period * n);
+    // const float r0 = period * (n + .5);
+    // if (r > r0 || n == 0) {
+    //   n = n + 1;
+    // }
+    // const float s = r / (period * n);
+    if (n == 0.) continue;
 
-    const glm::vec2 dir = s * period * u;
+    // qDebug() << "number of symbols" << n;
+
+
+    const glm::vec2 u = (p2 - p1) / r;
+    const glm::vec2 dir = period * u;
+    // const glm::vec2 dir = s * period * u;
     for (int k = 0; k < n; k++) {
       const glm::vec2 v = p1 + (1.f * k) * dir;
-      transforms << v.x << v.y << s * u.x << s * u.y;
+      // transforms << v.x << v.y << s * u.x << s * u.y;
+      transforms << v.x << v.y << u.x << u.y;
     }
   }
 

@@ -5,7 +5,7 @@ layout (location = 2) in vec2 pivot;
 
 uniform mat4 m_p;
 uniform float depth;
-uniform float windowScale;
+uniform float windowScale; // transform between display (mm) and chart (m) units
 uniform mat4 m_model;
 uniform vec2 offset;
 

@@ -143,8 +143,8 @@ Q_DECLARE_METATYPE(WGS84Point)
 bool operator!= (const WGS84Point& a, const WGS84Point& b);
 bool operator== (const WGS84Point& a, const WGS84Point& b);
 
-inline uint qHash(const WGS84Point& a, uint seed) {
-  return qHash(qMakePair(a.lng(), a.lat()), seed);
+inline uint qHash(const WGS84Point& a) {
+  return qHash(qMakePair(a.lng(), a.lat()));
 }
 
 
@@ -289,13 +289,6 @@ enum class LineType: uint {Solid = 0x3ffff,
                            Dotted = 0x30c30}; // 2B 4W 2B 4W 2B 4W
 static const inline QVector<uint> AllLineTypes {0x3ffff, 0x3ffc0, 0x30c30};
 
-inline GLfloat LineWidthMM(GLfloat lw) {
-  return lw * 0.3;
-}
-
-inline GLfloat LineWidthDots(GLfloat lw) {
-  return lw * 0.3 * dots_per_mm_y;
-}
 
 inline QString PrintScale(quint32 s) {
   s = s / 100;
@@ -316,11 +309,15 @@ inline bool operator== (const Color& k1, const Color& k2) {
   return k1.alpha == k2.alpha;
 }
 
-inline uint qHash(const Color& key, uint seed) {
-  return qHash(qMakePair(key.index, as_numeric(key.alpha)), seed);
+inline uint qHash(const Color& key) {
+  return qHash(qMakePair(key.index, as_numeric(key.alpha)));
 }
 
 static const inline double DefaultDepth = - 15.;
+
+inline GLfloat LineWidthMM(int lw) {
+  return lw * 0.32;
+}
 
 }
 
@@ -401,18 +398,18 @@ inline bool operator== (const SymbolKey& k1, const SymbolKey& k2) {
   return k1.type == k2.type;
 }
 
-inline uint qHash(const SymbolKey& key, uint seed) {
-  return qHash(qMakePair(key.index, as_numeric(key.type)), seed);
+inline uint qHash(const SymbolKey& key) {
+  return qHash(qMakePair(key.index, as_numeric(key.type)));
 }
 
-struct PatternAdvance {
-  PatternAdvance(int x0, int y0, int x1)
+struct PatternMMAdvance {
+  PatternMMAdvance(qreal x0, qreal y0, qreal x1)
     : x(x0), xy(x1, y0) {}
 
-  PatternAdvance() = default;
+  PatternMMAdvance() = default;
 
-  int x;
-  QPoint xy;
+  qreal x;
+  QPointF xy;
 };
 
 

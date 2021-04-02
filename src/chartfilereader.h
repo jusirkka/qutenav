@@ -35,9 +35,9 @@ public:
                                    const GL::VertexVector& vertices,
                                    const GL::IndexVector& indices);
 
-  static QPointF computeAreaCenter(const S57::ElementDataVector &elems,
-                                   const GL::VertexVector& vertices,
-                                   const GL::IndexVector& indices);
+  static QPointF computeAreaCenterAndBboxes(S57::ElementDataVector& elems,
+                                            const GL::VertexVector& vertices,
+                                            const GL::IndexVector& indices);
 
   static void triangulate(S57::ElementDataVector& elems,
                           GL::IndexVector& indices,

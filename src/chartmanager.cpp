@@ -18,6 +18,7 @@
 #include <QLibraryInfo>
 #include "cachereader.h"
 #include "dbupdater_interface.h"
+#include "gnuplot.h"
 
 ChartManager* ChartManager::instance() {
   static ChartManager* m = new ChartManager();
@@ -239,6 +240,8 @@ ChartManager::~ChartManager() {
   qDeleteAll(m_readers);
 }
 
+
+
 const ChartCover* ChartManager::getCover(quint32 chart_id,
                                          const WGS84Point &sw,
                                          const WGS84Point &ne,
@@ -247,13 +250,13 @@ const ChartCover* ChartManager::getCover(quint32 chart_id,
     QSqlQuery r = m_db.prepare("select c.id, c.type_id, p.x, p.y "
                                "from m.polygons p "
                                "join m.coverage c on p.cov_id = c.id "
-                               "where c.chart_id=?");
+                               "where c.chart_id=? order by c.id, p.id");
     r.bindValue(0, chart_id);
     m_db.exec(r);
     int prev = -1;
     int type_id = -1;
-    Region cov;
-    Region nocov;
+    LLPolygon cov;
+    LLPolygon nocov;
     WGS84PointVector ps;
     while (r.next()) {
       const int cid = r.value(0).toInt();
@@ -277,17 +280,9 @@ const ChartCover* ChartManager::getCover(quint32 chart_id,
       }
     }
 
-    if (cov.isEmpty()) {
-      WGS84PointVector ws;
-      ws << sw;
-      ws << WGS84Point::fromLL(ne.lng(), sw.lat());
-      ws << ne;
-      ws << WGS84Point::fromLL(sw.lng(), ne.lat());
-
-      cov << ws;
-    }
-
-    m_coverCache.insert(chart_id, new ChartCover(cov, nocov, p));
+    auto c = new ChartCover(cov, nocov, sw, ne, p);
+    // chartcover::tognuplot(cov, nocov, c->region(p), sw, ne, p, chart_id);
+    m_coverCache.insert(chart_id, c);
   }
 
   return m_coverCache[chart_id];
@@ -334,22 +329,37 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
       if (m_scale > maxScaleRatio * sc) continue;
       scaleCandidates << sc;
     }
+    // select largest scale less or equal than target scale as preferred scale
+    int index = scaleCandidates.size() - 1;
+    for (int i = 0; i < scaleCandidates.size(); i++) {
+      if (scaleCandidates[i] > m_scale) {
+        index = i - 1;
+        break;
+      }
+    }
+    // move small scales to end of candidate list in reversed order
+    ScaleVector smallScales;
+    while (index > 0) {
+      smallScales.prepend(scaleCandidates.takeFirst());
+      index--;
+    }
+    scaleCandidates.append(smallScales);
   }
 
-  std::sort(scaleCandidates.begin(), scaleCandidates.end(), [this] (quint32 a, quint32 b) {
-    const double la = std::abs(log(static_cast<double>(a) / m_scale));
-    const double lb = std::abs(log(static_cast<double>(b) / m_scale));
-    return la < lb;
-  });
-
-  // qDebug() << "scale candidates" << scaleCandidates;
+  qDebug() << "target" << m_scale << ", candidates" << scaleCandidates;
 
   const WGS84Point sw0 = cam->geoprojection()->toWGS84(m_viewArea.topLeft()); // inverted y-axis
   const WGS84Point ne0 = cam->geoprojection()->toWGS84(m_viewArea.bottomRight()); // inverted y-axis
 
-  IDVector chartids;
+
+  KV::Region remainingArea(m_viewArea);
+  KV::RegionMap regions;
+  KV::RegionMap covers;
+
+  const auto totarea = remainingArea.area();
+  qreal noncov = 100;
+
   for (quint32 selectedScale: scaleCandidates) {
-    chartids.clear();
 
     // select charts
     QSqlQuery r = m_db.prepare("select chart_id, swx, swy, nex, ney, path "
@@ -364,29 +374,36 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
     r.bindValue(4, sw0.lat());
 
     m_db.exec(r);
-    bool covered = false;
-    while (r.next()) {
-      chartids.append(r.value(0).toUInt());
-      // qDebug() << chartids.last();
-      if (!covered) {
-        auto sw = WGS84Point::fromLL(r.value(1).toDouble(), r.value(2).toDouble());
-        auto ne = WGS84Point::fromLL(r.value(3).toDouble(), r.value(4).toDouble());
-        const ChartCover* c = getCover(chartids.last(), sw, ne, cam->geoprojection());
-        covered = c->covers(m_viewArea.center(), cam->geoprojection());
+    while (r.next() && noncov >= .1) {
+      quint32 id = r.value(0).toUInt();
+      auto sw = WGS84Point::fromLL(r.value(1).toDouble(), r.value(2).toDouble());
+      auto ne = WGS84Point::fromLL(r.value(3).toDouble(), r.value(4).toDouble());
+      auto c = getCover(id, sw, ne, cam->geoprojection());
+      auto reg = c->region(cam->geoprojection()) & remainingArea;
+      if (reg.isValid()) {
+        remainingArea -= reg;
+        noncov = remainingArea.area() / totarea * 100;
+        regions[id] = reg;
+        covers[id] = c->region(cam->geoprojection());
+        qDebug() << "chart" << id << selectedScale << ", covers" << reg.area() / totarea * 100
+                 << ", remaining" << noncov;
       }
     }
-    //    qDebug() << "chart cover is" << covered;
-    //    qDebug() << "Number of charts" << chartids.size();
-    //    qDebug() << "Nominal scale" << selectedScale;
-    //    qDebug() << "True scale   " << m_scale;
-    // select next scale if there's no coverage
-    if (covered) {
+    if (noncov < .1) {
       break;
     }
   }
 
+  // chartmanager::tognuplot(regions, m_viewArea, "regions");
+  // chartmanager::tognuplot(covers, m_viewArea, "covers");
+
+  qDebug() << "Number of charts" << regions.size()
+           << ", covered =" << (noncov < 1.);
+
+
+
   IDVector newCharts;
-  for (int id: chartids) {
+  for (auto id: regions.keys()) {
     if (!m_chartIds.contains(id)) {
       newCharts.append(id);
     } else {
@@ -416,9 +433,8 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
   // create pending chart update data
   for (S57Chart* c: m_charts) {
     // Note: inverted y-axis
-    const WGS84Point sw = cam->geoprojection()->toWGS84(m_viewArea.topLeft());
-    const WGS84Point ne = cam->geoprojection()->toWGS84(m_viewArea.bottomRight());
-    m_pendingStack.push(ChartData(c, m_scale, sw, ne, (flags & UpdateLookups) != 0));
+    m_pendingStack.push(ChartData(c, m_scale, regions[c->id()].toWGS84(cam->geoprojection()),
+                        (flags & UpdateLookups) != 0));
   }
   // create pending chart creation data
   if (!newCharts.isEmpty()) {
@@ -434,9 +450,8 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
       const quint32 id = r.value(0).toUInt();
       const auto path = r.value(1).toString();
       qDebug() << "New chart" << path;
-      const WGS84Point sw = cam->geoprojection()->toWGS84(m_viewArea.topLeft());
-      const WGS84Point ne = cam->geoprojection()->toWGS84(m_viewArea.bottomRight());
-      m_pendingStack.push(ChartData(id, path, m_scale, sw, ne));
+      m_pendingStack.push(ChartData(id, path, m_scale,
+                                    regions[id].toWGS84(cam->geoprojection())));
     }
   }
 
@@ -446,18 +461,10 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
     ChartUpdater* dest = m_workers[index];
     if (d.chart != nullptr) {
       QMetaObject::invokeMethod(dest, "updateChart",
-                                Q_ARG(S57Chart*, d.chart),
-                                Q_ARG(quint32, d.scale),
-                                Q_ARG(const WGS84Point&, d.sw),
-                                Q_ARG(const WGS84Point&, d.ne),
-                                Q_ARG(bool, d.updLup));
+                                Q_ARG(const ChartData&, d));
     } else {
       QMetaObject::invokeMethod(dest, "createChart",
-                                Q_ARG(quint32, d.id),
-                                Q_ARG(const QString&, d.path),
-                                Q_ARG(quint32, d.scale),
-                                Q_ARG(const WGS84Point&, d.sw),
-                                Q_ARG(const WGS84Point&, d.ne));
+                                Q_ARG(const ChartData&, d));
     }
   }
 
@@ -485,19 +492,11 @@ void ChartManager::manageThreads(S57Chart* chart) {
     const ChartData d = m_pendingStack.pop();
     if (d.chart != nullptr) {
       QMetaObject::invokeMethod(dest, "updateChart",
-                                Q_ARG(S57Chart*, d.chart),
-                                Q_ARG(quint32, d.scale),
-                                Q_ARG(const WGS84Point&, d.sw),
-                                Q_ARG(const WGS84Point&, d.ne),
-                                Q_ARG(bool, d.updLup));
+                                Q_ARG(const ChartData&, d));
 
     } else {
       QMetaObject::invokeMethod(dest, "createChart",
-                                Q_ARG(quint32, d.id),
-                                Q_ARG(const QString&, d.path),
-                                Q_ARG(quint32, d.scale),
-                                Q_ARG(const WGS84Point&, d.sw),
-                                Q_ARG(const WGS84Point&, d.ne));
+                                Q_ARG(const ChartData&, d));
     }
   } else {
     m_idleStack.push(dest->id());
@@ -579,58 +578,4 @@ void ChartManager::manageInfoResponse(const S57::InfoType& info, quint32 tid) {
   }
 }
 
-void ChartUpdater::createChart(quint32 id, const QString &path, quint32 scale,
-                               const WGS84Point& sw, const WGS84Point& ne) {
-  try {
-    auto chart = new S57Chart(id, path);
-    // qDebug() << "ChartUpdater::createChart";
-    chart->updatePaintData(sw, ne, scale);
-    emit done(chart);
-  } catch (ChartFileError& e) {
-    qWarning() << "Chart creation failed:" << e.msg();
-    emit done(nullptr);
-  }
-}
-
-void ChartUpdater::updateChart(S57Chart *chart, quint32 scale,
-                               const WGS84Point& sw, const WGS84Point& ne, bool updLup) {
-  if (updLup) {
-    chart->updateLookups();
-  }
-  chart->updatePaintData(sw, ne, scale);
-  emit done(chart);
-}
-
-void ChartUpdater::cacheChart(S57Chart *chart) {
-  auto scoped = QScopedPointer<S57Chart>(chart);
-
-  const auto id = CacheReader::CacheId(chart->path());
-  const auto base = QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation);
-
-  const auto cachePath = QString("%1/%2/%3").arg(base).arg(qAppName()).arg(QString(id));
-
-  if (!QFileInfo(cachePath).exists()) {
-    // not found - cache
-    if (!QDir().mkpath(QString("%1/%2").arg(base).arg(qAppName()))) return;
-    QFile file(cachePath);
-    if (!file.open(QFile::WriteOnly)) return;
-    QDataStream stream(&file);
-    stream.setVersion(QDataStream::Qt_5_6);
-    stream.setByteOrder(QDataStream::LittleEndian);
-    // dummy magic - causes simultaneous read to fail
-    stream.writeRawData("00000000", 8);
-    scoped->encode(stream);
-    // write magic
-    file.seek(0);
-    stream.writeRawData(id.constData(), 8);
-    file.close();
-  }
-}
-
-void ChartUpdater::requestInfo(S57Chart *chart, const WGS84Point &p,
-                               quint32 scale, quint32 tid) {
-  auto info = chart->objectInfo(p, scale);
-  qDebug() << "ChartUpdater::requestInfo";
-  emit infoResponse(info, tid);
-}
 

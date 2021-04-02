@@ -4,6 +4,7 @@
 #include <QOpenGLBuffer>
 #include <QColor>
 #include "s57object.h"
+#include "region.h"
 
 namespace S57 {
 
@@ -78,6 +79,7 @@ public:
   void setVertexOffset() const override;
 
   const ElementDataVector& elements() const {return m_elements;}
+  void filterElements(const KV::Region& viewArea);
 
 protected:
 
@@ -108,6 +110,9 @@ public:
 
   virtual void setStorageOffsets(uintptr_t offset) const = 0;
 
+  void filterElements(const KV::Region& viewArea);
+
+
 protected:
 
   LineData(Type t,
@@ -119,7 +124,6 @@ protected:
 
   ElementDataVector m_elements;
   GLfloat m_lineWidth;
-  const GLfloat m_conv;
   GLsizei m_vertexOffset;
   QColor m_color;
   GLuint m_pattern;
@@ -188,30 +192,32 @@ public:
   void setVertexOffset() const override;
 
   TextElemData(const QPointF& pivot,
-               const QPointF& bboxBase,
-               const QPointF& pivotOffset,
-               const QPointF& bboxOffset,
-               float boxScale,
-               GLsizei vertexOffset,
-               const ElementData& elems,
+               int ticket,
                const QColor& c);
 
-  const ElementData& elements() const {return m_elements;}
+  void merge(const TextElemData* other);
+  void getInstances(GL::VertexVector& instances);
+
+  QColor color() const {return m_color;}
+  int count() const {return m_instanceCount;}
+
 
 protected:
 
-  ElementData m_elements;
-  GLsizei m_vertexOffset;
+  using TicketVector = QVector<int>;
+  using PointVector = QVector<QPointF>;
+
+  PointVector m_pivots;
+  TicketVector m_tickets;
   QColor m_color;
-  GLfloat m_scaleMM;
-  QPointF m_pivot;
-  QPointF m_shiftMM;
+  GLsizei m_instanceOffset;
+  int m_instanceCount;
 
 };
 
 class SymbolHelper {
 public:
-  virtual void setSymbolOffset(const QPoint& off) const = 0;
+  virtual void setSymbolOffset(const QPointF& off) const = 0;
   virtual void setVertexBufferOffset(GLsizei off) const = 0;
   virtual void setColor(const QColor& color) const = 0;
   virtual ~SymbolHelper() = default;
@@ -221,7 +227,7 @@ public:
 class RasterHelper: public SymbolHelper {
 public:
   RasterHelper() = default;
-  void setSymbolOffset(const QPoint& off) const override;
+  void setSymbolOffset(const QPointF& off) const override;
   void setVertexBufferOffset(GLsizei off) const override;
   void setColor(const QColor& color) const override;
 };
@@ -229,7 +235,7 @@ public:
 class VectorHelper: public SymbolHelper {
 public:
   VectorHelper() = default;
-  void setSymbolOffset(const QPoint& off) const override;
+  void setSymbolOffset(const QPointF& off) const override;
   void setVertexBufferOffset(GLsizei off) const override;
   void setColor(const QColor& color) const override;
 };
@@ -241,7 +247,7 @@ public:
   void setUniforms() const override;
   void setVertexOffset() const override;
 
-  virtual void merge(const SymbolPaintDataBase* other, qreal scale, const QRectF& va) = 0;
+  virtual void merge(const SymbolPaintDataBase* other, qreal scale, const KV::Region& va) = 0;
   SymbolKey key() const {return SymbolKey(m_index, m_type);}
   void getPivots(GL::VertexVector& pivots);
   GLsizei count() const {return m_instanceCount;}
@@ -253,13 +259,13 @@ protected:
   SymbolPaintDataBase(Type t,
                       S52::SymbolType s,
                       quint32 index,
-                      const QPoint& offset,
+                      const QPointF& offset,
                       SymbolHelper* helper);
 
   S52::SymbolType m_type;
   quint32 m_index;
 
-  QPoint m_offset;
+  QPointF m_offset;
 
   SymbolHelper* m_helper;
 
@@ -278,16 +284,16 @@ protected:
 
   SymbolPaintData(Type t,
                   quint32 index,
-                  const QPoint& offset,
+                  const QPointF& offset,
                   SymbolHelper* helper,
                   const QPointF& pivot);
 };
 
 class RasterSymbolPaintData: public SymbolPaintData {
 public:
-  void merge(const SymbolPaintDataBase* other, qreal, const QRectF&) override;
+  void merge(const SymbolPaintDataBase* other, qreal, const KV::Region&) override;
   RasterSymbolPaintData(quint32 index,
-                        const QPoint& offset,
+                        const QPointF& offset,
                         const QPointF& pivot,
                         const ElementData& elem);
 
@@ -308,7 +314,7 @@ using ColorElementVector = QVector<ColorElementData>;
 
 class VectorSymbolPaintData: public SymbolPaintData {
 public:
-  void merge(const SymbolPaintDataBase* other, qreal, const QRectF& va) override;
+  void merge(const SymbolPaintDataBase* other, qreal, const KV::Region& va) override;
   VectorSymbolPaintData(quint32 index,
                         const QPointF& pivot,
                         const Angle& rot,
@@ -327,7 +333,7 @@ class PatternPaintData: public SymbolPaintDataBase {
 public:
 
   void setAreaVertexOffset(GLsizei off) const;
-  void merge(const SymbolPaintDataBase* other, qreal scale, const QRectF& va) override;
+  void merge(const SymbolPaintDataBase* other, qreal scale, const KV::Region& va) override;
 
   struct AreaData {
     ElementDataVector elements;
@@ -346,32 +352,32 @@ protected:
 
   PatternPaintData(Type t,
                    quint32 index,
-                   const QPoint& offset,
+                   const QPointF& offset,
                    SymbolHelper* helper,
                    const ElementDataVector& aelems,
                    GLsizei aoffset,
                    bool indexed,
                    const QRectF& bbox,
-                   const PatternAdvance& advance);
+                   const PatternMMAdvance& advance);
 
   virtual void createPivots(const QRectF& bbox, qreal scale) = 0;
 
   AreaDataVector m_areaElements;
   AreaDataVector m_areaArrays;
 
-  PatternAdvance m_advance;
+  PatternMMAdvance m_advance;
 
 };
 
 class RasterPatternPaintData: public PatternPaintData {
 public:
   RasterPatternPaintData(quint32 index,
-                         const QPoint& offset,
+                         const QPointF& offset,
                          const ElementDataVector& aelems,
                          GLsizei aoffset,
                          bool indexed,
                          const QRectF& bbox,
-                         const PatternAdvance& advance,
+                         const PatternMMAdvance& advance,
                          const ElementData& elem);
 
   const ElementData& element() const {return m_elem;}
@@ -393,7 +399,7 @@ public:
                          GLsizei aoffset,
                          bool indexed,
                          const QRectF& bbox,
-                         const PatternAdvance& advance,
+                         const PatternMMAdvance& advance,
                          const Angle& rot,
                          const KV::ColorVector& colors,
                          const ElementDataVector& elems);
@@ -420,11 +426,11 @@ public:
                      const ElementDataVector& lelems,
                      GLsizei loffset,
                      const QRectF& bbox,
-                     const PatternAdvance& advance,
+                     const PatternMMAdvance& advance,
                      const KV::ColorVector& colors,
                      const ElementDataVector& elems);
 
-  void merge(const SymbolPaintDataBase* other, qreal scale, const QRectF& va) override;
+  void merge(const SymbolPaintDataBase* other, qreal scale, const KV::Region& va) override;
 
   void createTransforms(GL::VertexVector& transforms,
                         const QOpenGLBuffer& coordBuffer,
@@ -450,7 +456,7 @@ private:
   ColorElementVector m_elems;
   LineDataVector m_lineElements;
   qreal m_advance;
-  QRectF m_viewArea;
+  KV::Region m_cover;
 
 };
 

@@ -12,9 +12,9 @@ public:
 
   SymbolData(SymbolDataPrivate *d);
   SymbolData();
-  SymbolData(const QPoint& off, const QSize& size, int mnd, bool st,
+  SymbolData(const QPointF& off, const QSizeF& size, qreal mnd, bool st,
              const S57::ElementData& elem);
-  SymbolData(const QPoint& off, const QSize& size, int mnd, bool st,
+  SymbolData(const QPointF& off, const QSizeF& size, qreal mnd, bool st,
              const S57::ElementDataVector& elems, const S52::ColorVector& colors);
   SymbolData(const SymbolData& s);
 
@@ -27,9 +27,9 @@ public:
   inline bool operator!=(const SymbolData& s) const {return !(operator==(s));}
 
   bool isValid() const;
-  const QPoint& offset() const;
-  const QSize& size() const;
-  const PatternAdvance& advance() const;
+  const QPointF& offset() const;
+  const QSizeF& size() const;
+  const PatternMMAdvance& advance() const;
   const S57::ElementData& element() const;
   const S57::ElementDataVector& elements() const;
   const S52::ColorVector& colors() const;

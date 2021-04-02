@@ -108,7 +108,6 @@ namespace GL {
 
 struct Mesh {
   VertexVector vertices;
-  IndexVector indices;
   QRectF bbox;
 };
 }

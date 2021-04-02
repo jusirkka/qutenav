@@ -14,7 +14,7 @@ void main() {
     color = base_color;
   } else {
     // create a filter with period patlen.
-    const uint bitpos = uint(round(texCoord)) % PAT_LEN;
+    const uint bitpos = uint(round(10 * texCoord)) % PAT_LEN;
     const uint bit = (1U << bitpos);
     // discard the bit if it doesn't match the masking pattern
     if ((pattern & bit) == 0U) {

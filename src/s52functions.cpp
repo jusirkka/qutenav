@@ -95,14 +95,15 @@ S57::PaintDataMap S52::AreaPattern::execute(const QVector<QVariant>& vals,
 
 S57::PaintDataMap S52::LineSimple::execute(const QVector<QVariant>& vals,
                                            const S57::Object* obj) {
+
   auto line = dynamic_cast<const S57::Geometry::Line*>(obj->geometry());
 
   auto pattern = as_enum<S52::LineType>(vals[0].toUInt(), S52::AllLineTypes);
   auto width = vals[1].toUInt();
   auto color = S52::GetColor(vals[2].toUInt());
 
-  auto p = new S57::LineElemData(line->lineElements(), 0, color, width,
-                                 as_numeric(pattern));
+  auto p = new S57::LineElemData(line->lineElements(), 0, color,
+                                 S52::LineWidthMM(width), as_numeric(pattern));
 
   return S57::PaintDataMap{{p->type(), p}};
 }
@@ -208,6 +209,12 @@ S57::PaintDataMap S52::Text::execute(const QVector<QVariant>& vals,
                                      const S57::Object* obj) {
 
 
+  const quint8 group = vals[8].toUInt();
+  if (!Conf::MarinerParams::textGrouping().contains(group)) {
+    // qDebug() << "skipping TX in group" << group;
+    return S57::PaintDataMap();
+  }
+
   QString txt;
 
   const QMetaType::Type t = static_cast<QMetaType::Type>(vals[0].type());
@@ -226,11 +233,6 @@ S57::PaintDataMap S52::Text::execute(const QVector<QVariant>& vals,
 
   // qDebug() << "TX:" << as_numeric(obj->geometry()->type()) << txt;
 
-  const quint8 group = vals[8].toUInt();
-  if (!Conf::MarinerParams::textGrouping().contains(group)) {
-    // qDebug() << "skipping TX in group" << group;
-    return S57::PaintDataMap();
-  }
 
   const QString chars = vals[4].toString();
 
@@ -250,23 +252,20 @@ S57::PaintDataMap S52::Text::execute(const QVector<QVariant>& vals,
     qWarning() << "Cutting long text" << txt;
     txt = txt.mid(80);
   }
-  const TextData d = TextManager::instance()->textData(txt, weight);
-  if (!d.isValid()) {
-    return S57::PaintDataMap();
-  }
 
   auto hjust = as_enum<TXT::HJust>(vals[1].toUInt(), TXT::AllHjusts);
   auto vjust = as_enum<TXT::VJust>(vals[2].toUInt(), TXT::AllVjusts);
+  auto bodySize = chars.mid(3).toUInt();
+  auto offsetX = vals[5].toInt();
+  auto offsetY = vals[6].toInt();
 
-  const QPointF dPivot(m_pivotHMap[hjust] * d.bbox().width(),
-                       m_pivotVMap[vjust] * d.bbox().height());
-
-  // ad-hoc factor: too large fonts
-  const float bodySizeMM = chars.mid(3).toUInt() * .351 * .6;
-
-  const QPointF dMM = QPointF(vals[5].toInt(), - vals[6].toInt()) * bodySizeMM;
-
-  const QColor color = S52::GetColor(vals[7].toUInt());
+  const int ticket = TextManager::instance()->ticket(txt,
+                                                     weight,
+                                                     hjust,
+                                                     vjust,
+                                                     bodySize,
+                                                     offsetX,
+                                                     offsetY);
 
   QPointF loc = obj->geometry()->center();
   if (obj->geometry()->type() == S57::Geometry::Type::Point) {
@@ -278,13 +277,11 @@ S57::PaintDataMap S52::Text::execute(const QVector<QVariant>& vals,
     }
   }
 
+
+  const QColor color = S52::GetColor(vals[7].toUInt());
+
   S57::PaintData* p = new S57::TextElemData(loc,
-                                            d.bbox().bottomLeft(), // inverted y-axis
-                                            dPivot,
-                                            dMM,
-                                            bodySizeMM / d.bbox().height(),
-                                            d.offset(),
-                                            d.elements(),
+                                            ticket,
                                             color);
 
   return S57::PaintDataMap{{p->type(), p}};
@@ -293,12 +290,19 @@ S57::PaintDataMap S52::Text::execute(const QVector<QVariant>& vals,
 
 S57::PaintDataMap S52::TextExtended::execute(const QVector<QVariant>& vals,
                                              const S57::Object* obj) {
+
+  const int numAttrs = vals[1].toInt();
+
+  const quint8 group = vals[9 + numAttrs].toUInt();
+  if (!Conf::MarinerParams::textGrouping().contains(group)) {
+    // qDebug() << "skipping TX in group" << group;
+    return S57::PaintDataMap();
+  }
+
   const QString txt = vals[0].toString();
   if (txt.isEmpty()) {
     return S57::PaintDataMap();
   }
-
-  const int numAttrs = vals[1].toInt();
 
   char format[256];
   strcpy(format, txt.toUtf8().data());
@@ -1003,7 +1007,7 @@ S57::PaintDataMap S52::CSLights05::drawDirection(const S57::Object *obj) const {
 
 
   auto color = S52::GetColor(m_chblk);
-  auto p = new S57::LineLocalData(vertices, elements, color, 1,
+  auto p = new S57::LineLocalData(vertices, elements, color, S52::LineWidthMM(1),
                                   as_numeric(S52::LineType::Dashed),
                                   false, QPointF(x0, y0));
 
@@ -1052,7 +1056,7 @@ S57::PaintDataMap S52::CSLights05::drawSectors(const S57::Object *obj) const {
   vertices << 2 * x2 - x0 << 2 * y2 - y0;
 
   auto color = S52::GetColor(m_chblk);
-  auto p = new S57::LineLocalData(vertices, elements, color, 1,
+  auto p = new S57::LineLocalData(vertices, elements, color, S52::LineWidthMM(1),
                                   as_numeric(S52::LineType::Dashed),
                                   !chartUnits,
                                   QPointF(x0, y0));
@@ -1104,7 +1108,7 @@ S57::PaintDataMap S52::CSLights05::drawArc(const S57::Object *obj,
 
 
   auto color = S52::GetColor(c);
-  auto p = new S57::LineLocalData(vertices, elements, color, lw,
+  auto p = new S57::LineLocalData(vertices, elements, color, S52::LineWidthMM(lw),
                                   as_numeric(t), true, p0);
 
   return S57::PaintDataMap{{p->type(), p}};

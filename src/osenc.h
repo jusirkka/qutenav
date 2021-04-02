@@ -27,9 +27,9 @@ public:
 
 private:
 
-  QPointF computeAreaCenter(const S57::ElementDataVector &elems,
-                            const GL::VertexVector& vertices,
-                            GLsizei offset) const;
+  QPointF computeAreaCenterAndBboxes(S57::ElementDataVector& elems,
+                                     const GL::VertexVector& vertices,
+                                     GLsizei offset) const;
 
   struct RawEdge {
     quint32 first;
@@ -42,11 +42,15 @@ private:
   using PointRefMap = QMap<quint32, quint32>;
 
   struct TrianglePatch {
+    TrianglePatch()
+      : mode(GL_TRIANGLES) {}
     GLenum mode;
     GL::VertexVector vertices;
   };
 
   using TrianglePatchVector = QVector<TrianglePatch>;
+
+  static const int blockSize = 3000;
 
   struct RawEdgeRef {
     quint32 begin;

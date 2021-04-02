@@ -14,9 +14,9 @@ SymbolData& SymbolData::operator=(const SymbolData& s) {
   return *this;
 }
 
-SymbolData::SymbolData(const QPoint& off,
-                       const QSize& size,
-                       int mnd,
+SymbolData::SymbolData(const QPointF& off,
+                       const QSizeF& size,
+                       qreal mnd,
                        bool st,
                        const S57::ElementData& elem)
   : d(new SymbolDataPrivate) {
@@ -27,9 +27,9 @@ SymbolData::SymbolData(const QPoint& off,
   d->computeAdvance(mnd, st);
 }
 
-SymbolData::SymbolData(const QPoint &off,
-                       const QSize &size,
-                       int mnd,
+SymbolData::SymbolData(const QPointF &off,
+                       const QSizeF &size,
+                       qreal mnd,
                        bool st,
                        const S57::ElementDataVector &elems,
                        const S52::ColorVector &colors)
@@ -49,15 +49,15 @@ bool SymbolData::isValid() const {
   return d->size.isValid();
 }
 
-const QPoint& SymbolData::offset() const {
+const QPointF& SymbolData::offset() const {
   return d->offset;
 }
 
-const QSize& SymbolData::size() const {
+const QSizeF& SymbolData::size() const {
   return d->size;
 }
 
-const PatternAdvance& SymbolData::advance() const {
+const PatternMMAdvance& SymbolData::advance() const {
   return d->advance;
 }
 

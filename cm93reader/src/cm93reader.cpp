@@ -440,50 +440,6 @@ Attribute* Attribute::Decode(QDataStream &stream) {
 
 using Region = S57ChartOutline::Region;
 
-//static void tognuplot(const Region& cov, const WGS84Point& sw,
-//                      const WGS84Point& ne, const GeoProjection* gp,
-//                      const QString& path) {
-
-//  if (sw.lng() < -10) return;
-//  if (ne.lng() > -5) return;
-//  if (sw.lat() < 35) return;
-//  if (ne.lat() > 37) return;
-
-//  const QString gpath = QString("gnuplot") + path.right(2);
-//  qDebug() << "writing to" << gpath;
-//  QFile file(gpath);
-//  file.open(QFile::ReadWrite);
-//  QTextStream stream(&file);
-//  stream.seek(file.size());
-
-//  QPointF p;
-//  stream << "\n";
-//  p = gp->fromWGS84(sw);
-//  stream << p.x() << " " << p.y() << " 0\n";
-
-//  p = gp->fromWGS84(WGS84Point::fromLL(ne.lng(), sw.lat()));
-//  stream << p.x() << " " << p.y() << " 0\n";
-
-//  p = gp->fromWGS84(ne);
-//  stream << p.x() << " " << p.y() << " 0\n";
-
-//  p = gp->fromWGS84(WGS84Point::fromLL(sw.lng(), ne.lat()));
-//  stream << p.x() << " " << p.y() << " 0\n";
-
-//  p = gp->fromWGS84(sw);
-//  stream << p.x() << " " << p.y() << " 0\n";
-//  stream << "\n";
-
-//  for (const WGS84PointVector& ws: cov) {
-//    for (const WGS84Point& w: ws) {
-//      p = gp->fromWGS84(w);
-//      stream << p.x() << " " << p.y() << " 1\n";
-//    }
-//    p = gp->fromWGS84(ws.first());
-//    stream << p.x() << " " << p.y() << " 1\n\n";
-//  }
-//  file.close();
-//}
 
 GeoProjection* CM93Reader::configuredProjection(const QString& path) const {
 
@@ -672,8 +628,6 @@ S57ChartOutline CM93Reader::readOutline(const QString& path, const GeoProjection
   gpsc->setReference(gp->reference());
 
   const Region cov = transformCoverage(pcov, sw, ne, gpsc.data());
-  // gp->setReference(WGS84Point::fromLL(-5, 35));
-  // tognuplot(cov, sw, ne, gpsc.data(), path);
   return S57ChartOutline(sw, ne,
                          cov,
                          Region(),
@@ -881,7 +835,7 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
       S57::ElementDataVector triangles;
       triangulate(triangles, indices, vertices, lines);
 
-      const QPointF center = computeAreaCenter(triangles, vertices, indices);
+      const QPointF center = computeAreaCenterAndBboxes(triangles, vertices, indices);
       const QRectF bbox = computeBBox(lines, vertices, indices);
       helper.cm93SetGeometry(object,
                              new S57::Geometry::Area(lines,

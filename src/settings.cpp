@@ -1,5 +1,6 @@
 #include "settings.h"
 #include <QDebug>
+#include "platform.h"
 
 bool TextGroup::enabled() const {
   return Conf::MarinerParams::textGrouping().contains(m_group);
@@ -74,6 +75,18 @@ void Settings::setDefault(const QString& prop) {
   key[0] = prop[0].toUpper();
   auto def = Conf::MarinerParams::self()->findItem(key)->getDefault();
   setProperty(prop.toUtf8(), def);
+}
+
+float Settings::displayLengthScaling() const {
+  return dots_per_mm_y / nominal_dpmm;
+}
+
+float Settings::displayTextSizeScaling() const {
+  return .7 * dots_per_mm_y;
+}
+
+float Settings::displayLineWidthScaling() const {
+  return .7;
 }
 
 Settings::~Settings() {

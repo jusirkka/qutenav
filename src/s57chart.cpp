@@ -50,6 +50,7 @@ S57Chart::S57Chart(quint32 id, const QString& path)
   , m_indexBuffer(QOpenGLBuffer::IndexBuffer)
   , m_pivotBuffer(QOpenGLBuffer::VertexBuffer)
   , m_transformBuffer(QOpenGLBuffer::VertexBuffer)
+  , m_textTransformBuffer(QOpenGLBuffer::VertexBuffer)
 {
 
   ChartFileReader* reader = nullptr;
@@ -151,6 +152,11 @@ S57Chart::S57Chart(quint32 id, const QString& path)
   // 3K vector symbol/pattern instances
   m_transformBuffer.allocate(3000 * 4 * sizeof(GLfloat));
 
+  m_textTransformBuffer.create();
+  m_textTransformBuffer.setUsagePattern(QOpenGLBuffer::DynamicDraw);
+  m_textTransformBuffer.bind();
+  // 5K char instances
+  m_textTransformBuffer.allocate(5000 * 10 * sizeof(GLfloat));
 }
 
 void S57Chart::updateLookups() {
@@ -250,7 +256,7 @@ void S57Chart::encode(QDataStream& stream) {
 
 }
 
-void S57Chart::updatePaintData(const WGS84Point &sw, const WGS84Point &ne, quint32 scale) {
+void S57Chart::updatePaintData(const WGS84PointVector& cs, quint32 scale) {
 
   // clear old paint data
   for (S57::PaintDataMap& d: m_paintData) {
@@ -262,16 +268,17 @@ void S57Chart::updatePaintData(const WGS84Point &sw, const WGS84Point &ne, quint
   GL::VertexVector vertices;
   GL::VertexVector pivots;
   GL::VertexVector transforms;
+  GL::VertexVector textTransforms;
 
   const auto maxcat = static_cast<quint8>(Conf::MarinerParams::maxCategory());
   const auto today = QDate::currentDate();
   const bool showMeta = Conf::MarinerParams::showMeta();
   const quint32 unknownClass = S52::FindIndex("######");
 
-  const QRectF viewArea(m_nativeProj->fromWGS84(sw),
-                        m_nativeProj->fromWGS84(ne));
+  KV::Region cover(cs, m_nativeProj);
 
-  const qreal sf = scaleFactor(sw, ne, viewArea, scale);
+  const qreal sf = scaleFactor(cover.boundingRect(), scale);
+  // qDebug() << "scale factor =" << sf;
 
   SymbolPriorityVector rastersymbols(S52::Lookup::PriorityCount);
   SymbolPriorityVector vectorsymbols(S52::Lookup::PriorityCount);
@@ -294,14 +301,14 @@ void S57Chart::updatePaintData(const WGS84Point &sw, const WGS84Point &ne, quint
     m_paintData[prio].insert(pn->type(), pn);
   };
 
-  auto mergeSymbols = [sf, viewArea] (SymbolPriorityVector& symbols, S57::PaintMutIterator it, int prio) {
+  auto mergeSymbols = [sf, cover] (SymbolPriorityVector& symbols, S57::PaintMutIterator it, int prio) {
     auto s = dynamic_cast<S57::SymbolPaintDataBase*>(it.value());
     if (symbols[prio].contains(s->key())) {
       auto s0 = dynamic_cast<S57::SymbolPaintDataBase*>(symbols[prio][s->key()]);
-      s0->merge(s, sf, viewArea);
+      s0->merge(s, sf, cover);
       delete s;
     } else {
-      s->merge(nullptr, sf, viewArea);
+      s->merge(nullptr, sf, cover);
       symbols[prio][s->key()] = it.value();
     }
   };
@@ -313,11 +320,32 @@ void S57Chart::updatePaintData(const WGS84Point &sw, const WGS84Point &ne, quint
     mergeSymbols(rastersymbols, it, prio);
   };
 
+  TextColorPriorityVector textInstances(S52::Lookup::PriorityCount);
+
+  auto mergeText = [&textInstances] (S57::PaintMutIterator it, int prio) {
+    auto t = dynamic_cast<S57::TextElemData*>(it.value());
+    if (textInstances[prio].contains(t->color())) {
+      auto t0 = dynamic_cast<S57::TextElemData*>(textInstances[prio][t->color()]);
+      t0->merge(t);
+      delete t;
+    } else {
+      textInstances[prio][t->color()] = it.value();
+    }
+  };
+
+
   PaintPriorityVector updates(S52::Lookup::PriorityCount);
 
+//  int areaCount = 0;
+//  int filteredAreaCount = 0;
   for (ObjectLookup& d: m_lookups) {
+
+//    if (d.object->geometry()->type() == S57::Geometry::Type::Area && !S52::IsMetaClass(d.object->classCode())) {
+//      areaCount += 1;
+//    }
+
     // check bbox & scale
-    if (!d.object->canPaint(viewArea, scale, today, d.lookup->canOverride())) continue;
+    if (!d.object->canPaint(cover, scale, today, d.lookup->canOverride())) continue;
 
     // check display category
     if (!d.lookup->canOverride() &&
@@ -373,8 +401,17 @@ void S57Chart::updatePaintData(const WGS84Point &sw, const WGS84Point &ne, quint
       pd.erase(pr);
     }
 
+//    if (d.object->geometry()->type() == S57::Geometry::Type::Area) {
+//      filteredAreaCount += 1;
+//    }
+
+
     updates[prio] += pd;
   }
+
+//  qDebug() << "Chart" << id() << ": Area objects =" << areaCount
+//           << "to be painted" << filteredAreaCount;
+
 
   for (int prio = 0; prio < S52::Lookup::PriorityCount; prio++) {
     auto pd = updates[prio];
@@ -387,6 +424,8 @@ void S57Chart::updatePaintData(const WGS84Point &sw, const WGS84Point &ne, quint
     parseLocals(S57::PaintData::Type::VectorSymbols, pd, prio, mergeVectorSymbols);
     parseLocals(S57::PaintData::Type::VectorPatterns, pd, prio, mergeVectorSymbols);
     parseLocals(S57::PaintData::Type::VectorLineStyles, pd, prio, mergeVectorSymbols);
+    // merge text
+    parseLocals(S57::PaintData::Type::TextElements, pd, prio, mergeText);
 
     m_paintData[prio] += pd;
   }
@@ -405,6 +444,49 @@ void S57Chart::updatePaintData(const WGS84Point &sw, const WGS84Point &ne, quint
 
   updatePaintDatamap(rastersymbols, pivots);
   updatePaintDatamap(vectorsymbols, transforms);
+
+  // filter area elements
+  auto filterAreaElements = [this, cover] (S57::PaintData::Type t) {
+    for (int i = 0; i < S52::Lookup::PriorityCount; i++) {
+      S57::PaintMutIterator it = m_paintData[i].find(t);
+      const S57::PaintMutIterator end = m_paintData[i].end();
+      while (it != end && it.key() == t) {
+        auto a = dynamic_cast<S57::TriangleData*>(it.value());
+        a->filterElements(cover);
+        ++it;
+      }
+    }
+  };
+
+  // filterAreaElements(S57::PaintData::Type::TriangleArrays);
+  // filterAreaElements(S57::PaintData::Type::TriangleElements);
+
+  // filter line elements
+  auto filterLineElements = [this, cover] (S57::PaintData::Type t) {
+    for (int i = 0; i < S52::Lookup::PriorityCount; i++) {
+      S57::PaintMutIterator it = m_paintData[i].find(t);
+      const S57::PaintMutIterator end = m_paintData[i].end();
+      while (it != end && it.key() == t) {
+        auto a = dynamic_cast<S57::LineData*>(it.value());
+        a->filterElements(cover);
+        ++it;
+      }
+    }
+  };
+
+  // filterLineElements(S57::PaintData::Type::LineArrays);
+  // filterLineElements(S57::PaintData::Type::LineElements);
+
+
+  // move merged text to paintdatamap
+  for (int i = 0; i < S52::Lookup::PriorityCount; i++) {
+    TextColorMap merged = textInstances[i];
+    for (TextColorMutIterator it = merged.begin(); it != merged.end(); ++it) {
+      auto t = dynamic_cast<S57::TextElemData*>(it.value());
+      t->getInstances(textTransforms);
+      m_paintData[i].insert(it.value()->type(), it.value());
+    }
+  }
 
   // update vertex buffer
   m_coordBuffer.bind();
@@ -453,14 +535,25 @@ void S57Chart::updatePaintData(const WGS84Point &sw, const WGS84Point &ne, quint
 
   m_pivotBuffer.write(0, pivots.constData(), dataLen);
 
+
+  // update text transform buffer
+  m_textTransformBuffer.bind();
+  dataLen = sizeof(GLfloat) * textTransforms.size();
+  if (dataLen > m_textTransformBuffer.size()) {
+    m_textTransformBuffer.allocate(dataLen);
+  }
+
+  m_textTransformBuffer.write(0, textTransforms.constData(), dataLen);
+
 }
 
-qreal S57Chart::scaleFactor(const WGS84Point &sw, const WGS84Point &ne,
-                            const QRectF& va, quint32 scale) const {
-  const WGS84Point nw = WGS84Point::fromLL(sw.lng(), ne.lat());
+qreal S57Chart::scaleFactor(const QRectF& va, quint32 scale) const {
 
-  // ratio of screen pixel height and viewarea height
-  return 1000. * (nw - sw).meters() / scale * dots_per_mm_y / va.height();
+  const WGS84Point sw = m_nativeProj->toWGS84(va.topLeft());
+  const WGS84Point nw = m_nativeProj->toWGS84(va.bottomLeft());
+
+  // ratio of display (mm) and chart (m) unit heights
+  return 1000. * (nw - sw).meters() / scale / va.height();
 }
 
 void S57Chart::updateModelTransform(const Camera *cam) {
@@ -625,9 +718,10 @@ void S57Chart::drawText(const Camera* cam, int prio) {
   while (elem != end && elem.key() == S57::PaintData::Type::TextElements) {
     auto d = dynamic_cast<const S57::TextElemData*>(elem.value());
     d->setUniforms();
+    m_textTransformBuffer.bind();
     d->setVertexOffset();
-    f->glDrawElements(d->elements().mode, d->elements().count, GL_UNSIGNED_INT,
-                      reinterpret_cast<const void*>(d->elements().offset));
+    f->glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, d->count());
+
     ++elem;
   }
 }

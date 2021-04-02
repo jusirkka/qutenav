@@ -12,6 +12,13 @@ ChartFileReader* ChartFileReaderFactory::loadReader() const {
   }
 }
 
+static void maxbox(QPointF& ll, QPointF& ur, qreal x, qreal y) {
+  ll.setX(qMin(ll.x(), x));
+  ll.setY(qMin(ll.y(), y));
+  ur.setX(qMax(ur.x(), x));
+  ur.setY(qMax(ur.y(), y));
+}
+
 QRectF ChartFileReader::computeBBox(S57::ElementDataVector &elems,
                                     const GL::VertexVector& vertices,
                                     const GL::IndexVector& indices) {
@@ -20,18 +27,25 @@ QRectF ChartFileReader::computeBBox(S57::ElementDataVector &elems,
 
   auto points = reinterpret_cast<const glm::vec2*>(vertices.constData());
   for (S57::ElementData& elem: elems) {
-    QPointF ur(-1.e15, -1.e15);
     QPointF ll(1.e15, 1.e15);
+    QPointF ur(-1.e15, -1.e15);
     // assuming chart originated lines
     const int first = elem.offset / sizeof(GLuint);
     for (uint i = 0; i < elem.count; i++) {
       const glm::vec2 q = points[indices[first + i]];
-      ur.setX(qMax(ur.x(), static_cast<qreal>(q.x)));
-      ur.setY(qMax(ur.y(), static_cast<qreal>(q.y)));
-      ll.setX(qMin(ll.x(), static_cast<qreal>(q.x)));
-      ll.setY(qMin(ll.y(), static_cast<qreal>(q.y)));
+      maxbox(ll, ur, q.x, q.y);
     }
-    elem.bbox = QRectF(ll, ur); // inverted y-axis
+    auto box = QRectF(ll, ur); // inverted y-axis
+    // ensure valid bbox
+    if (box.width() == 0.) {
+      box.setLeft(box.left() - 1.);
+      box.setWidth(2.);
+    }
+    if (box.height() == 0.) {
+      box.setTop(box.top() - 1.);
+      box.setHeight(2.);
+    }
+    elem.bbox = box;
     ret |= elem.bbox;
   }
   return ret;
@@ -42,10 +56,7 @@ QRectF ChartFileReader::computeSoundingsBBox(const GL::VertexVector &ps) {
   QPointF ll(1.e15, 1.e15);
   for (int i = 0; i < ps.size() / 3; i++) {
     const QPointF q(ps[3 * i], ps[3 * i + 1]);
-    ur.setX(qMax(ur.x(), q.x()));
-    ur.setY(qMax(ur.y(), q.y()));
-    ll.setX(qMin(ll.x(), q.x()));
-    ll.setY(qMin(ll.y(), q.y()));
+    maxbox(ll, ur, q.x(), q.y());
   }
   return QRectF(ll, ur);
 }
@@ -98,12 +109,16 @@ QPointF ChartFileReader::computeLineCenter(const S57::ElementDataVector &elems,
 
 }
 
-QPointF ChartFileReader::computeAreaCenter(const S57::ElementDataVector &elems,
-                                           const GL::VertexVector& vertices,
-                                           const GL::IndexVector& indices) {
+QPointF ChartFileReader::computeAreaCenterAndBboxes(S57::ElementDataVector &elems,
+                                                    const GL::VertexVector& vertices,
+                                                    const GL::IndexVector& indices) {
   float area = 0;
   QPointF s(0, 0);
-  for (const S57::ElementData& elem: elems) {
+  for (S57::ElementData& elem: elems) {
+
+    QPointF ll(1.e15, 1.e15);
+    QPointF ur(-1.e15, -1.e15);
+
     if (elem.mode == GL_TRIANGLES) {
       int first = elem.offset / sizeof(GLuint);
       for (uint i = 0; i < elem.count / 3; i++) {
@@ -114,14 +129,20 @@ QPointF ChartFileReader::computeAreaCenter(const S57::ElementDataVector &elems,
         const QPointF p2(vertices[2 * indices[first + 3 * i + 2] + 0],
                          vertices[2 * indices[first + 3 * i + 2] + 1]);
 
+        maxbox(ll, ur, p0.x(), p0.y());
+        maxbox(ll, ur, p1.x(), p1.y());
+        maxbox(ll, ur, p2.x(), p2.y());
+
         const float da = std::abs((p1.x() - p0.x()) * (p2.y() - p0.y()) - (p2.x() - p0.x()) * (p1.y() - p0.y()));
         area += da;
         s.rx() += da / 3. * (p0.x() + p1.x() + p2.x());
         s.ry() += da / 3. * (p0.y() + p1.y() + p2.y());
       }
     } else {
-      Q_ASSERT_X(false, "computeAreaCenter", "Unknown primitive");
+      Q_ASSERT_X(false, "computeAreaCenterAndBboxes", "Unknown primitive");
     }
+
+    elem.bbox = QRectF(ll, ur);
   }
 
   return s / area;
@@ -219,6 +240,7 @@ S57::ElementDataVector ChartFileReader::createLineElements(GL::IndexVector &indi
     auto start = getBeginPoint(i);
     auto prevlast = start;
     while (i < edges.size() && prevlast == getBeginPoint(i)) {
+      // qDebug() << "Edge" << edges[i].begin << edges[i].end << edges[i].reversed;
       e.count += addIndices(edges[i], indices);
       prevlast = getEndPoint(i);
       i++;
@@ -227,11 +249,13 @@ S57::ElementDataVector ChartFileReader::createLineElements(GL::IndexVector &indi
     const int adj = e.offset / sizeof(GLuint);
     if (prevlast == start) {
       // polygon
+      // qDebug() << "polygon" << elems.size() << i << edges.size();
       indices[adj] = indices.last(); // prev
       indices.append(indices[adj + 1]); // close polygon
       indices.append(indices[adj + 2]); // adjacent = next of first
     } else {
       // line string
+      // qDebug() << "linestring" << elems.size() << i << edges.size();
       auto prev = indices.last();
       indices.append(getEndPoint(i - 1));
       indices.append(addAdjacent(indices.last(), prev, vertices));

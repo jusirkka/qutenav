@@ -2,11 +2,12 @@
 #include "types.h"
 #include <QPointF>
 #include <QVector>
+#include "region.h"
 
-using Region = QVector<WGS84PointVector>;
+using LLPolygon = QVector<WGS84PointVector>;
 
 using PointVector = QVector<QPointF>;
-using PRegion = QVector<PointVector>;
+using Polygon = QVector<PointVector>;
 
 class GeoProjection;
 
@@ -16,14 +17,19 @@ public:
   ChartCover(const ChartCover&);
   ChartCover();
   ChartCover operator =(const ChartCover&);
-  ChartCover(const Region& cov, const Region& nocov, const GeoProjection* proj);
+  ChartCover(const LLPolygon& cov, const LLPolygon& nocov,
+             const WGS84Point& sw, const WGS84Point& ne,
+             const GeoProjection* gp);
 
-  bool covers(const QPointF& p, const GeoProjection* gp) const;
+  KV::Region region(const GeoProjection* gp) const;
 
 private:
 
-  WGS84Point m_ref;
-  PRegion m_cov;
-  PRegion m_nocov;
+  static const int gridWidth = 21;
 
+  KV::Region approximate(const PointVector& poly, const QRectF& box) const;
+  bool isRectangle(const PointVector& poly) const;
+
+  WGS84Point m_ref;
+  KV::Region m_cover;
 };

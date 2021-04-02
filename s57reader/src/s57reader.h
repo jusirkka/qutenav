@@ -89,6 +89,9 @@ private:
 
   Region transformCoverage(PRegion pcov, const GeoProjection* gp, WGS84Point* corners) const;
 
+  static const inline double eps = 1.e-4;
+  using IndexVector = QVector<int>;
+  void reduceRDP(const PointVector& ps, int first, int last, IndexVector& is) const;
 
   S57Reader(const QString& name);
 

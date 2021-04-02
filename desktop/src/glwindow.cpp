@@ -82,7 +82,7 @@ void GLWindow::initializeGL() {
     }
 
     ChartManager::instance()->createThreads(context());
-    TextManager::instance()->createBuffers();
+    TextManager::instance()->createTexture(512, 512);
     RasterSymbolManager::instance()->createSymbols();
     VectorSymbolManager::instance()->createSymbols();
   }

@@ -241,7 +241,11 @@ public:
   void setDefault(const QString& prop);
   QVariant getDefault(const QString& prop) const;
 
-  signals:
+  float displayLengthScaling() const;
+  float displayTextSizeScaling() const;
+  float displayLineWidthScaling() const;
+
+signals:
 
   void colorTableChanged(quint8 t);
   void settingsChanged();

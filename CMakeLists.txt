@@ -1,4 +1,7 @@
 cmake_minimum_required(VERSION 3.11 FATAL_ERROR)
+
+enable_testing()
+
 project(qopencpn LANGUAGES CXX C)
 
 set(DESKTOP ON)
@@ -6,6 +9,7 @@ set(DESKTOP ON)
 if (MOBILE)
   set (DESKTOP OFF)
 endif()
+
 
 #
 # dependencies
@@ -97,6 +101,7 @@ target_sources(qopencpn
     src/chartmanager.cpp
     src/chartmode.cpp
     src/chartpainter.cpp
+    src/chartupdater.cpp
     src/dbupdater_interface.cpp
     src/detailmode.cpp
     src/drawable.cpp
@@ -112,6 +117,7 @@ target_sources(qopencpn
     src/osenc.cpp
     src/perscam.cpp
     src/rastersymbolmanager.cpp
+    src/region.cpp
     src/s52functions.cpp
     src/s52names.cpp
     src/s52presentation.cpp
@@ -184,6 +190,7 @@ target_sources(qopencpn_dbupdater
     src/chartfilereader.cpp
     src/geoprojection.cpp
     src/osenc.cpp
+    src/region.cpp
     src/s52names.cpp
     src/s57chartoutline.cpp
     src/s57object.cpp
@@ -246,6 +253,9 @@ add_subdirectory(oesencreader)
 add_subdirectory(cm93reader)
 add_subdirectory(s57reader)
 add_subdirectory(dbupdater)
+add_subdirectory(tests)
+
+
 
 
 if (DESKTOP)

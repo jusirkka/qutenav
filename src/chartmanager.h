@@ -9,6 +9,7 @@
 #include "chartdatabase.h"
 #include "chartcover.h"
 #include <QCache>
+#include "chartupdater.h"
 
 class Camera;
 class S57Chart;
@@ -22,38 +23,6 @@ namespace GL {
 class Thread;
 }
 
-
-class ChartUpdater: public QObject {
-   Q_OBJECT
-
-public:
-
-  ChartUpdater(quint32 id): QObject(), m_id(id) {}
-
-  quint32 id() const {return m_id;}
-
-public slots:
-
-  void updateChart(S57Chart* chart, quint32 scale,
-                   const WGS84Point& sw, const WGS84Point& ne, bool updLup);
-  void createChart(quint32 id, const QString& path, quint32 scale,
-                   const WGS84Point& sw, const WGS84Point& ne);
-  void cacheChart(S57Chart* chart);
-  void requestInfo(S57Chart* chart, const WGS84Point& p, quint32 scale, quint32 tid);
-
-signals:
-
-  void done(S57Chart* chart);
-  void infoResponse(const S57::InfoType& info, quint32 tid);
-
-private:
-
-  ChartUpdater(const ChartUpdater&) = delete;
-  ChartUpdater& operator=(const ChartUpdater&) = delete;
-
-  quint32 m_id;
-
-};
 
 
 class ChartManager: public QObject {
@@ -104,43 +73,6 @@ private slots:
 
 private:
 
-  struct ChartData {
-
-    ChartData(S57Chart* c,
-              quint32 s, const WGS84Point& sw0, const WGS84Point& ne0, bool upd)
-      : chart(c)
-      , id(0)
-      , path()
-      , scale(s)
-      , sw(sw0)
-      , ne(ne0)
-      , updLup(upd)
-    {}
-
-    ChartData(quint32 i, const QString& pth,
-              quint32 s, const WGS84Point& sw0, const WGS84Point& ne0)
-      : chart(nullptr)
-      , id(i)
-      , path(pth)
-      , scale(s)
-      , sw(sw0)
-      , ne(ne0)
-      , updLup(false)
-    {}
-
-    S57Chart* chart;
-    quint32 id;
-    QString path;
-    quint32 scale;
-    WGS84Point sw;
-    WGS84Point ne;
-    bool updLup;
-
-    ChartData() = default;
-    ChartData(const ChartData&) = default;
-    ChartData& operator= (const ChartData&) = default;
-  };
-
   using ChartDataStack = QStack<ChartData>;
   using IDStack = QStack<quint32>;
   using UpdaterVector = QVector<ChartUpdater*>;
@@ -157,11 +89,10 @@ private:
   using IDVector = QVector<quint32>;
   using IDMap = QMap<quint32, quint32>;
   using ScaleVector = QVector<quint32>;
-  using ScaleMap = QMap<quint32, quint32>; // scale -> scale_id
 
   static constexpr float viewportFactor = 1.9;
   static constexpr float marginFactor = 1.08;
-  static constexpr float maxScaleRatio = 16;
+  static constexpr float maxScaleRatio = 32;
   static constexpr float maxScale = 25000000;
 
   ChartManager(QObject *parent = nullptr);

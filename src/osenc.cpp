@@ -363,6 +363,9 @@ public:
 
 }
 
+static void appendTriangles(GL::VertexVector& ps, const glm::vec2* vs, quint32 nv);
+static void appendTriangleStrip(GL::VertexVector& ps, const glm::vec2* vs, quint32 nv);
+static void appendTriangleFan(GL::VertexVector& ps, const glm::vec2* vs, quint32 nv);
 
 void Osenc::readChart(GL::VertexVector& vertices,
                             GL::IndexVector& indices,
@@ -484,16 +487,42 @@ void Osenc::readChart(GL::VertexVector& vertices,
         // skip contour counts
         ptr += p->contour_count * sizeof(int);
 
-        TrianglePatchVector ts(p->triprim_count);
-        for (uint i = 0; i < p->triprim_count; i++) {
-          ts[i].mode = static_cast<GLenum>(*ptr); // Note: relies on GL_TRIANGLE* to be less than 128
-          ptr++;
-          auto nvert = *reinterpret_cast<const uint32_t*>(ptr);
-          ptr += sizeof(uint32_t);
-          ptr += 4 * sizeof(double); // skip bbox
-          ts[i].vertices.resize(nvert * 2);
-          memcpy(ts[i].vertices.data(), ptr, nvert * 2 * sizeof(float));
-          ptr += nvert * 2 * sizeof(float);
+        TrianglePatchVector ts;
+        if (p->triprim_count < 5) {
+          ts.resize(p->triprim_count);
+          for (uint i = 0; i < p->triprim_count; i++) {
+            ts[i].mode = static_cast<GLenum>(*ptr);
+            ptr++;
+            auto nvert = *reinterpret_cast<const uint32_t*>(ptr);
+            ptr += sizeof(uint32_t);
+            ptr += 4 * sizeof(double); // skip bbox
+            ts[i].vertices.resize(nvert * 2);
+            memcpy(ts[i].vertices.data(), ptr, nvert * 2 * sizeof(float));
+            ptr += nvert * 2 * sizeof(float);
+          }
+        } else {
+          ts << TrianglePatch();
+          for (uint i = 0; i < p->triprim_count; i++) {
+            if (ts.last().vertices.size() > blockSize) {
+              ts << TrianglePatch();
+            }
+            GLenum mode = static_cast<GLenum>(*ptr);
+            ptr++;
+            auto nvert = *reinterpret_cast<const uint32_t*>(ptr);
+            ptr += sizeof(uint32_t);
+            ptr += 4 * sizeof(double); // skip bbox
+            if (mode == GL_TRIANGLES) {
+              appendTriangles(ts.last().vertices, reinterpret_cast<const glm::vec2*>(ptr), nvert);
+            } else if (mode == GL_TRIANGLE_STRIP) {
+              appendTriangleStrip(ts.last().vertices, reinterpret_cast<const glm::vec2*>(ptr), nvert);
+            } else if (mode == GL_TRIANGLE_FAN) {
+              appendTriangleFan(ts.last().vertices, reinterpret_cast<const glm::vec2*>(ptr), nvert);
+            } else {
+              Q_ASSERT_X(false, "feature geometry/area record", "Unknown primitive");
+            }
+            ptr += nvert * 2 * sizeof(float);
+          }
+
         }
 
         features.last().triangles.append(ts);
@@ -538,7 +567,7 @@ void Osenc::readChart(GL::VertexVector& vertices,
         // qDebug() << "vector edge node table record";
         const char* ptr = b.constData();
 
-        // The Feature(Object) count
+        // edge count
         auto cnt = *reinterpret_cast<const quint32*>(ptr);
         ptr += sizeof(quint32);
 
@@ -567,7 +596,7 @@ void Osenc::readChart(GL::VertexVector& vertices,
         // qDebug() << "vector connected node table record";
         const char* ptr = b.constData();
 
-        // The Feature(Object) count
+        // node count
         auto cnt = *reinterpret_cast<const quint32*>(ptr);
 
         ptr += sizeof(quint32);
@@ -682,8 +711,15 @@ void Osenc::readChart(GL::VertexVector& vertices,
       EdgeVector shape;
       for (const RawEdgeRef& ref: w.edgeRefs) {
         Edge e;
-        e.begin = connected[ref.begin];
-        e.end = connected[ref.end];
+        if (ref.reversed) {
+          // Osenc does not reverse begin and end like the other formats,
+          // so do it here
+          e.begin = connected[ref.end];
+          e.end = connected[ref.begin];
+        } else {
+          e.begin = connected[ref.begin];
+          e.end = connected[ref.end];
+        }
         e.first = edges[ref.index].first;
         e.count = edges[ref.index].count;
         e.reversed = ref.reversed;
@@ -698,7 +734,7 @@ void Osenc::readChart(GL::VertexVector& vertices,
         S57::ElementDataVector triangles;
         triangleGeometry(w.triangles, triangles);
 
-        auto center = computeAreaCenter(triangles, vertices, offset);
+        auto center = computeAreaCenterAndBboxes(triangles, vertices, offset);
 
         helper.osEncSetGeometry(w.object,
                                 new S57::Geometry::Area(lines,
@@ -721,19 +757,35 @@ void Osenc::readChart(GL::VertexVector& vertices,
   }
 }
 
+static void maxbox(QPointF& ll, QPointF& ur, qreal x, qreal y) {
+  ll.setX(qMin(ll.x(), x));
+  ll.setY(qMin(ll.y(), y));
+  ur.setX(qMax(ur.x(), x));
+  ur.setY(qMax(ur.y(), y));
+}
 
-QPointF Osenc::computeAreaCenter(const S57::ElementDataVector &elems,
-                                 const GL::VertexVector& vertices,
-                                 GLsizei offset) const {
+
+QPointF Osenc::computeAreaCenterAndBboxes(S57::ElementDataVector &elems,
+                                          const GL::VertexVector& vertices,
+                                          GLsizei offset) const {
   float tot = 0;
   QPointF s(0, 0);
-  for (const S57::ElementData& elem: elems) {
+  for (S57::ElementData& elem: elems) {
+    QPointF ll(1.e15, 1.e15);
+    QPointF ur(-1.e15, -1.e15);
+
     if (elem.mode == GL_TRIANGLES) {
       int first = offset / sizeof(GLfloat) + 2 * elem.offset;
       for (uint i = 0; i < elem.count / 3; i++) {
+
         const QPointF p0(vertices[first + 6 * i + 0], vertices[first + 6 * i + 1]);
         const QPointF p1(vertices[first + 6 * i + 2], vertices[first + 6 * i + 3]);
         const QPointF p2(vertices[first + 6 * i + 4], vertices[first + 6 * i + 5]);
+
+        maxbox(ll, ur, p0.x(), p0.y());
+        maxbox(ll, ur, p1.x(), p1.y());
+        maxbox(ll, ur, p2.x(), p2.y());
+
         const float da = std::abs((p1.x() - p0.x()) * (p2.y() - p0.y()) - (p2.x() - p0.x()) * (p1.y() - p0.y()));
         tot += da;
         s.rx() += da / 3. * (p0.x() + p1.x() + p2.x());
@@ -741,10 +793,15 @@ QPointF Osenc::computeAreaCenter(const S57::ElementDataVector &elems,
       }
     } else if (elem.mode == GL_TRIANGLE_STRIP) {
       int first = offset / sizeof(GLfloat) + 2 * elem.offset;
+      maxbox(ll, ur, vertices[first + 0], vertices[first + 1]);
+      maxbox(ll, ur, vertices[first + 2], vertices[first + 3]);
       for (uint i = 0; i < elem.count - 2; i++) {
         const QPointF p0(vertices[first + 2 * i + 0], vertices[first + 2 * i + 1]);
         const QPointF p1(vertices[first + 2 * i + 2], vertices[first + 2 * i + 3]);
         const QPointF p2(vertices[first + 2 * i + 4], vertices[first + 2 * i + 5]);
+
+        maxbox(ll, ur, p2.x(), p2.y());
+
         const float da = std::abs((p1.x() - p0.x()) * (p2.y() - p0.y()) - (p2.x() - p0.x()) * (p1.y() - p0.y()));
         tot += da;
         s.rx() += da / 3. * (p0.x() + p1.x() + p2.x());
@@ -752,22 +809,57 @@ QPointF Osenc::computeAreaCenter(const S57::ElementDataVector &elems,
       }
     } else if (elem.mode == GL_TRIANGLE_FAN) {
       int first = offset / sizeof(GLfloat) + 2 * elem.offset;
+
       const QPointF p0(vertices[first + 0], vertices[first + 1]);
+      maxbox(ll, ur, p0.x(), p0.y());
+      maxbox(ll, ur, vertices[first + 2], vertices[first + 3]);
+
       for (uint i = 0; i < elem.count - 2; i++) {
         const QPointF p1(vertices[first + 2 * i + 2], vertices[first + 2 * i + 3]);
         const QPointF p2(vertices[first + 2 * i + 4], vertices[first + 2 * i + 5]);
+
+        maxbox(ll, ur, p2.x(), p2.y());
+
         const float da = std::abs((p1.x() - p0.x()) * (p2.y() - p0.y()) - (p2.x() - p0.x()) * (p1.y() - p0.y()));
         tot += da;
         s.rx() += da / 3. * (p0.x() + p1.x() + p2.x());
         s.ry() += da / 3. * (p0.y() + p1.y() + p2.y());
       }
     } else {
-      Q_ASSERT_X(false, "computeAreaCenter", "Unknown primitive");
+      Q_ASSERT_X(false, "computeAreaCenterAndBboxes", "Unknown primitive");
     }
+
+    elem.bbox = QRectF(ll, ur);
   }
 
   return s / tot;
 }
+
+
+static void appendTriangles(GL::VertexVector& ps, const glm::vec2* vs, quint32 nv) {
+  for (uint i = 0; i < nv; ++i) {
+    ps << vs[i].x << vs[i].y;
+  }
+}
+
+static void appendTriangleStrip(GL::VertexVector& ps, const glm::vec2* vs, quint32 nv) {
+  bool reverseWinding = false;
+  for (uint i = 0; i < nv - 2; ++i) {
+    if (reverseWinding) {
+      ps << vs[i].x << vs[i].y << vs[i + 1].x << vs[i + 1].y << vs[i + 2].x << vs[i + 2].y;
+    } else {
+      ps << vs[i + 1].x << vs[i + 1].y << vs[i].x << vs[i].y << vs[i + 2].x << vs[i + 2].y;
+    }
+    reverseWinding = !reverseWinding;
+  }
+}
+
+static void appendTriangleFan(GL::VertexVector& ps, const glm::vec2* vs, quint32 nv) {
+  for (uint i = 0; i < nv - 2; ++i) {
+    ps << vs[0].x << vs[0].y << vs[i + 1].x << vs[i + 1].y << vs[i + 2].x << vs[i + 2].y;
+  }
+}
+
 
 
 static WGS84PointVector reduce(const VVec& vs) {

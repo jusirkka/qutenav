@@ -44,7 +44,7 @@ public:
   };
 
 
-  HPGLParser(const QString& src, const QString& colors, const QPoint& pivot);
+  HPGLParser(const QString& src, const QString& colors, const QPointF& pivot);
 
   using RawPoints = QVector<int>;
 
@@ -73,7 +73,8 @@ private:
 
 private: // bison interface
 
-  const int line_width_multiplier = 20;
+  // length units to millimeters
+  static const inline qreal mmUnit = .01;
 
 
   void setColor(char c);
@@ -109,12 +110,12 @@ private: // bison interface
       return s;
     }
     S52::Color color;
-    int lineWidth;
+    qreal lineWidth;
     LineStringList parts;
   };
 
   void triangulate(const PointList& points, Data& out);
-  void thickerlines(const LineString& ls, int lw, Data& out);
+  void thickerlines(const LineString& ls, qreal lw, Data& out);
   static void mergeData(Data& tgt, const Data& d);
   QPointF makePoint(int x, int y) const;
 
@@ -125,7 +126,7 @@ private: // bison interface
   bool m_penDown;
 
   QPointF m_pen;
-  QPoint m_pivot;
+  QPointF m_pivot;
 
   DataHash m_storage;
 

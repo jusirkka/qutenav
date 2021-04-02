@@ -1,6 +1,8 @@
 #include "s57object.h"
 #include <QDate>
 #include <QDebug>
+#include "region.h"
+#include "s52names.h"
 
 bool S57::Attribute::matches(const Attribute &constraint) const {
   if (constraint.type() == Type::Any) {
@@ -238,14 +240,15 @@ QSet<int> S57::Object::attributeSetValue(quint32 attr) const {
   return rs;
 }
 
-bool S57::Object::canPaint(const QRectF& viewArea, quint32 scale,
-                           const QDate& today, bool onlyViewArea) const {
-  if (m_bbox.isValid() && !m_bbox.intersects(viewArea)) {
-    // qDebug() << "no intersect" << m_bbox << viewArea << name();
+bool S57::Object::canPaint(const KV::Region& cover, quint32 scale,
+                           const QDate& today, bool coverOnly) const {
+
+  if (m_bbox.isValid() && !cover.intersects(m_bbox)) {
+    // qDebug() << "no intersect" << m_bbox << S52::GetClassInfo(m_feature_type_code);
     return false;
   }
 
-  if (onlyViewArea) return true;
+  if (coverOnly) return true;
 
   if (m_attributes.contains(scaminIndex)) {
     const quint32 mx = m_attributes[scaminIndex].value().toUInt();

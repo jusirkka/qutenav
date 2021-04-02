@@ -120,7 +120,7 @@ QRectF OrthoCam::boundingBox() const {
   const float dx = 1. / projection()(0, 0);
   const float dy = 1. / projection()(1, 1);
 
-  if (northAngle().radians == 0.) {
+  if (northAngle().isZero()) {
     return QRectF(QPointF(- dx, - dy), QSizeF(2 * dx, 2 * dy)); // inverted y-axis
   }
 

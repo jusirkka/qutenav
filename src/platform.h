@@ -9,3 +9,4 @@
 #define dots_per_inch_y (QGuiApplication::primaryScreen()->physicalDotsPerInchY())
 
 
+static const float nominal_dpmm = 3.125;

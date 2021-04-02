@@ -7,6 +7,7 @@
 #include "geoprojection.h"
 #include <functional>
 
+namespace KV {class Region;}
 
 namespace S57 {
 
@@ -265,8 +266,8 @@ public:
   const ObjectVector& underlings() const {return m_underlings;}
   double getSafetyContour(double c0) const;
 
-  bool canPaint(const QRectF& viewArea, quint32 scale,
-                const QDate& today, bool onlyViewArea) const;
+  bool canPaint(const KV::Region& cover, quint32 scale,
+                const QDate& today, bool regionOnly) const;
   // for overridden checks
   bool canPaint(quint32 scale) const;
 

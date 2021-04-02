@@ -198,54 +198,6 @@ using TopInd = S57::Record::TopInd::palette;
 using Boundary = S57::Record::Boundary::palette;
 using Geom = S57::Record::Geometry::palette;
 
-//static void tognuplot(const Region& cov, const Region& nocov, const WGS84Point& sw,
-//                      const WGS84Point& ne, const GeoProjection* gp, const QString& base) {
-
-//  const QString gpath = QString("%1.gnuplot").arg(base);
-//  QFile file(gpath);
-//  // file.open(QFile::ReadWrite);
-//  file.open(QFile::WriteOnly);
-//  QTextStream stream(&file);
-//  // stream.seek(file.size());
-
-//  QPointF p;
-//  stream << "\n";
-//  p = gp->fromWGS84(sw);
-//  stream << p.x() << " " << p.y() << " 0\n";
-
-//  p = gp->fromWGS84(WGS84Point::fromLL(ne.lng(), sw.lat()));
-//  stream << p.x() << " " << p.y() << " 0\n";
-
-//  p = gp->fromWGS84(ne);
-//  stream << p.x() << " " << p.y() << " 0\n";
-
-//  p = gp->fromWGS84(WGS84Point::fromLL(sw.lng(), ne.lat()));
-//  stream << p.x() << " " << p.y() << " 0\n";
-
-//  p = gp->fromWGS84(sw);
-//  stream << p.x() << " " << p.y() << " 0\n\n";
-
-//  for (const WGS84PointVector& ws: cov) {
-//    for (const WGS84Point& w: ws) {
-//      p = 1.01 * gp->fromWGS84(w);
-//      stream << p.x() << " " << p.y() << " 1\n";
-//    }
-//    p = 1.01 * gp->fromWGS84(ws.first());
-//    stream << p.x() << " " << p.y() << " 1\n\n";
-//  }
-
-//  for (const WGS84PointVector& ws: nocov) {
-//    for (const WGS84Point& w: ws) {
-//      p = 1.02 * gp->fromWGS84(w);
-//      stream << p.x() << " " << p.y() << " 2\n";
-//    }
-//    p = 1.02 * gp->fromWGS84(ws.first());
-//    stream << p.x() << " " << p.y() << " 2\n\n";
-//  }
-
-//  file.close();
-//}
-
 GeoProjection* S57Reader::configuredProjection(const QString& path) const {
 
   QFile file(path);
@@ -609,9 +561,6 @@ S57ChartOutline S57Reader::readOutline(const QString& path, const GeoProjection*
   Region nocov = transformCoverage(pnocov, gp, nullptr);
   WGS84Point corners[2];
   Region cov = transformCoverage(pcov, gp, corners);
-
-  // gp->setReference(WGS84Point::fromLL(4, 50));
-  // tognuplot(cov, nocov, corners[0], corners[1], gp, info.baseName());
 
   return S57ChartOutline(corners[0], corners[1], cov, nocov, scale, pub, mod);
 }
@@ -1023,6 +972,7 @@ void S57Reader::readChart(GL::VertexVector& vertices,
     auto p = getConn(it.key());
     vertices << p.x() << p.y();
   }
+
   EdgeMap pedges;
   for (REMIter it = edges.cbegin(); it != edges.cend(); ++it) {
     const RawEdge& r = it.value();
@@ -1030,11 +980,29 @@ void S57Reader::readChart(GL::VertexVector& vertices,
     e.begin = pconn[r.begin];
     e.end = pconn[r.end];
     e.first = vertices.size() / 2;
-    e.count = r.points.size();
+    PointVector ps;
+    ps << QPointF(vertices[2 * e.begin], vertices[2 * e.begin + 1]);
     for (const QPointF& q: r.points) {
       const QPointF ll = q / mulfac;
-      const QPointF p = gp->fromWGS84(WGS84Point::fromLL(ll.x(), ll.y()));
-      vertices << p.x() << p.y();
+      ps.append(gp->fromWGS84(WGS84Point::fromLL(ll.x(), ll.y())));
+    }
+    ps << QPointF(vertices[2 * e.end], vertices[2 * e.end + 1]);
+    IndexVector reduced;
+    reduceRDP(ps, 0, ps.size() - 1, reduced);
+    if (reduced.size() < ps.size() - 2) {
+      // qDebug() << "RDP reduction" << ps.size() - 2 << " -> " << reduced.size();
+      std::sort(reduced.begin(), reduced.end());
+      for (auto i: reduced) {
+        auto const p = ps[i];
+        vertices << p.x() << p.y();
+      }
+      e.count = reduced.size();
+    } else {
+      for (int i = 1; i < ps.size() - 1; ++i) {
+        auto const p = ps[i];
+        vertices << p.x() << p.y();
+      }
+      e.count = ps.size() - 2;
     }
     pedges[it.key()] = e;
   }
@@ -1084,7 +1052,7 @@ void S57Reader::readChart(GL::VertexVector& vertices,
         S57::ElementDataVector triangles;
         triangulate(triangles, indices, vertices, lines);
 
-        auto center = computeAreaCenter(triangles, vertices, indices);
+        auto center = computeAreaCenterAndBboxes(triangles, vertices, indices);
         helper.s57SetGeometry(obj,
                               new S57::Geometry::Area(lines,
                                                       center,
@@ -1260,6 +1228,51 @@ Region S57Reader::transformCoverage(PRegion pcov, const GeoProjection *gp, WGS84
   }
   return cov;
 }
+
+// https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm
+void S57Reader::reduceRDP(const PointVector& ps, int first, int last, IndexVector& is) const {
+  // Find the point with the maximum distance
+  double d2max = 0;
+  int index = 0;
+
+  const QPointF p = ps[last] - ps[first];
+
+  auto p2 = QPointF::dotProduct(p, p);
+
+  if (p2 < eps) {
+    // closed loop
+    for (int i = first + 1; i < last; ++i) {
+      const QPointF q = ps[i] - ps[first];
+      const auto q2 = QPointF::dotProduct(q, q);
+      if (q2 > d2max) {
+        index = i;
+        d2max = q2;
+      }
+    }
+  } else {
+    for (int i = first + 1; i < last; ++i) {
+      const QPointF q = ps[i] - ps[first];
+
+      const auto qp = QPointF::dotProduct(q, p);
+      const auto q2 = QPointF::dotProduct(q, q);
+
+      const auto d2 = q2 - qp * qp / p2;
+      if (d2 > d2max) {
+        index = i;
+        d2max = d2;
+      }
+    }
+  }
+
+  // If max distance is greater than epsilon, recursively simplify
+  if (d2max > eps) {
+    is << index;
+    reduceRDP(ps, first, index, is);
+    reduceRDP(ps, index, last, is);
+  }
+
+}
+
 
 
 QString S57ReaderFactory::name() const {

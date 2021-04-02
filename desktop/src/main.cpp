@@ -8,6 +8,7 @@
 #include "s52presentation.h"
 #include "textmanager.h"
 #include "s57chart.h"
+#include "chartupdater.h"
 
 #include <QSurfaceFormat>
 #include <KAboutData>
@@ -64,6 +65,7 @@ int main(int argc, char *argv[])
   qRegisterMetaType<GL::GlyphData>();
   qRegisterMetaType<WGS84Point>();
   qRegisterMetaType<S57Chart*>();
+  qRegisterMetaType<ChartData>();
 
   QSurfaceFormat format;
   format.setVersion(4, 6);

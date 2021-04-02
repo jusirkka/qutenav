@@ -2,6 +2,10 @@
 #include "shader.h"
 #include <QOpenGLExtraFunctions>
 #include "linecalculator.h"
+#include "settings.h"
+#include "region.h"
+#include "textmanager.h"
+#include "gnuplot.h"
 
 //
 // Paintdata
@@ -38,6 +42,32 @@ S57::TriangleData::TriangleData(Type t, const ElementDataVector& elems, GLsizei 
   , m_color(c)
 {}
 
+static void filterElems(S57::ElementDataVector& elems, const KV::Region& cover) {
+
+  // tag & copy: presumably faster than erasing in middle vector
+
+  QVector<int> indices;
+  for (int i = 0; i < elems.size(); ++i) {
+    if (cover.intersects(elems[i].bbox)) {
+      indices << i;
+    }
+  }
+
+  if (indices.size() != elems.size()) {
+    // paintdata::tognuplot(elems, cover);
+    // qDebug() << "Filtered" << elems.size() << "->" << indices.size();
+    S57::ElementDataVector orig = elems;
+    elems.clear();
+    for (int i: indices) {
+      elems << orig[i];
+    }
+  }
+}
+
+void S57::TriangleData::filterElements(const KV::Region& cover) {
+  filterElems(m_elements, cover);
+}
+
 S57::TriangleArrayData::TriangleArrayData(const ElementDataVector& elem, GLsizei offset, const QColor& c)
   : TriangleData(Type::TriangleArrays, elem, offset, c)
 {}
@@ -55,11 +85,14 @@ S57::LineData::LineData(Type t,
   : PaintData(t)
   , m_elements(elems)
   , m_lineWidth(lw)
-  , m_conv(1. / S52::LineWidthDots(1))
   , m_vertexOffset(offset)
   , m_color(c)
   , m_pattern(patt)
 {}
+
+void S57::LineData::filterElements(const KV::Region& cover) {
+  filterElems(m_elements, cover);
+}
 
 
 void S57::LineData::setVertexOffset() const {
@@ -78,7 +111,8 @@ S57::LineElemData::LineElemData(const ElementDataVector& elem,
 void S57::LineElemData::setUniforms() const {
   auto prog = GL::LineElemShader::instance();
   prog->prog()->setUniformValue(prog->m_locations.base_color, m_color);
-  prog->prog()->setUniformValue(prog->m_locations.lineWidth, m_conv * m_lineWidth);
+  const float dw = Settings::instance()->displayLineWidthScaling();
+  prog->prog()->setUniformValue(prog->m_locations.lineWidth, m_lineWidth * dw);
   auto f = QOpenGLContext::currentContext()->extraFunctions();
   f->glUniform1ui(prog->m_locations.pattern, m_pattern);
 }
@@ -104,7 +138,8 @@ S57::LineArrayData::LineArrayData(const ElementDataVector& elem,
 void S57::LineArrayData::setUniforms() const {
   auto prog = GL::LineArrayShader::instance();
   prog->prog()->setUniformValue(prog->m_locations.base_color, m_color);
-  prog->prog()->setUniformValue(prog->m_locations.lineWidth, m_conv * m_lineWidth);
+  const float dw = Settings::instance()->displayLineWidthScaling();
+  prog->prog()->setUniformValue(prog->m_locations.lineWidth, m_lineWidth * dw);
 
   auto f = QOpenGLContext::currentContext()->extraFunctions();
   f->glUniform1ui(prog->m_locations.pattern, m_pattern);
@@ -147,8 +182,10 @@ S57::PaintData* S57::LineLocalData::globalize(GLsizei offset) const {
 
 GL::VertexVector S57::LineLocalData::vertices(qreal scale) {
   if (m_displayUnits) {
+    // transform millimeters (display) to meters (chart)
+    // first scale nominal millimeters to actual millimeters
+    scale *= Settings::instance()->displayLengthScaling();
     GL::VertexVector vs;
-    scale *= 2 / dots_per_mm_y;
     for (int i = 0; i < m_vertices.size() / 2; i++) {
       const QPointF p1(m_vertices[2 * i], m_vertices[2 * i + 1]);
       const QPointF p = m_pivot + (p1 - m_pivot) / scale;
@@ -161,41 +198,61 @@ GL::VertexVector S57::LineLocalData::vertices(qreal scale) {
 
 
 S57::TextElemData::TextElemData(const QPointF& pivot,
-                                const QPointF& bboxBase,
-                                const QPointF& pivotOffset,
-                                const QPointF& bboxOffset,
-                                float boxScale,
-                                GLsizei vertexOffset,
-                                const ElementData& elems,
+                                int ticket,
                                 const QColor& c)
   : PaintData(Type::TextElements)
-  , m_elements(elems)
-  , m_vertexOffset(vertexOffset)
+  , m_pivots {pivot}
+  , m_tickets {ticket}
   , m_color(c)
-  , m_scaleMM(boxScale)
-  , m_pivot(pivot)
-  , m_shiftMM(bboxOffset + boxScale * (pivotOffset - bboxBase))
+  , m_instanceCount(0)
 {}
 
 
 void S57::TextElemData::setUniforms() const {
   auto prog = GL::TextShader::instance();
   prog->prog()->setUniformValue(prog->m_locations.base_color, m_color);
-  prog->prog()->setUniformValue(prog->m_locations.textScale, static_cast<GLfloat>(m_scaleMM * dots_per_mm_y));
-  prog->prog()->setUniformValue(prog->m_locations.pivot, m_pivot);
-  prog->prog()->setUniformValue(prog->m_locations.offset, m_shiftMM * dots_per_mm_y);
 }
 
 void S57::TextElemData::setVertexOffset() const {
   auto prog = GL::TextShader::instance()->prog();
-  const int texOffset = 2 * sizeof(GLfloat);
-  const int stride = 4 * sizeof(GLfloat);
-  prog->setAttributeBuffer(0, GL_FLOAT, m_vertexOffset, 2, stride);
-  prog->setAttributeBuffer(1, GL_FLOAT, m_vertexOffset + texOffset, 2, stride);
+  // vertex x 4, tex x 4, pivot x2 = 10
+  const int stride = 10 * sizeof(GLfloat);
+  const int texOffset = 4 * sizeof(GLfloat);
+  const int pivotOffset = 8 * sizeof(GLfloat);
+  prog->setAttributeBuffer(0, GL_FLOAT, m_instanceOffset, 4, stride);
+  prog->setAttributeBuffer(1, GL_FLOAT, m_instanceOffset + texOffset, 4, stride);
+  prog->setAttributeBuffer(2, GL_FLOAT, m_instanceOffset + pivotOffset, 2, stride);
+}
+
+void S57::TextElemData::merge(const TextElemData* other) {
+  Q_ASSERT(other->m_tickets.size() == 1);
+  m_tickets << other->m_tickets.first();
+  m_pivots << other->m_pivots.first();
+}
+
+void S57::TextElemData::getInstances(GL::VertexVector& instances) {
+  m_instanceOffset = instances.size() * sizeof(GLfloat);
+  for (int ticket: m_tickets) {
+    const auto pivot = m_pivots.first();
+    GL::VertexVector vs = TextManager::instance()->shapeData(ticket);
+    const int numShapes = vs.size() / 10;
+    if (numShapes == 0) {
+      // qDebug() << "Missing text data" << ticket;
+      m_pivots.removeFirst();
+      continue;
+    }
+    for (int i = 0; i < numShapes; ++i) {
+      vs[10 * i + 8] = pivot.x();
+      vs[10 * i + 9] = pivot.y();
+    }
+    instances.append(vs);
+    m_pivots.removeFirst();
+    m_instanceCount += numShapes;
+  }
 }
 
 
-void S57::RasterHelper::setSymbolOffset(const QPoint &off) const {
+void S57::RasterHelper::setSymbolOffset(const QPointF &off) const {
   auto sh = GL::RasterSymbolShader::instance();
   sh->prog()->setUniformValue(sh->m_locations.offset, off);
 }
@@ -209,7 +266,7 @@ void S57::RasterHelper::setColor(const QColor&) const {
   // noop
 }
 
-void S57::VectorHelper::setSymbolOffset(const QPoint &off) const {
+void S57::VectorHelper::setSymbolOffset(const QPointF &off) const {
   // noop
 }
 
@@ -227,7 +284,7 @@ void S57::VectorHelper::setColor(const QColor& c) const {
 S57::SymbolPaintDataBase::SymbolPaintDataBase(Type t,
                                               S52::SymbolType s,
                                               quint32 index,
-                                              const QPoint& offset,
+                                              const QPointF& offset,
                                               SymbolHelper* helper)
   : PaintData(t)
   , m_type(s)
@@ -260,7 +317,7 @@ void S57::SymbolPaintDataBase::setVertexOffset() const {
 
 S57::SymbolPaintData::SymbolPaintData(Type t,
                                       quint32 index,
-                                      const QPoint& offset,
+                                      const QPointF& offset,
                                       SymbolHelper* helper,
                                       const QPointF& pivot)
   : SymbolPaintDataBase(t, S52::SymbolType::Single, index, offset, helper)
@@ -269,14 +326,14 @@ S57::SymbolPaintData::SymbolPaintData(Type t,
 }
 
 S57::RasterSymbolPaintData::RasterSymbolPaintData(quint32 index,
-                                                  const QPoint& offset,
+                                                  const QPointF& offset,
                                                   const QPointF& pivot,
                                                   const ElementData& elem)
   : SymbolPaintData(Type::RasterSymbols, index, offset, new RasterHelper(), pivot)
   , m_elem(elem)
 {}
 
-void S57::RasterSymbolPaintData::merge(const SymbolPaintDataBase* other, qreal, const QRectF&) {
+void S57::RasterSymbolPaintData::merge(const SymbolPaintDataBase* other, qreal, const KV::Region&) {
   if (other == nullptr) return;
   auto r = dynamic_cast<const RasterSymbolPaintData*>(other);
   Q_ASSERT(r->m_pivots.size() == 2);
@@ -300,7 +357,7 @@ S57::VectorSymbolPaintData::VectorSymbolPaintData(quint32 index,
   }
 }
 
-void S57::VectorSymbolPaintData::merge(const SymbolPaintDataBase* other, qreal, const QRectF&) {
+void S57::VectorSymbolPaintData::merge(const SymbolPaintDataBase* other, qreal, const KV::Region&) {
   if (other == nullptr) return;
   auto s = dynamic_cast<const VectorSymbolPaintData*>(other);
   Q_ASSERT(s->m_pivots.size() == 4);
@@ -316,13 +373,13 @@ void S57::VectorSymbolPaintData::setColor(const QColor& c) const {
 
 S57::PatternPaintData::PatternPaintData(Type t,
                                         quint32 index,
-                                        const QPoint& offset,
+                                        const QPointF& offset,
                                         SymbolHelper* helper,
                                         const ElementDataVector& aelems,
                                         GLsizei aoffset,
                                         bool indexed,
                                         const QRectF& bbox,
-                                        const PatternAdvance& advance)
+                                        const PatternMMAdvance& advance)
   : SymbolPaintDataBase(t, S52::SymbolType::Pattern, index, offset, helper)
   , m_areaElements()
   , m_areaArrays()
@@ -345,24 +402,32 @@ void S57::PatternPaintData::setAreaVertexOffset(GLsizei off) const {
   prog->setAttributeBuffer(0, GL_FLOAT, off, 2, 0);
 }
 
-void S57::PatternPaintData::merge(const SymbolPaintDataBase *other, qreal scale, const QRectF& va) {
+void S57::PatternPaintData::merge(const SymbolPaintDataBase *other, qreal scale, const KV::Region& cover) {
   if (other == nullptr) {
     Q_ASSERT(m_areaElements.size() + m_areaArrays.size() == 1);
     for (const AreaData& a: m_areaElements) {
-      createPivots(a.bbox.intersected(va), scale);
+      auto reg = cover.intersected(a.bbox);
+      if (reg.isEmpty()) continue;
+      createPivots(reg.boundingRect(), scale);
     }
     for (const AreaData& a: m_areaArrays) {
-      createPivots(a.bbox.intersected(va), scale);
+      auto reg = cover.intersected(a.bbox);
+      if (reg.isEmpty()) continue;
+      createPivots(reg.boundingRect(), scale);
     }
   } else {
     auto r = dynamic_cast<const PatternPaintData*>(other);
 
     Q_ASSERT(r->m_areaElements.size() + r->m_areaArrays.size() == 1);
     for (const AreaData& a: r->m_areaElements) {
-      createPivots(a.bbox.intersected(va), scale);
+      auto reg = cover.intersected(a.bbox);
+      if (reg.isEmpty()) continue;
+      createPivots(reg.boundingRect(), scale);
     }
     for (const AreaData& a: r->m_areaArrays) {
-      createPivots(a.bbox.intersected(va), scale);
+      auto reg = cover.intersected(a.bbox);
+      if (reg.isEmpty()) continue;
+      createPivots(reg.boundingRect(), scale);
     }
     m_areaArrays.append(r->m_areaArrays);
     m_areaElements.append(r->m_areaElements);
@@ -371,12 +436,12 @@ void S57::PatternPaintData::merge(const SymbolPaintDataBase *other, qreal scale,
 
 
 S57::RasterPatternPaintData::RasterPatternPaintData(quint32 index,
-                                                    const QPoint& offset,
+                                                    const QPointF& offset,
                                                     const ElementDataVector& aelems,
                                                     GLsizei aoffset,
                                                     bool indexed,
                                                     const QRectF& bbox,
-                                                    const PatternAdvance& advance,
+                                                    const PatternMMAdvance& advance,
                                                     const ElementData& elem)
   : PatternPaintData(Type::RasterPatterns, index, offset, new RasterHelper(),
                      aelems, aoffset, indexed, bbox, advance)
@@ -386,6 +451,8 @@ S57::RasterPatternPaintData::RasterPatternPaintData(quint32 index,
 
 
 void S57::RasterPatternPaintData::createPivots(const QRectF& bbox, qreal scale) {
+
+  // transform millimeters (display) to meters (chart)
   const qreal X = m_advance.x / scale;
   const qreal Y = m_advance.xy.y() / scale;
   const qreal xs = m_advance.xy.x() / scale;
@@ -410,7 +477,7 @@ S57::VectorPatternPaintData::VectorPatternPaintData(quint32 index,
                                                     GLsizei aoffset,
                                                     bool indexed,
                                                     const QRectF& bbox,
-                                                    const PatternAdvance& advance,
+                                                    const PatternMMAdvance& advance,
                                                     const Angle& rot,
                                                     const KV::ColorVector& colors,
                                                     const ElementDataVector& elems)
@@ -433,8 +500,9 @@ void S57::VectorPatternPaintData::setColor(const QColor& c) const {
 
 void S57::VectorPatternPaintData::createPivots(const QRectF& bbox, qreal scale) {
 
-  scale *= 200 / dots_per_mm_y;
-
+  // transform millimeters (display) to meters (chart)
+  // first scale nominal millimeters to actual millimeters
+  scale *= Settings::instance()->displayLengthScaling();
   const qreal X = m_advance.x / scale;
   const qreal Y = m_advance.xy.y() / scale;
   const qreal xs = m_advance.xy.x() / scale;
@@ -458,13 +526,13 @@ S57::LineStylePaintData::LineStylePaintData(quint32 index,
                                             const ElementDataVector& lelems,
                                             GLsizei loffset,
                                             const QRectF& bbox,
-                                            const PatternAdvance& advance,
+                                            const PatternMMAdvance& advance,
                                             const KV::ColorVector& colors,
                                             const ElementDataVector& elems)
   : SymbolPaintDataBase(Type::VectorLineStyles, S52::SymbolType::LineStyle, index, QPoint(), new VectorHelper)
   , m_lineElements()
   , m_advance(advance.x)
-  , m_viewArea()
+  , m_cover()
 {
   LineData d;
   d.elements = lelems;
@@ -480,11 +548,13 @@ S57::LineStylePaintData::LineStylePaintData(quint32 index,
   }
 }
 
-void S57::LineStylePaintData::merge(const SymbolPaintDataBase* other, qreal scale, const QRectF& va) {
+void S57::LineStylePaintData::merge(const SymbolPaintDataBase* other, qreal scale, const KV::Region& cover) {
   if (other == nullptr) {
-    scale *= 200 / dots_per_mm_y;
+    // transform millimeters (display) to meters (chart)
+    // first scale nominal millimeters to actual millimeters
+    scale *= Settings::instance()->displayLengthScaling();
     m_advance /= scale;
-    m_viewArea = va;
+    m_cover = cover;
     Q_ASSERT(m_lineElements.size() == 1);
   } else {
     auto r = dynamic_cast<const LineStylePaintData*>(other);
@@ -506,14 +576,17 @@ void S57::LineStylePaintData::createTransforms(GL::VertexVector& transforms,
   BufferData is;
   is.buffer = indexBuffer;
   for (LineData& d: m_lineElements) {
+
+    auto reg = m_cover.intersected(d.bbox);
+    if (reg.isEmpty()) continue;
+
     vs.offset = d.vertexOffset / sizeof(GLfloat) / 2;
     vs.count = (maxCoordOffset - d.vertexOffset) / sizeof(GLfloat) / 2;
-    const QRectF va = d.bbox.intersected(m_viewArea);
     for (S57::ElementData elem: d.elements) {
       // account adjacency
       is.offset = elem.offset / sizeof(GLuint) + 1;
       is.count = elem.count - 2;
-      lc->calculate(transforms, m_advance, va, vs, is);
+      lc->calculate(transforms, m_advance, reg.boundingRect(), vs, is);
     }
   }
 

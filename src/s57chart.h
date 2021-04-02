@@ -12,6 +12,12 @@
 class GeoProjection;
 class Camera;
 class QOpenGLContext;
+namespace KV {class Region;}
+
+inline uint qHash(const QColor& c) {
+  return c.rgba();
+}
+
 
 class S57Chart: public QObject {
 
@@ -38,7 +44,7 @@ public:
   quint32 id() const {return m_id;}
   const QString& path() {return m_path;}
 
-  void updatePaintData(const WGS84Point& sw, const WGS84Point& ne, quint32 scale);
+  void updatePaintData(const WGS84PointVector& cover, quint32 scale);
   void updateLookups();
 
   S57::InfoType objectInfo(const WGS84Point& p, quint32 scale);
@@ -71,12 +77,16 @@ private:
   using ContourVector = S57::Object::ContourVector;
 
   using SymbolMap = QHash<SymbolKey, S57::PaintData*>;
-  using SymbolIterator = QHash<SymbolKey, S57::PaintData*>::const_iterator;
-  using SymbolMutIterator = QHash<SymbolKey, S57::PaintData*>::iterator;
+  using SymbolIterator = SymbolMap::const_iterator;
+  using SymbolMutIterator = SymbolMap::iterator;
   using SymbolPriorityVector = QVector<SymbolMap>;
 
-  qreal scaleFactor(const WGS84Point &sw, const WGS84Point &ne,
-                    const QRectF& va, quint32 scale) const;
+  using TextColorMap = QHash<QColor, S57::PaintData*>;
+  using TextColorIterator = TextColorMap::const_iterator;
+  using TextColorMutIterator = TextColorMap::iterator;
+  using TextColorPriorityVector = QVector<TextColorMap>;
+
+  qreal scaleFactor(const QRectF& va, quint32 scale) const;
 
   void findUnderling(S57::Object* overling,
                      const S57::ObjectVector& candidates,
@@ -94,6 +104,7 @@ private:
   QOpenGLBuffer m_indexBuffer;
   QOpenGLBuffer m_pivotBuffer;
   QOpenGLBuffer m_transformBuffer;
+  QOpenGLBuffer m_textTransformBuffer;
   GLsizei m_staticVertexOffset;
   GLsizei m_staticElemOffset;
 

@@ -29,12 +29,15 @@ public:
 
 private:
 
+  // length units in millimeters
+  static const inline qreal mmUnit = .01;
+
   struct ParseData {
-    QPoint offset;
-    QPoint pivot;
-    QSize size;
-    int minDist;
-    int maxDist;
+    QPointF offset;
+    QPointF pivot;
+    QSizeF size;
+    qreal minDist;
+    qreal maxDist;
   };
 
   using SymbolMap = QHash<SymbolKey, SymbolData>;

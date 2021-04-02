@@ -158,22 +158,22 @@ void VectorSymbolManager::parseSymbolData(QXmlStreamReader &reader,
 
   int w = reader.attributes().value("width").toInt();
   int h = reader.attributes().value("height").toInt();
-  d.size = QSize(w, h);
+  d.size = QSizeF(mmUnit * w, mmUnit * h);
 
-  QPoint o;
+  QPointF o;
 
   while (reader.readNextStartElement()) {
     if (reader.name() == "distance") {
-      d.minDist = reader.attributes().value("min").toInt();
-      d.maxDist = reader.attributes().value("max").toInt();
+      d.minDist = reader.attributes().value("min").toInt() * mmUnit;
+      d.maxDist = reader.attributes().value("max").toInt() * mmUnit;
       reader.skipCurrentElement();
     } else if (reader.name() == "pivot") {
-      d.pivot = QPoint(reader.attributes().value("x").toInt(),
-                       reader.attributes().value("y").toInt());
+      d.pivot = QPointF(reader.attributes().value("x").toInt() * mmUnit,
+                        reader.attributes().value("y").toInt() * mmUnit);
       reader.skipCurrentElement();
     } else if (reader.name() == "origin") {
-      o = QPoint(reader.attributes().value("x").toInt(),
-                 reader.attributes().value("y").toInt());
+      o = QPointF(reader.attributes().value("x").toInt() * mmUnit,
+                  reader.attributes().value("y").toInt() * mmUnit);
       reader.skipCurrentElement();
     } else if (reader.name() == "HPGL") {
       src = reader.readElementText();
@@ -183,6 +183,7 @@ void VectorSymbolManager::parseSymbolData(QXmlStreamReader &reader,
   }
 
   // offset of the upper left corner
-  d.offset = QPoint(o.x() - d.pivot.x(), d.pivot.y() - o.y());
+  d.offset = QPointF(o.x() - d.pivot.x(),
+                     d.pivot.y() - o.y());
 
 }
