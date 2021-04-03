@@ -76,7 +76,7 @@ Page {
         text: "Full sector lengths"
         description: "Show light sectors at their nominal visibility."
         Component.onCompleted: {
-          swf.checked = settings.fullSectors;
+          swf.checked = settings.fullLengthSectors;
         }
         onCheckedChanged: {
           settings.fullSectors = checked;

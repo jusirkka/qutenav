@@ -2,22 +2,18 @@ import QtQuick 2.2
 import Sailfish.Silica 1.0
 
 CoverBackground {
-  Label {
-    id: label
+
+  Image {
+    id: logo
     anchors.centerIn: parent
-    text: qsTr("My Cover")
+    source: "/usr/share/icons/hicolor/128x128/apps/harbour-qopencpn.png"
   }
 
-  CoverActionList {
-    id: coverAction
-
-    CoverAction {
-      iconSource: "image://theme/icon-cover-next"
-    }
-
-    CoverAction {
-      iconSource: "image://theme/icon-cover-pause"
-    }
+  Label {
+    anchors.horizontalCenter: parent.horizontalCenter
+    anchors.top: logo.bottom
+    anchors.topMargin: Theme.paddingLarge
+    text: "QOpenCPN"
   }
 }
 

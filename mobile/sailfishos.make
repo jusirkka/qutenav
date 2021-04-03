@@ -14,7 +14,7 @@ LIBDIR     = $(DESTDIR)$(PREFIX)/lib
 ICONS = ../data/qopencpn-86x86.png \
         ../data/qopencpn-108x108.png \
         ../data/qopencpn-128x128.png \
-        ../data/qopencpn-256x256.png \
+        ../data/qopencpn-172x172.png \
         qml/icons/menu-100.png \
         qml/icons/menu-125.png \
         qml/icons/menu-150.png \
@@ -36,11 +36,11 @@ install:
 	mkdir -p $(ICONDIR)/86x86/apps
 	mkdir -p $(ICONDIR)/108x108/apps
 	mkdir -p $(ICONDIR)/128x128/apps
-	mkdir -p $(ICONDIR)/256x256/apps
+	mkdir -p $(ICONDIR)/172x172/apps
 	cp ../data/qopencpn-86x86.png  $(ICONDIR)/86x86/apps/$(NAME).png
 	cp ../data/qopencpn-108x108.png $(ICONDIR)/108x108/apps/$(NAME).png
 	cp ../data/qopencpn-128x128.png $(ICONDIR)/128x128/apps/$(NAME).png
-	cp ../data/qopencpn-256x256.png $(ICONDIR)/256x256/apps/$(NAME).png
+	cp ../data/qopencpn-172x172.png $(ICONDIR)/172x172/apps/$(NAME).png
 	@echo "Installing binaries..."
 	mkdir -p $(BINDIR)
 	cp ../$(BUILDDIR)/qopencpn $(BINDIR)/$(NAME)
