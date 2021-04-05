@@ -86,6 +86,8 @@ public:
   Q_INVOKABLE void northUp();
   Q_INVOKABLE void rotate(qreal degrees);
   Q_INVOKABLE void infoQuery(const QPointF& p);
+  Q_INVOKABLE void setEye(qreal lng, qreal lat);
+  Q_INVOKABLE QPointF position(qreal lng, qreal lat) const;
 
   Q_PROPERTY(QStringList chartSets
              READ chartSets

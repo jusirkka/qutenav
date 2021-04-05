@@ -1,7 +1,6 @@
 import QtQuick 2.2
 import Sailfish.Silica 1.0
 import org.qopencpn 1.0
-import "."
 
 Page {
 
@@ -10,10 +9,18 @@ Page {
   allowedOrientations: Orientation.Landscape | Orientation.Portrait
 
   property bool infoMode
+  property bool posValid
+  property bool boatCentered: centerButton.centered
   property var mouseMoveHandler
+  property var position: gps.position
+  property var lastPos
 
   function panModeMouseMoveHandler(m) {
+    if (centerButton.centered) centerButton.centered = false;
     encdis.pan(m.x, m.y)
+    if (boat.visible && lastPos !== null) {
+      boat.center = encdis.position(lastPos.coordinate.longitude, lastPos.coordinate.latitude)
+    }
   }
 
   function infoModeMouseMoveHandler(m) {
@@ -24,8 +31,36 @@ Page {
 
   Component.onCompleted: {
     app.encdis = encdis
-    page.infoMode = false;
+    infoMode = false;
+    posValid = false;
     page.mouseMoveHandler = page.panModeMouseMoveHandler
+    lastPos = null
+  }
+
+  onPositionChanged: {
+    if (position.horizontalAccuracyValid) {
+      posValid = position.horizontalAccuracy < 100
+    } else {
+      // Hack for simulation mode. Remove after testing
+      posValid = true
+    }
+    if (posValid && position.longitudeValid && position.latitudeValid) {
+      lastPos = position
+      if (centerButton.centered) {
+        encdis.setEye(position.coordinate.longitude, position.coordinate.latitude)
+      } else {
+        boat.center = encdis.position(position.coordinate.longitude, position.coordinate.latitude)
+      }
+    }
+  }
+
+  onBoatCenteredChanged: {
+    if (boatCentered) {
+      boat.center = Qt.point(width / 2, height / 2);
+      if (lastPos !== null) {
+        encdis.setEye(lastPos.coordinate.longitude, lastPos.coordinate.latitude)
+      }
+    }
   }
 
   ChartDisplay {
@@ -37,8 +72,20 @@ Page {
     }
   }
 
+  Boat {
+    id: boat
+    z: 300
+    visible: !page.infoMode && page.posValid && !zoom.zooming
+  }
+
   MenuButton {
     id: menuButton
+    z: 300
+    visible: !page.infoMode
+  }
+
+  CenterButton {
+    id: centerButton
     z: 300
     visible: !page.infoMode
   }
@@ -66,13 +113,28 @@ Page {
     }
   }
 
-
   PinchArea {
+    id: zoom
+
+    property bool zooming
+
     anchors.fill: parent
     pinch.minimumRotation: -180
     pinch.maximumRotation: 180
     pinch.minimumScale: .5
     pinch.maximumScale: 2
+
+    Component.onCompleted: {
+      zooming = false;
+    }
+
+    onPinchStarted: {
+      zooming = true;
+    }
+
+    onPinchFinished: {
+      zooming = false;
+    }
 
     onPinchUpdated: {
       if (pinch.scale > 0) {
@@ -91,6 +153,7 @@ Page {
         }
       }
     }
+
     MouseArea {
       id: mouse
       z: 100
@@ -103,11 +166,11 @@ Page {
       onPressed: {
         first = Qt.point(mouse.x, mouse.y);
         prev = first;
-        encdis.panStart(mouse.x, mouse.y)
+        encdis.panStart(mouse.x, mouse.y);
         infoTimer.stop();
       }
       onReleased: {
-        var p = Qt.point(mouse.x, mouse.y)
+        var p = Qt.point(mouse.x, mouse.y);
         if (p !== first) {
           if (page.infoMode) {
             infoTimer.start();
@@ -116,10 +179,10 @@ Page {
         }
         page.infoMode = !page.infoMode;
         if (page.infoMode) {
-          page.mouseMoveHandler = page.infoModeMouseMoveHandler
+          page.mouseMoveHandler = page.infoModeMouseMoveHandler;
           infoPoint.peepHole = Qt.point(page.width / 2, page.height / 2);
         } else {
-          page.mouseMoveHandler = page.panModeMouseMoveHandler
+          page.mouseMoveHandler = page.panModeMouseMoveHandler;
           infoTimer.stop();
         }
       }

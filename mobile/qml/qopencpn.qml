@@ -13,23 +13,12 @@ ApplicationWindow {
 
   PositionSource {
     id: gps
-    // nmeaSource: "nmea.log"
+    nmeaSource: "nmea.log"
   }
 
   Component.onCompleted: {
     setPixelRatio()
     gps.start()
-  }
-
-  Keys.onPressed: {
-    // Allow zooming with H/J keys on the emulator.
-    if (event.key === Qt.Key_J)  {
-      encdis.zoomIn()
-    } else if (event.key === Qt.Key_H) {
-      encdis.zoomOut()
-    } else if (event.key === Qt.Key_N) {
-      encdis.northUp()
-    }
   }
 
   function showMenu() {

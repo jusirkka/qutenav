@@ -21,18 +21,22 @@ class Camera {
 public:
 
   // drag start & end in clip coordinates
-  virtual void pan(QPointF dragStart, QPointF dragAmount) = 0;
-  virtual void rotateEye(Angle angle) = 0;
+  virtual void pan(const QPointF& dragStart, const QPointF& dragAmount) = 0;
+  virtual void rotateEye(const Angle& angle) = 0;
   virtual void setScale(quint32 scale) = 0;
   virtual void resize(float wmm, float hmm) = 0;
   virtual void reset() = 0;
-  virtual void reset(WGS84Point eye, Angle tilt) = 0;
+  virtual void reset(const WGS84Point& eye, const Angle& tilt) = 0;
+  virtual void setEye(const WGS84Point& eye) = 0;
   virtual WGS84Point eye() const = 0;
   virtual Angle northAngle() const = 0;
   virtual quint32 maxScale() const = 0;
   virtual quint32 minScale() const = 0;
   // map from clip space to WGS84
   virtual WGS84Point location(const QPointF& cp) const = 0;
+  // map from WGS84 to clip space
+  virtual QPointF position(const WGS84Point& wp) const = 0;
+
   virtual QRectF boundingBox() const = 0;
 
   const QMatrix4x4& projection() const {return m_projection;}

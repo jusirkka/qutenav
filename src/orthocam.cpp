@@ -68,12 +68,16 @@ void OrthoCam::resize(float wmm, float hmm) {
 }
 
 
-void OrthoCam::reset(WGS84Point eye, Angle a) {
+void OrthoCam::reset(const WGS84Point& eye, const Angle& a) {
   m_geoprojection->setReference(eye);
   m_northAngle = a;
   m_reference_0 = eye;
   m_northAngle_0 = m_northAngle;
   doReset();
+}
+
+void OrthoCam::setEye(const WGS84Point& eye) {
+  m_geoprojection->setReference(eye);
 }
 
 void OrthoCam::reset() {
@@ -90,7 +94,7 @@ void OrthoCam::doReset() {
   m_view.setRow(IY, QVector2D(sa, ca));
 }
 
-void OrthoCam::rotateEye(Angle a) {
+void OrthoCam::rotateEye(const Angle& a) {
   m_northAngle = m_northAngle + a;
   doReset();
 }
@@ -100,11 +104,10 @@ WGS84Point OrthoCam::eye() const {return m_geoprojection->reference();}
 Angle OrthoCam::northAngle() const {return m_northAngle;}
 
 
-void OrthoCam::pan(QPointF /*dragStart*/, QPointF dragAmount) {
+void OrthoCam::pan(const QPointF& /*dragStart*/, const QPointF& dragAmount) {
   auto c = m_geoprojection->toWGS84(QPointF(-dragAmount.x() / m_projection(0, 0),
                                             -dragAmount.y() / m_projection(1, 1)));
   m_geoprojection->setReference(c);
-  doReset();
 }
 
 WGS84Point OrthoCam::location(const QPointF &cp) const {
@@ -114,6 +117,12 @@ WGS84Point OrthoCam::location(const QPointF &cp) const {
                     1.);
   const QVector4D p = m_view.transposed() * q;
   return m_geoprojection->toWGS84(QPointF(p.x(), p.y()));
+}
+
+QPointF OrthoCam::position(const WGS84Point& wp) const {
+  const QPointF p = m_geoprojection->fromWGS84(wp);
+  const QVector4D q = m_view * QVector4D(p.x(), p.y(), 0., 1.);
+  return QPointF(m_projection(0, 0) * q.x(), m_projection(1, 1) * q.y());
 }
 
 QRectF OrthoCam::boundingBox() const {

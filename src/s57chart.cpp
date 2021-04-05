@@ -348,8 +348,7 @@ void S57Chart::updatePaintData(const WGS84PointVector& cs, quint32 scale) {
     if (!d.object->canPaint(cover, scale, today, d.lookup->canOverride())) continue;
 
     // check display category
-    if (!d.lookup->canOverride() &&
-        as_numeric(d.lookup->category()) > maxcat) {
+    if (!d.lookup->canOverride() && as_numeric(d.lookup->category()) > maxcat) {
       // qDebug() << "Skipping by category" << S52::GetClassInfo(d.object->classCode());
       continue;
     }
@@ -458,8 +457,8 @@ void S57Chart::updatePaintData(const WGS84PointVector& cs, quint32 scale) {
     }
   };
 
-  // filterAreaElements(S57::PaintData::Type::TriangleArrays);
-  // filterAreaElements(S57::PaintData::Type::TriangleElements);
+  filterAreaElements(S57::PaintData::Type::TriangleArrays);
+  filterAreaElements(S57::PaintData::Type::TriangleElements);
 
   // filter line elements
   auto filterLineElements = [this, cover] (S57::PaintData::Type t) {
@@ -474,9 +473,8 @@ void S57Chart::updatePaintData(const WGS84PointVector& cs, quint32 scale) {
     }
   };
 
-  // filterLineElements(S57::PaintData::Type::LineArrays);
-  // filterLineElements(S57::PaintData::Type::LineElements);
-
+  filterLineElements(S57::PaintData::Type::LineArrays);
+  filterLineElements(S57::PaintData::Type::LineElements);
 
   // move merged text to paintdatamap
   for (int i = 0; i < S52::Lookup::PriorityCount; i++) {

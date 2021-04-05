@@ -43,8 +43,10 @@ target_link_libraries(Mobile
 
 add_custom_target(Qml SOURCES
   qml/qopencpn.qml
+  qml/Boat.qml
   qml/ChartPage.qml
   qml/ChartSetCombo.qml
+  qml/CenterButton.qml
   qml/CoverPage.qml
   qml/IconListItem.qml
   qml/InfoPage.qml

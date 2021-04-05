@@ -8,13 +8,15 @@ class PersCam: public Camera {
 public:
 
   PersCam(float wmm, float hmm, GeoProjection* p);
-  void pan(QPointF dragStart, QPointF dragAmount) override;
+  void pan(const QPointF& dragStart, const QPointF& dragAmount) override;
   WGS84Point location(const QPointF &cp) const override;
-  void rotateEye(Angle a) override;
+  QPointF position(const WGS84Point &wp) const override;
+  void rotateEye(const Angle& a) override;
   void setScale(quint32 scale) override;
   void resize(float wmm, float hmm) override;
   void reset() override;
-  void reset(WGS84Point eye, Angle tilt) override;
+  void reset(const WGS84Point& eye, const Angle& tilt) override;
+  void setEye(const WGS84Point& eye) override;
   WGS84Point eye() const override;
   Angle northAngle() const override;
   quint32 maxScale() const override;
@@ -29,6 +31,8 @@ private:
   float eyeDistFromScale() const;
   void setScaleFromEyeDist();
   void setEyeDist();
+
+  void setEyeAndTilt(const WGS84Point& eye, const Angle& tilt);
 
 protected:
 

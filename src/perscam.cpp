@@ -37,7 +37,7 @@ void PersCam::setEyeDist() {
 
 
 
-void PersCam::reset(WGS84Point e, Angle a) {
+void PersCam::setEyeAndTilt(const WGS84Point& e, const Angle& a) {
 
   m_geoprojection->setReference(e);
 
@@ -79,14 +79,18 @@ void PersCam::reset(WGS84Point e, Angle a) {
   r.setRow(IY, QVector2D(sa, ca));
 
   m_rot = r * m_rot;
-  m_rot0 = m_rot;
 
   m_eye = eyeDistFromScale() * z;
-  m_eye0 = m_eye;
 
   m_view.setToIdentity();
   m_view.translate(- m_eye);
   m_view = m_rot * m_view;
+}
+
+void PersCam::reset(const WGS84Point &eye, const Angle &tilt) {
+  setEyeAndTilt(eye, tilt);
+  m_rot = m_rot0;
+  m_eye = m_eye0;
 }
 
 void PersCam::reset() {
@@ -102,6 +106,10 @@ void PersCam::reset() {
   m_view = m_rot * m_view;
 }
 
+void PersCam::setEye(const WGS84Point& e) {
+  setEyeAndTilt(e, northAngle());
+}
+
 
 float PersCam::eyeDistFromScale() const {
   const float phi2 = m_scale * m_mmHeight * 0.001 / R0 / 2;
@@ -114,7 +122,7 @@ void PersCam::setScaleFromEyeDist() {
   m_scale = phi2 * R0 * 2 / m_mmHeight * 1000;
 }
 
-void PersCam::rotateEye(Angle a) {
+void PersCam::rotateEye(const Angle& a) {
 
   QMatrix4x4 r;
   r.setToIdentity();
@@ -161,7 +169,7 @@ Angle PersCam::northAngle() const {
   return Angle::ATan2(eyeRot.row(IY)[0], eyeRot.row(IY)[1]);
 }
 
-void PersCam::pan(QPointF dragStart, QPointF dragAmount) {
+void PersCam::pan(const QPointF& dragStart, const QPointF& dragAmount) {
   const float a = m_projection(IY, IY) / m_projection(IX, IX);
   const float D = m_eye.length();
   const float c = m_projection(IY, IY);
@@ -226,7 +234,7 @@ WGS84Point PersCam::location(const QPointF &cp) const {
 
   const qreal K2 = k.lengthSquared();
   const qreal a = QVector3D::dotProduct(m_eye, k);
-  const qreal D = a * a + (1 - m_eye.lengthSquared()) * K2 ;
+  const qreal D = a * a + (1 - m_eye.lengthSquared()) * K2;
   if (D < 0) return WGS84Point();
 
   const QVector3D p = m_eye + (- a + sqrt(D)) / K2 * k;
@@ -234,6 +242,16 @@ WGS84Point PersCam::location(const QPointF &cp) const {
   const float lng = atan2(p[1], p[0]);
   const float lat = asin(p[2]);
   return WGS84Point::fromLLRadians(lng, lat);
+}
+
+QPointF PersCam::position(const WGS84Point& wp) const {
+  const QVector4D p = m_view * QVector4D(cos(wp.radiansLng()) * cos(wp.radiansLat()),
+                                         sin(wp.radiansLng()) * cos(wp.radiansLat()),
+                                         sin(wp.radiansLat()),
+                                         1.);
+
+  return QPointF(m_projection(0, 0) / m_projection(3, 2) / p.z() * p.x(),
+                 m_projection(1, 1) / m_projection(3, 2) / p.z() * p.y());
 }
 
 QRectF PersCam::boundingBox() const {

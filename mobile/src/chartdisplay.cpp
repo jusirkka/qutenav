@@ -303,6 +303,24 @@ void ChartDisplay::pan(qreal x, qreal y) {
   update();
 }
 
+
+void ChartDisplay::setEye(qreal lng, qreal lat) {
+  m_camera->setEye(WGS84Point::fromLL(lng, lat));
+  emit updateViewport(m_camera);
+  update();
+}
+
+QPointF ChartDisplay::position(qreal lng, qreal lat) const {
+  // Normalized device coordinates
+  const QPointF pos = m_camera->position(WGS84Point::fromLL(lng, lat));
+
+  const qreal w = m_orientedSize.width();
+  const qreal h = m_orientedSize.height();
+
+  return QPointF(w / 2. * (pos.x() + 1), h / 2. * (1 - pos.y()));
+}
+
+
 void ChartDisplay::northUp() {
   Angle a = m_camera->northAngle();
   m_camera->rotateEye(- a);
