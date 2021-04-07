@@ -89,8 +89,8 @@ void PersCam::setEyeAndTilt(const WGS84Point& e, const Angle& a) {
 
 void PersCam::reset(const WGS84Point &eye, const Angle &tilt) {
   setEyeAndTilt(eye, tilt);
-  m_rot = m_rot0;
-  m_eye = m_eye0;
+  m_rot0 = m_rot;
+  m_eye0 = m_eye;
 }
 
 void PersCam::reset() {

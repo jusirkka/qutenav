@@ -320,6 +320,11 @@ QPointF ChartDisplay::position(qreal lng, qreal lat) const {
   return QPointF(w / 2. * (pos.x() + 1), h / 2. * (1 - pos.y()));
 }
 
+QPointF ChartDisplay::advance(qreal lng, qreal lat, qreal distance, qreal heading) const {
+  auto wp = WGS84Point::fromLL(lng, lat) + WGS84Bearing::fromMeters(distance, Angle::fromDegrees(heading));
+  return position(wp.lng(), wp.lat());
+}
+
 
 void ChartDisplay::northUp() {
   Angle a = m_camera->northAngle();

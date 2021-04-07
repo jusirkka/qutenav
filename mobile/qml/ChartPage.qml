@@ -10,6 +10,7 @@ Page {
 
   property bool infoMode
   property bool posValid
+  property bool headingValid
   property bool boatCentered: centerButton.centered
   property var mouseMoveHandler
   property var position: gps.position
@@ -33,23 +34,32 @@ Page {
     app.encdis = encdis
     infoMode = false;
     posValid = false;
+    headingValid = false;
     page.mouseMoveHandler = page.panModeMouseMoveHandler
     lastPos = null
   }
 
   onPositionChanged: {
     if (position.horizontalAccuracyValid) {
-      posValid = position.horizontalAccuracy < 100
+      posValid = position.horizontalAccuracy < 100;
     } else {
-      // Hack for simulation mode. Remove after testing
-      posValid = true
+      // A hack for simulation mode. Remove after testing
+      posValid = true;
     }
     if (posValid && position.longitudeValid && position.latitudeValid) {
-      lastPos = position
+      lastPos = position;
       if (centerButton.centered) {
-        encdis.setEye(position.coordinate.longitude, position.coordinate.latitude)
+        encdis.setEye(position.coordinate.longitude, position.coordinate.latitude);
       } else {
-        boat.center = encdis.position(position.coordinate.longitude, position.coordinate.latitude)
+        boat.center = encdis.position(position.coordinate.longitude, position.coordinate.latitude);
+      }
+    }
+    if (position.speedValid && position.directionValid) {
+      headingValid = position.speed > .5;
+      if (headingValid) {
+        var p = encdis.advance(position.coordinate.longitude, position.coordinate.latitude,
+                               3600 * position.speed, position.direction);
+        boat.heading = Qt.point(p.x - boat.center.x, p.y - boat.center.y);
       }
     }
   }
@@ -76,6 +86,7 @@ Page {
     id: boat
     z: 300
     visible: !page.infoMode && page.posValid && !zoom.zooming
+    hasHeading: headingValid
   }
 
   MenuButton {

@@ -88,6 +88,7 @@ public:
   Q_INVOKABLE void infoQuery(const QPointF& p);
   Q_INVOKABLE void setEye(qreal lng, qreal lat);
   Q_INVOKABLE QPointF position(qreal lng, qreal lat) const;
+  Q_INVOKABLE QPointF advance(qreal lng, qreal lat, qreal distance, qreal heading) const;
 
   Q_PROPERTY(QStringList chartSets
              READ chartSets
