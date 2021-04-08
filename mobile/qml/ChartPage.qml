@@ -2,6 +2,8 @@ import QtQuick 2.2
 import Sailfish.Silica 1.0
 import org.qopencpn 1.0
 
+import "./utils.js" as Util
+
 Page {
 
   id: page
@@ -99,6 +101,12 @@ Page {
     id: centerButton
     z: 300
     visible: !page.infoMode
+    onCenteredChanged: {
+      if (centered) {
+        bubble.message = Util.printPos(lastPos);
+        bubble.visible = true;
+      }
+    }
   }
 
   ScaleBar {
@@ -107,6 +115,11 @@ Page {
     visible: !page.infoMode
     scaleWidth: encdis.scaleBarLength
     onScaleWidthChanged: scaleBar.text = encdis.scaleBarText
+  }
+
+  Bubble {
+    id: bubble
+    z: 301
   }
 
   CrossHairs {

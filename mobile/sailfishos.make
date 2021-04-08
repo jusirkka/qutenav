@@ -36,6 +36,8 @@ install:
 	mkdir -p $(DATADIR)/qml
 	cp qml/qopencpn.qml $(DATADIR)/qml/$(NAME).qml
 	cp qml/[A-Z]*.qml $(DATADIR)/qml
+	@echo "Installing JS files..."
+	cp qml/*.js $(DATADIR)/qml
 	cp qml/nmea.log $(DATADIR)/qml
 	mkdir -p $(DATADIR)/qml/icons
 	cp qml/icons/*.png $(DATADIR)/qml/icons
