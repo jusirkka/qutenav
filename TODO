@@ -7,9 +7,7 @@
 - bug: sometimes safety contour line is drawn incorrectly
 - bug: dash/dot length varies in dashed/dotted lines
 - bug: overlapping charts not handled properly
+- unit preferences
 
-
-- track start/stop/pause/resume/save
 - track archive page
-- track distance/duration/speed display
 

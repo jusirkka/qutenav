@@ -321,10 +321,22 @@ QPointF ChartDisplay::position(qreal lng, qreal lat) const {
 }
 
 QPointF ChartDisplay::advance(qreal lng, qreal lat, qreal distance, qreal heading) const {
-  auto wp = WGS84Point::fromLL(lng, lat) + WGS84Bearing::fromMeters(distance, Angle::fromDegrees(heading));
+  const auto wp = WGS84Point::fromLL(lng, lat) + WGS84Bearing::fromMeters(distance, Angle::fromDegrees(heading));
   return position(wp.lng(), wp.lat());
 }
 
+void ChartDisplay::syncPositions(const WGS84PointVector& wps, Point2DVector& vertices) const {
+
+  const float w = m_orientedSize.width();
+  const float h = m_orientedSize.height();
+
+  for (int i = 0; i < wps.size(); ++i) {
+    // Normalized device coordinates
+    const QPointF pos = m_camera->position(wps[i]);
+    vertices[i].x = w / 2. * (pos.x() + 1);
+    vertices[i].y = h / 2. * (1 - pos.y());
+  }
+}
 
 void ChartDisplay::northUp() {
   Angle a = m_camera->northAngle();

@@ -17,6 +17,7 @@ target_sources(Mobile
     src/conf_marinerparams.cpp
     src/crosshairs.cpp
     src/main.cpp
+    src/tracker.cpp
 )
 
 target_include_directories(Mobile
@@ -43,6 +44,7 @@ target_link_libraries(Mobile
 
 add_custom_target(Qml SOURCES
   qml/qopencpn.qml
+  qml/Banner.qml
   qml/Boat.qml
   qml/Bubble.qml
   qml/ChartPage.qml
@@ -56,5 +58,8 @@ add_custom_target(Qml SOURCES
   qml/PreferencesPage.qml
   qml/ScaleBar.qml
   qml/SliderPref.qml
+  qml/TimeBanner.qml
+  qml/TrackButton.qml
+  qml/TrackInfo.qml
   qml/ValuePref.qml
 )

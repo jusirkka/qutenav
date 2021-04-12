@@ -3,6 +3,7 @@
 #include <QtQuick/QQuickFramebufferObject>
 #include <QOpenGLVertexArrayObject>
 #include "types.h"
+#include <QSGGeometry>
 
 class DetailMode;
 class Camera;
@@ -105,6 +106,9 @@ public:
 
   Q_PROPERTY(QString scaleBarText
              READ scaleBarText)
+
+  using Point2DVector = QVector<QSGGeometry::Point2D>;
+  void syncPositions(const WGS84PointVector& positions, Point2DVector& vertices) const;
 
   QStringList chartSets() const;
   QString chartSet() const;

@@ -4,7 +4,7 @@ import Sailfish.Silica 1.0
 Rectangle {
   id: rect
 
-  property bool centered
+  property bool tracking
 
   height: button.height * 1.45
   width: height
@@ -17,9 +17,9 @@ Rectangle {
   anchors.rightMargin: Theme.paddingLarge
   anchors.leftMargin: Theme.paddingLarge
 
-  onCenteredChanged: {
-    if (centered) {
-      button.icon.color = "#00b000";
+  onTrackingChanged: {
+    if (tracking) {
+      button.icon.color = "#ff0000";
     } else {
       button.icon.color = "black";
     }
@@ -32,11 +32,21 @@ Rectangle {
 
     height: icon.sourceSize.height
     icon.smooth: false
-    icon.source: app.getIcon("center");
+    icon.source: app.getIcon("record");
     icon.color: "black"
 
     onClicked: {
-      rect.centered = true;
+      if (rect.tracking) {
+        var dialog = pageStack.push(Qt.resolvedUrl("TrackResultDialog.qml"), {tracker: tracker});
+        dialog.onAccepted.connect(function () {
+          console.log("stop tracking");
+          rect.tracking = false;
+        });
+      } else {
+        console.log("keep tracking");
+        rect.tracking = true;
+      }
+      tracker.sync();
     }
   }
 }

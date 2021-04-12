@@ -30,6 +30,11 @@ ICONS = ../data/qopencpn-86x86.png \
         qml/icons/center-150.png \
         qml/icons/center-175.png \
         qml/icons/center-200.png \
+        qml/icons/record-100.png \
+        qml/icons/record-125.png \
+        qml/icons/record-150.png \
+        qml/icons/record-175.png \
+        qml/icons/record-200.png \
 
 install:
 	@echo "Installing QML files..."

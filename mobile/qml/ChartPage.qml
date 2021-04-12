@@ -16,14 +16,15 @@ Page {
   property bool boatCentered: centerButton.centered
   property var mouseMoveHandler
   property var position: gps.position
-  property var lastPos
+  property var lastPos: undefined
 
   function panModeMouseMoveHandler(m) {
     if (centerButton.centered) centerButton.centered = false;
     encdis.pan(m.x, m.y)
-    if (boat.visible && lastPos !== null) {
+    if (boat.visible && lastPos !== undefined) {
       boat.center = encdis.position(lastPos.coordinate.longitude, lastPos.coordinate.latitude)
     }
+    tracker.sync();
   }
 
   function infoModeMouseMoveHandler(m) {
@@ -37,8 +38,22 @@ Page {
     infoMode = false;
     posValid = false;
     headingValid = false;
-    page.mouseMoveHandler = page.panModeMouseMoveHandler
-    lastPos = null
+    page.mouseMoveHandler = page.panModeMouseMoveHandler;
+  }
+
+  onOrientationChanged: {
+    if (boat.visible && lastPos !== undefined) {
+      if (boatCentered) {
+        // console.log(width, height)
+        // WTF: width & height seem to have their old values at this point
+        boat.center = Qt.point(height / 2, width / 2);
+        encdis.setEye(lastPos.coordinate.longitude, lastPos.coordinate.latitude)
+      } else {
+        boat.center = encdis.position(lastPos.coordinate.longitude, lastPos.coordinate.latitude)
+      }
+    }
+    tracker.sync();
+    headingValid = false;
   }
 
   onPositionChanged: {
@@ -55,6 +70,9 @@ Page {
       } else {
         boat.center = encdis.position(position.coordinate.longitude, position.coordinate.latitude);
       }
+      if (tracker.tracking) {
+        tracker.append(position.coordinate.longitude, position.coordinate.latitude);
+      }
     }
     if (position.speedValid && position.directionValid) {
       headingValid = position.speed > .5;
@@ -69,8 +87,9 @@ Page {
   onBoatCenteredChanged: {
     if (boatCentered) {
       boat.center = Qt.point(width / 2, height / 2);
-      if (lastPos !== null) {
+      if (lastPos !== undefined) {
         encdis.setEye(lastPos.coordinate.longitude, lastPos.coordinate.latitude)
+        tracker.sync();
       }
     }
   }
@@ -80,31 +99,55 @@ Page {
     z: 150
     anchors.fill: parent
     onInfoQueryReady: {
-      app.showInfo(info);
+      pageStack.push(Qt.resolvedUrl("InfoPage.qml"), {content: info});
+    }
+
+    Tracker {
+      id: tracker
+      z: 200
+      visible: !page.infoMode && trackButton.tracking && !zoom.zooming
+      tracking: trackButton.tracking
     }
   }
 
   Boat {
     id: boat
-    z: 300
+    z: 200
     visible: !page.infoMode && page.posValid && !zoom.zooming
     hasHeading: headingValid
   }
 
+  TrackInfo {
+    id: trackInfo
+    visible: !page.infoMode && trackButton.tracking
+    z: 300
+    duration: tracker.duration
+    speed: tracker.speed
+    distance: tracker.distance
+  }
+
   MenuButton {
     id: menuButton
+    anchors.horizontalCenter: parent.horizontalCenter
+    z: 300
+    visible: !page.infoMode
+  }
+
+  TrackButton {
+    id: trackButton
+    anchors.left: menuButton.right
     z: 300
     visible: !page.infoMode
   }
 
   CenterButton {
     id: centerButton
+    anchors.right: parent.right
     z: 300
     visible: !page.infoMode
     onCenteredChanged: {
       if (centered) {
-        bubble.message = Util.printPos(lastPos);
-        bubble.visible = true;
+        bubble.show(Util.printPos(lastPos), "top");
       }
     }
   }
@@ -158,6 +201,10 @@ Page {
 
     onPinchFinished: {
       zooming = false;
+      if (!centerButton.centered && lastPos !== undefined) {
+        boat.center = encdis.position(lastPos.coordinate.longitude, lastPos.coordinate.latitude)
+      }
+      tracker.sync();
     }
 
     onPinchUpdated: {

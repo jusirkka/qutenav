@@ -45,8 +45,7 @@ void CrossHairs::setPeepHole(const QPointF& p) {
 }
 
 
-QSGNode *CrossHairs::updatePaintNode(QSGNode* oldNode, UpdatePaintNodeData*)
-{
+QSGNode *CrossHairs::updatePaintNode(QSGNode* oldNode, UpdatePaintNodeData*) {
   QSGGeometryNode *node = nullptr;
   QSGGeometry *geometry = nullptr;
 
@@ -64,8 +63,8 @@ QSGNode *CrossHairs::updatePaintNode(QSGNode* oldNode, UpdatePaintNodeData*)
   } else {
     node = static_cast<QSGGeometryNode*>(oldNode);
     geometry = node->geometry();
-    geometry->allocate(8);
   }
+
   const float x0 = static_cast<float>(m_peepHole.x());
   const float y0 = static_cast<float>(m_peepHole.y());
   const float d = .5 * KV::PeepHoleSize;

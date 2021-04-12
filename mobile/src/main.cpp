@@ -13,6 +13,7 @@
 #include "s57chart.h"
 #include "settings.h"
 #include "chartupdater.h"
+#include "tracker.h"
 
 Q_IMPORT_PLUGIN(CM93ReaderFactory)
 Q_IMPORT_PLUGIN(S57ReaderFactory)
@@ -25,6 +26,7 @@ int main(int argc, char *argv[]) {
 
   qmlRegisterType<ChartDisplay>("org.qopencpn", 1, 0, "ChartDisplay");
   qmlRegisterType<CrossHairs>("org.qopencpn", 1, 0, "CrossHairs");
+  qmlRegisterType<Tracker>("org.qopencpn", 1, 0, "Tracker");
 
   QSurfaceFormat format;
   format.setVersion(3, 2);

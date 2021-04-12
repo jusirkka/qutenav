@@ -11,9 +11,9 @@ height=$(echo $base | sed -n -e 's/.*x\(.*\)\..*/\1/p')
 if test "$width" == ""; then
     scale=$(echo $base | sed -n -e 's/.*-\(.*\)\.png/\1/p')
     echo $scale
-    w1=$(egrep "^ *width" $source | sed -n -e 's/.*\"\([0-9]\+\)[."].*/\1/p')
+    w1=$(egrep -m 1 "^ *width" $source | sed -n -e 's/.*\"\([0-9]\+\)[."].*/\1/p')
     echo $w1
-    h1=$(egrep "^ *height" $source | sed -n -e 's/.*\"\([0-9]\+\)[."].*/\1/p')
+    h1=$(egrep -m 1 "^ *height" $source | sed -n -e 's/.*\"\([0-9]\+\)[."].*/\1/p')
     echo $h1
     width=$(expr $w1 \* $scale / 100)
     height=$(expr $h1 \* $scale / 100)

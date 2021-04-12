@@ -10,7 +10,8 @@ Rectangle {
 
   anchors.bottom: parent.bottom
   anchors.bottomMargin: Theme.paddingLarge
-  anchors.horizontalCenter: parent.horizontalCenter
+  anchors.rightMargin: Theme.paddingLarge
+  anchors.leftMargin: Theme.paddingLarge
 
   IconButton {
     id: button
@@ -22,7 +23,7 @@ Rectangle {
     icon.source: app.getIcon("menu")
     icon.color: "black"
 
-    onClicked: app.showMenu();
+    onClicked: pageStack.push(Qt.resolvedUrl("MenuPage.qml"));
 
   }
 }
