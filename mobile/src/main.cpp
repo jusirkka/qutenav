@@ -14,6 +14,7 @@
 #include "settings.h"
 #include "chartupdater.h"
 #include "tracker.h"
+#include "trackmodel.h"
 
 Q_IMPORT_PLUGIN(CM93ReaderFactory)
 Q_IMPORT_PLUGIN(S57ReaderFactory)
@@ -27,6 +28,7 @@ int main(int argc, char *argv[]) {
   qmlRegisterType<ChartDisplay>("org.qopencpn", 1, 0, "ChartDisplay");
   qmlRegisterType<CrossHairs>("org.qopencpn", 1, 0, "CrossHairs");
   qmlRegisterType<Tracker>("org.qopencpn", 1, 0, "Tracker");
+  qmlRegisterType<TrackModel>("org.qopencpn", 1, 0, "TrackModel");
 
   QSurfaceFormat format;
   format.setVersion(3, 2);
@@ -52,6 +54,8 @@ int main(int argc, char *argv[]) {
   qRegisterMetaType<ChartData>();
 
   S52::InitPresentation();
+
+  TrackDatabase::createTables();
 
   QScopedPointer<QQuickView> view(SailfishApp::createView());
 

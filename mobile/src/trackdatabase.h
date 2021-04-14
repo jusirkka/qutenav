@@ -1,7 +1,8 @@
 /* -*- coding: utf-8-unix -*-
  *
- * chartdatabase.h
+ * trackdatabase.h
  *
+ * Created: 12/04/2021 2021 by Jukka Sirkka
  *
  * Copyright (C) 2021 Jukka Sirkka
  *
@@ -21,15 +22,34 @@
 #pragma once
 
 #include "sqlitedatabase.h"
+#include "types.h"
 
+using InstantVector = QVector<qint64>; // UTC unix times
 
-class ChartDatabase: public SQLiteDatabase {
+class TrackDatabase: public SQLiteDatabase {
 public:
 
-  ChartDatabase();
-  ~ChartDatabase() = default;
+  static QString databaseName();
+  static void createTables();
 
-  void loadCharts(int chartset);
+  TrackDatabase();
+  ~TrackDatabase() = default;
 
+  void createTrack(const InstantVector& events, const WGS84PointVector& positions, const GL::IndexVector& indices);
+
+private:
+
+  struct Event {
+    Event(qint64 t, const WGS84Point& p)
+      : instant(t)
+      , position(p) {}
+
+    Event() = default;
+
+    quint64 instant;
+    WGS84Point position;
+  };
+
+  using EventVector = QVector<Event>;
 };
 

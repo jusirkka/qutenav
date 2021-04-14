@@ -18,6 +18,8 @@ target_sources(Mobile
     src/crosshairs.cpp
     src/main.cpp
     src/tracker.cpp
+    src/trackdatabase.cpp
+    src/trackmodel.cpp
 )
 
 target_include_directories(Mobile
@@ -39,6 +41,7 @@ target_link_libraries(Mobile
     ${SAILFISH_LDFLAGS}
     Qt5::Quick
     Qt5::Gui
+    Qt5::Sql
     Freetype::Freetype
 )
 
@@ -60,6 +63,8 @@ add_custom_target(Qml SOURCES
   qml/SliderPref.qml
   qml/TimeBanner.qml
   qml/TrackButton.qml
+  qml/TrackDisplayDialog.qml
   qml/TrackInfo.qml
+  qml/TrackResultDialog.qml
   qml/ValuePref.qml
 )

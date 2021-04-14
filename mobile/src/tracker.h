@@ -24,6 +24,7 @@
 #include <QQuickItem>
 #include <QSGGeometry>
 #include "types.h"
+#include "trackdatabase.h"
 
 
 class Tracker: public QQuickItem {
@@ -34,13 +35,14 @@ public:
 
   Tracker(QQuickItem* parent = nullptr);
 
-  Q_PROPERTY(bool tracking
-             READ tracking
-             WRITE setTracking
-             NOTIFY trackingChanged)
+  Q_PROPERTY(Status status
+             READ status
+             NOTIFY statusChanged)
 
-  bool tracking() const {return m_tracking;}
-  void setTracking(bool v);
+  enum Status {Inactive, Tracking, Paused, Displaying};
+  Q_ENUM(Status)
+
+  Status status() const {return m_status;}
 
   Q_PROPERTY(quint32 duration
              READ duration
@@ -64,16 +66,18 @@ public:
   Q_INVOKABLE void append(qreal lng, qreal lat);
   Q_INVOKABLE void sync();
 
+  Q_INVOKABLE void start();
   Q_INVOKABLE void pause();
   Q_INVOKABLE void save();
   Q_INVOKABLE void remove();
+  Q_INVOKABLE void display();
 
   QSGNode *updatePaintNode(QSGNode* node, UpdatePaintNodeData*) override;
 
 
 signals:
 
-  void trackingChanged();
+  void statusChanged();
   void durationChanged();
   void speedChanged();
   void distanceChanged();
@@ -96,20 +100,18 @@ private:
   static const inline qreal eps = .05;
 
   using PointVector = QVector<QSGGeometry::Point2D>;
-  using EventVector = QVector<qint64>; // UTC unix times
 
   PointVector m_vertices;
   GL::IndexVector m_indices;
 
   WGS84PointVector m_positions;
-  EventVector m_events;
+  InstantVector m_instants;
 
-  bool m_tracking;
+  Status m_status;
   int m_lastIndex;
 
   quint32 m_duration; // secs
   qreal m_speed; // meters / sec
   qreal m_distance; // meters
-
 };
 

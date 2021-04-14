@@ -45,6 +45,7 @@ Rectangle {
       } else {
         console.log("keep tracking");
         rect.tracking = true;
+        tracker.start();
       }
       tracker.sync();
     }

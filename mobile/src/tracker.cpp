@@ -26,10 +26,11 @@
 #include <QDebug>
 #include "chartdisplay.h"
 #include <QDateTime>
+#include "trackmodel.h"
 
 Tracker::Tracker(QQuickItem* parent)
   : QQuickItem(parent)
-  , m_tracking(false)
+  , m_status(Inactive)
   , m_lastIndex(-1)
   , m_duration(0)
   , m_speed(0)
@@ -38,15 +39,14 @@ Tracker::Tracker(QQuickItem* parent)
   setFlag(ItemHasContents, true);
 }
 
-void Tracker::setTracking(bool v) {
-  if (m_tracking == v) return;
-  m_tracking = v;
-  emit trackingChanged();
+void Tracker::start() {
+  if (m_status == Tracking) return;
+  m_status = Tracking;
+  emit statusChanged();
 }
 
-
 void Tracker::append(qreal lng, qreal lat) {
-  if (!m_tracking) return;
+  if (m_status != Tracking) return;
 
   auto encdis = qobject_cast<const ChartDisplay*>(parentItem());
   if (encdis == nullptr) {
@@ -65,7 +65,7 @@ void Tracker::append(qreal lng, qreal lat) {
       // qDebug() << "Distance to previous point =" << dist << ", skipping";
       return;
     }
-    const auto delta = now - m_events[m_lastIndex];
+    const auto delta = now - m_instants[m_lastIndex];
     // speed
     const auto speed = dist / delta;
     if (speed > maxSpeed) {
@@ -95,7 +95,7 @@ void Tracker::append(qreal lng, qreal lat) {
   }
 
   m_positions << wp;
-  m_events << now;
+  m_instants << now;
   m_vertices << fromPoint(encdis->position(lng, lat));
 
   update();
@@ -116,34 +116,97 @@ void Tracker::sync() {
 }
 
 void Tracker::pause() {
-  if (!m_tracking) return;
+  if (m_status == Paused) return;
   m_lastIndex = -1;
   m_speed = 0;
-  m_tracking = false;
-  emit trackingChanged();
+  m_status = Paused;
+  emit statusChanged();
 }
 
 void Tracker::save() {
-  // TODO: archive current track
-  remove();
+  try {
+    TrackDatabase db;
+    db.createTrack(m_instants, m_positions, m_indices);
+    remove();
+  } catch (DatabaseError& e){
+    qWarning() << e.msg();
+  }
+
 }
 
 void Tracker::remove() {
   m_positions.clear();
   m_vertices.clear();
   m_indices.clear();
-  m_events.clear();
+  m_instants.clear();
   m_lastIndex = -1;
   m_duration = 0;
   m_speed = 0;
   m_distance = 0;
-  if (m_tracking) {
-    m_tracking = false;
-    emit trackingChanged();
+  if (m_status != Inactive) {
+    m_status = Inactive;
+    emit statusChanged();
   }
 }
 
+void Tracker::display() {
 
+  m_positions.clear();
+  m_vertices.clear();
+  m_indices.clear();
+  m_instants.clear();
+
+  try {
+
+    TrackDatabase db;
+
+    auto r0 = db.exec("select e.string_id, e.time, e.lng, e.lat from events e "
+                      "join strings s on e.string_id = s.id "
+                      "join tracks t on s.track_id = t.id "
+                      "where t.enabled != 0 "
+                      "order by e.string_id, e.id");
+    int prev = - 1;
+    while (r0.next()) {
+
+      const auto string_id = r0.value(0).toInt();
+      if (string_id != prev) {
+        m_lastIndex = -1;
+      }
+      prev = string_id;
+
+      if (m_lastIndex < 0) {
+        m_lastIndex = m_positions.size();
+      } else {
+        m_indices << m_lastIndex;
+        m_lastIndex = m_positions.size();
+        m_indices << m_lastIndex;
+      }
+
+      m_positions << WGS84Point::fromLL(r0.value(2).toReal(), r0.value(3).toReal());
+      m_instants << r0.value(1).toLongLong();
+
+    }
+
+    if (!m_positions.isEmpty()) {
+      m_vertices.resize(m_positions.size());
+      sync();
+      if (m_status != Displaying) {
+        m_status = Displaying;
+        emit statusChanged();
+      }
+    } else {
+      if (m_status != Inactive) {
+        m_status = Inactive;
+        emit statusChanged();
+      }
+      update();
+    }
+
+
+  } catch (DatabaseError& e) {
+    qWarning() << e.msg();
+  }
+}
 
 QSGNode *Tracker::updatePaintNode(QSGNode* oldNode, UpdatePaintNodeData*) {
   QSGGeometryNode *node = nullptr;

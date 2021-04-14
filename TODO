@@ -1,4 +1,3 @@
-- routes
 - distance measurement
 - tides
 - busy spinner while charts are loading
@@ -9,5 +8,5 @@
 - bug: overlapping charts not handled properly
 - unit preferences
 
-- track archive page
 
+- routes

@@ -70,7 +70,7 @@ Page {
       } else {
         boat.center = encdis.position(position.coordinate.longitude, position.coordinate.latitude);
       }
-      if (tracker.tracking) {
+      if (tracker.status === Tracker.Tracking) {
         tracker.append(position.coordinate.longitude, position.coordinate.latitude);
       }
     }
@@ -105,8 +105,7 @@ Page {
     Tracker {
       id: tracker
       z: 200
-      visible: !page.infoMode && trackButton.tracking && !zoom.zooming
-      tracking: trackButton.tracking
+      visible: !page.infoMode && (tracker.status === Tracker.Tracking || tracker.status === Tracker.Displaying) && !zoom.zooming
     }
   }
 

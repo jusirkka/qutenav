@@ -129,6 +129,7 @@ target_sources(qopencpn
     src/s57paintdata.cpp
     src/settings.cpp
     src/shader.cpp
+    src/sqlitedatabase.cpp
     src/symboldata.cpp
     src/textmanager.cpp
     src/tiny_sdf.cpp
@@ -194,6 +195,7 @@ target_sources(qopencpn_dbupdater
     src/s52names.cpp
     src/s57chartoutline.cpp
     src/s57object.cpp
+    src/sqlitedatabase.cpp
     src/types.cpp
     ${dbus_adaptor_SRCS}
 )

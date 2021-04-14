@@ -3,10 +3,9 @@
 #include <QDir>
 #include "types.h"
 #include <QDebug>
-#include <QtSql/QSqlError>
 
 ChartDatabase::ChartDatabase()
-  : m_DB(QSqlDatabase::addDatabase("QSQLITE"))
+  : SQLiteDatabase("ChartDatabase")
 {
   // qopencpn or harbour-qopencpn
   const QString baseapp = qAppName().split("_").first();
@@ -130,49 +129,4 @@ void ChartDatabase::loadCharts(int chartset_id) {
   m_Query.bindValue(0, chartset_id);
   m_Query.exec();
   checkError();
-}
-
-const QSqlQuery& ChartDatabase::exec(const QString& sql) {
-  m_Query = QSqlQuery(m_DB);
-
-  m_Query.exec(sql);
-  checkError();
-
-  return m_Query;
-}
-
-void ChartDatabase::exec(QSqlQuery& query) {
-  m_Query = query;
-  m_Query.exec();
-  checkError();
-}
-
-const QSqlQuery& ChartDatabase::prepare(const QString& sql) {
-  m_Query = QSqlQuery(m_DB);
-  m_Query.prepare(sql);
-  checkError();
-
-  return m_Query;
-}
-
-bool ChartDatabase::transaction() {
-  return m_DB.transaction();
-}
-
-bool ChartDatabase::commit() {
-  return m_DB.commit();
-}
-
-void ChartDatabase::close() {
-  m_DB.commit();
-  m_DB.close();
-}
-
-ChartDatabase::~ChartDatabase() {
-  close();
-}
-
-void ChartDatabase::checkError() const {
-  if (!m_Query.lastError().isValid()) return;
-  throw DatabaseError(m_Query.lastError().text());
 }

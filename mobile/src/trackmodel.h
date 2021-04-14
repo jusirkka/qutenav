@@ -1,7 +1,8 @@
 /* -*- coding: utf-8-unix -*-
  *
- * chartdatabase.h
+ * trackmodel.h
  *
+ * Created: 13/04/2021 2021 by Jukka Sirkka
  *
  * Copyright (C) 2021 Jukka Sirkka
  *
@@ -20,16 +21,28 @@
  */
 #pragma once
 
-#include "sqlitedatabase.h"
+#include <QSqlTableModel>
+#include <QAbstractListModel>
 
+class TrackModel: public QAbstractListModel {
 
-class ChartDatabase: public SQLiteDatabase {
+  Q_OBJECT
+
 public:
 
-  ChartDatabase();
-  ~ChartDatabase() = default;
+  TrackModel(QObject* parent = nullptr);
 
-  void loadCharts(int chartset);
+  QHash<int, QByteArray> roleNames() const override;
+  QVariant data(const QModelIndex& index, int role) const override;
+  bool setData(const QModelIndex& item, const QVariant& value, int role) override;
+  int rowCount(const QModelIndex &parent = QModelIndex()) const override;
+  Qt::ItemFlags flags(const QModelIndex &index) const override;
+
+  ~TrackModel();
+
+private:
+
+  QSqlTableModel* m_tracks;
 
 };
 

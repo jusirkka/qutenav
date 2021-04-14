@@ -157,7 +157,7 @@ public:
 
 class Globalizer {
 public:
-  virtual PaintData* globalize(GLsizei offset) const = 0;
+  virtual PaintData* globalize(GLsizei offset, qreal scale) const = 0;
   virtual GL::VertexVector vertices(qreal scale) = 0;
   virtual ~Globalizer() = default;
 };
@@ -173,7 +173,7 @@ public:
                 bool displayUnits,
                 const QPointF& pivot);
 
-  PaintData* globalize(GLsizei offset) const override;
+  PaintData* globalize(GLsizei offset, qreal scale) const override;
   GL::VertexVector vertices(qreal scale) override;
 
   void setUniforms() const override;

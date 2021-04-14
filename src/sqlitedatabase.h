@@ -1,7 +1,8 @@
 /* -*- coding: utf-8-unix -*-
  *
- * chartdatabase.h
+ * sqlitedatabase.h
  *
+ * Created: 12/04/2021 2021 by Jukka Sirkka
  *
  * Copyright (C) 2021 Jukka Sirkka
  *
@@ -20,16 +21,32 @@
  */
 #pragma once
 
-#include "sqlitedatabase.h"
+#include <QtSql/QSqlDatabase>
+#include <QtSql/QSqlQuery>
 
 
-class ChartDatabase: public SQLiteDatabase {
+class SQLiteDatabase {
 public:
 
-  ChartDatabase();
-  ~ChartDatabase() = default;
+  SQLiteDatabase(const QString& connName);
+  virtual ~SQLiteDatabase();
 
-  void loadCharts(int chartset);
+  const QSqlQuery& exec(const QString& sql);
+  const QSqlQuery& prepare(const QString& sql);
+  void exec(QSqlQuery& query);
+  bool transaction();
+  bool commit();
+  void close();
 
+
+  QString path() const {return m_DB.databaseName();}
+  QSqlDatabase connection() const {return m_DB;}
+
+protected:
+
+  void checkError() const;
+
+  QSqlDatabase m_DB;
+  QSqlQuery m_Query;
 };
 

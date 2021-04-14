@@ -295,7 +295,8 @@ void S57Chart::updatePaintData(const WGS84PointVector& cs, quint32 scale) {
 
   auto handleLine = [this, sf, &vertices] (const S57::PaintMutIterator& it, int prio) {
     auto p = dynamic_cast<S57::Globalizer*>(it.value());
-    auto pn = p->globalize(m_staticVertexOffset + vertices.size() * sizeof(GLfloat));
+    const auto off = m_staticVertexOffset + vertices.size() * sizeof(GLfloat);
+    auto pn = p->globalize(off, sf);
     vertices += p->vertices(sf);
     delete p;
     m_paintData[prio].insert(pn->type(), pn);

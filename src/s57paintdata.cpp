@@ -176,7 +176,24 @@ void S57::LineLocalData::setStorageOffsets(uintptr_t) const {
 
 
 
-S57::PaintData* S57::LineLocalData::globalize(GLsizei offset) const {
+S57::PaintData* S57::LineLocalData::globalize(GLsizei offset, qreal scale) const {
+  if (m_displayUnits) {
+    // transform millimeters (display) to meters (chart) in bounding boxes
+    // first scale nominal millimeters to actual millimeters
+    scale *= Settings::instance()->displayLengthScaling();
+    ElementDataVector elems;
+    for (const ElementData& elem: m_elements) {
+      ElementData e;
+      e.mode = elem.mode; e.count = elem.count; e.offset = elem.offset;
+
+      const QPointF tl = m_pivot + (elem.bbox.topLeft() - m_pivot) / scale;
+      const QPointF br = m_pivot + (elem.bbox.bottomRight() - m_pivot) / scale;
+      e.bbox = QRectF(tl, br);
+
+      elems << e;
+    }
+    return new LineArrayData(elems, offset, m_color, m_lineWidth, m_pattern);
+  }
   return new LineArrayData(m_elements, offset, m_color, m_lineWidth, m_pattern);
 }
 

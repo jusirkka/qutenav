@@ -969,6 +969,13 @@ S57::PaintDataMap S52::CSLights05::execute(const QVector<QVariant>&,
   return ps;
 }
 
+static void maxbox(QPointF& ll, QPointF& ur, qreal x, qreal y) {
+  ll.setX(qMin(ll.x(), x));
+  ll.setY(qMin(ll.y(), y));
+  ur.setX(qMax(ur.x(), x));
+  ur.setY(qMax(ur.y(), y));
+}
+
 S57::PaintDataMap S52::CSLights05::drawDirection(const S57::Object *obj) const {
   auto point = dynamic_cast<const S57::Geometry::Point*>(obj->geometry());
   Q_ASSERT(point != nullptr);
@@ -991,9 +998,6 @@ S57::PaintDataMap S52::CSLights05::drawDirection(const S57::Object *obj) const {
   e.offset = 0;
   e.mode = GL_LINE_STRIP_ADJACENCY_EXT;
 
-  S57::ElementDataVector elements;
-  elements.append(e);
-
   GL::VertexVector vertices;
   const GLfloat x0 = point->points()[0];
   const GLfloat y0 = point->points()[1];
@@ -1005,6 +1009,15 @@ S57::PaintDataMap S52::CSLights05::drawDirection(const S57::Object *obj) const {
   vertices << x1 << y1;
   vertices << 2 * x1 - x0 << 2 * y1 - y0;
 
+  // bbox
+  QPointF ll(1.e15, 1.e15);
+  QPointF ur(-1.e15, -1.e15);
+  maxbox(ll, ur, x0, y0);
+  maxbox(ll, ur, x1, y1);
+  e.bbox = QRectF(ll, ur);
+
+  S57::ElementDataVector elements;
+  elements.append(e);
 
   auto color = S52::GetColor(m_chblk);
   auto p = new S57::LineLocalData(vertices, elements, color, S52::LineWidthMM(1),
@@ -1038,9 +1051,6 @@ S57::PaintDataMap S52::CSLights05::drawSectors(const S57::Object *obj) const {
   e.offset = 0;
   e.mode = GL_LINE_STRIP_ADJACENCY_EXT;
 
-  S57::ElementDataVector elements;
-  elements.append(e);
-
   GL::VertexVector vertices;
   const GLfloat x0 = point->points()[0];
   const GLfloat y0 = point->points()[1];
@@ -1054,6 +1064,18 @@ S57::PaintDataMap S52::CSLights05::drawSectors(const S57::Object *obj) const {
   vertices << x0 << y0;
   vertices << x2 << y2;
   vertices << 2 * x2 - x0 << 2 * y2 - y0;
+
+  // bbox
+  QPointF ll(1.e15, 1.e15);
+  QPointF ur(-1.e15, -1.e15);
+  maxbox(ll, ur, x0, y0);
+  maxbox(ll, ur, x1, y1);
+  maxbox(ll, ur, x2, y2);
+  e.bbox = QRectF(ll, ur);
+
+  S57::ElementDataVector elements;
+  elements.append(e);
+
 
   auto color = S52::GetColor(m_chblk);
   auto p = new S57::LineLocalData(vertices, elements, color, S52::LineWidthMM(1),
@@ -1079,10 +1101,13 @@ S57::PaintDataMap S52::CSLights05::drawArc(const S57::Object *obj,
   while (s2 < s1) s2 += 2 * M_PI;
   const int n0 = qMin(90, qMax(static_cast<int>(r * (s2 - s1)), 2));
 
+  const QPointF p0(point->points()[0], point->points()[1]);
+
   S57::ElementData e;
   e.count = n0 + 2;
   e.offset = 0;
   e.mode = GL_LINE_STRIP_ADJACENCY_EXT;
+  e.bbox = QRectF(p0 - QPointF(r, r), QSizeF(2 * r, 2 * r));
 
   S57::ElementDataVector elements;
   elements.append(e);
@@ -1090,7 +1115,6 @@ S57::PaintDataMap S52::CSLights05::drawArc(const S57::Object *obj,
   GL::VertexVector vertices;
   // account adjacency
   vertices << 0 << 0;
-  const QPointF p0(point->points()[0], point->points()[1]);
   for (int n = 0; n < n0; n++) {
     const qreal s = s1 + n * (s2 - s1) / (n0 - 1);
     const QPointF p = p0 - r * QPointF(sin(s), cos(s));
