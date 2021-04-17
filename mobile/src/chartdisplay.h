@@ -125,6 +125,8 @@ public:
   bool consume(quint32 flag);
   const QRectF& viewArea() const {return m_viewArea;}
 
+  WGS84Point location(const QPointF& pos) const;
+
   static const quint32 ChartsUpdated = 1;
   static const quint32 EnteringChartMode = 2;
   static const quint32 LeavingChartMode = 4;

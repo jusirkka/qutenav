@@ -125,7 +125,7 @@ void Tracker::pause() {
 
 void Tracker::save() {
   try {
-    TrackDatabase db;
+    TrackDatabase db("Tracker::save");
     db.createTrack(m_instants, m_positions, m_indices);
     remove();
   } catch (DatabaseError& e){
@@ -158,7 +158,7 @@ void Tracker::display() {
 
   try {
 
-    TrackDatabase db;
+    TrackDatabase db("Tracker::display");
 
     auto r0 = db.exec("select e.string_id, e.time, e.lng, e.lat from events e "
                       "join strings s on e.string_id = s.id "

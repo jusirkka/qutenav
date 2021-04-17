@@ -1,0 +1,72 @@
+/* -*- coding: utf-8-unix -*-
+ *
+ * router.h
+ *
+ * Created: 17/04/2021 2021 by Jukka Sirkka
+ *
+ * Copyright (C) 2021 Jukka Sirkka
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+#pragma once
+
+
+#include <QQuickItem>
+#include <QSGGeometry>
+#include "types.h"
+#include "trackdatabase.h"
+
+
+class Router: public QQuickItem {
+
+  Q_OBJECT
+
+public:
+
+  Router(QQuickItem* parent = nullptr);
+
+  Q_PROPERTY(bool empty
+             READ empty
+             NOTIFY emptyChanged)
+
+  bool empty() {return m_vertices.isEmpty();}
+
+  Q_INVOKABLE void sync();
+
+  Q_INVOKABLE int append(const QPointF& pos);
+  Q_INVOKABLE void move(int index, const QPointF& pos);
+  Q_INVOKABLE void remove(int index);
+  Q_INVOKABLE QPointF insert(int index);
+  Q_INVOKABLE bool last(int index) const;
+
+  QSGNode *updatePaintNode(QSGNode* node, UpdatePaintNodeData*) override;
+
+
+signals:
+
+  void emptyChanged();
+
+public slots:
+
+private:
+
+  static const int lineWidth = 16;
+
+  using PointVector = QVector<QSGGeometry::Point2D>;
+
+  PointVector m_vertices;
+  WGS84PointVector m_positions;
+
+};
+

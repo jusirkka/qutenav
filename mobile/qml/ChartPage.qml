@@ -17,14 +17,22 @@ Page {
   property var mouseMoveHandler
   property var position: gps.position
   property var lastPos: undefined
+  property var routePoint: undefined
 
   function panModeMouseMoveHandler(m) {
+    if (routeButton.editing && routePoint !== undefined) {
+      router.move(routePoint.index, Qt.point(m.x - mouse.prev.x, m.y - mouse.prev.y));
+      mouse.prev = Qt.point(m.x, m.y);
+      return;
+    }
+
     if (centerButton.centered) centerButton.centered = false;
     encdis.pan(m.x, m.y)
     if (boat.visible && lastPos !== undefined) {
       boat.center = encdis.position(lastPos.coordinate.longitude, lastPos.coordinate.latitude)
     }
     tracker.sync();
+    router.sync();
   }
 
   function infoModeMouseMoveHandler(m) {
@@ -53,6 +61,7 @@ Page {
       }
     }
     tracker.sync();
+    router.sync();
     headingValid = false;
   }
 
@@ -60,7 +69,7 @@ Page {
     if (position.horizontalAccuracyValid) {
       posValid = position.horizontalAccuracy < 100;
     } else {
-      // A hack for simulation mode. Remove after testing
+      // A hack for simulation mode. Remove in production code
       posValid = true;
     }
     if (posValid && position.longitudeValid && position.latitudeValid) {
@@ -90,7 +99,19 @@ Page {
       if (lastPos !== undefined) {
         encdis.setEye(lastPos.coordinate.longitude, lastPos.coordinate.latitude)
         tracker.sync();
+        router.sync();
       }
+    }
+  }
+
+  function selectRoutePoint(rp) {
+    if (routePoint !== undefined) {
+      routePoint.selected = false;
+    }
+    if (rp.selected) {
+      routePoint = rp;
+    } else {
+      routePoint = undefined;
     }
   }
 
@@ -105,8 +126,17 @@ Page {
     Tracker {
       id: tracker
       z: 200
-      visible: !page.infoMode && (tracker.status === Tracker.Tracking || tracker.status === Tracker.Displaying) && !zoom.zooming
+      visible: !page.infoMode &&
+               (tracker.status === Tracker.Tracking || tracker.status === Tracker.Displaying) &&
+               !zoom.zooming
     }
+
+    Router {
+      id: router
+      z: 200
+      visible: !page.infoMode && !empty && !zoom.zooming
+    }
+
   }
 
   Boat {
@@ -139,6 +169,13 @@ Page {
     visible: !page.infoMode
   }
 
+  RouteButton {
+    id: routeButton
+    anchors.right: menuButton.left
+    z: 300
+    visible: !page.infoMode
+  }
+
   CenterButton {
     id: centerButton
     anchors.right: parent.right
@@ -151,8 +188,49 @@ Page {
     }
   }
 
+  DistanceButton {
+    id: distButton
+    anchors.left: parent.left
+    z: 300
+    visible: !page.infoMode
+  }
+
+  EditButton {
+    id: deleteButton
+    anchors.left: parent.left
+    anchors.bottom: distButton.top
+    z: 300
+    visible: routeButton.editing && routePoint !== undefined
+    label: "Remove selected"
+    onClicked: {
+      router.remove(routePoint.index);
+      routePoint = undefined;
+    }
+  }
+
+  EditButton {
+    anchors.verticalCenter: deleteButton.verticalCenter
+    anchors.left: deleteButton.right
+    z: 300
+    visible: routeButton.editing && routePoint !== undefined && !router.last(routePoint.index)
+    label: "Insert after"
+    onClicked: {
+      var index = routePoint.index + 1;
+      var qi = router.insert(index);
+      console.log("Insert Routepoint", index);
+
+      var component = Qt.createComponent("RoutePoint.qml")
+      var obj = component.createObject(router, {index: index, center: qi});
+      obj.clicked.connect(selectRoutePoint);
+
+      routePoint.selected = false;
+      routePoint = undefined;
+    }
+  }
+
   ScaleBar {
     id: scaleBar
+    anchors.bottom: centerButton.top
     z: 300
     visible: !page.infoMode
     scaleWidth: encdis.scaleBarLength
@@ -204,6 +282,7 @@ Page {
         boat.center = encdis.position(lastPos.coordinate.longitude, lastPos.coordinate.latitude)
       }
       tracker.sync();
+      router.sync();
     }
 
     onPinchUpdated: {
@@ -244,7 +323,21 @@ Page {
         if (p !== first) {
           if (page.infoMode) {
             infoTimer.start();
+          } else if (routeButton.editing) {
+            if (routePoint !== undefined) {
+              routePoint.selected = false;
+              routePoint = undefined;
+            }
           }
+          return;
+        }
+        if (routeButton.editing) {
+          var q = Qt.point(mouse.x, mouse.y);
+          var index = router.append(q);
+          console.log("Append Routepoint", index);
+          var component = Qt.createComponent("RoutePoint.qml")
+          var obj = component.createObject(router, {index: index, center: q});
+          obj.clicked.connect(selectRoutePoint);
           return;
         }
         page.infoMode = !page.infoMode;

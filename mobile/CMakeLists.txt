@@ -17,8 +17,9 @@ target_sources(Mobile
     src/conf_marinerparams.cpp
     src/crosshairs.cpp
     src/main.cpp
-    src/tracker.cpp
+    src/router.cpp
     src/trackdatabase.cpp
+    src/tracker.cpp
     src/trackmodel.cpp
 )
 
@@ -54,11 +55,15 @@ add_custom_target(Qml SOURCES
   qml/ChartSetCombo.qml
   qml/CenterButton.qml
   qml/CoverPage.qml
+  qml/EditButton.qml
+  qml/DistanceButton.qml
   qml/IconListItem.qml
   qml/InfoPage.qml
   qml/MenuButton.qml
   qml/MenuPage.qml
   qml/PreferencesPage.qml
+  qml/RouteButton.qml
+  qml/RoutePoint.qml
   qml/ScaleBar.qml
   qml/SliderPref.qml
   qml/TimeBanner.qml

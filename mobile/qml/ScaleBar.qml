@@ -22,12 +22,13 @@ import Sailfish.Silica 1.0
 
 Item {
   id: scaleBar
-  anchors.bottom: parent.bottom
-  anchors.bottomMargin: Theme.paddingLarge
-  anchors.left: parent.left
-  anchors.leftMargin: Theme.paddingSmall
+  anchors.bottomMargin: Theme.paddingMedium
+  anchors.right: parent.right
+  anchors.rightMargin: Theme.paddingMedium
   opacity: 0.9
   visible: scaleWidth > 0
+
+  implicitWidth: base.width
 
   property real scaleWidth: 0
   property string text: ""

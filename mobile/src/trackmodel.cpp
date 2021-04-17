@@ -35,7 +35,7 @@ TrackModel::TrackModel(QObject *parent)
   db.setDatabaseName(TrackDatabase::databaseName());
   db.open();
 
-  m_tracks = new QSqlTableModel(this, db);
+  m_tracks = new QSqlTableModel(nullptr, db);
   m_tracks->setEditStrategy(QSqlTableModel::OnFieldChange);
   m_tracks->setTable("tracks");
   m_tracks->select();
@@ -53,15 +53,20 @@ Qt::ItemFlags TrackModel::flags(const QModelIndex& index) const {
   return defaultFlags | Qt::ItemIsEditable;
 }
 
-TrackModel::~TrackModel() {}
+TrackModel::~TrackModel() {
+  m_tracks->database().close();
+  const auto connName = m_tracks->database().connectionName();
+  delete m_tracks;
+  QSqlDatabase::removeDatabase(connName);
+}
 
 
 
 QHash<int, QByteArray> TrackModel::roleNames() const {
   QHash<int, QByteArray> roles;
-  // record() returns an empty QSqlRecord
-  for (int i = 0; i < m_tracks->record().count(); i ++) {
-    roles.insert(Qt::UserRole + i + 1, m_tracks->record().fieldName(i).toUtf8());
+  // record() returns an empty QSqlRecord. Skip primary key
+  for (int i = 1; i < m_tracks->record().count(); i ++) {
+    roles.insert(Qt::UserRole + i, m_tracks->record().fieldName(i).toUtf8());
   }
   return roles;
 }
@@ -69,27 +74,27 @@ QHash<int, QByteArray> TrackModel::roleNames() const {
 QVariant TrackModel::data(const QModelIndex& index, int role) const {
   if (!index.isValid()) return QVariant();
 
-  if (role < Qt::UserRole) {
-    return m_tracks->data(index, role);
+  // support only user roles = table columns
+  if (role < Qt::UserRole + 1) {
+    qDebug() << "TrackModel::data: role =" << role << Qt::UserRole;
+    return QVariant();
   }
 
-  int columnIdx = role - Qt::UserRole - 1;
+  int columnIdx = role - Qt::UserRole;
   QModelIndex modelIndex = m_tracks->index(index.row(), columnIdx);
   return m_tracks->data(modelIndex, Qt::DisplayRole);
 }
 
 
 bool TrackModel::setData(const QModelIndex& item, const QVariant &value, int role) {
-  if (!item.isValid()) {
-    qDebug() << "TrackModel::setData: invalid item";
-    return false;
-  }
+  if (!item.isValid()) return false;
 
-  if (role < Qt::UserRole) {
-    qDebug() << "TrackModel::setData: role =" << role << Qt::EditRole;
+  // support only user roles = table columns
+  if (role < Qt::UserRole + 1) {
+    qDebug() << "TrackModel::setData: role =" << role << Qt::UserRole;
     return false;
   }
-  int columnIdx = role - Qt::UserRole - 1;
+  int columnIdx = role - Qt::UserRole;
   QModelIndex modelIndex = m_tracks->index(item.row(), columnIdx);
   bool ret = m_tracks->setData(modelIndex, value, Qt::EditRole);
   if (ret) {

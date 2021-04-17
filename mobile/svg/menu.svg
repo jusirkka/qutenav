@@ -1,6 +1,4 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!-- Created with Inkscape (http://www.inkscape.org/) -->
-
 <svg
    xmlns:dc="http://purl.org/dc/elements/1.1/"
    xmlns:cc="http://creativecommons.org/ns#"
@@ -9,11 +7,11 @@
    xmlns="http://www.w3.org/2000/svg"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="64"
-   height="64"
+   width="52"
+   height="52"
    id="svg1901"
    sodipodi:version="0.32"
-   inkscape:version="0.92.4 5da689c313, 2019-01-14"
+   inkscape:version="1.0.2 (e86c870879, 2021-01-15)"
    sodipodi:docname="menu.svg"
    version="1.1"
    inkscape:export-xdpi="132"
@@ -29,22 +27,23 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="8.8700237"
-     inkscape:cx="58.550892"
-     inkscape:cy="29.981489"
+     inkscape:cx="29.717627"
+     inkscape:cy="25.497876"
      inkscape:document-units="px"
      inkscape:current-layer="g10147"
-     inkscape:window-width="2880"
-     inkscape:window-height="1506"
+     inkscape:window-width="1920"
+     inkscape:window-height="1047"
      inkscape:window-x="0"
      inkscape:window-y="0"
      showgrid="true"
      inkscape:window-maximized="1"
      inkscape:showpageshadow="false"
      inkscape:document-rotation="0"
-     fit-margin-top="0"
-     fit-margin-left="0"
-     fit-margin-right="0"
-     fit-margin-bottom="0">
+     fit-margin-top="2"
+     fit-margin-left="2"
+     fit-margin-right="2"
+     fit-margin-bottom="2"
+     lock-margins="true">
     <inkscape:grid
        type="xygrid"
        id="grid10137"
@@ -52,8 +51,8 @@
        visible="true"
        enabled="true"
        snapvisiblegridlinesonly="true"
-       originx="-24.000001"
-       originy="-24.000021" />
+       originx="-15.989914"
+       originy="-15.98667" />
   </sodipodi:namedview>
   <metadata
      id="metadata1906">
@@ -63,7 +62,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -71,74 +70,65 @@
      inkscape:label="Taso 1"
      inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(-24.000001,-964.36218)">
+     transform="translate(-15.989914,-956.34882)">
     <g
        id="g10147"
        style="fill:#000000;fill-opacity:1"
        transform="matrix(1.3333333,0,0,1.3333333,24.000002,-374.78737)">
-      <ellipse
-         ry="6.7499423"
-         rx="6.7499428"
-         cy="1011.1119"
-         cx="41.26244"
-         style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:1.17501438"
-         id="ellipse870" />
-      <ellipse
-         ry="6.7499423"
-         rx="6.7499428"
-         cy="1011.1009"
-         cx="6.7522898"
-         style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:1.17501438"
-         id="ellipse870-3" />
-      <ellipse
-         ry="6.7499423"
-         rx="6.7499428"
-         cy="1011.111"
-         cx="23.990459"
-         style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:1.17501438"
-         id="ellipse870-6" />
-      <ellipse
-         ry="6.7499423"
-         rx="6.7499428"
-         cy="1028.3729"
-         cx="41.267536"
-         style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:1.17501438"
-         id="ellipse870-7" />
-      <ellipse
-         ry="6.7499423"
-         rx="6.7499428"
-         cy="1028.3619"
-         cx="6.75739"
-         style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:1.17501438"
-         id="ellipse870-3-5" />
-      <ellipse
-         ry="6.7499423"
-         rx="6.7499428"
-         cy="1028.3721"
-         cx="23.995558"
-         style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:1.17501438"
-         id="ellipse870-6-3" />
-      <ellipse
-         ry="6.7499423"
-         rx="6.7499428"
-         cy="1045.6111"
-         cx="41.262436"
-         style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:1.17501438"
-         id="ellipse870-5" />
-      <ellipse
-         ry="6.7499423"
-         rx="6.7499428"
-         cy="1045.6212"
-         cx="6.7522898"
-         style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:1.17501438"
-         id="ellipse870-3-6" />
-      <ellipse
-         ry="6.7499423"
-         rx="6.7499428"
-         cy="1045.6102"
-         cx="23.990459"
-         style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:1.17501438"
-         id="ellipse870-6-2" />
+      <circle
+         cy="1005.2774"
+         cx="26.069527"
+         style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.856583"
+         id="ellipse870"
+         r="4.9207082" />
+      <circle
+         cy="1005.2695"
+         cx="0.91162771"
+         style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.856583"
+         id="ellipse870-3"
+         r="4.9207082" />
+      <circle
+         cy="1005.2769"
+         cx="13.478254"
+         style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.856583"
+         id="ellipse870-6"
+         r="4.9207082" />
+      <circle
+         cy="1017.8608"
+         cx="26.073242"
+         style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.856583"
+         id="ellipse870-7"
+         r="4.9207082" />
+      <circle
+         cy="1017.8528"
+         cx="0.91534561"
+         style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.856583"
+         id="ellipse870-3-5"
+         r="4.9207082" />
+      <circle
+         cy="1017.8602"
+         cx="13.481971"
+         style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.856583"
+         id="ellipse870-6-3"
+         r="4.9207082" />
+      <circle
+         cy="1030.4275"
+         cx="26.069523"
+         style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.856583"
+         id="ellipse870-5"
+         r="4.9207082" />
+      <circle
+         cy="1030.4347"
+         cx="0.91162771"
+         style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.856583"
+         id="ellipse870-3-6"
+         r="4.9207082" />
+      <circle
+         cy="1030.4268"
+         cx="13.478254"
+         style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.856583"
+         id="ellipse870-6-2"
+         r="4.9207082" />
     </g>
   </g>
 </svg>

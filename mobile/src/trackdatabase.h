@@ -32,7 +32,7 @@ public:
   static QString databaseName();
   static void createTables();
 
-  TrackDatabase();
+  TrackDatabase(const QString& connName);
   ~TrackDatabase() = default;
 
   void createTrack(const InstantVector& events, const WGS84PointVector& positions, const GL::IndexVector& indices);

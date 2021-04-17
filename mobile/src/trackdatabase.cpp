@@ -32,9 +32,9 @@ QString TrackDatabase::databaseName() {
   // qopencpn or harbour-qopencpn
   const QString baseapp = qAppName();
   QString loc = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
-  loc = QString("%1/%2/tracks").arg(loc).arg(baseapp);
+  loc = QString("%1/%2/userdata").arg(loc).arg(baseapp);
   if (!QDir().mkpath(loc)) {
-    throw ChartFileError(QString("cannot create tracks directory %1").arg(loc));
+    throw ChartFileError(QString("cannot create userdata directory %1").arg(loc));
   }
   return QString("%1/tracks.db").arg(loc);
 }
@@ -64,10 +64,11 @@ void TrackDatabase::createTables() {
               "lat real not null)");
 
   db.close();
+  QSqlDatabase::removeDatabase(db.connectionName());
 }
 
-TrackDatabase::TrackDatabase()
-  : SQLiteDatabase("TrackDatabase")
+TrackDatabase::TrackDatabase(const QString& connName)
+  : SQLiteDatabase(connName)
 {
   m_DB.setDatabaseName(databaseName());
   m_DB.open();

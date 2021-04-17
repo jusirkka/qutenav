@@ -13,9 +13,8 @@ Rectangle {
   border.color: "black"
 
   anchors.bottom: parent.bottom
-  anchors.bottomMargin: Theme.paddingLarge
-  anchors.rightMargin: Theme.paddingLarge
-  anchors.leftMargin: Theme.paddingLarge
+  anchors.bottomMargin: Theme.paddingMedium
+  anchors.rightMargin: Theme.paddingMedium
 
   onCenteredChanged: {
     if (centered) {

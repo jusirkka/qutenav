@@ -4,21 +4,21 @@ import Sailfish.Silica 1.0
 Rectangle {
   id: rect
 
-  property bool tracking
+  property bool editing
 
   height: button.height * 1.45
   width: height
-  radius: 180
+  radius: height / 2
   color: "white"
   border.color: "black"
 
   anchors.bottom: parent.bottom
   anchors.bottomMargin: Theme.paddingMedium
-  anchors.leftMargin: Theme.paddingMedium
+  anchors.rightMargin: Theme.paddingMedium
 
-  onTrackingChanged: {
-    if (tracking) {
-      button.icon.color = "#ff0000";
+  onEditingChanged: {
+    if (editing) {
+      button.icon.color = "#214cad";
     } else {
       button.icon.color = "black";
     }
@@ -31,22 +31,20 @@ Rectangle {
 
     height: icon.sourceSize.height
     icon.smooth: false
-    icon.source: app.getIcon("record");
+    icon.source: app.getIcon("route");
     icon.color: "black"
 
     onClicked: {
-      if (rect.tracking) {
-        var dialog = pageStack.push(Qt.resolvedUrl("TrackResultDialog.qml"), {tracker: tracker});
+      if (rect.editing) {
+        var dialog = pageStack.push(Qt.resolvedUrl("RoutingResultDialog.qml"), {router: router});
         dialog.onAccepted.connect(function () {
-          console.log("stop tracking");
-          rect.tracking = false;
+          console.log("stop editing");
+          rect.editing = false;
         });
       } else {
-        console.log("keep tracking");
-        rect.tracking = true;
-        tracker.start();
+        console.log("keep editing");
+        rect.editing = true;
       }
-      tracker.sync();
     }
   }
 }

@@ -68,6 +68,7 @@ void SQLiteDatabase::close() {
 
 SQLiteDatabase::~SQLiteDatabase() {
   close();
+  QSqlDatabase::removeDatabase(m_DB.connectionName());
 }
 
 void SQLiteDatabase::checkError() const {

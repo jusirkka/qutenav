@@ -352,12 +352,16 @@ void ChartDisplay::rotate(qreal degrees) {
   update();
 }
 
-void ChartDisplay::infoQuery(const QPointF& q) {
+WGS84Point ChartDisplay::location(const QPointF& q) const {
   const qreal w = m_orientedSize.width();
   const qreal h = m_orientedSize.height();
 
   const QPointF p(2 * q.x() / w - 1, 1 - 2 * q.y() / h);
-  emit infoRequest(m_camera->location(p));
+  return m_camera->location(p);
+}
+
+void ChartDisplay::infoQuery(const QPointF& q) {
+  emit infoRequest(location(q));
 }
 
 void ChartDisplay::handleInfoResponse(const S57::InfoType &info) {
