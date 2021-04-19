@@ -21,29 +21,16 @@
  */
 #include "trackdatabase.h"
 
-#include <QStandardPaths>
-#include <QDir>
 #include "types.h"
 #include <QDebug>
 #include <QDateTime>
 #include <QSqlError>
 
-QString TrackDatabase::databaseName() {
-  // qopencpn or harbour-qopencpn
-  const QString baseapp = qAppName();
-  QString loc = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
-  loc = QString("%1/%2/userdata").arg(loc).arg(baseapp);
-  if (!QDir().mkpath(loc)) {
-    throw ChartFileError(QString("cannot create userdata directory %1").arg(loc));
-  }
-  return QString("%1/tracks.db").arg(loc);
-}
-
 
 void TrackDatabase::createTables() {
   auto db = QSqlDatabase::addDatabase("QSQLITE");
 
-  db.setDatabaseName(databaseName());
+  db.setDatabaseName(databaseName("tracks"));
   db.open();
   auto query = QSqlQuery(db);
 
@@ -59,7 +46,7 @@ void TrackDatabase::createTables() {
   query.exec("create table if not exists events ("
               "id integer primary key autoincrement, "
               "string_id integer not null, "
-              "time integer not null, " // secs since epoch
+              "time integer not null, " // millisecs since epoch
               "lng real not null, "
               "lat real not null)");
 
@@ -70,7 +57,7 @@ void TrackDatabase::createTables() {
 TrackDatabase::TrackDatabase(const QString& connName)
   : SQLiteDatabase(connName)
 {
-  m_DB.setDatabaseName(databaseName());
+  m_DB.setDatabaseName(databaseName("tracks"));
   m_DB.open();
   m_Query = QSqlQuery(m_DB);
 }
@@ -85,7 +72,7 @@ void TrackDatabase::createTrack(const InstantVector& instants,
     qWarning() << "Transactions not supported";
   }
 
-  auto name = QDateTime::fromMSecsSinceEpoch(instants.first() * 1000).toString("yyyy-MM-dd");
+  auto name = QDateTime::fromMSecsSinceEpoch(instants.first()).toString("yyyy-MM-dd");
 
   auto r0 = prepare("insert into tracks "
                     "(name, enabled) "

@@ -25,9 +25,12 @@
 #include <QDebug>
 #include "chartdisplay.h"
 #include <QQmlProperty>
+#include "routedatabase.h"
 
 Router::Router(QQuickItem* parent)
   : QQuickItem(parent)
+  , m_edited(false)
+  , m_routeId(-1)
 {
   setFlag(ItemHasContents, true);
 }
@@ -72,6 +75,11 @@ int Router::append(const QPointF& q) {
     emit emptyChanged();
   }
 
+  if (!m_edited) {
+    m_edited = true;
+    emit editedChanged();
+  }
+
   update();
 
   return m_vertices.size() - 1;
@@ -80,7 +88,7 @@ int Router::append(const QPointF& q) {
 void Router::move(int index, const QPointF& dp) {
   auto encdis = qobject_cast<const ChartDisplay*>(parentItem());
   if (encdis == nullptr) {
-    qWarning() << "Expected ChartDisplay parent, cannot append";
+    qWarning() << "Expected ChartDisplay parent, cannot move";
     return;
   }
 
@@ -100,6 +108,12 @@ void Router::move(int index, const QPointF& dp) {
       break;
     }
   }
+
+  if (!m_edited) {
+    m_edited = true;
+    emit editedChanged();
+  }
+
 
   update();
 }
@@ -128,18 +142,142 @@ void Router::remove(int index) {
     emit emptyChanged();
   }
 
+  if (!m_edited) {
+    m_edited = true;
+    emit editedChanged();
+  }
+
   update();
 }
 
-bool Router::last(int index) const {
-  return index == m_vertices.size() - 1;
+
+void Router::clear() {
+
+  const bool wasEmpty = m_vertices.isEmpty();
+
+  m_positions.clear();
+  m_vertices.clear();
+
+  for (QQuickItem* kid: childItems()) {
+    kid->setParent(nullptr);
+    kid->setParentItem(nullptr);
+    kid->deleteLater();
+  }
+
+  if (!wasEmpty) {
+    emit emptyChanged();
+  }
+
+  if (m_edited) {
+    m_edited = false;
+    emit editedChanged();
+  }
+
+  m_routeId = -1;
+
+  update();
+}
+
+void Router::save() {
+
+  RouteDatabase db("Router::save");
+
+  if (m_positions.isEmpty()) {
+    db.deleteRoute(m_routeId);
+    m_routeId = -1;
+    if (m_edited) {
+      m_edited = false;
+      emit editedChanged();
+    }
+    return;
+  }
+
+
+  try {
+    if (m_routeId < 0) {
+      m_routeId = db.createRoute(m_positions);
+    } else {
+      db.modifyRoute(m_routeId, m_positions);
+    }
+  } catch (DatabaseError& e) {
+    qWarning() << e.msg();
+  }
+
+  if (m_edited) {
+    m_edited = false;
+    emit editedChanged();
+  }
+}
+
+void Router::load(int rid) {
+
+  auto encdis = qobject_cast<const ChartDisplay*>(parentItem());
+  if (encdis == nullptr) {
+    qWarning() << "Expected ChartDisplay parent, cannot load";
+    return;
+  }
+
+  const bool wasEmpty = m_vertices.isEmpty();
+
+  m_positions.clear();
+  m_vertices.clear();
+
+  for (QQuickItem* kid: childItems()) {
+    kid->setParent(nullptr);
+    kid->setParentItem(nullptr);
+    kid->deleteLater();
+  }
+
+  RouteDatabase db("Router::load");
+  auto r0 = db.prepare("select lng, lat from paths "
+                       "where route_id = ? "
+                       "order by id");
+  r0.bindValue(0, rid);
+  db.exec(r0);
+
+  while (r0.next()) {
+    const auto wp = WGS84Point::fromLL(r0.value(0).toReal(), r0.value(1).toReal());
+    m_positions << wp;
+
+    const auto q = encdis->position(wp);
+    QSGGeometry::Point2D p;
+    p.set(q.x(), q.y());
+    m_vertices << p;
+  }
+
+  m_routeId = m_vertices.isEmpty() ? -1 : rid;
+
+  if (wasEmpty != m_vertices.isEmpty()) {
+    emit emptyChanged();
+  }
+
+  // No need to test m_edited - archive page enabled only if there are no edits.
+
+  update();
+}
+
+int Router::length() const {
+  return m_vertices.size();
+}
+
+
+QPointF Router::vertex(int index) const {
+  if (index < 0 || index >= m_vertices.size()) return QPointF();
+
+  const QSGGeometry::Point2D p = m_vertices[index];
+  return QPointF(p.x, p.y);
 }
 
 QPointF Router::insert(int index) {
 
   auto encdis = qobject_cast<const ChartDisplay*>(parentItem());
   if (encdis == nullptr) {
-    qWarning() << "Expected ChartDisplay parent, cannot append";
+    qWarning() << "Expected ChartDisplay parent, cannot insert";
+    return QPointF();
+  }
+
+  if (index < 1 || index >= m_vertices.size()) {
+    qWarning() << "Invalid line (" <<  index - 1 << "," << index << ")";
     return QPointF();
   }
 
@@ -162,9 +300,24 @@ QPointF Router::insert(int index) {
     }
   }
 
+  if (!m_edited) {
+    m_edited = true;
+    emit editedChanged();
+  }
+
   update();
 
   return q;
+}
+
+QString Router::name() const {
+  if (m_routeId < 0) return "New Route";
+  RouteDatabase db("Router::name");
+  auto r0 = db.prepare("select name from routes where id = ?");
+  r0.bindValue(0, m_routeId);
+  db.exec(r0);
+  r0.first();
+  return r0.value(0).toString();
 }
 
 QSGNode* Router::updatePaintNode(QSGNode* oldNode, UpdatePaintNodeData*) {

@@ -55,7 +55,7 @@ void Tracker::append(qreal lng, qreal lat) {
   }
 
   const auto wp = WGS84Point::fromLL(lng, lat);
-  const auto now = QDateTime::currentMSecsSinceEpoch() / 1000;
+  const auto now = QDateTime::currentMSecsSinceEpoch();
 
   if (m_lastIndex < 0) {
     m_lastIndex = m_positions.size();
@@ -65,9 +65,10 @@ void Tracker::append(qreal lng, qreal lat) {
       // qDebug() << "Distance to previous point =" << dist << ", skipping";
       return;
     }
-    const auto delta = now - m_instants[m_lastIndex];
+    const qreal delta = (now - m_instants[m_lastIndex]) * .001;
     // speed
     const auto speed = dist / delta;
+    // qDebug() << "Speed is " << speed << delta;
     if (speed > maxSpeed) {
       qDebug() << "Speed is " << speed * toKnots << "knots, skipping";
       return;
@@ -78,15 +79,15 @@ void Tracker::append(qreal lng, qreal lat) {
       emit speedChanged();
     }
     // duration
-    const auto prevDuration = m_duration / 60;
+    const auto prevDuration = static_cast<int>(m_duration / 60);
     m_duration += delta;
-    if (m_duration / 60 != prevDuration) {
+    if (static_cast<int>(m_duration / 60) != prevDuration) {
       emit durationChanged();
     }
     // distance
-    const auto prevDistance = std::floor(m_distance / 185.2); // decimal nautical miles
+    const auto prevDistance = static_cast<int>(m_distance / 185.2); // decimal nautical miles
     m_distance += dist;
-    if (std::floor(m_distance / 185.2) != prevDistance) {
+    if (static_cast<int>(m_distance / 185.2) != prevDistance) {
       emit distanceChanged();
     }
     m_indices << m_lastIndex;
@@ -96,7 +97,7 @@ void Tracker::append(qreal lng, qreal lat) {
 
   m_positions << wp;
   m_instants << now;
-  m_vertices << fromPoint(encdis->position(lng, lat));
+  m_vertices << fromPoint(encdis->position(wp));
 
   update();
 }
@@ -119,6 +120,7 @@ void Tracker::pause() {
   if (m_status == Paused) return;
   m_lastIndex = -1;
   m_speed = 0;
+  emit speedChanged();
   m_status = Paused;
   emit statusChanged();
 }
@@ -141,8 +143,11 @@ void Tracker::remove() {
   m_instants.clear();
   m_lastIndex = -1;
   m_duration = 0;
+  emit durationChanged();
   m_speed = 0;
+  emit speedChanged();
   m_distance = 0;
+  emit distanceChanged();
   if (m_status != Inactive) {
     m_status = Inactive;
     emit statusChanged();

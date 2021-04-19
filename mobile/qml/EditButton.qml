@@ -10,7 +10,7 @@ Rectangle {
 
   width: label.width + 2 * Theme.paddingLarge
   height: label.height + 2 * Theme.paddingMedium
-  radius: width / 10
+  radius: .4 * height
   color: "#214cad"
   border.color: "black"
 

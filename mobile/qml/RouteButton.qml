@@ -36,14 +36,23 @@ Rectangle {
 
     onClicked: {
       if (rect.editing) {
-        var dialog = pageStack.push(Qt.resolvedUrl("RoutingResultDialog.qml"), {router: router});
-        dialog.onAccepted.connect(function () {
-          console.log("stop editing");
+        if (router.edited) {
+          var dialog1 = pageStack.push(Qt.resolvedUrl("RoutingResultDialog.qml"), {router: router});
+          dialog1.onAccepted.connect(function () {
+            rect.editing = false;
+          });
+        } else {
           rect.editing = false;
-        });
+        }
       } else {
-        console.log("keep editing");
-        rect.editing = true;
+        if (!router.empty) {
+          var dialog2 = pageStack.push(Qt.resolvedUrl("RoutingStartDialog.qml"), {router: router});
+          dialog2.onAccepted.connect(function () {
+            rect.editing = true;
+          });
+        } else {
+          rect.editing = true;
+        }
       }
     }
   }

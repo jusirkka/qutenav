@@ -28,6 +28,8 @@
 class SQLiteDatabase {
 public:
 
+  static QString databaseName(const QString& bname);
+
   SQLiteDatabase(const QString& connName);
   virtual ~SQLiteDatabase();
 

@@ -1,8 +1,8 @@
 /* -*- coding: utf-8-unix -*-
  *
- * trackdatabase.h
+ * routemodel.h
  *
- * Created: 12/04/2021 2021 by Jukka Sirkka
+ * Created: 18/04/2021 2021 by Jukka Sirkka
  *
  * Copyright (C) 2021 Jukka Sirkka
  *
@@ -21,34 +21,14 @@
  */
 #pragma once
 
-#include "sqlitedatabase.h"
-#include "types.h"
+#include "databasemodel.h"
 
-using InstantVector = QVector<qint64>; // UTC unix times in millisecs
+class RouteModel: public DatabaseModel {
 
-class TrackDatabase: public SQLiteDatabase {
+  Q_OBJECT
+
 public:
 
-  static void createTables();
-
-  TrackDatabase(const QString& connName);
-  ~TrackDatabase() = default;
-
-  void createTrack(const InstantVector& events, const WGS84PointVector& positions, const GL::IndexVector& indices);
-
-private:
-
-  struct Event {
-    Event(qint64 t, const WGS84Point& p)
-      : instant(t)
-      , position(p) {}
-
-    Event() = default;
-
-    quint64 instant;
-    WGS84Point position;
-  };
-
-  using EventVector = QVector<Event>;
+  RouteModel(QObject* parent = nullptr);
+  ~RouteModel() = default;
 };
-

@@ -16,6 +16,8 @@
 #include "tracker.h"
 #include "trackmodel.h"
 #include "router.h"
+#include "routemodel.h"
+#include "routedatabase.h"
 
 Q_IMPORT_PLUGIN(CM93ReaderFactory)
 Q_IMPORT_PLUGIN(S57ReaderFactory)
@@ -31,6 +33,7 @@ int main(int argc, char *argv[]) {
   qmlRegisterType<Tracker>("org.qopencpn", 1, 0, "Tracker");
   qmlRegisterType<Router>("org.qopencpn", 1, 0, "Router");
   qmlRegisterType<TrackModel>("org.qopencpn", 1, 0, "TrackModel");
+  qmlRegisterType<RouteModel>("org.qopencpn", 1, 0, "RouteModel");
 
   QSurfaceFormat format;
   format.setVersion(3, 2);
@@ -58,6 +61,7 @@ int main(int argc, char *argv[]) {
   S52::InitPresentation();
 
   TrackDatabase::createTables();
+  RouteDatabase::createTables();
 
   QScopedPointer<QQuickView> view(SailfishApp::createView());
 

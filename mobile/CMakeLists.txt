@@ -16,8 +16,11 @@ target_sources(Mobile
     src/conf_mainwindow.cpp
     src/conf_marinerparams.cpp
     src/crosshairs.cpp
+    src/databasemodel.cpp
     src/main.cpp
+    src/routedatabase.cpp
     src/router.cpp
+    src/routemodel.cpp
     src/trackdatabase.cpp
     src/tracker.cpp
     src/trackmodel.cpp
@@ -63,7 +66,10 @@ add_custom_target(Qml SOURCES
   qml/MenuPage.qml
   qml/PreferencesPage.qml
   qml/RouteButton.qml
+  qml/RouteDisplayDialog.qml
   qml/RoutePoint.qml
+  qml/RoutingStartDialog.qml
+  qml/RoutingResultDialog.qml
   qml/ScaleBar.qml
   qml/SliderPref.qml
   qml/TimeBanner.qml

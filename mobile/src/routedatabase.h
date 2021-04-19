@@ -1,8 +1,8 @@
 /* -*- coding: utf-8-unix -*-
  *
- * trackdatabase.h
+ * routedatabase.h
  *
- * Created: 12/04/2021 2021 by Jukka Sirkka
+ * Created: 18/04/2021 2021 by Jukka Sirkka
  *
  * Copyright (C) 2021 Jukka Sirkka
  *
@@ -24,31 +24,19 @@
 #include "sqlitedatabase.h"
 #include "types.h"
 
-using InstantVector = QVector<qint64>; // UTC unix times in millisecs
-
-class TrackDatabase: public SQLiteDatabase {
+class RouteDatabase: public SQLiteDatabase {
 public:
 
   static void createTables();
 
-  TrackDatabase(const QString& connName);
-  ~TrackDatabase() = default;
+  RouteDatabase(const QString& connName);
+  ~RouteDatabase() = default;
 
-  void createTrack(const InstantVector& events, const WGS84PointVector& positions, const GL::IndexVector& indices);
+  int createRoute(const WGS84PointVector& wps);
+  void modifyRoute(int rid, const WGS84PointVector& wps);
+  void deleteRoute(int rid);
 
 private:
 
-  struct Event {
-    Event(qint64 t, const WGS84Point& p)
-      : instant(t)
-      , position(p) {}
-
-    Event() = default;
-
-    quint64 instant;
-    WGS84Point position;
-  };
-
-  using EventVector = QVector<Event>;
 };
 

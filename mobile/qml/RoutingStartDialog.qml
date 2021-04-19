@@ -4,15 +4,7 @@ import Sailfish.Silica 1.0
 Dialog {
   id: dialog
 
-  property var tracker: undefined
-  property bool saveNeeded: true
-
-  onAccepted: {
-    if (saveNeeded) {
-      console.log("saving track");
-      tracker.save();
-    }
-  }
+  property var router: undefined
 
   SilicaFlickable {
     id: flickable
@@ -22,38 +14,37 @@ Dialog {
       anchors.fill: parent
 
       DialogHeader {
-        title: "Stop tracking"
-        acceptText: "Save"
+        title: "Route editor"
+        acceptText: "Edit current"
         cancelText: "Cancel"
       }
 
       IconListItem {
-        label: "Save"
-        icon: "image://theme/icon-m-device-upload"
+        label: "Edit current"
+        icon: "image://theme/icon-m-edit-selected"
         onClicked: {
           dialog.accept();
         }
       }
 
       IconListItem {
-        label: "Pause"
-        icon: "image://theme/icon-m-pause"
+        label: "Create new route"
+        icon: "image://theme/icon-m-new"
         onClicked: {
-          dialog.tracker.pause();
-          dialog.saveNeeded = false;
+          dialog.router.clear();
           dialog.accept();
         }
       }
 
       IconListItem {
-        label: "Delete"
+        label: "Close current"
         icon: "image://theme/icon-m-clear"
         onClicked: {
-          dialog.tracker.remove();
-          dialog.saveNeeded = false;
-          dialog.accept();
+          dialog.router.clear();
+          dialog.reject();
         }
       }
+
     }
 
     VerticalScrollDecorator {flickable: flickable}

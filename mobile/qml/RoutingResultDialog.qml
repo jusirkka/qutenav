@@ -4,13 +4,12 @@ import Sailfish.Silica 1.0
 Dialog {
   id: dialog
 
-  property var tracker: undefined
+  property var router: undefined
   property bool saveNeeded: true
 
   onAccepted: {
     if (saveNeeded) {
-      console.log("saving track");
-      tracker.save();
+      router.save();
     }
   }
 
@@ -22,13 +21,13 @@ Dialog {
       anchors.fill: parent
 
       DialogHeader {
-        title: "Stop tracking"
-        acceptText: "Save"
+        title: router.name()
+        acceptText: "Save & Show"
         cancelText: "Cancel"
       }
 
       IconListItem {
-        label: "Save"
+        label: "Save & Show"
         icon: "image://theme/icon-m-device-upload"
         onClicked: {
           dialog.accept();
@@ -36,20 +35,22 @@ Dialog {
       }
 
       IconListItem {
-        label: "Pause"
-        icon: "image://theme/icon-m-pause"
+        label: "Save & Close"
+        icon: "image://theme/icon-m-device-upload"
         onClicked: {
-          dialog.tracker.pause();
+          dialog.router.save();
+          dialog.router.clear();
           dialog.saveNeeded = false;
           dialog.accept();
         }
       }
 
+
       IconListItem {
-        label: "Delete"
+        label: "Close without saving"
         icon: "image://theme/icon-m-clear"
         onClicked: {
-          dialog.tracker.remove();
+          dialog.router.clear();
           dialog.saveNeeded = false;
           dialog.accept();
         }

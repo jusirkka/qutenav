@@ -80,6 +80,8 @@ public:
   ChartDisplay();
   ~ChartDisplay();
 
+  Q_INVOKABLE void advanceNMEALog(int secs) const;
+
   Q_INVOKABLE void zoomIn();
   Q_INVOKABLE void zoomOut();
   Q_INVOKABLE void panStart(qreal x, qreal y);
@@ -126,6 +128,8 @@ public:
   const QRectF& viewArea() const {return m_viewArea;}
 
   WGS84Point location(const QPointF& pos) const;
+  QPointF position(const WGS84Point& wp) const;
+
 
   static const quint32 ChartsUpdated = 1;
   static const quint32 EnteringChartMode = 2;

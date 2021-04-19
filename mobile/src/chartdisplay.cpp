@@ -310,9 +310,9 @@ void ChartDisplay::setEye(qreal lng, qreal lat) {
   update();
 }
 
-QPointF ChartDisplay::position(qreal lng, qreal lat) const {
+QPointF ChartDisplay::position(const WGS84Point& wp) const {
   // Normalized device coordinates
-  const QPointF pos = m_camera->position(WGS84Point::fromLL(lng, lat));
+  const QPointF pos = m_camera->position(wp);
 
   const qreal w = m_orientedSize.width();
   const qreal h = m_orientedSize.height();
@@ -320,9 +320,13 @@ QPointF ChartDisplay::position(qreal lng, qreal lat) const {
   return QPointF(w / 2. * (pos.x() + 1), h / 2. * (1 - pos.y()));
 }
 
+QPointF ChartDisplay::position(qreal lng, qreal lat) const {
+  return position(WGS84Point::fromLL(lng, lat));
+}
+
 QPointF ChartDisplay::advance(qreal lng, qreal lat, qreal distance, qreal heading) const {
   const auto wp = WGS84Point::fromLL(lng, lat) + WGS84Bearing::fromMeters(distance, Angle::fromDegrees(heading));
-  return position(wp.lng(), wp.lat());
+  return position(wp);
 }
 
 void ChartDisplay::syncPositions(const WGS84PointVector& wps, Point2DVector& vertices) const {
@@ -421,3 +425,27 @@ void ChartDisplay::computeScaleBar() {
   }
   // qDebug() << "scalebar:" << m_scaleBarText;
 }
+
+#include <QTextStream>
+
+void ChartDisplay::advanceNMEALog(int secs) const {
+  QFile f("/tmp/nmea.log");
+  if (!f.open(QIODevice::ReadWrite | QIODevice::Text)) return;
+
+  QString s;
+  QTextStream stream(&f);
+  while (!stream.atEnd() && secs > 0) {
+    stream.readLine();
+    secs--;
+  }
+
+  while (!stream.atEnd()) {
+    const QString line = stream.readLine();
+    s.append(line + "\n");
+  }
+
+  f.resize(0);
+  stream << s;
+  f.close();
+}
+

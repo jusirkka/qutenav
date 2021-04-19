@@ -26,7 +26,6 @@
 #include "types.h"
 #include "trackdatabase.h"
 
-
 class Tracker: public QQuickItem {
 
   Q_OBJECT
@@ -110,7 +109,7 @@ private:
   Status m_status;
   int m_lastIndex;
 
-  quint32 m_duration; // secs
+  qreal m_duration; // secs
   qreal m_speed; // meters / sec
   qreal m_distance; // meters
 };

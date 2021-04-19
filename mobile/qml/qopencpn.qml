@@ -11,14 +11,22 @@ ApplicationWindow {
   property var encdis: null
   property int pixelRatio: 100
 
+  // for testing
+  property int startInstant
+
   PositionSource {
     id: gps
-    nmeaSource: "nmea.log"
+    nmeaSource: "/tmp/nmea.log"
   }
 
   Component.onCompleted: {
     setPixelRatio()
     gps.start()
+    startInstant = Date.now() / 1000;
+  }
+
+  Component.onDestruction: {
+    encdis.advanceNMEALog(Date.now() / 1000 - startInstant);
   }
 
   function setPixelRatio() {

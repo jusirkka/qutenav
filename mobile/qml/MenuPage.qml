@@ -6,6 +6,8 @@ Page {
   id: page
 
   property var tracker: undefined
+  property var router: undefined
+  property var routeLoader: undefined
 
   SilicaFlickable {
     id: flickable
@@ -22,7 +24,7 @@ Page {
 
       IconListItem {
         label: "Preferences"
-        icon: "image://theme/icon-m-developer-mode"
+        icon: "image://theme/icon-m-setting"
         onClicked: pageStack.replace(Qt.resolvedUrl("PreferencesPage.qml"))
       }
 
@@ -32,13 +34,25 @@ Page {
       }
 
       IconListItem {
-        label: "Tracks"
+        label: "Tracks" + (enabled ? "" : "*")
         icon: "image://theme/icon-m-file-archive-folder"
         onClicked: {
           var dialog = pageStack.replace(Qt.resolvedUrl("TrackDisplayDialog.qml"))
           dialog.onAccepted.connect(page.tracker.display);
         }
-        enabled: page.tracker.status !== Tracker.Tracking && page.tracker.status !== Tracker.Paused
+        enabled: page.tracker.status !== Tracker.Tracking &&
+                 page.tracker.status !== Tracker.Paused
+      }
+
+      IconListItem {
+        label: "Routes" + (enabled ? "" : "*")
+        icon: "image://theme/icon-m-file-archive-folder"
+        onClicked: {
+          var dialog = pageStack.replace(Qt.resolvedUrl("RouteDisplayDialog.qml"),
+                                         {router: page.router})
+          dialog.onAccepted.connect(routeLoader);
+        }
+        enabled: !page.router.edited
       }
 
     }

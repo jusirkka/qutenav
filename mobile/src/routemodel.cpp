@@ -1,8 +1,8 @@
 /* -*- coding: utf-8-unix -*-
  *
- * trackdatabase.h
+ * routemodel.cpp
  *
- * Created: 12/04/2021 2021 by Jukka Sirkka
+ * Created: 18/04/2021 2021 by Jukka Sirkka
  *
  * Copyright (C) 2021 Jukka Sirkka
  *
@@ -19,36 +19,20 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#pragma once
-
+#include "routemodel.h"
 #include "sqlitedatabase.h"
-#include "types.h"
 
-using InstantVector = QVector<qint64>; // UTC unix times in millisecs
 
-class TrackDatabase: public SQLiteDatabase {
-public:
+RouteModel::RouteModel(QObject *parent)
+  : DatabaseModel(parent)
+{
+  auto db = QSqlDatabase::addDatabase("QSQLITE", "RouteModel");
+  db.setDatabaseName(SQLiteDatabase::databaseName("routes"));
+  db.open();
 
-  static void createTables();
-
-  TrackDatabase(const QString& connName);
-  ~TrackDatabase() = default;
-
-  void createTrack(const InstantVector& events, const WGS84PointVector& positions, const GL::IndexVector& indices);
-
-private:
-
-  struct Event {
-    Event(qint64 t, const WGS84Point& p)
-      : instant(t)
-      , position(p) {}
-
-    Event() = default;
-
-    quint64 instant;
-    WGS84Point position;
-  };
-
-  using EventVector = QVector<Event>;
-};
-
+  m_model = new QSqlTableModel(nullptr, db);
+  m_model->setEditStrategy(QSqlTableModel::OnFieldChange);
+  m_model->setTable("routes");
+  m_model->setSort(0, Qt::DescendingOrder);
+  m_model->select();
+}

@@ -21,28 +21,14 @@
  */
 #pragma once
 
-#include <QSqlTableModel>
-#include <QAbstractListModel>
+#include "databasemodel.h"
 
-class TrackModel: public QAbstractListModel {
+class TrackModel: public DatabaseModel {
 
   Q_OBJECT
 
 public:
 
   TrackModel(QObject* parent = nullptr);
-
-  QHash<int, QByteArray> roleNames() const override;
-  QVariant data(const QModelIndex& index, int role) const override;
-  bool setData(const QModelIndex& item, const QVariant& value, int role) override;
-  int rowCount(const QModelIndex &parent = QModelIndex()) const override;
-  Qt::ItemFlags flags(const QModelIndex &index) const override;
-
-  ~TrackModel();
-
-private:
-
-  QSqlTableModel* m_tracks;
-
+  ~TrackModel() = default;
 };
-

@@ -36,6 +36,12 @@ public:
 
   Router(QQuickItem* parent = nullptr);
 
+  Q_PROPERTY(bool edited
+             READ edited
+             NOTIFY editedChanged)
+
+  bool edited() {return m_edited;}
+
   Q_PROPERTY(bool empty
              READ empty
              NOTIFY emptyChanged)
@@ -48,7 +54,14 @@ public:
   Q_INVOKABLE void move(int index, const QPointF& pos);
   Q_INVOKABLE void remove(int index);
   Q_INVOKABLE QPointF insert(int index);
-  Q_INVOKABLE bool last(int index) const;
+  Q_INVOKABLE int length() const;
+  Q_INVOKABLE QPointF vertex(int index) const;
+
+  Q_INVOKABLE void save();
+  Q_INVOKABLE void clear();
+  Q_INVOKABLE void load(int rid);
+
+  Q_INVOKABLE QString name() const;
 
   QSGNode *updatePaintNode(QSGNode* node, UpdatePaintNodeData*) override;
 
@@ -56,6 +69,7 @@ public:
 signals:
 
   void emptyChanged();
+  void editedChanged();
 
 public slots:
 
@@ -67,6 +81,9 @@ private:
 
   PointVector m_vertices;
   WGS84PointVector m_positions;
+
+  bool m_edited;
+  int m_routeId;
 
 };
 

@@ -115,6 +115,14 @@ Page {
     }
   }
 
+  function loadRoute() {
+    for (var i = 0; i < router.length(); i++) {
+      var component = Qt.createComponent("RoutePoint.qml")
+      var obj = component.createObject(router, {index: i, center: router.vertex(i)});
+      obj.clicked.connect(selectRoutePoint);
+    }
+  }
+
   ChartDisplay {
     id: encdis
     z: 150
@@ -160,6 +168,7 @@ Page {
     anchors.horizontalCenter: parent.horizontalCenter
     z: 300
     visible: !page.infoMode
+    routeLoader: page.loadRoute;
   }
 
   TrackButton {
@@ -212,7 +221,8 @@ Page {
     anchors.verticalCenter: deleteButton.verticalCenter
     anchors.left: deleteButton.right
     z: 300
-    visible: routeButton.editing && routePoint !== undefined && !router.last(routePoint.index)
+    visible: routeButton.editing && routePoint !== undefined &&
+             routePoint.index !== router.length() - 1
     label: "Insert after"
     onClicked: {
       var index = routePoint.index + 1;

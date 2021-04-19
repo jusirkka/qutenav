@@ -24,6 +24,21 @@
 #include "types.h"
 #include <QDebug>
 #include <QtSql/QSqlError>
+#include <QStandardPaths>
+#include <QDir>
+
+QString SQLiteDatabase::databaseName(const QString& bname) {
+  // qopencpn or harbour-qopencpn
+  const QString baseapp = qAppName();
+  QString loc = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
+  loc = QString("%1/%2/userdata").arg(loc).arg(baseapp);
+  if (!QDir().mkpath(loc)) {
+    throw ChartFileError(QString("cannot create userdata directory %1").arg(loc));
+  }
+  return QString("%1/%2.db").arg(loc).arg(bname);
+}
+
+
 
 SQLiteDatabase::SQLiteDatabase(const QString &connName)
   : m_DB(QSqlDatabase::addDatabase("QSQLITE", connName))
@@ -67,6 +82,7 @@ void SQLiteDatabase::close() {
 }
 
 SQLiteDatabase::~SQLiteDatabase() {
+  qDebug() << "SQLiteDatabase::~SQLiteDatabase" << m_DB.connectionName();
   close();
   QSqlDatabase::removeDatabase(m_DB.connectionName());
 }
