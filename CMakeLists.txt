@@ -41,9 +41,6 @@ if (DESKTOP)
   set(FONTCONFIG_MIN_VERSION "2.13")
   find_package(Fontconfig ${FONTCONFIG_MIN_VERSION} REQUIRED)
 
-  set(FONTCONFIG_MIN_VERSION "2.13")
-  find_package(Fontconfig ${FONTCONFIG_MIN_VERSION} REQUIRED)
-
   set(GLM_VERSION "0.9.9")
   find_package(glm ${GLM_VERSION} REQUIRED)
 
@@ -267,6 +264,7 @@ if (DESKTOP)
 else()
 
   add_subdirectory(mobile)
+  add_subdirectory(geos)
 
 endif()
 
@@ -302,6 +300,7 @@ else()
       Oesencreader
       Cm93reader
       S57reader
+      Geos
       Qt5::Quick
       Qt5::Gui
       Qt5::Sql

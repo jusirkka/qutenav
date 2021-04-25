@@ -1,34 +1,33 @@
 import QtQuick 2.0
+import Sailfish.Silica 1.0
 
 Row {
 
   id: row
 
+  spacing: Theme.paddingSmall
+
   anchors.top: parent.top
   anchors.left: parent.left
-  anchors.right: parent.right
 
-  property int duration: undefined
-  property real speed: undefined
-  property real distance: undefined
-
-  TimeBanner {
-    width: row.width / 3
-    title: "Total time"
-    minutes: row.duration
+  TrackSpeedInfoBox {
+    speed: tracker.speed
+    seconds: tracker.duration
+    dist: tracker.distance
+    bearing: tracker.bearing
   }
 
-  Banner {
-    width: row.width / 3
-    unit: "Kn"
-    title: "Speed"
-    value: row.speed
+  TrackPointInfoBox {
+    index: tracker.segmentEndPoint
+    seconds: tracker.segmentETA
+    dist: tracker.segmentDTG
+    bearing: tracker.segmentBearing
+    visible: !router.empty && !router.edited
   }
 
-  Banner {
-    width: row.width / 3
-    unit: "Nm"
-    title: "Distance"
-    value: row.distance
+  TrackTargetInfoBox {
+    seconds: tracker.targetETA
+    dist: tracker.targetDTG
+    visible: !router.empty && !router.edited
   }
 }

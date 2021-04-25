@@ -7,5 +7,7 @@
 - bug: dash/dot length varies in dashed/dotted lines
 - bug: overlapping charts not handled properly
 - unit preferences
-
-- route info: ETA to target/wp - distance to target/wp - distance/duration/speed
+- better chart object info
+- more detailed track statistics in track archive page
+- more detailed route info in route archive page
+- desktop qml app

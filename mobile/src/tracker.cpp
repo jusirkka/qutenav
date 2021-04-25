@@ -27,6 +27,7 @@
 #include "chartdisplay.h"
 #include <QDateTime>
 #include "trackmodel.h"
+#include "router.h"
 
 Tracker::Tracker(QQuickItem* parent)
   : QQuickItem(parent)
@@ -35,14 +36,54 @@ Tracker::Tracker(QQuickItem* parent)
   , m_duration(0)
   , m_speed(0)
   , m_distance(0)
+  , m_bearing(0.)
+  , m_router()
 {
   setFlag(ItemHasContents, true);
+
+  connect(&m_router, &RouteTracker::segmentEndPointChanged,
+          this, &Tracker::segmentEndPointChanged);
+  connect(&m_router, &RouteTracker::segmentBearingChanged,
+          this, &Tracker::segmentBearingChanged);
+  connect(&m_router, &RouteTracker::segmentETAChanged,
+          this, &Tracker::segmentETAChanged);
+  connect(&m_router, &RouteTracker::segmentDTGChanged,
+          this, &Tracker::segmentDTGChanged);
+  connect(&m_router, &RouteTracker::targetETAChanged,
+          this, &Tracker::targetETAChanged);
+  connect(&m_router, &RouteTracker::targetDTGChanged,
+          this, &Tracker::targetDTGChanged);
 }
 
 void Tracker::start() {
-  if (m_status == Tracking) return;
-  m_status = Tracking;
-  emit statusChanged();
+
+  auto encdis = qobject_cast<const ChartDisplay*>(parentItem());
+  if (encdis == nullptr) {
+    qWarning() << "Expected ChartDisplay parent, cannot start";
+    return;
+  }
+
+  auto items = encdis->childItems();
+  auto it = std::find_if(items.cbegin(), items.cend(), [] (const QQuickItem* item) {
+    return dynamic_cast<const Router*>(item) != nullptr;
+  });
+  if (it == items.cend()) {
+    qWarning() << "Expected ChartDisplay to contain a Router, cannot start";
+    return;
+  }
+
+  auto rt = dynamic_cast<const Router*>(*it);
+  m_router.initialize(rt->waypoints());
+
+  if (m_status != Tracking) {
+    m_status = Tracking;
+    emit statusChanged();
+  }
+}
+
+void Tracker::reset() {
+  if (m_status != Tracking) return;
+  start();
 }
 
 void Tracker::append(qreal lng, qreal lat) {
@@ -60,36 +101,26 @@ void Tracker::append(qreal lng, qreal lat) {
   if (m_lastIndex < 0) {
     m_lastIndex = m_positions.size();
   } else {
-    const auto dist = (wp - m_positions[m_lastIndex]).meters();
+    const WGS84Bearing b = wp - m_positions[m_lastIndex];
+    const auto dist = b.meters();
     if (dist < mindist) {
       // qDebug() << "Distance to previous point =" << dist << ", skipping";
       return;
     }
+
     const qreal delta = (now - m_instants[m_lastIndex]) * .001;
-    // speed
+
     const auto speed = dist / delta;
-    // qDebug() << "Speed is " << speed << delta;
     if (speed > maxSpeed) {
-      qDebug() << "Speed is " << speed * toKnots << "knots, skipping";
+      // qDebug() << "Speed is " << speed * toKnots << "knots, skipping";
       return;
     }
-    const auto prevSpeed = m_speed;
-    m_speed = speed;
-    if (std::abs(m_speed - prevSpeed) / m_speed > eps) {
-      emit speedChanged();
-    }
-    // duration
-    const auto prevDuration = static_cast<int>(m_duration / 60);
-    m_duration += delta;
-    if (static_cast<int>(m_duration / 60) != prevDuration) {
-      emit durationChanged();
-    }
-    // distance
-    const auto prevDistance = static_cast<int>(m_distance / 185.2); // decimal nautical miles
-    m_distance += dist;
-    if (static_cast<int>(m_distance / 185.2) != prevDistance) {
-      emit distanceChanged();
-    }
+
+    updateDistance(dist);
+    updateBearing(b.degrees());
+    updateSpeed(speed);
+    updateDuration(delta);
+
     m_indices << m_lastIndex;
     m_lastIndex = m_positions.size();
     m_indices << m_lastIndex;
@@ -99,8 +130,11 @@ void Tracker::append(qreal lng, qreal lat) {
   m_instants << now;
   m_vertices << fromPoint(encdis->position(wp));
 
+  m_router.update(wp, now);
+
   update();
 }
+
 
 void Tracker::sync() {
   if (m_positions.isEmpty()) return;

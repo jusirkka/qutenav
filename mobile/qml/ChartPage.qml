@@ -158,9 +158,6 @@ Page {
     id: trackInfo
     visible: !page.infoMode && trackButton.tracking
     z: 300
-    duration: tracker.duration
-    speed: tracker.speed
-    distance: tracker.distance
   }
 
   MenuButton {

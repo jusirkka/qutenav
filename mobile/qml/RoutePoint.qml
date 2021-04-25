@@ -14,7 +14,6 @@ Rectangle {
   y: center.y - height / 2
 
   signal clicked(var rp)
-  signal positionChanged(point delta)
 
   onSelectedChanged: {
     if (selected) {

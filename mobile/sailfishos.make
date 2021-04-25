@@ -45,6 +45,8 @@ ICONS = ../data/qopencpn-86x86.png \
         qml/icons/compass-150.png \
         qml/icons/compass-175.png \
         qml/icons/compass-200.png \
+        qml/icons/arrow.png \
+        qml/icons/finish.png \
 
 install:
 	@echo "Installing QML files..."

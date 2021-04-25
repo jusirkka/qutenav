@@ -25,6 +25,7 @@
 #include <QSGGeometry>
 #include "types.h"
 #include "trackdatabase.h"
+#include "routetracker.h"
 
 class Tracker: public QQuickItem {
 
@@ -43,11 +44,11 @@ public:
 
   Status status() const {return m_status;}
 
-  Q_PROPERTY(quint32 duration
+  Q_PROPERTY(qreal duration
              READ duration
              NOTIFY durationChanged)
 
-  quint32 duration() const {return m_duration / 60;} // minutes
+  qreal duration() const {return m_duration;} // seconds
 
   Q_PROPERTY(qreal distance
              READ distance
@@ -61,11 +62,54 @@ public:
 
   qreal speed() const {return m_speed * toKnots;} // knots
 
+  Q_PROPERTY(qreal bearing
+             READ bearing
+             NOTIFY bearingChanged)
+
+  qreal bearing() const {return m_bearing;}
+
+  Q_PROPERTY(int segmentEndPoint
+             READ segmentEndPoint
+             NOTIFY segmentEndPointChanged)
+
+  int segmentEndPoint() const {return m_router.segmentEndPoint();}
+
+  Q_PROPERTY(qreal segmentETA
+             READ segmentETA
+             NOTIFY segmentETAChanged)
+
+  qreal segmentETA() const {return m_router.segmentETA();}
+
+  Q_PROPERTY(qreal segmentDTG
+             READ segmentDTG
+             NOTIFY segmentDTGChanged)
+
+  qreal segmentDTG() const {return m_router.segmentDTG();}
+
+  Q_PROPERTY(qreal segmentBearing
+             READ segmentBearing
+             NOTIFY segmentBearingChanged)
+
+  qreal segmentBearing() const {return m_router.segmentBearing();}
+
+  Q_PROPERTY(qreal targetETA
+             READ targetETA
+             NOTIFY targetETAChanged)
+
+  qreal targetETA() const {return m_router.targetETA();}
+
+  Q_PROPERTY(qreal targetDTG
+             READ targetDTG
+             NOTIFY targetDTGChanged)
+
+  qreal targetDTG() const {return m_router.targetDTG();}
+
 
   Q_INVOKABLE void append(qreal lng, qreal lat);
   Q_INVOKABLE void sync();
 
   Q_INVOKABLE void start();
+  Q_INVOKABLE void reset();
   Q_INVOKABLE void pause();
   Q_INVOKABLE void save();
   Q_INVOKABLE void remove();
@@ -77,14 +121,27 @@ public:
 signals:
 
   void statusChanged();
+
   void durationChanged();
   void speedChanged();
   void distanceChanged();
+  void bearingChanged();
 
+  void segmentEndPointChanged();
+  void segmentBearingChanged();
+  void segmentETAChanged();
+  void segmentDTGChanged();
+  void targetETAChanged();
+  void targetDTGChanged();
 
 public slots:
 
 private:
+
+  void updateDistance(qreal v);
+  void updateBearing(qreal v);
+  void updateSpeed(qreal v);
+  void updateDuration(qreal v);
 
   QSGGeometry::Point2D fromPoint(const QPointF& p) {
     QSGGeometry::Point2D v;
@@ -112,5 +169,42 @@ private:
   qreal m_duration; // secs
   qreal m_speed; // meters / sec
   qreal m_distance; // meters
+  qreal m_bearing; // degrees
+
+  RouteTracker m_router;
 };
 
+inline void Tracker::updateDistance(qreal dist) {
+  const auto prevDistance = static_cast<int>(m_distance / 185.2); // decimal nautical miles
+  m_distance += dist;
+  if (static_cast<int>(m_distance / 185.2) != prevDistance) {
+    emit distanceChanged();
+  }
+}
+
+inline void Tracker::updateBearing(qreal deg) {
+  while (deg < 0.) deg += 360.;
+  // bearing
+  const auto prevBearing = static_cast<int>(m_bearing);
+  m_bearing = deg;
+  if (static_cast<int>(m_bearing) != prevBearing) {
+    emit bearingChanged();
+  }
+}
+
+inline void Tracker::updateSpeed(qreal speed) {
+  const auto prevSpeed = m_speed;
+  m_speed = speed;
+  if (std::abs(m_speed - prevSpeed) / m_speed > eps) {
+    emit speedChanged();
+  }
+}
+
+inline void Tracker::updateDuration(qreal delta) {
+  // duration
+  const auto prevDuration = static_cast<int>(m_duration / 60);
+  m_duration += delta;
+  if (static_cast<int>(m_duration / 60) != prevDuration) {
+    emit durationChanged();
+  }
+}

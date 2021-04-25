@@ -27,8 +27,7 @@ BuildRequires:  fontconfig
 
 
 %description
-Marine chart plotter / navigator for Sailfish OS. Supports cm93v2, S57
-and OpenCPN/SENC vector charts. Does not support encrypted charts.
+Marine chart plotter / navigator for Sailfish OS. Supports cm93v2, S57 and OpenCPN/SENC vector charts.
 
 %prep
 %setup -n %{name}-%{version}
@@ -36,8 +35,8 @@ and OpenCPN/SENC vector charts. Does not support encrypted charts.
 
 %build
 mkdir -p rpmbuilddir-%{_arch}
-#cd rpmbuilddir-%{_arch} && cmake -DMOBILE=ON -DCMAKE_BUILD_TYPE=Debug ..
-cd rpmbuilddir-%{_arch} && cmake -DMOBILE=ON -DCMAKE_BUILD_TYPE=Release ..
+cd rpmbuilddir-%{_arch} && cmake -DMOBILE=ON -DCMAKE_BUILD_TYPE=Debug ..
+#cd rpmbuilddir-%{_arch} && cmake -DMOBILE=ON -DCMAKE_BUILD_TYPE=Release ..
 cd ..
 make %{?_smp_mflags} -C rpmbuilddir-%{_arch} VERBOSE=1
 

@@ -65,6 +65,7 @@ public:
 
   QSGNode *updatePaintNode(QSGNode* node, UpdatePaintNodeData*) override;
 
+  WGS84PointVector waypoints() const {return m_positions;}
 
 signals:
 

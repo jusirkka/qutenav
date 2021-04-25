@@ -20,6 +20,7 @@ target_sources(Mobile
     src/main.cpp
     src/routedatabase.cpp
     src/router.cpp
+    src/routetracker.cpp
     src/routemodel.cpp
     src/trackdatabase.cpp
     src/tracker.cpp
@@ -30,6 +31,7 @@ target_include_directories(Mobile
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/../src
+    ${CMAKE_CURRENT_SOURCE_DIR}/../geos/src
     ${SAILFISH_INCLUDE_DIRS}
     $ENV{EMU_PATH}/include/sailfishapp
 )
@@ -51,13 +53,13 @@ target_link_libraries(Mobile
 
 add_custom_target(Qml SOURCES
   qml/qopencpn.qml
-  qml/Banner.qml
   qml/Boat.qml
   qml/Bubble.qml
   qml/ChartPage.qml
   qml/ChartSetCombo.qml
   qml/CenterButton.qml
   qml/CoverPage.qml
+  qml/DimensionalValue.qml
   qml/EditButton.qml
   qml/DistanceButton.qml
   qml/IconListItem.qml
@@ -72,10 +74,13 @@ add_custom_target(Qml SOURCES
   qml/RoutingResultDialog.qml
   qml/ScaleBar.qml
   qml/SliderPref.qml
-  qml/TimeBanner.qml
   qml/TrackButton.qml
   qml/TrackDisplayDialog.qml
   qml/TrackInfo.qml
+  qml/TrackInfoBox.qml
+  qml/TrackPointInfoBox.qml
+  qml/TrackSpeedInfoBox.qml
+  qml/TrackTargetInfoBox.qml
   qml/TrackResultDialog.qml
   qml/ValuePref.qml
 )

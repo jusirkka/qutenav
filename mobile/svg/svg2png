@@ -4,19 +4,31 @@ target=$1
 mkdir -p $(dirname $target)
 base=$(basename $target)
 
-source=$(dirname $0)/$(echo $base | sed -n -e 's/\(.*\)-.*/\1.svg/p')
-width=$(echo $base | sed -n -e 's/.*-\(.*\)x.*/\1/p')
-height=$(echo $base | sed -n -e 's/.*x\(.*\)\..*/\1/p')
 
-if test "$width" == ""; then
-    scale=$(echo $base | sed -n -e 's/.*-\(.*\)\.png/\1/p')
-    echo $scale
-    w1=$(egrep -m 1 "^ *width" $source | sed -n -e 's/.*\"\([0-9]\+\)[."].*/\1/p')
-    echo $w1
-    h1=$(egrep -m 1 "^ *height" $source | sed -n -e 's/.*\"\([0-9]\+\)[."].*/\1/p')
-    echo $h1
-    width=$(expr $w1 \* $scale / 100)
-    height=$(expr $h1 \* $scale / 100)
+basesrc=$(echo $base | sed -n -e 's/\(.*\)-.*/\1.svg/p')
+
+if test "$basesrc" == ""; then
+  source=$(dirname $0)/$(basename $target png)svg
+  width=64
+  height=64
+
+else
+
+  source=$(dirname $0)/$basesrc
+
+  width=$(echo $base | sed -n -e 's/.*-\(.*\)x.*/\1/p')
+  height=$(echo $base | sed -n -e 's/.*x\(.*\)\..*/\1/p')
+
+  if test "$width" == ""; then
+      scale=$(echo $base | sed -n -e 's/.*-\(.*\)\.png/\1/p')
+      echo $scale
+      w1=$(egrep -m 1 "^ *width" $source | sed -n -e 's/.*\"\([0-9]\+\)[."].*/\1/p')
+      echo $w1
+      h1=$(egrep -m 1 "^ *height" $source | sed -n -e 's/.*\"\([0-9]\+\)[."].*/\1/p')
+      echo $h1
+      width=$(expr $w1 \* $scale / 100)
+      height=$(expr $h1 \* $scale / 100)
+  fi
 fi
 
 inkscape -o $target -C -w $width -h $height $source

@@ -40,6 +40,7 @@ Rectangle {
           var dialog1 = pageStack.push(Qt.resolvedUrl("RoutingResultDialog.qml"), {router: router});
           dialog1.onAccepted.connect(function () {
             rect.editing = false;
+            tracker.reset();
           });
         } else {
           rect.editing = false;
