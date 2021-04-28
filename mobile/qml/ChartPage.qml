@@ -121,6 +121,7 @@ Page {
       var obj = component.createObject(router, {index: i, center: router.vertex(i)});
       obj.clicked.connect(selectRoutePoint);
     }
+    router.enableEditMode(routeButton.editing)
   }
 
   ChartDisplay {
@@ -180,6 +181,9 @@ Page {
     anchors.right: menuButton.left
     z: 300
     visible: !page.infoMode
+    onEditingChanged: {
+      router.enableEditMode(editing)
+    }
   }
 
   CenterButton {

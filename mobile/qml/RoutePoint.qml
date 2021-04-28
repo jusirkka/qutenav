@@ -9,6 +9,7 @@ Rectangle {
   property int index
   property point center
   property bool selected: false
+  property bool editMode: true
 
   x: center.x - width / 2
   y: center.y - height / 2
@@ -16,31 +17,23 @@ Rectangle {
   signal clicked(var rp)
 
   onSelectedChanged: {
-    if (selected) {
-      width = 4 * Theme.paddingLarge
-      color = "cyan";
-    } else {
-      width = 3 * Theme.paddingLarge
-      color = "white";
-    }
     clicked(rect)
   }
 
-  width: 3 * Theme.paddingLarge
+  width: (rect.editMode ? (rect.selected ? 4 : 3) : 2)  * Theme.paddingLarge
   height: width
   radius: width / 2
-  color: "white"
-  border.color: "black"
-
+  color: rect.editMode ? (rect.selected ? "cyan" : "white") : "#085efa"
+  border.color: rect.editMode ? "black" : "white"
 
   Text {
     id: label
     anchors.centerIn: parent
     text: "" + index
-    color: "black"
+    color: rect.editMode ? "black" : "white"
     horizontalAlignment: Text.AlignHCenter
     verticalAlignment: Text.AlignVCenter
-    font.pixelSize: Theme.fontSizeSmall
+    font.pixelSize: rect.editMode ? Theme.fontSizeSmall : Theme.fontSizeExtraSmall
     font.bold: true
   }
 
@@ -50,6 +43,7 @@ Rectangle {
     onClicked: {
       rect.selected = !rect.selected;
     }
+    enabled: rect.editMode
   }
 
 }

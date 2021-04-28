@@ -118,6 +118,15 @@ void Router::move(int index, const QPointF& dp) {
   update();
 }
 
+void Router::enableEditMode(bool enabled) {
+  for (QQuickItem* kid: childItems()) {
+    auto k = QQmlProperty::read(kid, "editMode").toBool();
+    if (k != enabled) {
+      kid->setProperty("editMode", enabled);
+    }
+  }
+}
+
 void Router::remove(int index) {
 
   m_positions.remove(index);

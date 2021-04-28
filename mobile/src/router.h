@@ -56,6 +56,7 @@ public:
   Q_INVOKABLE QPointF insert(int index);
   Q_INVOKABLE int length() const;
   Q_INVOKABLE QPointF vertex(int index) const;
+  Q_INVOKABLE void enableEditMode(bool enabled);
 
   Q_INVOKABLE void save();
   Q_INVOKABLE void clear();
