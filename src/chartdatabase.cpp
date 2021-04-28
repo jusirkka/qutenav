@@ -26,7 +26,7 @@
 ChartDatabase::ChartDatabase()
   : SQLiteDatabase("ChartDatabase")
 {
-  // qopencpn or harbour-qopencpn
+  // qutenav or harbour-qutenav
   const QString baseapp = qAppName().split("_").first();
   QString loc = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
   loc = QString("%1/%2/charts").arg(loc).arg(baseapp);

@@ -19,7 +19,7 @@
  */
 import QtQuick 2.2
 import Sailfish.Silica 1.0
-import org.qopencpn 1.0
+import org.qutenav 1.0
 
 Page {
   id: page
@@ -38,7 +38,7 @@ Page {
 
       PageHeader {
         id: header
-        title: "QOpenCPN"
+        title: "QuteNav"
       }
 
       IconListItem {

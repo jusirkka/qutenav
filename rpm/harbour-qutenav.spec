@@ -1,10 +1,10 @@
-Name: harbour-qopencpn
+Name: harbour-qutenav
 
 Summary: Chart plotter / navigator for Sailfish OS
 Version: 0.05
 Release: 1
 Group: Qt/Qt
-URL: https://github.com/jusirkka/qopencpn
+URL: https://github.com/jusirkka/qutenav
 License: GPLv3
 Source: %{name}-%{version}.tar.xz
 

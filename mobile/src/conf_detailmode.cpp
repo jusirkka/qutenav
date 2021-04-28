@@ -25,7 +25,7 @@ Conf::DetailMode* Conf::DetailMode::self() {
 }
 
 Conf::DetailMode::DetailMode()
-  : ConfigGroup("DetailMode", "qopencpnrc")
+  : ConfigGroup("DetailMode", "qutenavrc")
 {
 
   m_defaults["width_mm"] = 240.;

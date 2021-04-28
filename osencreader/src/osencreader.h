@@ -52,7 +52,7 @@ private:
 class OsencReaderFactory: public QObject, public ChartFileReaderFactory {
 
   Q_OBJECT
-  Q_PLUGIN_METADATA(IID "net.kvanttiapina.qopencpn.ChartFileReaderFactory/1.0")
+  Q_PLUGIN_METADATA(IID "net.kvanttiapina.qutenav.ChartFileReaderFactory/1.0")
   Q_INTERFACES(ChartFileReaderFactory)
 
 public:

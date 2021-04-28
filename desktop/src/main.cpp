@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
   QApplication app(argc, argv);
 
   app.setOrganizationName("Kvanttiapina");
-  app.setApplicationName("qopencpn");
+  app.setApplicationName("qutenav");
 
   KAboutData aboutData(
         // The program name used internally. (componentName)
@@ -63,10 +63,10 @@ int main(int argc, char *argv[])
         // Can contain any information desired. (otherText)
         i18n("Chart plotter / navigator for Sailfish OS based on OpenCPN."),
         // The program homepage string. (homePageAddress = QString())
-        QStringLiteral("https://github.com/jusirkka/qopencpn"),
+        QStringLiteral("https://github.com/jusirkka/qutenav"),
         // The bug report email address
         // (bugsEmailAddress = QLatin1String("submit@bugs.kde.org")
-        QStringLiteral("https://github.com/jusirkka/qopencpn/issues"));
+        QStringLiteral("https://github.com/jusirkka/qutenav/issues"));
 
   aboutData.addAuthor(i18n("Jukka Sirkka"),
                       i18n("Codemonkey"),

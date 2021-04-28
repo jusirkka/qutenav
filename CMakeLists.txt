@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.11 FATAL_ERROR)
 
 # enable_testing()
 
-project(qopencpn LANGUAGES CXX C)
+project(qutenav LANGUAGES CXX C)
 
 set(DESKTOP ON)
 
@@ -79,16 +79,16 @@ find_package(harfbuzz REQUIRED)
 # targets
 #
 
-add_executable(qopencpn)
-add_executable(qopencpn_dbupdater)
+add_executable(qutenav)
+add_executable(qutenav_dbupdater)
 
 
-set_target_properties(qopencpn
+set_target_properties(qutenav
   PROPERTIES
     AUTOMOC ON
 )
 
-target_sources(qopencpn
+target_sources(qutenav
   PRIVATE
     src/camera.cpp
     src/cachereader.cpp
@@ -162,12 +162,12 @@ BISON_TARGET(S52HParser src/s52hpgl_parser.y ${CMAKE_BINARY_DIR}/s52hpgl_parser.
 
 # automoc generates duplicate mocs for dbus adaptor files in older versions
 if (${CMAKE_VERSION} VERSION_LESS "3.18")
-  set_target_properties(qopencpn_dbupdater
+  set_target_properties(qutenav_dbupdater
     PROPERTIES
       AUTOMOC OFF
   )
 else()
-  set_target_properties(qopencpn_dbupdater
+  set_target_properties(qutenav_dbupdater
     PROPERTIES
       AUTOMOC ON
   )
@@ -181,7 +181,7 @@ qt5_add_dbus_adaptor(dbus_adaptor_SRCS
   dbupdater_adaptor
 )
 
-target_sources(qopencpn_dbupdater
+target_sources(qutenav_dbupdater
   PRIVATE
     src/dbupdater.cpp
     src/chartdatabase.cpp
@@ -199,7 +199,7 @@ target_sources(qopencpn_dbupdater
 
 if (DESKTOP)
 
-  target_include_directories(qopencpn
+  target_include_directories(qutenav
     PRIVATE
       ${CMAKE_CURRENT_SOURCE_DIR}/src
       ${CMAKE_CURRENT_SOURCE_DIR}/geographiclib/src
@@ -211,7 +211,7 @@ if (DESKTOP)
 
 else()
 
-  target_include_directories(qopencpn
+  target_include_directories(qutenav
     PRIVATE
       ${CMAKE_CURRENT_SOURCE_DIR}/src
       ${CMAKE_CURRENT_SOURCE_DIR}/geographiclib/src
@@ -222,7 +222,7 @@ else()
 
 endif()
 
-target_include_directories(qopencpn_dbupdater
+target_include_directories(qutenav_dbupdater
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/dbupdater/src
@@ -232,12 +232,12 @@ target_include_directories(qopencpn_dbupdater
 )
 
 
-target_compile_features(qopencpn
+target_compile_features(qutenav
   PRIVATE
     cxx_std_17
 )
 
-target_compile_features(qopencpn_dbupdater
+target_compile_features(qutenav_dbupdater
   PRIVATE
     cxx_std_17
 )
@@ -270,7 +270,7 @@ endif()
 
 if (DESKTOP)
 
-  target_link_libraries(qopencpn
+  target_link_libraries(qutenav
     PRIVATE
       GeographicLib
       Triangulate
@@ -290,7 +290,7 @@ if (DESKTOP)
 
 else()
 
-  target_link_libraries(qopencpn
+  target_link_libraries(qutenav
     PRIVATE
       ${SAILFISH_LDFLAGS}
       GeographicLib
@@ -313,7 +313,7 @@ else()
 
 endif()
 
-target_link_libraries(qopencpn_dbupdater
+target_link_libraries(qutenav_dbupdater
   PRIVATE
     Osencreader
     Oesencreader
@@ -327,6 +327,6 @@ target_link_libraries(qopencpn_dbupdater
     Qt5::OpenGL
 )
 
-install(TARGETS qopencpn DESTINATION bin)
-install(TARGETS qopencpn_dbupdater DESTINATION bin)
+install(TARGETS qutenav DESTINATION bin)
+install(TARGETS qutenav_dbupdater DESTINATION bin)
 

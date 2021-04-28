@@ -1,7 +1,7 @@
 <!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
         "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
 <node name="updater">
-    <interface name="net.kvanttiapina.qopencpn.Updater">
+    <interface name="net.kvanttiapina.qutenav.Updater">
         <method name="sync"/>
         <method name="ping">
           <arg name="pong" direction="out" type="s"/>

@@ -25,7 +25,7 @@ Conf::MainWindow* Conf::MainWindow::self() {
 }
 
 Conf::MainWindow::MainWindow()
-  : ConfigGroup("MainWindow", "qopencpnrc")
+  : ConfigGroup("MainWindow", "qutenavrc")
 {
   m_defaults["chartset"] = "None";
 

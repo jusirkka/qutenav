@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.11 FATAL_ERROR)
 
 enable_testing()
 
-project(qopencpn_tests LANGUAGES CXX)
+project(qutenav_tests LANGUAGES CXX)
 
 
 #

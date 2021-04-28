@@ -50,12 +50,12 @@ int main(int argc, char *argv[]) {
 
   Q_INIT_RESOURCE(shaders);
 
-  qmlRegisterType<ChartDisplay>("org.qopencpn", 1, 0, "ChartDisplay");
-  qmlRegisterType<CrossHairs>("org.qopencpn", 1, 0, "CrossHairs");
-  qmlRegisterType<Tracker>("org.qopencpn", 1, 0, "Tracker");
-  qmlRegisterType<Router>("org.qopencpn", 1, 0, "Router");
-  qmlRegisterType<TrackModel>("org.qopencpn", 1, 0, "TrackModel");
-  qmlRegisterType<RouteModel>("org.qopencpn", 1, 0, "RouteModel");
+  qmlRegisterType<ChartDisplay>("org.qutenav", 1, 0, "ChartDisplay");
+  qmlRegisterType<CrossHairs>("org.qutenav", 1, 0, "CrossHairs");
+  qmlRegisterType<Tracker>("org.qutenav", 1, 0, "Tracker");
+  qmlRegisterType<Router>("org.qutenav", 1, 0, "Router");
+  qmlRegisterType<TrackModel>("org.qutenav", 1, 0, "TrackModel");
+  qmlRegisterType<RouteModel>("org.qutenav", 1, 0, "RouteModel");
 
   QSurfaceFormat format;
   format.setVersion(3, 2);
@@ -101,7 +101,7 @@ int main(int argc, char *argv[]) {
 
   view->rootContext()->setContextProperty("settings", Settings::instance());
 
-  view->setSource(SailfishApp::pathTo("qml/harbour-qopencpn.qml"));
+  view->setSource(SailfishApp::pathTo("qml/harbour-qutenav.qml"));
   view->show();
 
   return app->exec();

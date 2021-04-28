@@ -28,7 +28,7 @@
 #include <QDir>
 
 QString SQLiteDatabase::databaseName(const QString& bname) {
-  // qopencpn or harbour-qopencpn
+  // qutenav or harbour-qutenav
   const QString baseapp = qAppName();
   QString loc = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
   loc = QString("%1/%2/userdata").arg(loc).arg(baseapp);

@@ -77,7 +77,7 @@ void Updater::loadPlugins() {
   }
 
   QString base = QLibraryInfo::location(QLibraryInfo::PluginsPath);
-  QDir pluginsDir(QString("%1/qopencpn").arg(base));
+  QDir pluginsDir(QString("%1/qutenav").arg(base));
   qDebug() << "Searching reader plugins in" << pluginsDir.dirName();
 
   const QStringList plugins = pluginsDir.entryList(QStringList(),
@@ -92,7 +92,7 @@ void Updater::loadPlugins() {
 }
 
 void Updater::checkChartDirs() {
-  // qopencpn or harbour-qopencpn
+  // qutenav or harbour-qutenav
   const QString baseapp = qAppName().split("_").first();
   QStringList locs;
   for (const QString& loc: QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation)) {

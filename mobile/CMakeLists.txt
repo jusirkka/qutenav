@@ -52,7 +52,7 @@ target_link_libraries(Mobile
 )
 
 add_custom_target(Qml SOURCES
-  qml/qopencpn.qml
+  qml/qutenav.qml
   qml/Boat.qml
   qml/Bubble.qml
   qml/ChartPage.qml

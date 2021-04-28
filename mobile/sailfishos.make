@@ -1,6 +1,7 @@
 # -*- coding: us-ascii-unix -*-
 
-NAME       = harbour-qopencpn
+BASE       = qutenav
+NAME       = harbour-$(BASE)
 VERSION    =
 
 DESTDIR    =
@@ -11,10 +12,10 @@ ICONDIR    = $(DESTDIR)$(PREFIX)/share/icons/hicolor
 BINDIR     = $(DESTDIR)$(PREFIX)/bin
 LIBDIR     = $(DESTDIR)$(PREFIX)/lib
 
-ICONS = ../data/qopencpn-86x86.png \
-        ../data/qopencpn-108x108.png \
-        ../data/qopencpn-128x128.png \
-        ../data/qopencpn-172x172.png \
+ICONS = ../data/$(BASE)-86x86.png \
+        ../data/$(BASE)-108x108.png \
+        ../data/$(BASE)-128x128.png \
+        ../data/$(BASE)-172x172.png \
         qml/icons/menu-100.png \
         qml/icons/menu-125.png \
         qml/icons/menu-150.png \
@@ -51,7 +52,7 @@ ICONS = ../data/qopencpn-86x86.png \
 install:
 	@echo "Installing QML files..."
 	mkdir -p $(DATADIR)/qml
-	cp qml/qopencpn.qml $(DATADIR)/qml/$(NAME).qml
+	cp qml/$(BASE).qml $(DATADIR)/qml/$(NAME).qml
 	cp qml/[A-Z]*.qml $(DATADIR)/qml
 	@echo "Installing JS files..."
 	cp qml/*.js $(DATADIR)/qml
@@ -59,20 +60,20 @@ install:
 	cp qml/icons/*.png $(DATADIR)/qml/icons
 	@echo "Installing desktop file..."
 	mkdir -p $(DESKTOPDIR)
-	cp ../data/qopencpn.desktop $(DESKTOPDIR)/$(NAME).desktop
+	cp ../data/$(BASE).desktop $(DESKTOPDIR)/$(NAME).desktop
 	@echo "Installing icons..."
 	mkdir -p $(ICONDIR)/86x86/apps
 	mkdir -p $(ICONDIR)/108x108/apps
 	mkdir -p $(ICONDIR)/128x128/apps
 	mkdir -p $(ICONDIR)/172x172/apps
-	cp ../data/qopencpn-86x86.png  $(ICONDIR)/86x86/apps/$(NAME).png
-	cp ../data/qopencpn-108x108.png $(ICONDIR)/108x108/apps/$(NAME).png
-	cp ../data/qopencpn-128x128.png $(ICONDIR)/128x128/apps/$(NAME).png
-	cp ../data/qopencpn-172x172.png $(ICONDIR)/172x172/apps/$(NAME).png
+	cp ../data/$(BASE)-86x86.png  $(ICONDIR)/86x86/apps/$(NAME).png
+	cp ../data/$(BASE)-108x108.png $(ICONDIR)/108x108/apps/$(NAME).png
+	cp ../data/$(BASE)-128x128.png $(ICONDIR)/128x128/apps/$(NAME).png
+	cp ../data/$(BASE)-172x172.png $(ICONDIR)/172x172/apps/$(NAME).png
 	@echo "Installing binaries..."
 	mkdir -p $(BINDIR)
-	cp ../$(BUILDDIR)/qopencpn $(BINDIR)/$(NAME)
-	cp ../$(BUILDDIR)/qopencpn_dbupdater $(BINDIR)/$(NAME)_dbupdater
+	cp ../$(BUILDDIR)/$(BASE) $(BINDIR)/$(NAME)
+	cp ../$(BUILDDIR)/$(BASE)_dbupdater $(BINDIR)/$(NAME)_dbupdater
 	chmod 755 $(BINDIR)/$(NAME)
 	chmod 755 $(BINDIR)/$(NAME)_dbupdater
 	@echo "Installing oeserverd binaries..."
@@ -98,9 +99,6 @@ install:
 	cp ../data/rastersymbols-dusk.png $(DATADIR)/s57data
 	cp ../data/s57attributes.csv $(DATADIR)/s57data
 	cp ../data/s57objectclasses.csv $(DATADIR)/s57data
-	@echo "Installing systemd service file..."
-	mkdir -p $(LIBDIR)/systemd/user
-	cp qopencpn.service $(LIBDIR)/systemd/user/$(NAME).service
 
 
 %.png:

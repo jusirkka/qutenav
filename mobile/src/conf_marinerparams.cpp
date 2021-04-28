@@ -25,7 +25,7 @@ Conf::MarinerParams* Conf::MarinerParams::self() {
 }
 
 Conf::MarinerParams::MarinerParams()
-  : ConfigGroup("MarinerParams", "qopencpnrc")
+  : ConfigGroup("MarinerParams", "qutenavrc")
 {
 
   m_defaults["two_shades"] = false;

@@ -112,4 +112,4 @@ protected:
 };
 
 Q_DECLARE_INTERFACE(ChartFileReaderFactory,
-                    "net.kvanttiapina.qopencpn.ChartFileReaderFactory/1.0")
+                    "net.kvanttiapina.qutenav.ChartFileReaderFactory/1.0")

@@ -19,7 +19,7 @@
  */
 import QtQuick 2.0
 import Sailfish.Silica 1.0
-import org.qopencpn 1.0
+import org.qutenav 1.0
 
 Dialog {
   id: dialog

@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
   conn.registerObject("/Updater",
                       updater,
                       QDBusConnection::ExportAdaptors | QDBusConnection::ExportAllContents);
-  conn.registerService("net.kvanttiapina.qopencpn");
+  conn.registerService("net.kvanttiapina.qutenav");
 
   return app.exec();
 }

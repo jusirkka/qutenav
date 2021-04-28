@@ -1,6 +1,6 @@
 /* -*- coding: utf-8-unix -*-
  *
- * File: mobile/qml/qopencpn.qml
+ * File: mobile/qml/qutenav.qml
  *
  * Copyright (C) 2021 Jukka Sirkka
  *

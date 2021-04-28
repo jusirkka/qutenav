@@ -18,7 +18,7 @@
  *
  *********************************************************************
 
- Adapted for QOpenCPN (c) 2021 Jukka Sirkka
+ Adapted for QuteNav (c) 2021 Jukka Sirkka
 
 */
 

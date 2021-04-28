@@ -25,14 +25,14 @@ CoverBackground {
   Image {
     id: logo
     anchors.centerIn: parent
-    source: "/usr/share/icons/hicolor/128x128/apps/harbour-qopencpn.png"
+    source: "/usr/share/icons/hicolor/128x128/apps/harbour-qutenav.png"
   }
 
   Label {
     anchors.horizontalCenter: parent.horizontalCenter
     anchors.top: logo.bottom
     anchors.topMargin: Theme.paddingLarge
-    text: "QOpenCPN"
+    text: "QuteNav"
   }
 }
 
