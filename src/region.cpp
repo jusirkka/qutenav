@@ -62,6 +62,7 @@
 #include <QRectF>
 #include "geoprojection.h"
 #include <functional>
+#include <QDebug>
 
 using namespace KV;
 
@@ -77,7 +78,12 @@ Region::Region(const WGS84PointVector& cs, const GeoProjection* gp) {
   const int n = cs.size() / 2;
   for (int i = 0; i < n; i++) {
     // sw, ne
-    s += QRectF(gp->fromWGS84(cs[2 * i]), gp->fromWGS84(cs[2 * i + 1]));
+    const auto r = QRectF(gp->fromWGS84(cs[2 * i]), gp->fromWGS84(cs[2 * i + 1]));
+    if (r.isEmpty()) {
+      qDebug() << "empty rectangle" << r;
+      continue;
+    }
+    s += r;
   }
   d = s.d;
 }
@@ -389,6 +395,7 @@ Region Region::intersected(const Region &r) const {
 }
 
 Region Region::intersected(const QRectF &r) const {
+  // qDebug() << "intersected" << r;
   return intersected(Region(r));
 }
 

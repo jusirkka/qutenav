@@ -10,4 +10,12 @@
 - better chart object info
 - more detailed track statistics in track archive page
 - more detailed route info in route archive page
+
+- remove unused libtess2
+- Route/editor: make waypoints smaller, non-selectable and different color when not editing
+- copyright headers to all files *.cpp, *.h, *.qml, *.y, *.l
+- change project name to QuteNav or whatever
+- bug: cm93 offsets
 - desktop qml app
+- user chart manager
+- write readme.md

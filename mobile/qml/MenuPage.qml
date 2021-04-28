@@ -28,11 +28,6 @@ Page {
         onClicked: pageStack.replace(Qt.resolvedUrl("PreferencesPage.qml"))
       }
 
-      ChartSetCombo {
-        label: "Chartset"
-        icon: "image://theme/icon-m-levels"
-      }
-
       IconListItem {
         label: "Tracks" + (enabled ? "" : "*")
         icon: "image://theme/icon-m-file-archive-folder"
@@ -55,7 +50,12 @@ Page {
         enabled: !page.router.edited
       }
 
+      ChartSetCombo {
+        label: "Chartset"
+        icon: "image://theme/icon-m-levels"
+      }
     }
+
 
     VerticalScrollDecorator {flickable: flickable}
   }

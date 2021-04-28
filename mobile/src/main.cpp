@@ -24,6 +24,9 @@ Q_IMPORT_PLUGIN(S57ReaderFactory)
 Q_IMPORT_PLUGIN(OsencReaderFactory)
 Q_IMPORT_PLUGIN(OesencReaderFactory)
 
+QOpenGLContext *qt_gl_global_share_context();
+void qt_gl_set_global_share_context(QOpenGLContext *context);
+
 int main(int argc, char *argv[]) {
 
   Q_INIT_RESOURCE(shaders);
@@ -47,6 +50,18 @@ int main(int argc, char *argv[]) {
   QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
   // Set up QML engine.
   QScopedPointer<QGuiApplication> app(SailfishApp::application(argc, argv));
+
+  // HACK: workaround for SailfishApp::application returning cached app which
+  // was created (presumably) before setting AA_ShareOpenGLContexts. As a result,
+  // neither global context is created nor any contexts are shared.
+  if (qt_gl_global_share_context() == nullptr) {
+    qDebug() << "HACK: Creating global opengl context";
+    QOpenGLContext *ctx = new QOpenGLContext;
+    ctx->setFormat(QSurfaceFormat::defaultFormat());
+    ctx->create();
+    qt_gl_set_global_share_context(ctx);
+  }
+
   // remove stutter
   app->setOrganizationName("");
   app->setOrganizationDomain("");
