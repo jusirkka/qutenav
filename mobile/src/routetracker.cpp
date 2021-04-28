@@ -40,22 +40,24 @@ RouteTracker::RouteTracker(QObject* parent)
 {}
 
 Coordinate RouteTracker::fromWGS84Point(const WGS84Point &wp) const {
+  // Euclidean approximation. TODO replace with Mercator projection
   return Coordinate(z0 * (wp.radiansLng() - m_ref.radiansLng()) * m_c0,
                     z0 * (wp.radiansLat() - m_ref.radiansLat()));
 }
 
 void RouteTracker::initialize(const WGS84PointVector& route) {
-  // Euclidean approximation. TODO replace with Mercator projection
-  if (!route.isEmpty()) {
+  if (route.size() > 1) {
     m_ref = route.first();
     m_c0 = cos(m_ref.radiansLat());
-  }
 
-  CoordinateSequence coords;
-  for (const WGS84Point& wp: route) {
-    coords << fromWGS84Point(wp);
+    CoordinateSequence coords;
+    for (const WGS84Point& wp: route) {
+      coords << fromWGS84Point(wp);
+    }
+    m_route = LineString(coords);
+  } else {
+    m_route = LineString();
   }
-  m_route = LineString(coords);
 
   m_segmentEndPoint = 0;
   emit segmentEndPointChanged();

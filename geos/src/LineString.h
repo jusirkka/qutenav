@@ -110,7 +110,15 @@ public:
   SegmentIterator end() const noexcept {return m_segments.cend();}
 
   double length() const {return m_length;}
-  double length(int segmentEndIndex) const {return m_cumulativeLengths[segmentEndIndex];}
+  double length(int segmentEndIndex) const {
+    if (segmentEndIndex >= m_cumulativeLengths.size()) {
+      return m_length;
+    }
+    if (segmentEndIndex < 0) {
+      return 0.;
+    }
+    return m_cumulativeLengths[segmentEndIndex];
+  }
 
   /**
      * Find the nearest location along a linear Geometry to a given point.
