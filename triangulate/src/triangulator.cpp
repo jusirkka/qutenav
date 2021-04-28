@@ -1,5 +1,4 @@
 #include "triangulator.h"
-#include "lib2tessellator.h"
 #include "earcuttessellator.h"
 
 Triangulator::Triangulator(const GL::VertexVector &vertices,
