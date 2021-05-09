@@ -21,6 +21,7 @@
 
 #include <QObject>
 #include "conf_marinerparams.h"
+#include "conf_mainwindow.h"
 
 class TextGroup: public QObject {
   Q_OBJECT
@@ -256,6 +257,30 @@ public:
              NOTIFY textGroupsChanged)
 
   QList<QObject*> textGroups() const {return m_textGroups;}
+
+  Q_PROPERTY(int mainWindowWidth
+             READ mainWindowWidth
+             WRITE setMainWindowWidth)
+
+  int mainWindowWidth() const {
+    return Conf::MainWindow::width();
+  }
+
+  void setMainWindowWidth(int v) {
+    Conf::MainWindow::setWidth(v);
+  }
+
+  Q_PROPERTY(int mainWindowHeight
+             READ mainWindowHeight
+             WRITE setMainWindowHeight)
+
+  int mainWindowHeight() const {
+    return Conf::MainWindow::height();
+  }
+
+  void setMainWindowHeight(int v) {
+    Conf::MainWindow::setHeight(v);
+  }
 
   void setDefault(const QString& prop);
   QVariant getDefault(const QString& prop) const;

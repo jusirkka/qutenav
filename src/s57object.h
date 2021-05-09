@@ -22,7 +22,6 @@
 #include <QVariant>
 #include <QRectF>
 #include "types.h"
-#include <QDebug>
 #include "geoprojection.h"
 #include <functional>
 

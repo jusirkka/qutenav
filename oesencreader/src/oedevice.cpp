@@ -22,7 +22,7 @@
 
 #include "oedevice.h"
 
-#include <QDebug>
+#include "logging.h"
 #include <QFileInfo>
 #include <QDir>
 #include "types.h"
@@ -89,38 +89,38 @@ OeDevice::OeDevice(const QString& path, ReadMode mode)
 
   QFileInfo tmp(m_clientEPName);
   if (tmp.exists()) {
-    qDebug() << "removing" << m_clientEPName;
+    qCDebug(CENC) << "removing" << m_clientEPName;
     QDir::temp().remove(m_clientEPName);
   }
   if (mkfifo(m_clientEPName.toUtf8().constData(), S_IRUSR | S_IWUSR) < 0) {
-    qWarning() << strerror(errno);
+    qCWarning(CENC) << strerror(errno);
     throw ChartFileError(QString("Failed to create %1").arg(m_clientEPName));
   }
 }
 
 OeDevice::~OeDevice() {
-  qDebug() << "~OeDevice";
+  qCDebug(CENC) << "~OeDevice";
   close();
 }
 
 bool OeDevice::atEnd() const {
-  // qDebug() << "OeDevice::atEnd" << (m_clientEP < 0);
+  // qCDebug(CENC) << "OeDevice::atEnd" << (m_clientEP < 0);
   return m_clientEP < 0;
 }
 
 qint64 OeDevice::bytesAvailable() const {
-  qDebug() << "OeDevice::bytesAvailable" << QIODevice::bytesAvailable();
+  qCDebug(CENC) << "OeDevice::bytesAvailable" << QIODevice::bytesAvailable();
   return QIODevice::bytesAvailable();
 }
 
 void OeDevice::close() {
-  qDebug() << "OeDevice::close";
+  qCDebug(CENC) << "OeDevice::close";
   if (m_clientEP > 0) {
     ::close(m_clientEP);
   }
   QFileInfo tmp(m_clientEPName);
   if (tmp.exists()) {
-    qDebug() << "removing" << m_clientEPName;
+    qCDebug(CENC) << "removing" << m_clientEPName;
     QDir::temp().remove(m_clientEPName);
   }
 }
@@ -131,18 +131,18 @@ bool OeDevice::isSequential() const {
 
 bool OeDevice::open(OpenMode mode) {
   if (!(mode & ReadOnly)) {
-    qDebug() << "OeDevice::open failed: not readonly";
+    qCDebug(CENC) << "OeDevice::open failed: not readonly";
     return false;
   }
 
   if (!QIODevice::open(mode | Unbuffered)) {
-    qDebug() << "OeDevice::open failed";
+    qCDebug(CENC) << "OeDevice::open failed";
     return false;
   }
 
   auto serverEP = ::open(serverEPName, O_WRONLY | O_NDELAY);
   if (serverEP < 0) {
-    qWarning() << strerror(errno);
+    qCWarning(CENC) << strerror(errno);
     return false;
   }
 
@@ -159,7 +159,7 @@ bool OeDevice::open(OpenMode mode) {
 
   m_clientEP = ::open(m_clientEPName.toUtf8().constData(), O_RDONLY);
   if (m_clientEP < 0) {
-    qWarning() << strerror(errno);
+    qCWarning(CENC) << strerror(errno);
     return false;
   }
   return true;
@@ -181,7 +181,7 @@ qint64 OeDevice::readData(char* data, qint64 len) {
     size_t bytesToRead = qMin(remains, READ_SIZE);
     const int ret = ::read(m_clientEP, data + bytesRead, bytesToRead);
     if (ret < 0) {
-      qWarning() << strerror(errno);
+      qCWarning(CENC) << strerror(errno);
       return -1;
     }
 
@@ -212,24 +212,24 @@ void OeDevice::Kickoff() {
   int cnt = 10;
   auto serverEP = ::open(serverEPName, O_WRONLY | O_NDELAY);
   while (serverEP < 0 && cnt > 0) {
-    qDebug() << strerror(errno);
+    qCDebug(CENC) << strerror(errno);
     usleep(20000);
     serverEP = ::open(serverEPName, O_WRONLY | O_NDELAY);
     cnt--;
   }
   if (serverEP > 0) {
-    qDebug() << "oeserverd already running";
+    qCDebug(CENC) << "oeserverd already running";
     ::close(serverEP);
     return;
   }
 
   bool ok = QProcess::startDetached(QString(serverName), QStringList());
-  qDebug() << "launched" << serverName << ", status =" << ok;
+  qCDebug(CENC) << "launched" << serverName << ", status =" << ok;
 
   serverEP = ::open(serverEPName, O_WRONLY | O_NDELAY);
   cnt = 20;
   while (serverEP < 0 && cnt > 0) {
-    qDebug() << strerror(errno);
+    qCDebug(CENC) << strerror(errno);
     usleep(10000);
     serverEP = ::open(serverEPName, O_WRONLY | O_NDELAY);
     cnt--;

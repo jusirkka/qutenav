@@ -20,7 +20,7 @@
 %{
 
 #include "s52presentation_p.h"
-#include <QDebug>
+#include "logging.h"
 #include "types.h"
 
 int s52instr_lex(Private::ValueType*, Private::LocationType*, yyscan_t);
@@ -114,7 +114,7 @@ command: TX '(' varstring ',' varint ',' varint ',' varint ',' CHARSPEC ','
     bc.setCode(lookup, S52::Lookup::Code::Fun);
     bc.setRef(lookup, fun->index());
   } else {
-    qWarning() << "TX: unknown symbol, called with (variables)" << $11 << $13 << $15 << $17 << $19;
+    qCWarning(CS52) << "TX: unknown symbol, called with (variables)" << $11 << $13 << $15 << $17 << $19;
     ABORT;
   }
 };
@@ -177,7 +177,7 @@ command: TE '(' string ',' string ',' INT ',' INT ',' INT ',' CHARSPEC ','
     bc.setCode(lookup, S52::Lookup::Code::Fun);
     bc.setRef(lookup, fun->index());
   } else {
-    qWarning() << "TE: unknown symbols, called with" << $3 << $5 << $7 << $9 << $11 << $13 << $15 << $17 << $19 << $21;
+    qCWarning(CS52) << "TE: unknown symbols, called with" << $3 << $5 << $7 << $9 << $11 << $13 << $15 << $17 << $19 << $21;
     ABORT;
   }
 
@@ -195,7 +195,7 @@ varstring: VARIABLE {
     bc.setImmed(lookup, QVariant::fromValue(reader->names[$1]));
     // qDebug() << $1 << reader->names[$1];
   } else {
-    qWarning() << "TX: attribute not found" << $1;
+    qCWarning(CS52) << "TX: attribute not found" << $1;
   }
 };
 
@@ -235,7 +235,7 @@ varint: VARIABLE '=' INT {
     bc.setImmed(lookup, QVariant::fromValue($3));
     // qDebug() << $1 << reader->names[$1];
   } else {
-    qWarning() << "TX: attribute not found" << $1;
+    qCWarning(CS52) << "TX: attribute not found" << $1;
   }
 };
 
@@ -264,7 +264,7 @@ command: SY '(' SYMBOL optrotation ')' {
     bc.setCode(lookup, S52::Lookup::Code::Fun);
     bc.setRef(lookup, fun->index());
   } else {
-    qWarning() << "SY: unknown symbol, called with " << $3 << $4;
+    qCWarning(CS52) << "SY: unknown symbol, called with " << $3 << $4;
     ABORT;
   }
 };
@@ -303,7 +303,7 @@ command: LS '(' pstyle ',' INT ',' COLOR ')' {
     bc.setCode(lookup, S52::Lookup::Code::Fun);
     bc.setRef(lookup, fun->index());
   } else {
-    qWarning() << "LS: unknown symbol, called with " << $3 << $5 << $7;
+    qCWarning(CS52) << "LS: unknown symbol, called with " << $3 << $5 << $7;
     ABORT;
   }
 };
@@ -332,7 +332,7 @@ command: LC '(' SYMBOL ')' {
     bc.setCode(lookup, S52::Lookup::Code::Fun);
     bc.setRef(lookup, fun->index());
   } else {
-    qWarning() << "LC: unknown symbol, called with " << $3;
+    qCWarning(CS52) << "LC: unknown symbol, called with " << $3;
     ABORT;
   }
 };
@@ -352,7 +352,7 @@ command: AC '(' COLOR opttransparency ')' {
     bc.setCode(lookup, S52::Lookup::Code::Fun);
     bc.setRef(lookup, fun->index());
   } else {
-    qWarning() << "AC: unknown symbol, called with " << $3 << $4;
+    qCWarning(CS52) << "AC: unknown symbol, called with " << $3 << $4;
     ABORT;
   }
 };
@@ -389,7 +389,7 @@ command: AP '(' SYMBOL optrotation ')' {
     bc.setCode(lookup, S52::Lookup::Code::Fun);
     bc.setRef(lookup, fun->index());
   } else {
-    qWarning() << "AP: unknown symbol, called with " << $3 << $4;
+    qCWarning(CS52) << "AP: unknown symbol, called with " << $3 << $4;
     ABORT;
   }
 };
@@ -405,7 +405,7 @@ command: CS '(' OVERLING ')' {
     bc.setCode(lookup, S52::Lookup::Code::Fun);
     bc.setRef(lookup, fun->index());
   } else {
-    qWarning() << "CS: unknown symbol, called with " << $3;
+    qCWarning(CS52) << "CS: unknown symbol, called with " << $3;
     ABORT;
   }
 };
@@ -420,7 +420,7 @@ command: CS '(' OVERRIDER ')' {
     bc.setCode(lookup, S52::Lookup::Code::Fun);
     bc.setRef(lookup, fun->index());
   } else {
-    qWarning() << "CS: unknown symbol, called with " << $3;
+    qCWarning(CS52) << "CS: unknown symbol, called with " << $3;
     ABORT;
   }
 };
@@ -434,7 +434,7 @@ command: CS '(' SYMBOL ')' {
     bc.setCode(lookup, S52::Lookup::Code::Fun);
     bc.setRef(lookup, fun->index());
   } else {
-    qWarning() << "CS: unknown symbol, called with " << $3;
+    qCWarning(CS52) << "CS: unknown symbol, called with " << $3;
     ABORT;
   }
 };

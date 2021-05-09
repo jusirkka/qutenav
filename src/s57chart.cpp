@@ -35,6 +35,7 @@
 #include "camera.h"
 #include "chartmanager.h"
 #include "utils.h"
+#include "logging.h"
 
 
 //
@@ -78,7 +79,7 @@ S57Chart::S57Chart(quint32 id, const QString& path)
     try {
       m_nativeProj = candidate->configuredProjection(path);
     } catch (ChartFileError& e) {
-      qDebug() << e.msg();
+      qCDebug(CS57) << e.msg();
       continue;
     }
     reader = candidate;
@@ -297,7 +298,7 @@ void S57Chart::updatePaintData(const WGS84PointVector& cs, quint32 scale) {
   KV::Region cover(cs, m_nativeProj);
 
   const qreal sf = scaleFactor(cover.boundingRect(), scale);
-  // qDebug() << "scale factor =" << sf;
+  // qCDebug(CS57) << "scale factor =" << sf;
 
   SymbolPriorityVector rastersymbols(S52::Lookup::PriorityCount);
   SymbolPriorityVector vectorsymbols(S52::Lookup::PriorityCount);
@@ -369,7 +370,7 @@ void S57Chart::updatePaintData(const WGS84PointVector& cs, quint32 scale) {
 
     // check display category
     if (!d.lookup->canOverride() && as_numeric(d.lookup->category()) > maxcat) {
-      // qDebug() << "Skipping by category" << S52::GetClassInfo(d.object->classCode());
+      // qCDebug(CS57) << "Skipping by category" << S52::GetClassInfo(d.object->classCode());
       continue;
     }
 
@@ -377,7 +378,7 @@ void S57Chart::updatePaintData(const WGS84PointVector& cs, quint32 scale) {
     if (S52::IsMetaClass(d.object->classCode())) {
       // Filter out unknown meta classes
       if (d.lookup->classCode() == unknownClass) {
-        // qDebug() << "Filtering out" << S52::GetClassInfo(d.object->classCode());
+        // qCDebug(CS57) << "Filtering out" << S52::GetClassInfo(d.object->classCode());
         continue;
       }
       if (!showMeta) {
@@ -428,7 +429,7 @@ void S57Chart::updatePaintData(const WGS84PointVector& cs, quint32 scale) {
     updates[prio] += pd;
   }
 
-//  qDebug() << "Chart" << id() << ": Area objects =" << areaCount
+//  qCDebug(CS57) << "Chart" << id() << ": Area objects =" << areaCount
 //           << "to be painted" << filteredAreaCount;
 
 

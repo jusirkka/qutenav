@@ -21,7 +21,7 @@
 #include <QStandardPaths>
 #include <QDir>
 #include <QTextStream>
-#include <QDebug>
+#include "logging.h"
 #include <QRegularExpression>
 
 namespace S52 {
@@ -120,7 +120,7 @@ void S52::Names::readObjectClasses() {
     description.replace("\"", "");
     const QString className = parts[i + 1];
     if (names.contains(className)) {
-      qWarning() << className << "already parsed";
+      qCWarning(CS52) << className << "already parsed";
       continue;
     }
     bool meta = parts[parts.length() - 2] == "M";
@@ -163,7 +163,7 @@ void S52::Names::readAttributes() {
     const QString description = parts[1];
     const QString attributeName = parts[2];
     if (names.contains(attributeName)) {
-      qWarning() << attributeName << "already parsed";
+      qCWarning(CS52) << attributeName << "already parsed";
       continue;
     }
     const S57::AttributeType t = typeLookup[parts[3]];
@@ -179,11 +179,12 @@ void S52::Names::readAttributes() {
   dfile.open(QFile::ReadOnly);
   QTextStream s2(&dfile);
 
+  s2.readLine(); // skip header line
   while (!s2.atEnd()) {
     const QString line = s2.readLine();
     const QRegularExpressionMatch match = re.match(line);
     if (!match.hasMatch()) {
-      qDebug() << "no description match in line" << line;
+      qCDebug(CS52) << "no description match in line" << line;
       continue;
     }
     const quint32 aid = match.captured(1).toUInt();
@@ -191,7 +192,7 @@ void S52::Names::readAttributes() {
     const QString desc = match.captured(3);
 
     if (!attributes.contains(aid)) {
-      qWarning() << "Attribute" << aid << "not found";
+      qCWarning(CS52) << "Attribute" << aid << "not found";
       continue;
     }
     DescriptionMap* target = &attributes[aid].enumDescriptions;

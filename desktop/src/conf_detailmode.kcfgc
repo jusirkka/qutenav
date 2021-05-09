@@ -1,6 +1,0 @@
-# Code generation options for kconfig_compiler
-File=conf_detailmode.kcfg
-NameSpace=Conf
-ClassName=DetailMode
-Singleton=true
-Mutators=true

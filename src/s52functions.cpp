@@ -26,6 +26,7 @@
 #include "textmanager.h"
 #include "rastersymbolmanager.h"
 #include "vectorsymbolmanager.h"
+#include "logging.h"
 
 S57::PaintDataMap S52::AreaColor::execute(const QVector<QVariant>& vals,
                                           const S57::Object* obj) {
@@ -66,7 +67,7 @@ S57::PaintDataMap S52::AreaPattern::execute(const QVector<QVariant>& vals,
   }
 
   if (!s.isValid()) {
-    qWarning() << "Missing pattern" << S52::GetSymbolInfo(index, S52::SymbolType::Pattern);
+    qCWarning(CS57) << "Missing pattern" << S52::GetSymbolInfo(index, S52::SymbolType::Pattern);
     return S57::PaintDataMap();
   }
 
@@ -84,11 +85,11 @@ S57::PaintDataMap S52::AreaPattern::execute(const QVector<QVariant>& vals,
                                         s.advance(),
                                         s.element());
   } else {
-    //    qDebug() << "[VectorPattern:Class]" << S52::GetClassInfo(obj->classCode());
-    //    qDebug() << "[VectorPattern:Symbol]" << S52::GetSymbolInfo(index, S52::SymbolType::Pattern);
-    //    qDebug() << "[VectorPattern:Location]" << obj->geometry()->centerLL().print();
+    //    qCDebug(CS57) << "[VectorPattern:Class]" << S52::GetClassInfo(obj->classCode());
+    //    qCDebug(CS57) << "[VectorPattern:Symbol]" << S52::GetSymbolInfo(index, S52::SymbolType::Pattern);
+    //    qCDebug(CS57) << "[VectorPattern:Location]" << obj->geometry()->centerLL().print();
     //    for (auto k: obj->attributes().keys()) {
-    //      qDebug() << GetAttributeInfo(k, obj);
+    //      qCDebug(CS57) << GetAttributeInfo(k, obj);
     //    }
 
     KV::ColorVector colors;
@@ -134,17 +135,17 @@ S57::PaintDataMap S52::LineComplex::execute(const QVector<QVariant>& vals,
   SymbolData s = VectorSymbolManager::instance()->symbolData(index, S52::SymbolType::LineStyle);
 
   if (!s.isValid()) {
-    qWarning() << "Missing linestyle" << S52::GetSymbolInfo(index, S52::SymbolType::LineStyle);
+    qCWarning(CS57) << "Missing linestyle" << S52::GetSymbolInfo(index, S52::SymbolType::LineStyle);
     return S57::PaintDataMap();
   }
 
   auto geom = dynamic_cast<const S57::Geometry::Line*>(obj->geometry());
   Q_ASSERT(geom != nullptr);
 
-  //  qDebug() << "[LineStyle:Class]" << S52::GetClassInfo(obj->classCode()) << obj->classCode();
-  //  qDebug() << "[LineStyle:Symbol]" << S52::GetSymbolInfo(index, S52::SymbolType::LineStyle) << index;
+  //  qCDebug(CS57) << "[LineStyle:Class]" << S52::GetClassInfo(obj->classCode()) << obj->classCode();
+  //  qCDebug(CS57) << "[LineStyle:Symbol]" << S52::GetSymbolInfo(index, S52::SymbolType::LineStyle) << index;
   //  for (auto k: obj->attributes().keys()) {
-  //    qDebug() << GetAttributeInfo(k, obj);
+  //    qCDebug(CS57) << GetAttributeInfo(k, obj);
   //  }
 
   KV::ColorVector colors;
@@ -185,7 +186,7 @@ S57::PaintDataMap S52::PointSymbol::execute(const QVector<QVariant>& vals,
   }
 
   if (!s.isValid()) {
-    qWarning() << "Missing symbol" << S52::GetSymbolInfo(index, S52::SymbolType::Single);
+    qCWarning(CS57) << "Missing symbol" << S52::GetSymbolInfo(index, S52::SymbolType::Single);
     return S57::PaintDataMap();
   }
 
@@ -230,7 +231,7 @@ S57::PaintDataMap S52::Text::execute(const QVector<QVariant>& vals,
 
   const quint8 group = vals[8].toUInt();
   if (!Conf::MarinerParams::textGrouping().contains(group)) {
-    // qDebug() << "skipping TX in group" << group;
+    // qCDebug(CS57) << "skipping TX in group" << group;
     return S57::PaintDataMap();
   }
 
@@ -250,7 +251,7 @@ S57::PaintDataMap S52::Text::execute(const QVector<QVariant>& vals,
     return S57::PaintDataMap();
   }
 
-  // qDebug() << "TX:" << as_numeric(obj->geometry()->type()) << txt;
+  // qCDebug(CS57) << "TX:" << as_numeric(obj->geometry()->type()) << txt;
 
 
   const QString chars = vals[4].toString();
@@ -263,12 +264,12 @@ S57::PaintDataMap S52::Text::execute(const QVector<QVariant>& vals,
 
   auto space = as_enum<TXT::Space>(vals[3].toUInt(), TXT::AllSpaces);
   if (space != TXT::Space::Standard && space != TXT::Space::Wrapped) {
-    qWarning() << "TX: text spacing type" << as_numeric(space)<< "not implemented";
+    qCWarning(CS57) << "TX: text spacing type" << as_numeric(space)<< "not implemented";
     return S57::PaintDataMap();
   }
   // TODO: we do not actually wrap although TXT::Space::Wrapped is accepted
   if (txt.length() > 80) {
-    qWarning() << "Cutting long text" << txt;
+    qCWarning(CS57) << "Cutting long text" << txt;
     txt = txt.mid(80);
   }
 
@@ -314,7 +315,7 @@ S57::PaintDataMap S52::TextExtended::execute(const QVector<QVariant>& vals,
 
   const quint8 group = vals[9 + numAttrs].toUInt();
   if (!Conf::MarinerParams::textGrouping().contains(group)) {
-    // qDebug() << "skipping TX in group" << group;
+    // qCDebug(CS57) << "skipping TX in group" << group;
     return S57::PaintDataMap();
   }
 
@@ -342,17 +343,17 @@ S57::PaintDataMap S52::TextExtended::execute(const QVector<QVariant>& vals,
     case QMetaType::UnknownType: // Empty QVariant
       return S57::PaintDataMap();
     default:
-      qWarning() << "TE: Unhandled attribute value" << vals[2 + i];
-      //      qWarning() << "[Class]" << S52::GetClassInfo(obj->classCode());
-      //      qWarning() << "[Location]" << obj->geometry()->centerLL().print();
+      qCWarning(CS57) << "TE: Unhandled attribute value" << vals[2 + i];
+      //      qCWarning(CS57) << "[Class]" << S52::GetClassInfo(obj->classCode());
+      //      qCWarning(CS57) << "[Location]" << obj->geometry()->centerLL().print();
       //      for (auto k: obj->attributes().keys()) {
-      //        qWarning() << GetAttributeInfo(k, obj);
+      //        qCWarning(CS57) << GetAttributeInfo(k, obj);
       //      }
       return S57::PaintDataMap();
     }
     strcpy(format, buf);
   }
-  // qDebug() << "TE:" << as_numeric(obj->geometry()->type()) << buf;
+  // qCDebug(CS57) << "TE:" << as_numeric(obj->geometry()->type()) << buf;
 
   QVector<QVariant> txVals;
   txVals.append(QVariant::fromValue(QString::fromUtf8(buf)));
@@ -464,9 +465,9 @@ S52::CSResArea02::CSResArea02(quint32 index)
 
 S57::PaintDataMap S52::CSResArea02::execute(const QVector<QVariant>&,
                                             const S57::Object* obj) {
-  // qDebug() << "[CSResArea02:Class]" << S52::GetClassInfo(obj->classCode());
+  // qCDebug(CS57) << "[CSResArea02:Class]" << S52::GetClassInfo(obj->classCode());
   // for (auto k: obj->attributes().keys()) {
-  //   qDebug() << GetAttributeInfo(k, obj);
+  //   qCDebug(CS57) << GetAttributeInfo(k, obj);
   // }
 
   S57::PaintDataMap ps;
@@ -799,9 +800,9 @@ static bool overlaps_and_smaller(float s1, float s2,
 
 S57::PaintDataMap S52::CSLights05::execute(const QVector<QVariant>&,
                                            const S57::Object* obj) {
-  //  qDebug() << "[CSLights05:Class]" << S52::GetClassInfo(obj->classCode()) << obj->classCode();
+  //  qCDebug(CS57) << "[CSLights05:Class]" << S52::GetClassInfo(obj->classCode()) << obj->classCode();
   //  for (auto k: obj->attributes().keys()) {
-  //    qDebug() << GetAttributeInfo(k, obj);
+  //    qCDebug(CS57) << GetAttributeInfo(k, obj);
   //  }
 
   QSet<int> catlit;
@@ -951,7 +952,7 @@ S57::PaintDataMap S52::CSLights05::execute(const QVector<QVariant>&,
     auto v1 = it.value()->attributeValue(m_sectr1);
     auto v2 = it.value()->attributeValue(m_sectr2);
     if (overlaps_and_smaller(s1, s2, v1, v2, smin)) {
-      // qDebug() << "Extended radius";
+      // qCDebug(CS57) << "Extended radius";
       arc_radius = 25;
       break;
     }
@@ -1000,7 +1001,7 @@ S57::PaintDataMap S52::CSLights05::drawDirection(const S57::Object *obj) const {
   Q_ASSERT(point != nullptr);
 
   if (!obj->attributeValue(m_orient).isValid()) {
-    qDebug() << "CSLights05::drawDirection: Orient not present";
+    qCDebug(CS57) << "CSLights05::drawDirection: Orient not present";
     return S57::PaintDataMap();
   }
   const double orient = obj->attributeValue(m_orient).toDouble() * M_PI / 180.;
@@ -1684,7 +1685,7 @@ S57::PaintDataMap S52::CSSoundings02::symbols(double depth, int index,
     if (depth < 10 || frac != 0) {
       txt = txt + QChar(0x2080 + frac);
       hasFrac = true;
-      // qDebug() << "Depth" << txt;
+      // qCDebug(CS57) << "Depth" << txt;
     }
   }
 
@@ -1786,7 +1787,7 @@ S57::PaintDataMap S52::CSTopmarks01::execute(const QVector<QVariant>&,
         } else {
           topmrk = m_tmardef2;
         }
-        //        qDebug() << "TOPMRK01: floating";
+        //        qCDebug(CS57) << "TOPMRK01: floating";
         break;
       }
       if (isRigid(it.value())) {
@@ -1795,7 +1796,7 @@ S57::PaintDataMap S52::CSTopmarks01::execute(const QVector<QVariant>&,
         } else {
           topmrk = m_tmardef1;
         }
-        //        qDebug() << "TOPMRK01: rigid";
+        //        qCDebug(CS57) << "TOPMRK01: rigid";
         break;
       }
     }
@@ -1960,11 +1961,11 @@ S57::PaintDataMap S52::CSWrecks02::dangerData(double depth,
   bool danger = false;
 
   for (const S57::Object* underling: obj->underlings()) {
-    //    qDebug() << "[Underling:Class]" << S52::GetClassInfo(underling->classCode());
-    //    qDebug() << "[Overling:Location]" << obj->geometry()->centerLL().print();
-    //    qDebug() << "[Limit]" << limit;
+    //    qCDebug(CS57) << "[Underling:Class]" << S52::GetClassInfo(underling->classCode());
+    //    qCDebug(CS57) << "[Overling:Location]" << obj->geometry()->centerLL().print();
+    //    qCDebug(CS57) << "[Limit]" << limit;
     //    for (auto k: underling->attributes().keys()) {
-    //      qDebug() << GetAttributeInfo(k, underling);
+    //      qCDebug(CS57) << GetAttributeInfo(k, underling);
     //    }
     if (underling->geometry()->type() == S57::Geometry::Type::Line) {
       if (!underling->attributeValue(m_drval2).isValid()) continue;

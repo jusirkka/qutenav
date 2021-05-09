@@ -27,6 +27,7 @@
 #include <QScopedPointer>
 #include <QRegularExpression>
 #include <QFileInfo>
+#include "logging.h"
 
 const GeoProjection* CM93Reader::geoprojection() const {
   return m_proj;
@@ -534,12 +535,12 @@ S57ChartOutline CM93Reader::readOutline(const QString& path, const GeoProjection
   auto lng_min = read_and_decode<double>(stream);
   auto lat_min = read_and_decode<double>(stream);
   WGS84Point sw = WGS84Point::fromLL(lng_min, lat_min);
-  // qDebug() << "sw" << sw.print();
+  // qCDebug(CENC) << "sw" << sw.print();
 
   auto lng_max = read_and_decode<double>(stream);
   auto lat_max = read_and_decode<double>(stream);
   WGS84Point ne = WGS84Point::fromLL(lng_max, lat_max);
-  // qDebug() << "ne" << ne.print();
+  // qCDebug(CENC) << "ne" << ne.print();
 
   stream.skipRawData(32); // emin, nmin, emax, nmax
 
@@ -584,12 +585,12 @@ S57ChartOutline CM93Reader::readOutline(const QString& path, const GeoProjection
   bool in_sor = false;
   for (int featureId = 0; featureId < n_feat_records; featureId++) {
     auto classCode = read_and_decode<quint8>(stream);
-    // qDebug() << "[class]" << CM93::GetClassInfo(classCode) << featureId << "/" << n_feat_records;
+    // qCDebug(CENC) << "[class]" << CM93::GetClassInfo(classCode) << featureId << "/" << n_feat_records;
     auto objCode = read_and_decode<quint8>(stream);
     auto n_bytes = read_and_decode<quint16>(stream);
     if (classCode != m_m_sor) {
       if (in_sor) break;
-      // qDebug() << "skipping" << n_bytes - 4 << "bytes";
+      // qCDebug(CENC) << "skipping" << n_bytes - 4 << "bytes";
       stream.skipRawData(n_bytes - 4);
       continue;
     }
@@ -626,13 +627,13 @@ S57ChartOutline CM93Reader::readOutline(const QString& path, const GeoProjection
 
     if (flags & AttributeBit) {
       auto n_elems = read_and_decode<quint8>(stream);
-      // qDebug() << "attributes" << n_elems;
+      // qCDebug(CENC) << "attributes" << n_elems;
       for (int i = 0; i < n_elems; i++) {
         auto a = QScopedPointer<const CM93::Attribute>(CM93::Attribute::Decode(stream));
-        // qDebug() << a->name() << a->type() << a->value();
+        // qCDebug(CENC) << a->name() << a->type() << a->value();
         if (a->index() == m_recdat) {
           pub = QDate::fromString(a->value().toString(), "yyyyMMdd");
-          // qDebug() << "pub" << pub;
+          // qCDebug(CENC) << "pub" << pub;
         }
       }
     }
@@ -704,9 +705,9 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
 
   // auto n_vec_record_points = read_and_decode<quint32>(stream);
   // auto m_46 = read_and_decode<quint32>(stream);
-  // qDebug() << "m_46" << m_46;
+  // qCDebug(CENC) << "m_46" << m_46;
   // auto m_4a = read_and_decode<quint32>(stream);
-  // qDebug() << "m_4a" << m_4a;
+  // qCDebug(CENC) << "m_4a" << m_4a;
   stream.skipRawData(12);
 
   // 3d point table: n_p3d_records * 2
@@ -715,41 +716,41 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
 
   // auto n_p3d_record_points = read_and_decode<quint32>(stream);
   // auto m_54 = read_and_decode<quint32>(stream);
-  // qDebug() << "m_54" << m_54;
+  // qCDebug(CENC) << "m_54" << m_54;
   stream.skipRawData(8);
 
   // 2d point table: n_p2d_records * 4 = byte size of 2d point table
   auto n_p2d_records = read_and_decode<quint16>(stream);
 
   // auto m_5a = read_and_decode<quint16>(stream);
-  // qDebug() << "m_5a" << m_5a;
+  // qCDebug(CENC) << "m_5a" << m_5a;
   // auto m_5c = read_and_decode<quint16>(stream);
-  // qDebug() << "m_5c" << m_5c;
+  // qCDebug(CENC) << "m_5c" << m_5c;
   stream.skipRawData(4);
 
   auto n_feat_records = read_and_decode<quint16>(stream);
-  // qDebug() << "Number of objects" << n_feat_records;
+  // qCDebug(CENC) << "Number of objects" << n_feat_records;
 
   // auto m_60 = read_and_decode<quint32>(stream);
-  // qDebug() << "m_60" << m_60;
+  // qCDebug(CENC) << "m_60" << m_60;
   // auto m_64 = read_and_decode<quint32>(stream);
-  // qDebug() << "m_64" << m_64;
+  // qCDebug(CENC) << "m_64" << m_64;
   // auto m_68 = read_and_decode<quint16>(stream);
-  // qDebug() << "m_68" << m_68;
+  // qCDebug(CENC) << "m_68" << m_68;
   // auto m_6a = read_and_decode<quint16>(stream);
-  // qDebug() << "m_6a" << m_6a;
+  // qCDebug(CENC) << "m_6a" << m_6a;
   // auto m_6c = read_and_decode<quint16>(stream);
-  // qDebug() << "m_6c" << m_6c;
+  // qCDebug(CENC) << "m_6c" << m_6c;
   // auto n_related = read_and_decode<quint32>(stream);
-  // qDebug() << "num related" << n_related;
+  // qCDebug(CENC) << "num related" << n_related;
   // auto m_72 = read_and_decode<quint32>(stream);
-  // qDebug() << "m_72" << m_72;
+  // qCDebug(CENC) << "m_72" << m_72;
   // auto m_76 = read_and_decode<quint16>(stream);
-  // qDebug() << "m_76" << m_76;
+  // qCDebug(CENC) << "m_76" << m_76;
   // auto m_78 = read_and_decode<quint32>(stream);
-  // qDebug() << "m_78" << m_78;
+  // qCDebug(CENC) << "m_78" << m_78;
   // auto m_7c = read_and_decode<quint32>(stream);
-  // qDebug() << "m_7c" << m_7c;
+  // qCDebug(CENC) << "m_7c" << m_7c;
   stream.skipRawData(32);
 
   // from this point on there are only 32 bit floats
@@ -816,12 +817,12 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
       bool ok;
       featureCode = S52::FindCIndex(className, &ok);
       if (!ok) {
-        qWarning() << "Unknown class" << CM93::GetClassInfo(classCode) << classCode;
+        qCWarning(CENC) << "Unknown class" << CM93::GetClassInfo(classCode) << classCode;
         stream.skipRawData(n_bytes);
         continue;
       }
     }
-    // qDebug() << CM93::GetClassInfo(classCode);
+    // qCDebug(CENC) << CM93::GetClassInfo(classCode);
     auto object = new S57::Object(featureId, featureCode);
     objects.append(object);
     if (m_subst_attrs.contains(className)) {
@@ -935,7 +936,7 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
           bool ok;
           acode = S52::FindCIndex(a->name(), &ok);
           if (!ok) {
-            qWarning() << "Unknown attribute"
+            qCWarning(CENC) << "Unknown attribute"
                        << S52::GetClassInfo(featureCode)
                        << a->name()
                        << a->type();
@@ -945,7 +946,7 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
         bool ok;
         auto attr = a->attribute(S52::GetAttributeType(acode), &ok);
         if (!ok) {
-          qWarning() << "Cannot convert attribute"
+          qCWarning(CENC) << "Cannot convert attribute"
                      << S52::GetClassInfo(featureCode)
                      << a->name()
                      << a->type()
@@ -985,7 +986,7 @@ void CM93Reader::createLineElements(S57::ElementDataVector &elems,
     if (prevlast == start || triangles) {
       // polygon
       if (prevlast != start) { // forcePolygons
-        qDebug() << "Force polygon" << prevlast - getEndPoint(EP::First, edges[i - 1], vertices);
+        qCDebug(CENC) << "Force polygon" << prevlast - getEndPoint(EP::First, edges[i - 1], vertices);
         // add prevlast
         indices.append(getEndPointIndex(EP::Last, edges[i - 1]));
         e.count += 1;
@@ -1053,13 +1054,13 @@ static bool checkCoverage(const PRegion& cov,
   sw = gp->toWGS84(ll);
   ne = gp->toWGS84(ur);
   if (sw == WGS84Point::fromLL(ne.lng(), sw.lat())) {
-    qDebug() << ll << ur;
-    qDebug() << sw.lng() << sw.lat() << ne.lng() << ne.lat();
+    qCDebug(CENC) << ll << ur;
+    qCDebug(CENC) << sw.lng() << sw.lat() << ne.lng() << ne.lat();
     throw ChartFileError("Too narrow coverage");
   }
   if (sw == WGS84Point::fromLL(sw.lng(), ne.lat())) {
-    qDebug() << ll << ur;
-    qDebug() << sw.lng() << sw.lat() << ne.lng() << ne.lat();
+    qCDebug(CENC) << ll << ur;
+    qCDebug(CENC) << sw.lng() << sw.lat() << ne.lng() << ne.lat();
     throw ChartFileError("Too low coverage");
   }
   return totcov < .8;
@@ -1095,7 +1096,7 @@ PRegion CM93Reader::createCoverage(const GL::VertexVector &vertices,
       i++;
     }
     if (prevlast != start) {
-      qDebug() << "Force polygon" << prevlast - getEndPoint(EP::First, edges[i - 1], vertices);
+      qCDebug(CENC) << "Force polygon" << prevlast - getEndPoint(EP::First, edges[i - 1], vertices);
       // add prevlast
       ps << getEndPoint(EP::Last, edges[i - 1], vertices);
     }

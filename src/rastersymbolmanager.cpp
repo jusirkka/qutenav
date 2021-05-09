@@ -23,7 +23,7 @@
 #include "s52names.h"
 #include <QFile>
 #include <QXmlStreamReader>
-#include <QDebug>
+#include "logging.h"
 #include "settings.h"
 
 RasterSymbolManager::RasterSymbolManager()
@@ -140,13 +140,13 @@ void RasterSymbolManager::parseSymbols(QXmlStreamReader &reader,
     if (skip || !d.size.isValid()) continue;
 
     if (d.maxDist < d.minDist) {
-      qWarning() << "maxdist larger than mindist in" << symbolName;
+      qCWarning(CS52) << "maxdist larger than mindist in" << symbolName;
     }
     SymbolData s(d.offset, d.size, d.minDist, staggered, d.elements);
 
     const SymbolKey key(S52::FindIndex(symbolName), t);
     if (m_symbolMap.contains(key) && s != m_symbolMap[key]) {
-      qWarning() << "multiple raster symbol/pattern definitions for"
+      qCWarning(CS52) << "multiple raster symbol/pattern definitions for"
                  << symbolName << ", skipping earlier";
     }
     m_symbolMap.insert(key, s);

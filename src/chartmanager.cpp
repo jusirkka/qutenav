@@ -21,7 +21,7 @@
 #include <QFile>
 #include <QDir>
 #include <QTextStream>
-#include <QDebug>
+#include "logging.h"
 #include "s57chart.h"
 #include <QStandardPaths>
 #include <QVariant>
@@ -66,7 +66,7 @@ ChartManager::ChartManager(QObject *parent)
 
 void ChartManager::updateChartSets() {
 
-  qDebug() << "updateChartSets";
+  qCDebug(CMGR) << "updateChartSets";
 
   auto prevSets = m_chartSets.keys();
 
@@ -102,8 +102,8 @@ void ChartManager::updateChartSets() {
     m_chartSets.remove(dname);
   }
 
-  qDebug() << "chartsets" << m_chartSets.keys();
-  if (m_reader != nullptr) qDebug() << "selected set" << m_reader->name();
+  qCDebug(CMGR) << "chartsets" << m_chartSets.keys();
+  if (m_reader != nullptr) qCDebug(CMGR) << "selected set" << m_reader->name();
 
   emit chartSetsUpdated();
 }
@@ -113,14 +113,14 @@ void ChartManager::loadPlugins() {
   for (auto plugin: staticFactories) {
     auto factory = qobject_cast<ChartFileReaderFactory*>(plugin);
     if (!factory) continue;
-    qDebug() << "Loaded reader plugin" << factory->name();
+    qCDebug(CMGR) << "Loaded reader plugin" << factory->name();
     m_factories[factory->name()] = factory;
   }
 
   const QString loc = qAppName().split("_").first();
   const QString base = QLibraryInfo::location(QLibraryInfo::PluginsPath);
   QDir pluginsDir(QString("%1/%2").arg(base).arg(loc));
-  qDebug() << "Searching reader plugins in" << pluginsDir.dirName();
+  qCDebug(CMGR) << "Searching reader plugins in" << pluginsDir.dirName();
 
   const QStringList plugins = pluginsDir.entryList(QStringList(),
                                                    QDir::Files | QDir::Readable);
@@ -128,7 +128,7 @@ void ChartManager::loadPlugins() {
     QPluginLoader loader(pluginsDir.absoluteFilePath(plugin));
     auto factory = qobject_cast<ChartFileReaderFactory*>(loader.instance());
     if (!factory) continue;
-    qDebug() << "Loaded reader plugin" << factory->name();
+    qCDebug(CMGR) << "Loaded reader plugin" << factory->name();
     m_factories[factory->name()] = factory;
   }
 }
@@ -150,15 +150,15 @@ QString ChartManager::chartSet() const {
 void ChartManager::setChartSet(const QString &name, const GeoProjection* vproj, bool force) {
 
   if (!m_chartSets.contains(name)) {
-    qWarning() << "Unknown chartset" << name;
+    qCWarning(CMGR) << "Unknown chartset" << name;
     return;
   }
   if (!force && m_reader == m_readers[m_chartSets[name]]) {
-    qDebug() << "Current chartset is already" << name;
+    qCDebug(CMGR) << "Current chartset is already" << name;
     return;
   }
 
-  qDebug() << "Changing chartset" << name;
+  qCDebug(CMGR) << "Changing chartset" << name;
 
   m_reader = m_readers[m_chartSets[name]];
   m_outlines.clear();
@@ -212,20 +212,20 @@ void ChartManager::createOutline(const WGS84Point& sw, const WGS84Point& ne) {
 
 void ChartManager::createThreads(QOpenGLContext* ctx) {
   const int numThreads = qMax(1, QThread::idealThreadCount() - 1);
-  qDebug() << "number of chart updaters =" << numThreads;
+  qCDebug(CMGR) << "number of chart updaters =" << numThreads;
   m_workers.clear(); // remove the temporary setting in ctor
   for (int i = 0; i < numThreads; ++i) {
-    qDebug() << "creating thread" << i;
+    qCDebug(CMGR) << "creating thread" << i;
     auto thread = new GL::Thread(ctx);
-    qDebug() << "creating worker" << i;
+    qCDebug(CMGR) << "creating worker" << i;
     auto worker = new ChartUpdater(m_workers.size());
     m_idleStack.push(worker->id());
-    qDebug() << "moving worker to thread" << i;
+    qCDebug(CMGR) << "moving worker to thread" << i;
     worker->moveToThread(thread);
     connect(thread, &QThread::finished, worker, &QObject::deleteLater);
     connect(worker, &ChartUpdater::done, this, &ChartManager::manageThreads);
     connect(worker, &ChartUpdater::infoResponse, this, &ChartManager::manageInfoResponse);
-    qDebug() << "starting thread" << i;
+    qCDebug(CMGR) << "starting thread" << i;
     thread->start();
     m_threads.append(thread);
     m_workers.append(worker);
@@ -236,7 +236,7 @@ void ChartManager::createThreads(QOpenGLContext* ctx) {
   m_cacheWorker->moveToThread(m_cacheThread);
   connect(m_cacheThread, &QThread::finished, m_cacheWorker, &QObject::deleteLater);
   m_cacheThread->start();
-  qDebug() << "threads started";
+  qCDebug(CMGR) << "threads started";
 }
 
 ChartManager::~ChartManager() {
@@ -315,7 +315,7 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
   m_ref = cam->eye();
 
   const QRectF vp = cam->boundingBox();
-  // qDebug() << "ChartManager::updateCharts" << vp;
+  // qCDebug(CMGR) << "ChartManager::updateCharts" << vp;
   if (!vp.isValid()) return;
 
   if (m_viewport.contains(vp) && cam->scale() == m_scale && flags == 0) return;
@@ -365,7 +365,7 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
     scaleCandidates.append(smallScales);
   }
 
-  qDebug() << "target" << m_scale << ", candidates" << scaleCandidates;
+  qCDebug(CMGR) << "target" << m_scale << ", candidates" << scaleCandidates;
 
   const WGS84Point sw0 = cam->geoprojection()->toWGS84(m_viewArea.topLeft()); // inverted y-axis
   const WGS84Point ne0 = cam->geoprojection()->toWGS84(m_viewArea.bottomRight()); // inverted y-axis
@@ -404,7 +404,7 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
         noncov = remainingArea.area() / totarea * 100;
         regions[id] = reg;
         covers[id] = c->region(cam->geoprojection());
-        qDebug() << "chart" << id << selectedScale << ", covers" << reg.area() / totarea * 100
+        qCDebug(CMGR) << "chart" << id << selectedScale << ", covers" << reg.area() / totarea * 100
                  << ", remaining" << noncov;
       }
     }
@@ -416,7 +416,7 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
   // chartmanager::tognuplot(regions, m_viewArea, "regions");
   // chartmanager::tognuplot(covers, m_viewArea, "covers");
 
-  qDebug() << "Number of charts" << regions.size()
+  qCDebug(CMGR) << "Number of charts" << regions.size()
            << ", covered =" << (noncov < 1.);
 
 
@@ -468,7 +468,7 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
     while (r.next()) {
       const quint32 id = r.value(0).toUInt();
       const auto path = r.value(1).toString();
-      qDebug() << "New chart" << path;
+      qCDebug(CMGR) << "New chart" << path;
       m_pendingStack.push(ChartData(id, path, m_scale,
                                     regions[id].toWGS84(cam->geoprojection())));
     }
@@ -488,7 +488,7 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
   }
 
   if (noCharts) {
-    // qDebug() << "ChartManager::updateCharts: idle";
+    // qCDebug(CMGR) << "ChartManager::updateCharts: idle";
     emit idle();
   }
 }
@@ -496,7 +496,7 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
 
 
 void ChartManager::manageThreads(S57Chart* chart) {
-  // qDebug() << "chartmanager: manageThreads";
+  // qCDebug(CMGR) << "chartmanager: manageThreads";
 
   if (chart != nullptr) {
     auto chartId = chart->id();
@@ -529,10 +529,10 @@ void ChartManager::manageThreads(S57Chart* chart) {
 
   if (m_idleStack.size() == m_workers.size()) {
     if (!m_hadCharts) {
-      qDebug() << "chartmanager: manageThreads: active";
+      qCDebug(CMGR) << "chartmanager: manageThreads: active";
       emit active();
     } else {
-      // qDebug() << "chartmanager: manageThreads: charts updated";
+      // qCDebug(CMGR) << "chartmanager: manageThreads: charts updated";
       emit chartsUpdated(m_viewArea);
     }
   }
@@ -585,14 +585,14 @@ void ChartManager::manageInfoResponse(const S57::InfoType& info, quint32 tid) {
   if (m_info[tid].isEmpty()) {
     m_info[tid] = info;
   } else {
-    qWarning() << "Object info in more than one chart";
+    qCWarning(CMGR) << "Object info in more than one chart";
   }
 
   if (m_transactions[tid] == m_charts.size()) {
     S57::InfoType info = m_info[tid];
     m_info.remove(tid);
     m_transactions.remove(tid);
-    qDebug() << "ChartManager::manageInfoResponse";
+    qCDebug(CMGR) << "ChartManager::manageInfoResponse";
     emit infoResponse(info);
   }
 }

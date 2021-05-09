@@ -53,8 +53,8 @@ void Globe::initializeGL() {
   };
 
   const QVector<Source> sources{
-    {QOpenGLShader::Vertex, ":/shaders/globe.vert"},
-    {QOpenGLShader::Fragment, ":/shaders/globe.frag"},
+    {QOpenGLShader::Vertex, ":globe.vert"},
+    {QOpenGLShader::Fragment, ":globe.frag"},
   };
 
   for (const Source& s: sources) {

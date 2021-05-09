@@ -1,0 +1,19 @@
+<RCC>
+  <qresource>
+    <file alias="chartpainter-linearrays.vert">opengl-desktop/chartpainter-linearrays.vert</file>
+    <file alias="chartpainter-lineelems.vert">opengl-desktop/chartpainter-lineelems.vert</file>
+    <file alias="chartpainter-lines.frag">opengl-desktop/chartpainter-lines.frag</file>
+    <file alias="chartpainter-rastersymbol.vert">opengl-desktop/chartpainter-rastersymbol.vert</file>
+    <file alias="chartpainter-text.frag">opengl-desktop/chartpainter-text.frag</file>
+    <file alias="chartpainter-text.vert">opengl-desktop/chartpainter-text.vert</file>
+    <file alias="chartpainter-texture.frag">opengl-desktop/chartpainter-texture.frag</file>
+    <file alias="chartpainter-texture.vert">opengl-desktop/chartpainter-texture.vert</file>
+    <file alias="chartpainter-vectorsymbol.vert">opengl-desktop/chartpainter-vectorsymbol.vert</file>
+    <file alias="chartpainter.frag">opengl-desktop/chartpainter.frag</file>
+    <file alias="chartpainter.vert">opengl-desktop/chartpainter.vert</file>
+    <file alias="globe.frag">opengl-desktop/globe.frag</file>
+    <file alias="globe.vert">opengl-desktop/globe.vert</file>
+    <file alias="outliner.frag">opengl-desktop/outliner.frag</file>
+    <file alias="outliner.vert">opengl-desktop/outliner.vert</file>
+  </qresource>
+</RCC>

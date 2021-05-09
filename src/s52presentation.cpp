@@ -18,7 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "s52presentation_p.h"
-#include <QDebug>
+#include "logging.h"
 #include <QDir>
 #include <QStandardPaths>
 #include "s52names.h"
@@ -44,7 +44,7 @@ S57::PaintDataMap S52::Lookup::execute(const S57::Object *obj) const {
 
     case Code::Fun: {
       auto fun = S52::FindFunction(m_references[refPos++]);
-      // qDebug() << "function" << fun->name();
+      // qCDebug(CS52) << "function" << fun->name();
       stackPos = 0;
       paintData += fun->execute(stack, obj);
       break;
@@ -102,7 +102,7 @@ S52::Lookup* S52::FindLookup(const S57::Object* obj) {
     }
   }
   // symbology for unknowns
-  qDebug() << "No match for" << S52::GetClassInfo(code) << obj->name();
+  qCDebug(CS52) << "No match for" << S52::GetClassInfo(code) << obj->name();
   return p->lookupTable[t][p->names["######"]][0];
 }
 

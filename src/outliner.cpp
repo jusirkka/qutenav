@@ -44,8 +44,8 @@ void Outliner::initializeGL() {
       QString fname;
     };
     const QVector<Source> sources{
-      {QOpenGLShader::Vertex, ":/shaders/outliner.vert"},
-      {QOpenGLShader::Fragment, ":/shaders/outliner.frag"},
+      {QOpenGLShader::Vertex, ":outliner.vert"},
+      {QOpenGLShader::Fragment, ":outliner.frag"},
     };
 
     for (const Source& s: sources) {

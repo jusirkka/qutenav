@@ -1,5 +1,0 @@
-<RCC>
-    <qresource prefix="/kxmlgui5/qutenav">
-      <file>qutenavui.rc</file>
-    </qresource>
-</RCC>

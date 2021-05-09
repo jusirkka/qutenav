@@ -22,7 +22,7 @@
 #include "s52names.h"
 #include <QFile>
 #include <QXmlStreamReader>
-#include <QDebug>
+#include "logging.h"
 #include "hpglparser.h"
 
 VectorSymbolManager::VectorSymbolManager()
@@ -127,13 +127,13 @@ void VectorSymbolManager::parseSymbols(QXmlStreamReader& reader,
     if (!d.size.isValid()) continue;
 
     if (m_blacklist.contains(symbolName)) {
-      qWarning() << symbolName << "is blacklisted, skipping";
+      qCWarning(CSYM) << symbolName << "is blacklisted, skipping";
       continue;
     }
 
     HPGLParser parser(src, cmap, d.pivot);
     if (!parser.ok()) {
-      qWarning() << "HPGLParser failed, skipping" << symbolName;
+      qCWarning(CSYM) << "HPGLParser failed, skipping" << symbolName;
       continue;
     }
 
@@ -157,13 +157,13 @@ void VectorSymbolManager::parseSymbols(QXmlStreamReader& reader,
     }
 
     if (d.maxDist < d.minDist) {
-      qWarning() << "maxdist larger than mindist in" << symbolName;
+      qCWarning(CSYM) << "maxdist larger than mindist in" << symbolName;
     }
     SymbolData s(d.offset, d.size, d.minDist, staggered, elems, colors);
 
     const SymbolKey key(S52::FindIndex(symbolName), t);
     if (m_symbolMap.contains(key) && s != m_symbolMap[key]) {
-      qWarning() << "multiple vector symbol/line-style/pattern definitions for"
+      qCWarning(CSYM) << "multiple vector symbol/line-style/pattern definitions for"
                  << symbolName << ", skipping earlier";
     }
     m_symbolMap.insert(key, s);

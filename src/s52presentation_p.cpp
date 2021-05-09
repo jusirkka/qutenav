@@ -21,7 +21,7 @@
 #include <QStandardPaths>
 #include <QDir>
 #include <QTextStream>
-#include <QDebug>
+#include "logging.h"
 #include "conf_marinerparams.h"
 #include "s52instr_parser.h"
 #define YYLTYPE Private::LocationType
@@ -36,7 +36,7 @@ void s52instr_error(Private::LocationType* loc,
                     yyscan_t,
                     const char *msg) {
   QString err("Error at position %1-%2: %3");
-  qWarning() << err.arg(loc->pos).arg(loc->prev_pos).arg(msg);
+  qCWarning(CS52) << err.arg(loc->pos).arg(loc->prev_pos).arg(msg);
 }
 
 Private::Presentation::Presentation()
@@ -56,7 +56,7 @@ Private::Presentation::Presentation()
 
 
 void Private::Presentation::setColorTable(quint8 t) {
-  qDebug() << "setColorTable";
+  qCDebug(CS52) << "setColorTable";
   using CType = Conf::MarinerParams::EnumColorTable::type;
   const QMap<CType, QString> tables{
     {CType::DayBright, "DAY_BRIGHT"},
@@ -123,7 +123,7 @@ void Private::Presentation::readObjectClasses() {
     description.replace("\"", "");
     const QString className = parts[i + 1];
     if (names.contains(className)) {
-      qWarning() << className << "already parsed";
+      qCWarning(CS52) << className << "already parsed";
       continue;
     }
 
@@ -154,7 +154,7 @@ void Private::Presentation::readAttributes() {
     if (!ok) continue;
     const QString attributeName = parts[2];
     if (names.contains(attributeName)) {
-      qWarning() << attributeName << "already parsed";
+      qCWarning(CS52) << attributeName << "already parsed";
       continue;
     }
 
@@ -192,7 +192,7 @@ void Private::Presentation::readColorTables(QXmlStreamReader& reader) {
     Q_ASSERT(reader.name() == "color-table");
     const QString tableName = reader.attributes().value("name").toString();
     if (names.contains(tableName)) {
-      qWarning() << tableName << "already parsed";
+      qCWarning(CS52) << tableName << "already parsed";
       reader.skipCurrentElement();
       continue;
     }
@@ -260,7 +260,7 @@ void Private::Presentation::readLookups(QXmlStreamReader& reader) {
     const QString className = reader.attributes().value("name").toString();
 
     if (!names.contains(className)) {
-      qWarning() << "Unknown class name" << className << ", skipping lookup" << rcid;
+      qCWarning(CS52) << "Unknown class name" << className << ", skipping lookup" << rcid;
       reader.skipCurrentElement();
       continue;
     }
@@ -291,7 +291,7 @@ void Private::Presentation::readLookups(QXmlStreamReader& reader) {
         QString token = reader.readElementText().trimmed();
         QString key = token.left(6);
         if (!names.contains(key)) {
-          qWarning() << "Unknown attribute" << key << ", skipping lookup" << rcid;
+          qCWarning(CS52) << "Unknown attribute" << key << ", skipping lookup" << rcid;
           ok = false;
           break;
         }
@@ -317,7 +317,7 @@ void Private::Presentation::readLookups(QXmlStreamReader& reader) {
       } else if (ignored.contains(reader.name().toString())) {
         reader.skipCurrentElement();
       } else {
-        qWarning() << "Don't know how to handle" << reader.name();
+        qCWarning(CS52) << "Don't know how to handle" << reader.name();
         reader.skipCurrentElement();
       }
     }
@@ -399,7 +399,7 @@ void Private::Presentation::init() {
       for (S52::Lookup* lup: lups) {
         int err = parseInstruction(lup);
         if (err != 0) {
-          qWarning() << "Error parsing" << lup->source();
+          qCWarning(CS52) << "Error parsing" << lup->source();
         }
       }
     }

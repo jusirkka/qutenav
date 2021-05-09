@@ -4,12 +4,9 @@ cmake_minimum_required(VERSION 3.11 FATAL_ERROR)
 
 project(qutenav LANGUAGES CXX C)
 
-set(DESKTOP ON)
-
-if (MOBILE)
-  set (DESKTOP OFF)
+if (NOT DEFINED PLATFORM)
+  set(PLATFORM qtcontrols)
 endif()
-
 
 #
 # dependencies
@@ -17,26 +14,16 @@ endif()
 
 set(QT_MIN_VERSION "5.6.3")
 
-if (DESKTOP)
+find_package(Qt5 ${QT_MIN_VERSION} REQUIRED COMPONENTS
+  Sql
+  Xml
+  Quick
+  OpenGL
+  DBus
+)
 
-  find_package(Qt5 ${QT_MIN_VERSION} REQUIRED COMPONENTS
-    Sql
-    Widgets
-    Gui
-    Xml
-    OpenGL
-    DBus
-  )
 
-  set(KF5_MIN_VERSION "5.56.0")
-
-  find_package(ECM ${KF5_MIN_VERSION} REQUIRED CONFIG)
-  list(APPEND CMAKE_MODULE_PATH ${ECM_MODULE_PATH} ${ECM_KDE_MODULE_DIR})
-
-  find_package(KF5 ${KF5_MIN_VERSION} REQUIRED COMPONENTS
-    I18n
-    XmlGui
-  )
+if (PLATFORM STREQUAL qtcontrols)
 
   set(FONTCONFIG_MIN_VERSION "2.13")
   find_package(Fontconfig ${FONTCONFIG_MIN_VERSION} REQUIRED)
@@ -44,15 +31,10 @@ if (DESKTOP)
   set(GLM_VERSION "0.9.9")
   find_package(glm ${GLM_VERSION} REQUIRED)
 
-else()
+  set(PLATFORM_SHADERS "shaders_opengl_desktop")
+  set(PLATFORM_QML_QRC "qml_qtcontrols.qrc")
 
-  find_package(Qt5 ${QT_MIN_VERSION} REQUIRED COMPONENTS
-    Sql
-    Xml
-    Quick
-    OpenGL
-    DBus
-  )
+elseif (PLATFORM STREQUAL silica)
 
   include(FindPkgConfig)
   # make it cooperate with qt-creator by setting EMU_PATH to appr. value
@@ -61,7 +43,11 @@ else()
   pkg_search_module(GLM REQUIRED glm)
   pkg_search_module(Fontconfig REQUIRED fontconfig)
 
-endif()
+  set(PLATFORM_LDFLAGS "${SAILFISH_LDFLAGS}")
+  set(PLATFORM_LIBS -lGLESv2)
+  set(PLATFORM_SHADERS "shaders_opengl_es")
+
+endif ()
 
 set(BISON_MIN_VERSION "3.1")
 find_package(BISON ${BISON_MIN_VERSION} REQUIRED)
@@ -86,10 +72,13 @@ add_executable(qutenav_dbupdater)
 set_target_properties(qutenav
   PROPERTIES
     AUTOMOC ON
+    AUTORCC ON
 )
 
 target_sources(qutenav
   PRIVATE
+    ${PLATFORM_QML_QRC}
+    shaders/${PLATFORM_SHADERS}.qrc
     src/camera.cpp
     src/cachereader.cpp
     src/chartcover.cpp
@@ -108,6 +97,7 @@ target_sources(qutenav
     src/glyphmanager.cpp
     src/hpglparser.cpp
     src/linecalculator.cpp
+    src/logging.cpp
     src/orthocam.cpp
     src/outlinemode.cpp
     src/outliner.cpp
@@ -134,6 +124,21 @@ target_sources(qutenav
     src/utils.cpp
     src/vectorsymbolmanager.cpp
     src/wfreader.cpp
+    src/chartdisplay.cpp
+    src/chartrenderer.cpp
+    src/configgroup.cpp
+    src/conf_detailmode.cpp
+    src/conf_mainwindow.cpp
+    src/conf_marinerparams.cpp
+    src/crosshairs.cpp
+    src/databasemodel.cpp
+    src/routedatabase.cpp
+    src/router.cpp
+    src/routetracker.cpp
+    src/routemodel.cpp
+    src/trackdatabase.cpp
+    src/tracker.cpp
+    src/trackmodel.cpp
     ${CMAKE_BINARY_DIR}/wavefront_parser.cpp
     ${CMAKE_BINARY_DIR}/wavefront_scanner.cpp
     ${CMAKE_BINARY_DIR}/s52instr_parser.cpp
@@ -187,6 +192,7 @@ target_sources(qutenav_dbupdater
     src/chartdatabase.cpp
     src/chartfilereader.cpp
     src/geoprojection.cpp
+    src/logging.cpp
     src/osenc.cpp
     src/region.cpp
     src/s52names.cpp
@@ -197,30 +203,15 @@ target_sources(qutenav_dbupdater
     ${dbus_adaptor_SRCS}
 )
 
-if (DESKTOP)
 
-  target_include_directories(qutenav
-    PRIVATE
-      ${CMAKE_CURRENT_SOURCE_DIR}/src
-      ${CMAKE_CURRENT_SOURCE_DIR}/geographiclib/src
-      ${CMAKE_CURRENT_SOURCE_DIR}/triangulate/src
-      ${CMAKE_CURRENT_SOURCE_DIR}/desktop/src
-      ${CMAKE_BINARY_DIR}/desktop
-      ${CMAKE_BINARY_DIR}
-  )
-
-else()
-
-  target_include_directories(qutenav
-    PRIVATE
-      ${CMAKE_CURRENT_SOURCE_DIR}/src
-      ${CMAKE_CURRENT_SOURCE_DIR}/geographiclib/src
-      ${CMAKE_CURRENT_SOURCE_DIR}/triangulate/src
-      ${CMAKE_CURRENT_SOURCE_DIR}/mobile/src
-      ${CMAKE_BINARY_DIR}
-  )
-
-endif()
+target_include_directories(qutenav
+  PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/geographiclib/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/geos/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/triangulate/src
+    ${CMAKE_BINARY_DIR}
+)
 
 target_include_directories(qutenav_dbupdater
   PRIVATE
@@ -241,6 +232,7 @@ target_compile_features(qutenav_dbupdater
   PRIVATE
     cxx_std_17
 )
+
 #
 # subdirectories
 #
@@ -252,66 +244,31 @@ add_subdirectory(oesencreader)
 add_subdirectory(cm93reader)
 add_subdirectory(s57reader)
 add_subdirectory(dbupdater)
+add_subdirectory(platform.${PLATFORM})
+add_subdirectory(geos)
 
 
+target_link_libraries(qutenav
+  PRIVATE
+    ${PLATFORM_LDFLAGS}
+    GeographicLib
+    Triangulate
+    Platform
+    Osencreader
+    Oesencreader
+    Cm93reader
+    S57reader
+    Geos
+    Qt5::Quick
+    Qt5::Gui
+    Qt5::Sql
+    Qt5::DBus
+    Freetype::Freetype
+    fontconfig
+    harfbuzz::harfbuzz
+    ${PLATFORM_LIBS}
+)
 
-
-if (DESKTOP)
-
-  add_subdirectory(desktop)
-  add_subdirectory(tests)
-
-else()
-
-  add_subdirectory(mobile)
-  add_subdirectory(geos)
-
-endif()
-
-if (DESKTOP)
-
-  target_link_libraries(qutenav
-    PRIVATE
-      GeographicLib
-      Triangulate
-      Desktop
-      Osencreader
-      Oesencreader
-      Cm93reader
-      S57reader
-      Qt5::Core
-      Qt5::OpenGL
-      KF5::I18n
-      KF5::XmlGui
-      Freetype::Freetype
-      Fontconfig::Fontconfig
-      harfbuzz::harfbuzz
-  )
-
-else()
-
-  target_link_libraries(qutenav
-    PRIVATE
-      ${SAILFISH_LDFLAGS}
-      GeographicLib
-      Triangulate
-      Mobile
-      Osencreader
-      Oesencreader
-      Cm93reader
-      S57reader
-      Geos
-      Qt5::Quick
-      Qt5::Gui
-      Qt5::Sql
-      Qt5::DBus
-      Freetype::Freetype
-      fontconfig
-      harfbuzz::harfbuzz
-      -lGLESv2
-  )
-
-endif()
 
 target_link_libraries(qutenav_dbupdater
   PRIVATE

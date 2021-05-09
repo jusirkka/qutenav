@@ -110,7 +110,7 @@ bool LineString::isCoordinate(const Coordinate& pt) const {
 }
 
 int LineString::nextIndex(qreal pos) const {
-  qDebug() << m_cumulativeLengths;
+  // qDebug() << m_cumulativeLengths;
   for (int i = 0; i < m_cumulativeLengths.size(); ++i) {
     if (pos < m_cumulativeLengths[i]) {
       // qDebug() << i;

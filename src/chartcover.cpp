@@ -19,7 +19,7 @@
  */
 #include "chartcover.h"
 #include "geoprojection.h"
-#include <QDebug>
+#include "logging.h"
 
 ChartCover::ChartCover(const LLPolygon& cov, const LLPolygon& nocov,
                        const WGS84Point& sw, const WGS84Point& ne,
@@ -35,7 +35,7 @@ ChartCover::ChartCover(const LLPolygon& cov, const LLPolygon& nocov,
   QRectF bbox(ll + QPointF(1., 1.), ur  - QPointF(1., 1.));
 
   if (cov.isEmpty()) {
-    qDebug() << "KV::Region" << box;
+    qCDebug(CMGR) << "KV::Region" << box;
     m_cover = KV::Region(box);
   } else {
     for (const WGS84PointVector& vs: cov) {
