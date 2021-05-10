@@ -17,13 +17,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import QtQuick 2.2
+import QtQuick 2.6
 
 Rectangle {
   id: rect
 
-  property int fontSize: Theme.fontSizeMedium * 1.3
-  property int padding: Theme.paddingSmall
+  property int fontSize: theme.fontSizeMedium * 1.3
+  property int padding: theme.paddingSmall
 
   property real seconds
   property real dist

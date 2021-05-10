@@ -20,7 +20,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "record.h"
-#include <QDebug>
+#include "logging.h"
 #include <QDataStream>
 #include <QPointF>
 #include "s52names.h"
@@ -88,7 +88,7 @@ S57::Record* S57::Record::Create(const QString &name, const QByteArray &bytes,
     return new NATF(bytes, natfLevel);
   }
 
-  qDebug() << name;
+  qCDebug(CENC) << name;
   Q_ASSERT(false);
   return nullptr;
 }
@@ -114,7 +114,7 @@ QString S57::Record::records() const {
 void S57::Record::decodeName(QDataStream& stream) {
   m_type = Type(read_value<quint8>(stream));
   m_id = read_value<quint32>(stream);
-  // qDebug() << m_type.print() << m_id;
+  // qCDebug(CENC) << m_type.print() << m_id;
 }
 
 S57::DSID::DSID(const QByteArray& bytes): Record("DSID") {
@@ -124,20 +124,20 @@ S57::DSID::DSID(const QByteArray& bytes): Record("DSID") {
   int len;
   // expp, intu, dsnm, edtn, updn
   exPurp = ExPurp(read_value<quint8>(stream));
-  // qDebug() << exPurp.print();
+  // qCDebug(CENC) << exPurp.print();
   read_value<quint8>(stream);
   read_bytes_until(stream, unitTerminator, len);
   read_bytes_until(stream, unitTerminator, len);
   read_bytes_until(stream, unitTerminator, len);
   // uadt, isdt
   updated = QDate::fromString(read_string(stream, 8), "yyyyMMdd");
-  // qDebug() << updated;
+  // qCDebug(CENC) << updated;
   issued = QDate::fromString(read_string(stream, 8), "yyyyMMdd");
-  // qDebug() << issued;
+  // qCDebug(CENC) << issued;
   // edition number, prsp, psdn, pred, prof, agen, comment
   read_string(stream, 4);
   prodSpec = ProdSpec(read_value<quint8>(stream));
-  // qDebug() << prodSpec.print();
+  // qCDebug(CENC) << prodSpec.print();
   read_bytes_until(stream, unitTerminator, len);
   read_bytes_until(stream, unitTerminator, len);
   read_value<quint8>(stream);
@@ -150,11 +150,11 @@ S57::DSSI::DSSI(const QByteArray& bytes): Record("DSSI") {
   QDataStream stream(bytes);
   stream.setByteOrder(QDataStream::LittleEndian);
   topology = Topology(read_value<quint8>(stream));
-  // qDebug() << topology.print();
+  // qCDebug(CENC) << topology.print();
   attfLevel = LexLevel(read_value<quint8>(stream));
-  // qDebug() << attfLevel.print();
+  // qCDebug(CENC) << attfLevel.print();
   natfLevel = LexLevel(read_value<quint8>(stream));
-  // qDebug() << nttfLevel.print();
+  // qCDebug(CENC) << nttfLevel.print();
 
   // numbers of meta, carto, geo, collection, isolated, connected, edge, face
 
@@ -185,17 +185,17 @@ S57::DSPM::DSPM(const QByteArray& bytes): Record("DSPM") {
   attributes[S52::FindCIndex("HUNITS")] = S57::Attribute(read_value<quint8>(stream));
   attributes[S52::FindCIndex("PUNITS")] = S57::Attribute(read_value<quint8>(stream));
   units = Units(read_value<quint8>(stream));
-  // qDebug() << units.print();
+  // qCDebug(CENC) << units.print();
   coordFactor = read_value<quint32>(stream);
   soundingFactor = read_value<quint32>(stream);
 
   int len;
   const QString comment = read_bytes_until(stream, unitTerminator, len);
-  if (!comment.isEmpty()) qDebug() << "DSPM: comment" << comment;
+  if (!comment.isEmpty()) qCDebug(CENC) << "DSPM: comment" << comment;
 
   //  for (S57::AttributeMap::const_iterator it = attributes.cbegin();
   //       it != attributes.cend(); ++it) {
-  //    qDebug() << S52::GetAttributeDescription(it.key()) << "=" <<
+  //    qCDebug(CENC) << S52::GetAttributeDescription(it.key()) << "=" <<
   //                S52::GetAttributeValueDescription(it.key(), it.value().value());
   //  }
 }
@@ -206,7 +206,7 @@ S57::VRID::VRID(const QByteArray& bytes): Record("VRID") {
   decodeName(stream);
   version = read_value<quint16>(stream);
   instruction = UpdateInstr(read_value<quint8>(stream));
-  // qDebug() << m_type.print() << instruction.print();
+  // qCDebug(CENC) << m_type.print() << instruction.print();
 }
 
 S57::VRPC::VRPC(const QByteArray& bytes): Record("VRPC") {
@@ -215,7 +215,7 @@ S57::VRPC::VRPC(const QByteArray& bytes): Record("VRPC") {
   instruction = UpdateInstr(read_value<quint8>(stream));
   first = read_value<quint16>(stream);
   count = read_value<quint16>(stream);
-  // qDebug() << instruction.print() << first << count;
+  // qCDebug(CENC) << instruction.print() << first << count;
 }
 
 
@@ -229,7 +229,7 @@ S57::SG2D::SG2D(const QByteArray& bytes): Record("SG2D") {
     points.append(QPointF(x, y));
     numItems--;
   }
-  // qDebug() << "SG2D" << points.size();
+  // qCDebug(CENC) << "SG2D" << points.size();
 }
 
 S57::SG3D::SG3D(const QByteArray& bytes): Record("SG3D") {
@@ -243,7 +243,7 @@ S57::SG3D::SG3D(const QByteArray& bytes): Record("SG3D") {
     soundings.append(Sounding(x, y, depth));
     numItems--;
   }
-  // qDebug() << "SG3D" << soundings.size();
+  // qCDebug(CENC) << "SG3D" << soundings.size();
 }
 
 S57::VRPT::VRPT(const QByteArray& bytes): Record("VRPT") {
@@ -259,7 +259,7 @@ S57::VRPT::VRPT(const QByteArray& bytes): Record("VRPT") {
     p.topind = TopInd(read_value<quint8>(stream));
     p.usage = Usage(read_value<quint8>(stream));
 
-    //    qDebug() << p.type.print() << p.id << p.orient.print()
+    //    qCDebug(CENC) << p.type.print() << p.id << p.orient.print()
     //             << p.boundary.print() << p.topind.print() << p.usage.print();
 
     pointers.append(p);
@@ -280,7 +280,7 @@ S57::FSPT::FSPT(const QByteArray& bytes): Record("FSPT") {
     p.boundary = Boundary(read_value<quint8>(stream));
     p.usage = Usage(read_value<quint8>(stream));
 
-//    qDebug() << p.type.print() << p.id << p.orient.print()
+//    qCDebug(CENC) << p.type.print() << p.id << p.orient.print()
 //             << p.boundary.print() << p.usage.print();
 
     pointers.append(p);
@@ -295,7 +295,7 @@ S57::FSPC::FSPC(const QByteArray& bytes): Record("FSPC") {
   instruction = UpdateInstr(read_value<quint8>(stream));
   first = read_value<quint16>(stream);
   count = read_value<quint16>(stream);
-  // qDebug() << instruction.print() << first << count;
+  // qCDebug(CENC) << instruction.print() << first << count;
 }
 
 S57::SGCC::SGCC(const QByteArray& bytes): Record("SGCC") {
@@ -304,7 +304,7 @@ S57::SGCC::SGCC(const QByteArray& bytes): Record("SGCC") {
   instruction = UpdateInstr(read_value<quint8>(stream));
   first = read_value<quint16>(stream);
   count = read_value<quint16>(stream);
-  // qDebug() << instruction.print() << first << count;
+  // qCDebug(CENC) << instruction.print() << first << count;
 }
 
 
@@ -319,7 +319,7 @@ S57::FRID::FRID(const QByteArray& bytes): Record("FRID") {
   version = read_value<quint16>(stream);
   instruction = UpdateInstr(read_value<quint8>(stream));
 
-  // qDebug() << S52::GetClassInfo(code) << geom.print() << instruction.print();
+  // qCDebug(CENC) << S52::GetClassInfo(code) << geom.print() << instruction.print();
 }
 
 S57::LongName::LongName(QDataStream &stream) {
@@ -332,7 +332,7 @@ S57::FOID::FOID(const QByteArray& bytes): Record("FOID") {
   QDataStream stream(bytes);
   stream.setByteOrder(QDataStream::LittleEndian);
   id = LongName(stream);
-  // qDebug() << id.agency << id.id << id.subid;
+  // qCDebug(CENC) << id.agency << id.id << id.subid;
 }
 
 using LX = S57::Record::LexLevel::palette;
@@ -341,18 +341,18 @@ using LX = S57::Record::LexLevel::palette;
 S57::Attribute S57::Record::decode_attribute(quint16 acode, const QByteArray& v, LX level) {
 
   if (v.isEmpty()) {
-    // qDebug() << "S57::AttributeType::Any";
+    // qCDebug(CENC) << "S57::AttributeType::Any";
     return S57::Attribute(S57::AttributeType::Any);
   }
 
   if (v.at(0) == S57::Record::attributeDeleter) {
-    // qDebug() << "S57::AttributeType::Deleted";
+    // qCDebug(CENC) << "S57::AttributeType::Deleted";
     return S57::Attribute(S57::AttributeType::Deleted);
   }
 
 
   if (v == "?") {
-    qDebug() << "S57::AttributeType::None";
+    qCDebug(CENC) << "S57::AttributeType::None";
     return S57::Attribute(S57::AttributeType::None);
   }
 
@@ -368,7 +368,7 @@ S57::Attribute S57::Record::decode_attribute(quint16 acode, const QByteArray& v,
       QVector<QChar> unicode;
       while (!stream.atEnd()) unicode << read_value<quint16>(stream);
       s = QString(unicode.constData(), unicode.size());
-      qDebug() << "LX::UCS2" << s;
+      qCDebug(CENC) << "LX::UCS2" << s;
     } else {
       s = QString::fromLatin1(v);
     }
@@ -408,7 +408,7 @@ S57::ATTV::ATTV(const QByteArray& bytes): Record("ATTV") {
 
 //  for (S57::AttributeMap::const_iterator it = attributes.cbegin();
 //       it != attributes.cend(); ++it) {
-//    qDebug() << S52::GetAttributeDescription(it.key()) << "=" <<
+//    qCDebug(CENC) << S52::GetAttributeDescription(it.key()) << "=" <<
 //                S52::GetAttributeValueDescription(it.key(), it.value().value());
 //  }
 }
@@ -426,7 +426,7 @@ S57::ATTF::ATTF(const QByteArray &bytes, LX lexLevel): Record("ATTF") {
 
   //  for (S57::AttributeMap::const_iterator it = attributes.cbegin();
   //       it != attributes.cend(); ++it) {
-  //    qDebug() << S52::GetAttributeDescription(it.key()) << "=" <<
+  //    qCDebug(CENC) << S52::GetAttributeDescription(it.key()) << "=" <<
   //                S52::GetAttributeValueDescription(it.key(), it.value().value());
   //  }
 }
@@ -449,7 +449,7 @@ S57::NATF::NATF(const QByteArray& bytes, LX lexLevel): Record("NATF") {
 
   //  for (S57::AttributeMap::const_iterator it = attributes.cbegin();
   //       it != attributes.cend(); ++it) {
-  //    qDebug() << S52::GetAttributeDescription(it.key()) << "=" <<
+  //    qCDebug(CENC) << S52::GetAttributeDescription(it.key()) << "=" <<
   //                S52::GetAttributeValueDescription(it.key(), it.value().value());
   //  }
 }
@@ -463,14 +463,14 @@ S57::FFPT::FFPT(const QByteArray& bytes): Record("FFPT") {
     auto rel = Relation(read_value<quint8>(stream));
 
     const QString comment = read_bytes_until(stream, unitTerminator, len);
-    if (!comment.isEmpty()) qDebug() << "FFPT: comment:" << comment;
+    if (!comment.isEmpty()) qCDebug(CENC) << "FFPT: comment:" << comment;
 
     pointers.append(PointerField(id, rel));
 
   } while (!stream.atEnd());
 
 //  for (const PointerField& pf: pointers) {
-//    qDebug() << pf.id.agency << pf.id.id << pf.id.subid << pf.relation.print();
+//    qCDebug(CENC) << pf.id.agency << pf.id.id << pf.id.subid << pf.relation.print();
 //  }
 }
 
@@ -480,7 +480,7 @@ S57::FFPC::FFPC(const QByteArray& bytes): Record("FFPC") {
   instruction = UpdateInstr(read_value<quint8>(stream));
   first = read_value<quint16>(stream);
   count = read_value<quint16>(stream);
-  // qDebug() << instruction.print() << first << count;
+  // qCDebug(CENC) << instruction.print() << first << count;
 }
 
 

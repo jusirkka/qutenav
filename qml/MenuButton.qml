@@ -17,20 +17,20 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import QtQuick 2.2
+import QtQuick 2.6
 
-MapButton {
+MapButtonPL {
   id: button
 
   anchors.bottom: parent.bottom
-  anchors.bottomMargin: Theme.paddingMedium
-  anchors.rightMargin: Theme.paddingMedium
-  anchors.leftMargin: Theme.paddingMedium
+  anchors.bottomMargin: theme.paddingMedium
+  anchors.rightMargin: theme.paddingMedium
+  anchors.leftMargin: theme.paddingMedium
 
   property var routeLoader: undefined
 
 
-  icon.source: app.getIcon("menu")
+  iconSource: app.getIcon("menu")
 
   onClicked: app.show(Qt.resolvedUrl("MenuPage.qml"),
                       {tracker: tracker, router: router, routeLoader: routeLoader});

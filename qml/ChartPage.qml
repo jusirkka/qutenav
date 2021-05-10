@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import QtQuick 2.2
+import QtQuick 2.6
 import org.qutenav 1.0
 
 import "./utils.js" as Util
@@ -59,6 +59,7 @@ ChartPagePL {
 
   Component.onCompleted: {
     app.encdis = encdis
+    console.log("chartpage", encdis)
     infoMode = false;
     posValid = false;
     headingValid = false;
@@ -144,6 +145,7 @@ ChartPagePL {
     id: encdis
     z: 150
     anchors.fill: parent
+
     onInfoQueryReady: {
       pageStack.push(Qt.resolvedUrl("InfoPage.qml"), {content: info});
     }

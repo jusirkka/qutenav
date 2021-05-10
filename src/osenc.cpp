@@ -23,6 +23,7 @@
 #include <QDate>
 #include "s52names.h"
 #include "chartfilereader.h"
+#include "logging.h"
 
 
 using Buffer = QVector<char>;
@@ -73,7 +74,7 @@ GeoProjection* Osenc::configuredProjection(QIODevice *device, const QString &cls
     throw ChartFileError(QString("Error reading %1 bytes from device").arg(buffer.size()));
   }
   // auto p16 = reinterpret_cast<quint16*>(buffer.data());
-  // qDebug() << "senc version =" << *p16;
+  // qCDebug(CENC) << "senc version =" << *p16;
 
   WGS84Point ref;
 
@@ -107,7 +108,7 @@ GeoProjection* Osenc::configuredProjection(QIODevice *device, const QString &cls
       })
     },
     {SencRecordType::CELL_EXTENT_RECORD, new Handler([&ref] (const Buffer& b) {
-        // qDebug() << "cell extent record";
+        // qCDebug(CENC) << "cell extent record";
         const OSENC_EXTENT_Record_Payload* p = reinterpret_cast<const OSENC_EXTENT_Record_Payload*>(b.constData());
 
         auto sw = WGS84Point::fromLL(p->extent_sw_lon, p->extent_sw_lat);
@@ -138,7 +139,7 @@ GeoProjection* Osenc::configuredProjection(QIODevice *device, const QString &cls
 
     if (record->record_length <= baseSize) {
       done = true;
-      qWarning() << "Record length is too small" << buffer;
+      qCWarning(CENC) << "Record length is too small" << buffer;
       continue;
     }
 
@@ -191,7 +192,7 @@ S57ChartOutline Osenc::readOutline(QIODevice *device, const GeoProjection* gp) c
     throw ChartFileError(QString("Error reading %1 bytes from device").arg(buffer.size()));
   }
   // auto p16 = reinterpret_cast<quint16*>(buffer.data());
-  // qDebug() << "senc version =" << *p16;
+  // qCDebug(CENC) << "senc version =" << *p16;
 
   QDate pub;
   QDate mod;
@@ -202,50 +203,50 @@ S57ChartOutline Osenc::readOutline(QIODevice *device, const GeoProjection* gp) c
 
   const QMap<SencRecordType, Handler*> handlers {
     {SencRecordType::HEADER_CELL_NAME, new Handler([] (const Buffer& b) {
-        // qDebug() << "cell name" << QString::fromUtf8(b.constData());
+        // qCDebug(CENC) << "cell name" << QString::fromUtf8(b.constData());
         return true;
       })
     },
     {SencRecordType::HEADER_CELL_PUBLISHDATE, new Handler([&pub] (const Buffer& b) {
         auto s = QString::fromUtf8(b.constData());
-        // qDebug() << "cell publishdate" << s;
+        // qCDebug(CENC) << "cell publishdate" << s;
         pub = QDate::fromString(s, "yyyyMMdd");
         return true;
       })
     },
     {SencRecordType::HEADER_CELL_UPDATEDATE, new Handler([&mod] (const Buffer& b) {
         auto s = QString::fromUtf8(b.constData());
-        // qDebug() << "cell modified date" << s;
+        // qCDebug(CENC) << "cell modified date" << s;
         mod = QDate::fromString(s, "yyyyMMdd");
         return true;
       })
     },
     {SencRecordType::HEADER_CELL_EDITION, new Handler([] (const Buffer& b) {
         // const quint16* p16 = reinterpret_cast<const quint16*>(b.constData());
-        // qDebug() << "cell edition" << *p16;
+        // qCDebug(CENC) << "cell edition" << *p16;
         return true;
       })
     },
     {SencRecordType::HEADER_CELL_UPDATE, new Handler([] (const Buffer& b) {
         // const quint16* p16 = reinterpret_cast<const quint16*>(b.constData());
-        // qDebug() << "cell update" << *p16;
+        // qCDebug(CENC) << "cell update" << *p16;
         return true;
       })
     },
     {SencRecordType::HEADER_CELL_NATIVESCALE, new Handler([&scale] (const Buffer& b) {
         const quint32* p32 = reinterpret_cast<const quint32*>(b.constData());
-        // qDebug() << "cell nativescale" << *p32;
+        // qCDebug(CENC) << "cell nativescale" << *p32;
         scale = *p32;
         return true;
       })
     },
     {SencRecordType::HEADER_CELL_SENCCREATEDATE, new Handler([] (const Buffer& b) {
-        // qDebug() << "cell senccreatedate" << QString::fromUtf8(b.constData());
+        // qCDebug(CENC) << "cell senccreatedate" << QString::fromUtf8(b.constData());
         return true;
       })
     },
     {SencRecordType::CELL_EXTENT_RECORD, new Handler([&points] (const Buffer& b) {
-        // qDebug() << "cell extent record";
+        // qCDebug(CENC) << "cell extent record";
         const OSENC_EXTENT_Record_Payload* p = reinterpret_cast<const OSENC_EXTENT_Record_Payload*>(b.constData());
         points << WGS84Point::fromLL(p->extent_sw_lon, p->extent_sw_lat);
         points << WGS84Point::fromLL(p->extent_se_lon, p->extent_se_lat);
@@ -262,7 +263,7 @@ S57ChartOutline Osenc::readOutline(QIODevice *device, const GeoProjection* gp) c
     },
 
     {SencRecordType::CELL_COVR_RECORD, new Handler([&cov] (const Buffer& b) {
-        // qDebug() << "cell coverage record";
+        // qCDebug(CENC) << "cell coverage record";
         auto p = reinterpret_cast<const OSENC_POINT_ARRAY_Record_Payload*>(b.constData());
         VVec vs(p->count);
         memcpy(vs.data(), &p->array, p->count * 2 * sizeof(GLfloat));
@@ -272,7 +273,7 @@ S57ChartOutline Osenc::readOutline(QIODevice *device, const GeoProjection* gp) c
     },
 
     {SencRecordType::CELL_NOCOVR_RECORD, new Handler([&nocov] (const Buffer& b) {
-        // qDebug() << "cell nocoverage record";
+        // qCDebug(CENC) << "cell nocoverage record";
         auto p = reinterpret_cast<const OSENC_POINT_ARRAY_Record_Payload*>(b.constData());
         VVec vs(p->count);
         memcpy(vs.data(), &p->array, p->count * 2 * sizeof(GLfloat));
@@ -296,27 +297,27 @@ S57ChartOutline Osenc::readOutline(QIODevice *device, const GeoProjection* gp) c
 
     if (record->record_length <= baseSize) {
       done = true;
-      qWarning() << "Record length is too small" << buffer;
+      qCWarning(CENC) << "Record length is too small" << buffer;
       continue;
     }
 
     // copy, record_type will be overwritten in the next stream.readRawData
     SencRecordType rec_type = record->record_type;
     if (!handlers.contains(rec_type)) {
-      qWarning() << "Unhandled record type" << static_cast<int>(rec_type);
+      qCWarning(CENC) << "Unhandled record type" << static_cast<int>(rec_type);
       done = true;
       continue;
     }
     buffer.resize(record->record_length - baseSize);
     if (stream.readRawData(buffer.data(), buffer.size()) < buffer.size()) {
-      qWarning() << "Stream read failed";
+      qCWarning(CENC) << "Stream read failed";
       done = true;
       continue;
     }
 
     done = !(handlers[rec_type])->func(buffer);
     if (done) {
-      qWarning() << "Handler" << static_cast<int>(rec_type) << "failed";
+      qCWarning(CENC) << "Handler" << static_cast<int>(rec_type) << "failed";
     }
 
   }
@@ -345,13 +346,13 @@ public:
   void osEncAddString(S57::Object* obj, quint16 acode, const QString& s) const {
 
     if (s.isEmpty()) {
-      // qDebug() << "S57::AttributeType::Any";
+      // qCDebug(CENC) << "S57::AttributeType::Any";
       obj->m_attributes[acode] = S57::Attribute(S57::AttributeType::Any);
       return;
     }
 
     if (s == "?") {
-      qDebug() << "S57::AttributeType::None";
+      qCDebug(CENC) << "S57::AttributeType::None";
       obj->m_attributes[acode] = S57::Attribute(S57::AttributeType::None);
       return;
     }
@@ -362,7 +363,7 @@ public:
       for (const QString& t: tokens) {
         vs << QVariant::fromValue(t.toInt());
       }
-      // qDebug() << S52::GetAttributeName(acode) << vs;
+      // qCDebug(CENC) << S52::GetAttributeName(acode) << vs;
       obj->m_attributes[acode] = S57::Attribute(vs);
     } else {
       obj->m_attributes[acode] = S57::Attribute(s);
@@ -371,7 +372,7 @@ public:
 
   bool osEncSetGeometry(S57::Object* obj, S57::Geometry::Base* g, const QRectF& bb) const {
     if (obj->m_geometry != nullptr) {
-      // qDebug() << as_numeric(obj->m_geometry->type());
+      // qCDebug(CENC) << as_numeric(obj->m_geometry->type());
       return false;
     }
     obj->m_geometry = g;
@@ -410,14 +411,14 @@ void Osenc::readChart(GL::VertexVector& vertices,
 
     {SencRecordType::HEADER_SENC_VERSION, new Handler([&hasReversed] (const Buffer& b) {
         quint16 version = *(reinterpret_cast<const quint16*>(b.constData()));
-        qDebug() << "senc version" << version;
+        qCDebug(CENC) << "senc version" << version;
         hasReversed = version > 200;
         return true;
       })
     },
 
     {SencRecordType::FEATURE_ID_RECORD, new Handler([&current, &features] (const Buffer& b) {
-        // qDebug() << "id record";
+        // qCDebug(CENC) << "id record";
         auto p = reinterpret_cast<const OSENC_Feature_Identification_Record_Payload*>(b.constData());
         current = new S57::Object(p->feature_ID, p->feature_type_code);
         features.append(ObjectWrapper(current));
@@ -426,7 +427,7 @@ void Osenc::readChart(GL::VertexVector& vertices,
     },
 
     {SencRecordType::FEATURE_ATTRIBUTE_RECORD, new Handler([&current, helper] (const Buffer& b) {
-        // qDebug() << "attribute record";
+        // qCDebug(CENC) << "attribute record";
         if (!current) return false;
         auto p = reinterpret_cast<const OSENC_Attribute_Record_Payload*>(b.constData());
         auto t = as_enum<AttributeRecType>(p->attribute_value_type, AllAttrTypes);
@@ -462,7 +463,7 @@ void Osenc::readChart(GL::VertexVector& vertices,
     },
 
     {SencRecordType::FEATURE_GEOMETRY_RECORD_POINT, new Handler([&current, &features, helper, gp] (const Buffer& b) {
-        // qDebug() << "feature geometry/point record";
+        // qCDebug(CENC) << "feature geometry/point record";
         if (!current) return false;
         auto p = reinterpret_cast<const OSENC_PointGeometry_Record_Payload*>(b.constData());
         auto p0 = gp->fromWGS84(WGS84Point::fromLL(p->lon, p->lat));
@@ -473,7 +474,7 @@ void Osenc::readChart(GL::VertexVector& vertices,
     },
 
     {SencRecordType::FEATURE_GEOMETRY_RECORD_LINE, new Handler([&features, &hasReversed] (const Buffer& b) {
-        // qDebug() << "feature geometry/line record";
+        // qCDebug(CENC) << "feature geometry/line record";
         auto p = reinterpret_cast<const OSENC_LineGeometry_Record_Payload*>(b.constData());
         const uint stride = hasReversed ? 4 : 3;
         QVector<int> es(p->edgeVector_count * stride);
@@ -498,7 +499,7 @@ void Osenc::readChart(GL::VertexVector& vertices,
     },
 
     {SencRecordType::FEATURE_GEOMETRY_RECORD_AREA, new Handler([&features, &hasReversed] (const Buffer& b) {
-        // qDebug() << "feature geometry/area record";
+        // qCDebug(CENC) << "feature geometry/area record";
         auto p = reinterpret_cast<const OSENC_AreaGeometry_Record_Payload*>(b.constData());
 
         const uint8_t* ptr = &p->edge_data;
@@ -571,7 +572,7 @@ void Osenc::readChart(GL::VertexVector& vertices,
     },
 
     {SencRecordType::FEATURE_GEOMETRY_RECORD_MULTIPOINT, new Handler([&current, &features, helper, gp] (const Buffer& b) {
-        // qDebug() << "feature geometry/multipoint record";
+        // qCDebug(CENC) << "feature geometry/multipoint record";
         if (!current) return false;
         auto p = reinterpret_cast<const OSENC_MultipointGeometry_Record_Payload*>(b.constData());
         GL::VertexVector ps(p->point_count * 3);
@@ -583,7 +584,7 @@ void Osenc::readChart(GL::VertexVector& vertices,
     },
 
     {SencRecordType::VECTOR_EDGE_NODE_TABLE_RECORD, new Handler([&vertices, &edges] (const Buffer& b) {
-        // qDebug() << "vector edge node table record";
+        // qCDebug(CENC) << "vector edge node table record";
         const char* ptr = b.constData();
 
         // edge count
@@ -612,7 +613,7 @@ void Osenc::readChart(GL::VertexVector& vertices,
     },
 
     {SencRecordType::VECTOR_CONNECTED_NODE_TABLE_RECORD, new Handler([&vertices, &connected] (const Buffer& b) {
-        // qDebug() << "vector connected node table record";
+        // qCDebug(CENC) << "vector connected node table record";
         const char* ptr = b.constData();
 
         // node count
@@ -638,19 +639,19 @@ void Osenc::readChart(GL::VertexVector& vertices,
     },
 
     {SencRecordType::FEATURE_GEOMETRY_RECORD_AREA_EXT, new Handler([] (const Buffer& b) {
-        qDebug() << "feature geometry/area ext record";
+        qCDebug(CENC) << "feature geometry/area ext record";
         throw NotImplementedError(QStringLiteral("FEATURE_GEOMETRY_RECORD_AREA_EXT not implemented"));
         return true;
       })
     },
     {SencRecordType::VECTOR_EDGE_NODE_TABLE_EXT_RECORD, new Handler([] (const Buffer& b) {
-        qDebug() << "edge node ext record";
+        qCDebug(CENC) << "edge node ext record";
         throw NotImplementedError(QStringLiteral("VECTOR_EDGE_NODE_TABLE_EXT_RECORD not implemented"));
         return true;
       })
     },
     {SencRecordType::VECTOR_CONNECTED_NODE_TABLE_EXT_RECORD, new Handler([] (const Buffer& b) {
-        qDebug() << "connected node ext record";
+        qCDebug(CENC) << "connected node ext record";
         throw NotImplementedError(QStringLiteral("VECTOR_CONNECTED_NODE_TABLE_EXT_RECORD not implemented"));
         return true;
       })
@@ -676,7 +677,7 @@ void Osenc::readChart(GL::VertexVector& vertices,
 
     if (record->record_length <= baseSize) {
       done = true;
-      qWarning() << "Record length is too small" << buffer;
+      qCWarning(CENC) << "Record length is too small" << buffer;
       continue;
     }
 
@@ -686,17 +687,17 @@ void Osenc::readChart(GL::VertexVector& vertices,
     buffer.resize(record->record_length - baseSize);
     if (stream.readRawData(buffer.data(), buffer.size()) < buffer.size()) {
       done = true;
-      qWarning() << "Cannot read base record data";
+      qCWarning(CENC) << "Cannot read base record data";
       continue;
     }
     if (!handlers.contains(rec_type)) {
-      // qWarning() << "Unhandled type" << static_cast<int>(rec_type);
+      // qCWarning(CENC) << "Unhandled type" << static_cast<int>(rec_type);
       continue;
     }
 
     done = !(handlers[rec_type])->func(buffer);
     if (done) {
-      qWarning() << "Handler failed for type" << as_numeric(rec_type);
+      qCWarning(CENC) << "Handler failed for type" << as_numeric(rec_type);
     }
 
   }

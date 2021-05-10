@@ -19,6 +19,7 @@
  */
 #include "chartfilereader.h"
 #include "triangulator.h"
+#include "logging.h"
 
 
 ChartFileReader* ChartFileReaderFactory::loadReader() const {
@@ -26,7 +27,7 @@ ChartFileReader* ChartFileReaderFactory::loadReader() const {
     initialize();
     return create();
   } catch (ChartFileError& e) {
-    qWarning() << e.msg();
+    qCWarning(CENC) << e.msg();
     return nullptr;
   }
 }
@@ -182,7 +183,7 @@ void ChartFileReader::triangulate(S57::ElementDataVector &elems,
   int count = edges.first().count - 3;
   // skip open ended linestrings
   if (indices[first] != indices[first + count]) {
-    qWarning() << "Cannot triangulate";
+    qCWarning(CENC) << "Cannot triangulate";
     return;
   }
   tri.addPolygon(first, count);
@@ -192,7 +193,7 @@ void ChartFileReader::triangulate(S57::ElementDataVector &elems,
     count = edges[i].count - 3;
     // skip open ended linestrings
     if (indices[first] != indices[first + count]) {
-      qDebug() << "TRIANGULATE: skipping";
+      qCDebug(CENC) << "TRIANGULATE: skipping";
       continue;
     }
     tri.addHole(first, count);
@@ -259,7 +260,7 @@ S57::ElementDataVector ChartFileReader::createLineElements(GL::IndexVector &indi
     auto start = getBeginPoint(i);
     auto prevlast = start;
     while (i < edges.size() && prevlast == getBeginPoint(i)) {
-      // qDebug() << "Edge" << edges[i].begin << edges[i].end << edges[i].reversed;
+      // qCDebug(CENC) << "Edge" << edges[i].begin << edges[i].end << edges[i].reversed;
       e.count += addIndices(edges[i], indices);
       prevlast = getEndPoint(i);
       i++;
@@ -268,13 +269,13 @@ S57::ElementDataVector ChartFileReader::createLineElements(GL::IndexVector &indi
     const int adj = e.offset / sizeof(GLuint);
     if (prevlast == start) {
       // polygon
-      // qDebug() << "polygon" << elems.size() << i << edges.size();
+      // qCDebug(CENC) << "polygon" << elems.size() << i << edges.size();
       indices[adj] = indices.last(); // prev
       indices.append(indices[adj + 1]); // close polygon
       indices.append(indices[adj + 2]); // adjacent = next of first
     } else {
       // line string
-      // qDebug() << "linestring" << elems.size() << i << edges.size();
+      // qCDebug(CENC) << "linestring" << elems.size() << i << edges.size();
       auto prev = indices.last();
       indices.append(getEndPoint(i - 1));
       indices.append(addAdjacent(indices.last(), prev, vertices));

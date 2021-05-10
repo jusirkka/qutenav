@@ -36,12 +36,12 @@ Dialog {
   Flickable {
     id: view
     clip: true
-    anchors.bottomMargin: Theme.paddingLarge
+    anchors.bottomMargin: theme.paddingLarge
     anchors.fill: parent
     anchors.centerIn: parent
-    anchors.topMargin: Theme.paddingLarge
+    anchors.topMargin: theme.paddingLarge
     contentHeight: body.height
-    contentWidth: parent.width - 2 * Theme.paddingMedium
+    contentWidth: parent.width - 2 * theme.paddingMedium
 
     ScrollBar.vertical: ScrollBar {
       visible: view.contentHeight > view.height
@@ -49,26 +49,26 @@ Dialog {
       contentItem: Rectangle {
         opacity: 1
         color: "black"
-        implicitWidth: Theme.paddingMedium
-        implicitHeight: 2 * Theme.paddingMedium
+        implicitWidth: theme.paddingMedium
+        implicitHeight: 2 * theme.paddingMedium
       }
       background: Rectangle {
         opacity: 1
         color: "#e0dfd8"
         implicitHeight: view.height
-        implicitWidth: Theme.paddingMedium
+        implicitWidth: theme.paddingMedium
       }
     }
 
     Column {
       id: body
-      spacing: Theme.paddingMedium
+      spacing: theme.paddingMedium
       anchors {
         left: parent.left
         right: parent.right
         bottom: parent.bottom
-        leftMargin: Theme.horizontalPageMargin
-        rightMargin: Theme.horizontalPageMargin
+        leftMargin: theme.horizontalPageMargin
+        rightMargin: theme.horizontalPageMargin
       }
     }
   }

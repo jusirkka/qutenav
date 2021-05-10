@@ -78,8 +78,6 @@ int main(int argc, char *argv[]) {
   TrackDatabase::createTables();
   RouteDatabase::createTables();
 
-  qmlRegisterSingletonType(QUrl("qrc:///Theme.qml"), "net.kvanttiapina.qutenav", 1, 0, "Theme");
-
   // Set up QML engine.
   QQmlApplicationEngine engine;
   QQmlContext* rootContext = engine.rootContext();

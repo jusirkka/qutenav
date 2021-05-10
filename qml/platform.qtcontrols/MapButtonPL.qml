@@ -24,10 +24,14 @@ import QtQuick.Controls 2.12
 Button {
   id: item
 
+  property string iconSource
+  property string iconColor: "transparent"
+
   height: icon.height * 1.45
   width: height
 
-  icon.color: "transparent"
+  icon.color: iconColor
+  icon.source: iconSource
   padding: 0
 
   display: AbstractButton.IconOnly

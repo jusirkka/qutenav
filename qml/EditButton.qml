@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import QtQuick 2.2
+import QtQuick 2.6
 
 Rectangle {
   id: rect
@@ -26,15 +26,15 @@ Rectangle {
 
   signal clicked
 
-  width: label.width + 2 * Theme.paddingLarge
-  height: label.height + 2 * Theme.paddingMedium
+  width: label.width + 2 * theme.paddingLarge
+  height: label.height + 2 * theme.paddingMedium
   radius: .4 * height
   color: "#214cad"
   border.color: "black"
 
-  anchors.bottomMargin: Theme.paddingMedium
-  anchors.leftMargin: Theme.paddingMedium
-  anchors.rightMargin: Theme.paddingMedium
+  anchors.bottomMargin: theme.paddingMedium
+  anchors.leftMargin: theme.paddingMedium
+  anchors.rightMargin: theme.paddingMedium
 
 
   Text {
@@ -44,7 +44,7 @@ Rectangle {
     color: "white"
     horizontalAlignment: Text.AlignHCenter
     verticalAlignment: Text.AlignVCenter
-    font.pixelSize: Theme.fontSizeSmall
+    font.pixelSize: theme.fontSizeSmall
     font.bold: true
   }
 

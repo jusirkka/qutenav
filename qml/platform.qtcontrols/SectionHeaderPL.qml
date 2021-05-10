@@ -23,6 +23,6 @@ Label {
   anchors.horizontalCenter: parent.horizontalCenter
   horizontalAlignment: Text.AlignLeft
   font.bold: true
-  font.pixelSize: Theme.fontSizeMedium
-  width: parent.width - 2 * Theme.horizontalPageMargin
+  font.pixelSize: theme.fontSizeMedium
+  width: parent.width - 2 * theme.horizontalPageMargin
 }

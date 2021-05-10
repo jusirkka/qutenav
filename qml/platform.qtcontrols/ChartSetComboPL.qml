@@ -27,7 +27,7 @@ Item {
 
   anchors.left: parent.left
   anchors.right: parent.right
-  height: Theme.itemSizeMedium
+  height: theme.itemSizeMedium
   width: 300
 
   Label {
@@ -40,7 +40,7 @@ Item {
     id: box
     anchors.left: label.right
     anchors.right: parent.right
-    anchors.leftMargin: Theme.horizontalPageMargin
+    anchors.leftMargin: theme.horizontalPageMargin
 
     onCurrentIndexChanged: {
       encdis.chartSet = model[currentIndex];

@@ -33,7 +33,7 @@ Item {
     id: main
     text: item.text
     anchors.centerIn: parent
-    font.pixelSize: Theme.fontSizeLarge
+    font.pixelSize: theme.fontSizeLarge
     font.bold: true
   }
 
@@ -45,7 +45,7 @@ Item {
       left: parent.left
       right: parent.right
     }
-    font.pixelSize: Theme.fontSizeMedium
+    font.pixelSize: theme.fontSizeMedium
   }
 
 }

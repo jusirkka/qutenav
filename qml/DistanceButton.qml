@@ -17,14 +17,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import QtQuick 2.2
+import QtQuick 2.6
 
 
-MapButton {
+MapButtonPL {
   id: button
   anchors.bottom: parent.bottom
-  anchors.bottomMargin: Theme.paddingMedium
-  anchors.leftMargin: Theme.paddingMedium
+  anchors.bottomMargin: theme.paddingMedium
+  anchors.leftMargin: theme.paddingMedium
 
-  icon.source: app.getIcon("compass")
+  iconColor: "transparent"
+  iconSource: app.getIcon("compass")
 }

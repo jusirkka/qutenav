@@ -1,6 +1,4 @@
-pragma Singleton
-
-import QtQuick 2.0
+import QtQuick 2.15
 import QtQuick.Window 2.2
 
 Item {

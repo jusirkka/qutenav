@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import QtQuick 2.2
+import QtQuick 2.6
 
 Rectangle {
   id: rect
@@ -38,7 +38,7 @@ Rectangle {
     clicked(rect)
   }
 
-  width: (rect.editMode ? (rect.selected ? 4 : 3) : 2)  * Theme.paddingLarge
+  width: (rect.editMode ? (rect.selected ? 4 : 3) : 2)  * theme.paddingLarge
   height: width
   radius: width / 2
   color: rect.editMode ? (rect.selected ? "cyan" : "white") : "#085efa"
@@ -51,7 +51,7 @@ Rectangle {
     color: rect.editMode ? "black" : "white"
     horizontalAlignment: Text.AlignHCenter
     verticalAlignment: Text.AlignVCenter
-    font.pixelSize: rect.editMode ? Theme.fontSizeSmall : Theme.fontSizeExtraSmall
+    font.pixelSize: rect.editMode ? theme.fontSizeSmall : theme.fontSizeExtraSmall
     font.bold: true
   }
 

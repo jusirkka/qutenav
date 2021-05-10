@@ -48,7 +48,7 @@ void qt_gl_set_global_share_context(QOpenGLContext *context);
 
 int main(int argc, char *argv[]) {
 
-  Q_INIT_RESOURCE(shaders);
+  Q_INIT_RESOURCE(shaders_opengl_es);
 
   qmlRegisterType<ChartDisplay>("org.qutenav", 1, 0, "ChartDisplay");
   qmlRegisterType<CrossHairs>("org.qutenav", 1, 0, "CrossHairs");
@@ -97,10 +97,13 @@ int main(int argc, char *argv[]) {
   TrackDatabase::createTables();
   RouteDatabase::createTables();
 
+//  const auto theme = QStandardPaths::locate(QStandardPaths::DataLocation, "qml/ThemePL.qml");
+//  qmlRegisterSingletonType("file://" + theme,
+//                           "org.qutenav", 1, 0, "ThemePL");
+
   QScopedPointer<QQuickView> view(SailfishApp::createView());
 
   view->rootContext()->setContextProperty("settings", Settings::instance());
-
   view->setSource(SailfishApp::pathTo("qml/harbour-qutenav.qml"));
   view->show();
 

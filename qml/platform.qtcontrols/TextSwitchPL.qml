@@ -31,22 +31,22 @@ Item {
   Switch {
     id: sw
     anchors.left: parent.left
-    anchors.leftMargin: Theme.horizontalPageMargin
+    anchors.leftMargin: theme.horizontalPageMargin
     anchors.right: parent.right
-    anchors.rightMargin: Theme.horizontalPageMargin
+    anchors.rightMargin: theme.horizontalPageMargin
     anchors.top: parent.top
-    font.pixelSize: Theme.fontSizeMedium
+    font.pixelSize: theme.fontSizeMedium
   }
 
   Label {
     id: desc
     anchors.left: parent.left
-    anchors.leftMargin: Theme.horizontalPageMargin
+    anchors.leftMargin: theme.horizontalPageMargin
     anchors.right: parent.right
-    anchors.rightMargin: Theme.horizontalPageMargin
+    anchors.rightMargin: theme.horizontalPageMargin
     anchors.top: sw.bottom
-    anchors.topMargin: text ? Theme.paddingSmall : 0
-    font.pixelSize: Theme.fontSizeSmall
+    anchors.topMargin: text ? theme.paddingSmall : 0
+    font.pixelSize: theme.fontSizeSmall
     height: text ? implicitHeight : 0
     visible: text
     wrapMode: Text.WordWrap

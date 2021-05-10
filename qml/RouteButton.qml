@@ -17,31 +17,31 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import QtQuick 2.2
+import QtQuick 2.6
 
-MapButton {
+MapButtonPL {
   id: button
   property bool editing
 
   onEditingChanged: {
     if (editing) {
-      button.icon.color = "#214cad";
+      iconColor = "#214cad";
     } else {
-      button.icon.color = "black";
+      iconColor = "black";
     }
   }
 
   Component.onCompleted: {
-    icon.color = "black";
+    iconColor = "black";
     editing = false
   }
 
 
   anchors.bottom: parent.bottom
-  anchors.bottomMargin: Theme.paddingMedium
-  anchors.rightMargin: Theme.paddingMedium
+  anchors.bottomMargin: theme.paddingMedium
+  anchors.rightMargin: theme.paddingMedium
 
-  icon.source: app.getIcon("route")
+  iconSource: app.getIcon("route")
 
   onClicked: {
     if (editing) {

@@ -18,7 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import QtQuick 2.15
+import QtQuick 2.6
 
 DialogPL {
   id: dialog
@@ -28,7 +28,7 @@ DialogPL {
   acceptText: "Edit current"
 
   Column {
-    spacing: Theme.paddingMedium
+    spacing: theme.paddingMedium
 
     anchors {
       left: parent.left

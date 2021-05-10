@@ -108,7 +108,7 @@ WGS84Point WGS84Point::parseISO6709(const QString& loc) {
 
 static double sexas(double r) {
     r = std::abs(r);
-    return  60 * (r - int(r));
+    return  60. * (r - std::floor(r));
 }
 
 
@@ -134,10 +134,10 @@ QString WGS84Point::print(Units units) const {
     // 50°40.7667'N 024°48.4333'E
     const QString s("%1°%2‘%3");
     QString r;
-    r += s.arg(degreesLat(), 2, 10, z).arg(sexas(m_Latitude), 2, 'f', 4, z)
+    r += s.arg(degreesLat(), 2, 10, z).arg(sexas(m_Latitude), 7, 'f', 4, z)
         .arg(northern() ? "N" : "S");
     r += " ";
-    r += s.arg(degreesLng(), 3, 10, z).arg(sexas(m_Longitude), 2, 'f', 4, z)
+    r += s.arg(degreesLng(), 3, 10, z).arg(sexas(m_Longitude), 7, 'f', 4, z)
         .arg(eastern() ? "E" : "W");
 
     return r;
@@ -146,9 +146,9 @@ QString WGS84Point::print(Units units) const {
     // 50.679445° 024.807222°
     const QString s("%1°");
     QString r;
-    r += s.arg(m_Latitude, 2, 'f', 6, z);
+    r += s.arg(m_Latitude, 9, 'f', 6, z);
     r += " ";
-    r += s.arg(m_Longitude, 3, 'f', 6, z);
+    r += s.arg(m_Longitude, 10, 'f', 6, z);
 
     return r;
   }

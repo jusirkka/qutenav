@@ -18,7 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import QtQuick 2.12
+import QtQuick 2.6
 import QtPositioning 5.2
 
 ApplicationWindowPL {
@@ -28,12 +28,12 @@ ApplicationWindowPL {
   property var encdis: null
   property int pixelRatio: 100
 
-  initialPage: ChartPage {
-    anchors.fill: parent
-  }
-
   // for testing
   property int startInstant
+
+  ThemePL {
+    id: theme
+  }
 
   PositionSource {
     id: gps
@@ -52,11 +52,11 @@ ApplicationWindowPL {
 
   function setPixelRatio() {
     // Return path to icon suitable for user's screen,
-    // finding the closest match to Theme.pixelRatio.
+    // finding the closest match to theme.pixelRatio.
     var ratios = [1.00, 1.25, 1.50, 1.75, 2.00]
     var minIndex = -1, minDiff = 1000, diff
     for (var i = 0; i < ratios.length; i++) {
-      diff = Math.abs(Theme.pixelRatio - ratios[i]);
+      diff = Math.abs(theme.pixelRatio - ratios[i]);
       minIndex = diff < minDiff ? i : minIndex;
       minDiff = Math.min(minDiff, diff);
     }

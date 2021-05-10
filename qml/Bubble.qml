@@ -17,18 +17,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import QtQuick 2.0
+import QtQuick 2.6
 
 Rectangle {
 
   id: item
 
-  anchors.topMargin: Theme.paddingLarge
-  anchors.bottomMargin: Theme.paddingLarge
+  anchors.topMargin: theme.paddingLarge
+  anchors.bottomMargin: theme.paddingLarge
   anchors.horizontalCenter: parent.horizontalCenter
 
-  width: info.width + 2 * Theme.paddingLarge
-  height: info.height + 2 * Theme.paddingLarge
+  width: info.width + 2 * theme.paddingLarge
+  height: info.height + 2 * theme.paddingLarge
   radius: 20
   color: "white"
   border.color: "black"
@@ -67,7 +67,7 @@ Rectangle {
     color: "black"
     anchors.horizontalCenter: parent.horizontalCenter
     anchors.verticalCenter: parent.verticalCenter
-    font.pixelSize: Theme.fontSizeMedium
+    font.pixelSize: theme.fontSizeMedium
   }
 
   Timer {

@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import QtQuick 2.2
+import QtQuick 2.6
 import Sailfish.Silica 1.0
 
 CoverBackground {
@@ -31,7 +31,7 @@ CoverBackground {
   Label {
     anchors.horizontalCenter: parent.horizontalCenter
     anchors.top: logo.bottom
-    anchors.topMargin: Theme.paddingLarge
+    anchors.topMargin: theme.paddingLarge
     text: "QuteNav"
   }
 }

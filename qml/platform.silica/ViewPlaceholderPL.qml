@@ -1,6 +1,6 @@
 /* -*- coding: utf-8-unix -*-
  *
- * File: ViewPlaceHolderPL.qml
+ * File: ViewPlaceholderPL.qml
  *
  * Copyright (C) 2021 Jukka Sirkka
  *
@@ -19,4 +19,4 @@
  */
 import Sailfish.Silica 1.0
 
-ViewPlaceHolder {}
+ViewPlaceholder {}

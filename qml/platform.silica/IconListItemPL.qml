@@ -17,14 +17,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import QtQuick 2.2
+import QtQuick 2.6
 import Sailfish.Silica 1.0
 
 ListItem {
   id: item
   anchors.left: parent.left
   anchors.right: parent.right
-  contentHeight: Theme.itemSizeSmall
+  contentHeight: theme.itemSizeSmall
 
   property string label: ""
   property string iconName: ""
@@ -33,19 +33,19 @@ ListItem {
     id: icon
     fillMode: Image.PreserveAspectFit
     anchors.left: parent.left
-    anchors.leftMargin: Theme.horizontalPageMargin
+    anchors.leftMargin: theme.horizontalPageMargin
     anchors.verticalCenter: parent.verticalCenter
-    sourceSize.height: Theme.itemSizeSmall * 0.8
+    sourceSize.height: theme.itemSizeSmall * 0.8
     source: item.iconName
   }
 
   Label {
     id: label
     anchors.left: icon.right
-    anchors.leftMargin: Theme.paddingMedium
+    anchors.leftMargin: theme.paddingMedium
     anchors.right: parent.right
-    anchors.rightMargin:Theme.horizontalPageMargin
-    height: Theme.itemSizeSmall
+    anchors.rightMargin:theme.horizontalPageMargin
+    height: theme.itemSizeSmall
     text: item.label
     verticalAlignment: Text.AlignVCenter
   }

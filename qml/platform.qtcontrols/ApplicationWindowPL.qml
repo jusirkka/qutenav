@@ -21,14 +21,14 @@ import QtQuick 2.15
 import QtQuick.Controls 2.12
 
 ApplicationWindow {
-  id: app
+  id: aw
 
   visible: true
 
   property var dialog: null
   property var systemIcons: null
 
-  default property alias initialPage: app.data
+  ChartPage {}
 
   Component.onCompleted: {
     width = settings.mainWindowWidth
@@ -56,20 +56,6 @@ ApplicationWindow {
     var component = Qt.createComponent(url);
     dialog = component.createObject(app, params ? params : {});
     return dialog;
-  }
-
-  function setPixelRatio() {
-    // Return path to icon suitable for user's screen,
-    // finding the closest match to Theme.pixelRatio.
-    var ratios = [1.00, 1.25, 1.50, 1.75, 2.00]
-    var minIndex = -1, minDiff = 1000, diff
-    for (var i = 0; i < ratios.length; i++) {
-      diff = Math.abs(Theme.pixelRatio - ratios[i]);
-      minIndex = diff < minDiff ? i : minIndex;
-      minDiff = Math.min(minDiff, diff);
-    }
-    app.pixelRatio = Math.floor(100 * ratios[minIndex])
-    console.log("pixelratio", app.pixelRatio)
   }
 
   Shortcut {

@@ -19,7 +19,7 @@
 
  */
 
-import QtQuick 2.2
+import QtQuick 2.6
 import Sailfish.Silica 1.0
 
 ListItem {
@@ -27,24 +27,24 @@ ListItem {
 
   anchors.left: parent.left
   anchors.right: parent.right
-  contentHeight: Theme.itemSizeSmall
+  contentHeight: theme.itemSizeSmall
 
   Image {
     id: icon
     fillMode: Image.PreserveAspectFit
     anchors.left: parent.left
-    anchors.leftMargin: Theme.horizontalPageMargin
+    anchors.leftMargin: theme.horizontalPageMargin
     anchors.verticalCenter: parent.verticalCenter
-    sourceSize.height: Theme.itemSizeSmall * 0.8
+    sourceSize.height: theme.itemSizeSmall * 0.8
     source: "image://theme/icon-m-levels"
   }
 
   Label {
     id: label
     anchors.left: icon.right
-    anchors.leftMargin: Theme.paddingMedium
-    anchors.rightMargin:Theme.horizontalPageMargin
-    height: Theme.itemSizeSmall
+    anchors.leftMargin: theme.paddingMedium
+    anchors.rightMargin:theme.horizontalPageMargin
+    height: theme.itemSizeSmall
     text: "Chartset"
     verticalAlignment: Text.AlignVCenter
   }
@@ -52,7 +52,7 @@ ListItem {
   ComboBox {
     id: box
     anchors.left: label.right
-    anchors.leftMargin: Theme.paddingMedium
+    anchors.leftMargin: theme.paddingMedium
     anchors.right: parent.right
     anchors.top: parent.top
 

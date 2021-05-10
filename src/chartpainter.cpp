@@ -18,7 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "chartpainter.h"
-#include <QDebug>
+#include "logging.h"
 #include <QOpenGLContext>
 #include <QOpenGLExtraFunctions>
 #include "s57chart.h"
@@ -130,7 +130,7 @@ void ChartPainter::updateCharts(const Camera* cam, const QRectF& viewArea) {
     m_fbo = new QOpenGLFramebufferObject(bufSize.toSize(), fmt);
   }
 
-  // qDebug() << "updateCharts:" << bufSize << viewArea.size();
+  // qCDebug(CDPY) << "updateCharts:" << bufSize << viewArea.size();
 
   m_fbo->bind();
 

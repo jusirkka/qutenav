@@ -26,6 +26,7 @@
 #include "record.h"
 #include <QDir>
 #include <QFileInfo>
+#include "logging.h"
 
 const GeoProjection* S57Reader::geoprojection() const {
   return m_proj;
@@ -115,7 +116,7 @@ S57::Record* FieldSource::nextRecord() {
   S57::Record* p = nullptr;
   do {
     FieldInfo f = fieldInfo.takeFirst();
-    // qDebug() << "block" << f.tag << f.len - 1 << fieldInfo.size();
+    // qCDebug(CENC) << "block" << f.tag << f.len - 1 << fieldInfo.size();
     QByteArray block(f.len - 1, '0');
     m_stream.readRawData(block.data(), f.len - 1);
     quint8 term;
@@ -367,7 +368,7 @@ S57ChartOutline S57Reader::readOutline(const QString& path, const GeoProjection*
     {RT::VC, new Handler([&connected] (const S57::Record* rec) {
         auto vrid = dynamic_cast<const S57::VRID*>(rec);
         if (vrid->instruction.value == Instr::Delete) {
-          // qDebug() << "removing connected node" << vrid->id();
+          // qCDebug(CENC) << "removing connected node" << vrid->id();
           connected.remove(vrid->id());
           return true;
         }
@@ -385,7 +386,7 @@ S57ChartOutline S57Reader::readOutline(const QString& path, const GeoProjection*
     {RT::VE, new Handler([&edges] (const S57::Record* rec) {
         auto vrid = dynamic_cast<const S57::VRID*>(rec);
         if (vrid->instruction.value == Instr::Delete) {
-          // qDebug() << "removing edge" << vrid->id();
+          // qCDebug(CENC) << "removing edge" << vrid->id();
           edges.remove(vrid->id());
           return true;
         }
@@ -405,7 +406,7 @@ S57ChartOutline S57Reader::readOutline(const QString& path, const GeoProjection*
             } else if (pf.topind.value == TopInd::End) {
               edge.end = pf.id;
             } else {
-              qDebug() << "unhandled edge topology indicator" << pf.topind.print();
+              qCDebug(CENC) << "unhandled edge topology indicator" << pf.topind.print();
               return false;
             }
           }
@@ -424,13 +425,13 @@ S57ChartOutline S57Reader::readOutline(const QString& path, const GeoProjection*
           for (int i = 0; i < vrpc->count; i++) {
             const S57::VRPT::PointerField pf = vrpt->pointers[i];
             if (pf.topind.value == TopInd::Begin) {
-              qDebug() << "replacing begin" << edges[vrid->id()].begin << pf.id;
+              qCDebug(CENC) << "replacing begin" << edges[vrid->id()].begin << pf.id;
               edges[vrid->id()].begin = pf.id;
             } else if (pf.topind.value == TopInd::End) {
-              qDebug() << "replacing end" << edges[vrid->id()].end << pf.id;
+              qCDebug(CENC) << "replacing end" << edges[vrid->id()].end << pf.id;
               edges[vrid->id()].end = pf.id;
             } else {
-              qDebug() << "unhandled edge topology indicator" << pf.topind.print();
+              qCDebug(CENC) << "unhandled edge topology indicator" << pf.topind.print();
               return false;
             }
           }
@@ -526,7 +527,7 @@ S57ChartOutline S57Reader::readOutline(const QString& path, const GeoProjection*
 
   for (const QString& update: updates) {
 
-    // qDebug() << update;
+    // qCDebug(CENC) << update;
 
     const QString updpth = dir.absoluteFilePath(update);
     QFile file(updpth);
@@ -559,7 +560,7 @@ S57ChartOutline S57Reader::readOutline(const QString& path, const GeoProjection*
 
   RawEdgeRefVector cv;
   for (CovEdgeRefIter it = covRefs.cbegin(); it != covRefs.cend(); ++it) {
-    // qDebug() << "Coverage" << it.key() << it.value().cov;
+    // qCDebug(CENC) << "Coverage" << it.key() << it.value().cov;
     if (it.value().cov) {
       cv.append(it.value().refs);
     }
@@ -569,10 +570,10 @@ S57ChartOutline S57Reader::readOutline(const QString& path, const GeoProjection*
   PRegion pcov;
   PRegion pnocov;
   createCoverage(pcov, pnocov, cv, edges, connected, mulfac, gp);
-  // qDebug() << "nocov areas" << pnocov.size();
-  // qDebug() << "cov areas" << pcov.size();
+  // qCDebug(CENC) << "nocov areas" << pnocov.size();
+  // qCDebug(CENC) << "cov areas" << pcov.size();
 
-  // qDebug() << pub << mod << scale;
+  // qCDebug(CENC) << pub << mod << scale;
 
   if (!pub.isValid() || !mod.isValid() || scale == 0 || pcov.isEmpty()) {
     throw ChartFileError(QString("Invalid S57 header in %1").arg(path));
@@ -646,12 +647,12 @@ void S57Reader::readChart(GL::VertexVector& vertices,
         auto vrid = dynamic_cast<const S57::VRID*>(rec);
         if (vrid->instruction.value == Instr::Delete) {
           if (isolated.contains(vrid->id())) {
-            // qDebug() << "removing isolated node" << vrid->id();
+            // qCDebug(CENC) << "removing isolated node" << vrid->id();
             isolated.remove(vrid->id());
             return true;
           }
           if (soundings.contains(vrid->id())) {
-            // qDebug() << "removing soundings node" << vrid->id();
+            // qCDebug(CENC) << "removing soundings node" << vrid->id();
             soundings.remove(vrid->id());
             return true;
           }
@@ -666,7 +667,7 @@ void S57Reader::readChart(GL::VertexVector& vertices,
           }
           auto sg3d = dynamic_cast<const S57::SG3D*>(vrid->find("SG3D"));
           if (sg3d != nullptr) {
-            // qDebug() << "inserting soundings node" << vrid->id();
+            // qCDebug(CENC) << "inserting soundings node" << vrid->id();
             soundings[vrid->id()] = sg3d->soundings;
             return true;
           }
@@ -676,18 +677,18 @@ void S57Reader::readChart(GL::VertexVector& vertices,
         auto sgcc = dynamic_cast<const S57::SGCC*>(vrid->find("SGCC"));
         if (sgcc == nullptr) {
           // cannot continue without sgcc
-          qWarning() << "SGCC not found" << rec->records();
+          qCWarning(CENC) << "SGCC not found" << rec->records();
           return true;
         }
         if (sgcc->instruction.value == Instr::Delete) {
           Q_ASSERT(soundings.contains(vrid->id()));
-          // qDebug() << "removing soundings nodes" << vrid->id();
+          // qCDebug(CENC) << "removing soundings nodes" << vrid->id();
           soundings[vrid->id()].remove(sgcc->first - 1, sgcc->count);
           return true;
         }
         if (sgcc->instruction.value == Instr::Insert) {
           Q_ASSERT(soundings.contains(vrid->id()));
-          // qDebug() << "inserting soundings nodes" << vrid->id();
+          // qCDebug(CENC) << "inserting soundings nodes" << vrid->id();
           auto sg3d = dynamic_cast<const S57::SG3D*>(vrid->find("SG3D"));
           for (int i = 0; i < sgcc->count; i++) {
             soundings[vrid->id()].insert(sgcc->first - 1, sg3d->soundings[sgcc->count - 1 - i]);
@@ -712,7 +713,7 @@ void S57Reader::readChart(GL::VertexVector& vertices,
     {RT::VC, new Handler([&connected] (const S57::Record* rec) {
         auto vrid = dynamic_cast<const S57::VRID*>(rec);
         if (vrid->instruction.value == Instr::Delete) {
-          // qDebug() << "removing connected node" << vrid->id();
+          // qCDebug(CENC) << "removing connected node" << vrid->id();
           connected.remove(vrid->id());
           return true;
         }
@@ -731,7 +732,7 @@ void S57Reader::readChart(GL::VertexVector& vertices,
     {RT::VE, new Handler([&edges] (const S57::Record* rec) {
         auto vrid = dynamic_cast<const S57::VRID*>(rec);
         if (vrid->instruction.value == Instr::Delete) {
-          // qDebug() << "removing edge" << vrid->id();
+          // qCDebug(CENC) << "removing edge" << vrid->id();
           edges.remove(vrid->id());
           return true;
         }
@@ -751,7 +752,7 @@ void S57Reader::readChart(GL::VertexVector& vertices,
             } else if (pf.topind.value == TopInd::End) {
               edge.end = pf.id;
             } else {
-              qDebug() << "unhandled edge topology indicator" << pf.topind.print();
+              qCDebug(CENC) << "unhandled edge topology indicator" << pf.topind.print();
               return false;
             }
           }
@@ -770,13 +771,13 @@ void S57Reader::readChart(GL::VertexVector& vertices,
           for (int i = 0; i < vrpc->count; i++) {
             const S57::VRPT::PointerField pf = vrpt->pointers[i];
             if (pf.topind.value == TopInd::Begin) {
-              // qDebug() << "replacing begin" << edges[vrid->id()].begin << pf.id;
+              // qCDebug(CENC) << "replacing begin" << edges[vrid->id()].begin << pf.id;
               edges[vrid->id()].begin = pf.id;
             } else if (pf.topind.value == TopInd::End) {
-              // qDebug() << "replacing end" << edges[vrid->id()].end << pf.id;
+              // qCDebug(CENC) << "replacing end" << edges[vrid->id()].end << pf.id;
               edges[vrid->id()].end = pf.id;
             } else {
-              qDebug() << "unhandled edge topology indicator" << pf.topind.print();
+              qCDebug(CENC) << "unhandled edge topology indicator" << pf.topind.print();
               return false;
             }
           }
@@ -933,7 +934,7 @@ void S57Reader::readChart(GL::VertexVector& vertices,
 
   for (const QString& update: updates) {
 
-    qDebug() << update;
+    qCDebug(CENC) << update;
 
     const QString updpth = dir.absoluteFilePath(update);
     QFile file(updpth);
@@ -1009,7 +1010,7 @@ void S57Reader::readChart(GL::VertexVector& vertices,
     IndexVector reduced;
     reduceRDP(ps, 0, ps.size() - 1, reduced);
     if (reduced.size() < ps.size() - 2) {
-      // qDebug() << "RDP reduction" << ps.size() - 2 << " -> " << reduced.size();
+      // qCDebug(CENC) << "RDP reduction" << ps.size() - 2 << " -> " << reduced.size();
       std::sort(reduced.begin(), reduced.end());
       for (auto i: reduced) {
         auto const p = ps[i];
@@ -1121,7 +1122,7 @@ void S57Reader::createCoverage(PRegion &cov, PRegion &nocov,
     }
     Q_ASSERT(prevlast == start);
     bool inner = edges[i - 1].inner;
-    // qDebug() << "Reducing" << cov.size() << "Inner" << inner;
+    // qCDebug(CENC) << "Reducing" << cov.size() << "Inner" << inner;
     PointVector qs;
     const int N = ps.size();
     for (int k = 0; k < N; k++) {
@@ -1131,7 +1132,7 @@ void S57Reader::createCoverage(PRegion &cov, PRegion &nocov,
       if (v.x() == vm.x() && v.x() == vp.x()) continue;
       if (v.y() == vm.y() && v.y() == vp.y()) continue;
       qs << v;
-      // qDebug() << v.x() << v.y();
+      // qCDebug(CENC) << v.x() << v.y();
     }
 
     if (inner) {
@@ -1219,16 +1220,16 @@ bool S57Reader::checkCoverage(const PRegion& cov,
   sw = gp->toWGS84(ll);
   ne = gp->toWGS84(ur);
   if (sw == WGS84Point::fromLL(ne.lng(), sw.lat())) {
-    qDebug() << ll << ur;
-    qDebug() << sw.lng() << sw.lat() << ne.lng() << ne.lat();
+    qCDebug(CENC) << ll << ur;
+    qCDebug(CENC) << sw.lng() << sw.lat() << ne.lng() << ne.lat();
     throw ChartFileError("Too narrow coverage");
   }
   if (sw == WGS84Point::fromLL(sw.lng(), ne.lat())) {
-    qDebug() << ll << ur;
-    qDebug() << sw.lng() << sw.lat() << ne.lng() << ne.lat();
+    qCDebug(CENC) << ll << ur;
+    qCDebug(CENC) << sw.lng() << sw.lat() << ne.lng() << ne.lat();
     throw ChartFileError("Too low coverage");
   }
-  // qDebug() << "totcov" << totcov;
+  // qCDebug(CENC) << "totcov" << totcov;
   return totcov < .8;
 }
 

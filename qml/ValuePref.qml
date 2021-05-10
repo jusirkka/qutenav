@@ -18,14 +18,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import QtQuick 2.15
+import QtQuick 2.6
 
 Column {
 
   id: root
   height: childrenRect.height
   width: parent.width
-  spacing: Theme.paddingMedium
+  spacing: theme.paddingMedium
 
   property alias description: desc.text
   property alias label: label.text
@@ -33,24 +33,24 @@ Column {
 
   LabelPL {
     id: label
-    font.pixelSize: Theme.fontSizeMedium
+    font.pixelSize: theme.fontSizeMedium
     height: implicitHeight
     width: parent.width
     wrapMode: Text.WordWrap
-    color: Theme.primaryColor
+    color: theme.primaryColor
   }
 
   Item {
-    width: parent.width * .75 - Theme.horizontalPageMargin
+    width: parent.width * .75 - theme.horizontalPageMargin
     height: m.height
-    anchors.leftMargin: Theme.horizontalPageMargin
+    anchors.leftMargin: theme.horizontalPageMargin
     TextFieldPL {
       id: val
       height: implicitHeight
       width: parent.width - m.width
-      font.pixelSize: Theme.fontSizeMedium
+      font.pixelSize: theme.fontSizeMedium
       inputMethodHints: Qt.ImhFormattedNumbersOnly
-      color: Theme.highlightColor
+      color: theme.highlightColor
       horizontalAlignment: TextInput.AlignHCenter
       Component.onCompleted: {
         text = root.value.toFixed(1);
@@ -72,12 +72,12 @@ Column {
 
   LabelPL {
     id: desc
-    font.pixelSize: Theme.fontSizeSmall
+    font.pixelSize: theme.fontSizeSmall
     height: text ? implicitHeight : 0
     width: parent.width
     visible: text
     wrapMode: Text.WordWrap
-    color: Theme.secondaryColor
+    color: theme.secondaryColor
   }
 
 }

@@ -496,8 +496,8 @@ GeoProjection* CM93Reader::configuredProjection(const QString& path) const {
   }
   Q_ASSERT(n_max > n_min);
 
-  QSizeF scaling((e_max - e_min) / 65535., (n_max - n_min) / 65535.);
-  WGS84Point ref = m_proj->toWGS84(QPointF(e_min, n_min));
+  const QSizeF scaling((e_max - e_min) / 65535., (n_max - n_min) / 65535.);
+  const WGS84Point ref = m_proj->toWGS84(QPointF(e_min, n_min));
 
   auto gp = GeoProjection::CreateProjection(m_proj->className());
   gp->setReference(ref);

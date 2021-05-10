@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import QtQuick 2.15
+import QtQuick 2.6
 import org.qutenav 1.0
 
 DialogPL {
@@ -47,7 +47,7 @@ DialogPL {
       }
     }
 
-    ViewPlaceHolderPL {
+    ViewPlaceholderPL {
       enabled: tracks.model.count === 0
       text: "No tracks."
       hintText: "Tap tracks record button in Chart view to record a track."

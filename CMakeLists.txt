@@ -47,6 +47,55 @@ elseif (PLATFORM STREQUAL silica)
   set(PLATFORM_LIBS -lGLESv2)
   set(PLATFORM_SHADERS "shaders_opengl_es")
 
+  add_custom_target(Qml SOURCES
+    qml/Boat.qml
+    qml/Bubble.qml
+    qml/CenterButton.qml
+    qml/ChartPage.qml
+    qml/CoverPage.qml
+    qml/DimensionalValue.qml
+    qml/DistanceButton.qml
+    qml/EditButton.qml
+    qml/InfoPage.qml
+    qml/MenuButton.qml
+    qml/MenuPage.qml
+    qml/platform.silica/ApplicationWindowPL.qml
+    qml/platform.silica/ChartPagePL.qml
+    qml/platform.silica/ChartSetComboPL.qml
+    qml/platform.silica/ComboBoxPL.qml
+    qml/platform.silica/DialogPL.qml
+    qml/platform.silica/IconListItemPL.qml
+    qml/platform.silica/LabelPL.qml
+    qml/platform.silica/ListViewDelegatePL.qml
+    qml/platform.silica/ListViewPL.qml
+    qml/platform.silica/MapButtonPL.qml
+    qml/platform.silica/PagePL.qml
+    qml/platform.silica/SectionHeaderPL.qml
+    qml/platform.silica/SwitchDelegatePL.qml
+    qml/platform.silica/TextFieldPL.qml
+    qml/platform.silica/TextSwitchPL.qml
+    qml/platform.silica/ThemePL.qml
+    qml/platform.silica/ViewPlaceholderPL.qml
+    qml/PreferencesPage.qml
+    qml/qutenav.qml
+    qml/RouteButton.qml
+    qml/RouteDisplayDialog.qml
+    qml/RoutePoint.qml
+    qml/RoutingResultDialog.qml
+    qml/RoutingStartDialog.qml
+    qml/ScaleBar.qml
+    qml/TrackButton.qml
+    qml/TrackDisplayDialog.qml
+    qml/TrackInfoBox.qml
+    qml/TrackInfo.qml
+    qml/TrackPointInfoBox.qml
+    qml/TrackResultDialog.qml
+    qml/TrackSpeedInfoBox.qml
+    qml/TrackTargetInfoBox.qml
+    qml/ValuePref.qml
+  )
+
+
 endif ()
 
 set(BISON_MIN_VERSION "3.1")

@@ -1,6 +1,6 @@
 /* -*- coding: utf-8-unix -*-
  *
- * File: mobile/qml/CenterButton.qml
+ * File: qml/CenterButton.qml
  *
  * Copyright (C) 2021 Jukka Sirkka
  *
@@ -17,26 +17,27 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import QtQuick 2.2
+import QtQuick 2.6
 
-MapButton {
+MapButtonPL {
+
   id: button
 
   property bool centered
 
   anchors.bottom: parent.bottom
-  anchors.bottomMargin: Theme.paddingMedium
-  anchors.rightMargin: Theme.paddingMedium
+  anchors.bottomMargin: theme.paddingMedium
+  anchors.rightMargin: theme.paddingMedium
 
   onCenteredChanged: {
     if (centered) {
-      icon.color = "#00b000";
+      iconColor = "#00b000";
     } else {
-      icon.color = "black";
+      iconColor = "black";
     }
   }
 
-  icon.source: app.getIcon("center")
+  iconSource: app.getIcon("center")
 
 
   onClicked: {

@@ -35,13 +35,13 @@ Marine chart plotter / navigator for Sailfish OS. Supports cm93v2, S57 and OpenC
 
 %build
 mkdir -p rpmbuilddir-%{_arch}
-cd rpmbuilddir-%{_arch} && cmake -DMOBILE=ON -DCMAKE_BUILD_TYPE=Debug ..
-#cd rpmbuilddir-%{_arch} && cmake -DMOBILE=ON -DCMAKE_BUILD_TYPE=Release ..
+cd rpmbuilddir-%{_arch} && cmake -DPLATFORM=silica -DCMAKE_BUILD_TYPE=Debug ..
+#cd rpmbuilddir-%{_arch} && cmake -DPLATFORM=silica -DCMAKE_BUILD_TYPE=Release ..
 cd ..
 make %{?_smp_mflags} -C rpmbuilddir-%{_arch} VERBOSE=1
 
 %install
-make -C mobile -f sailfishos.make \
+make -f sailfishos.make \
   DESTDIR=%{buildroot} VERSION=%{version} \
   PREFIX=/usr BUILDDIR=rpmbuilddir-%{_arch} ARCH=%{_arch} install
 

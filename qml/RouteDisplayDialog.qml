@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import QtQuick 2.15
+import QtQuick 2.6
 import org.qutenav 1.0
 
 DialogPL {
@@ -50,8 +50,8 @@ DialogPL {
         id: label
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.leftMargin: Theme.horizontalPageMargin
-        anchors.rightMargin: Theme.horizontalPageMargin
+        anchors.leftMargin: theme.horizontalPageMargin
+        anchors.rightMargin: theme.horizontalPageMargin
         text: model.name
       }
 
@@ -61,7 +61,7 @@ DialogPL {
       }
     }
 
-    ViewPlaceHolderPL {
+    ViewPlaceholderPL {
       enabled: routes.model.count === 0
       text: "No routes."
       hintText: "Click route edit button in Chart view to create a route."

@@ -239,6 +239,7 @@ void ChartDisplay::resize(int) {
   if (m_size == window()->size()) return;
   m_size = window()->size();
 
+  qCDebug(CDPY) << "resize->orient";
   orient(m_orientation);
 }
 
@@ -268,7 +269,7 @@ void ChartDisplay::orient(Qt::ScreenOrientation orientation) {
   qCDebug(CDPY) << "WxH =" << m_orientedSize.width() << "x" << m_orientedSize.height();
   qCDebug(CDPY) << "WxH (mm) =" << wmm << "x" << hmm;
 
-  emit updateViewport(m_camera);
+  emit updateViewport(m_camera, ChartManager::Force);
   computeScaleBar();
   emit scaleBarLengthChanged(m_scaleBarLength);
 }

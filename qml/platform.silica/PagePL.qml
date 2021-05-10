@@ -18,7 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import QtQuick 2.2
+import QtQuick 2.6
 import Sailfish.Silica 1.0
 
 Page {
@@ -32,7 +32,7 @@ Page {
   SilicaFlickable {
     id: flickable
     anchors.fill: parent
-    contentHeight: header.height + 2 * Theme.paddingLarge + body.height
+    contentHeight: header.height + 2 * theme.paddingLarge + body.height
 
     PageHeader {
       id: header
@@ -42,15 +42,15 @@ Page {
     Column {
       id: body
 
-      x: Theme.horizontalPageMargin
+      x: theme.horizontalPageMargin
       width: parent.width - 2*x
       anchors {
         left: parent.left
         right: parent.right
         top: header.bottom
-        leftMargin: Theme.horizontalPageMargin
+        leftMargin: theme.horizontalPageMargin
       }
-      spacing: Theme.paddingMedium
+      spacing: theme.paddingMedium
     }
 
     VerticalScrollDecorator {flickable: flickable}
