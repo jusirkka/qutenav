@@ -50,7 +50,7 @@ enum class GeomType: quint8 {
 
 static const inline QVector<quint8> AllGeomTypes {0, 1, 2, 4, 8};
 
-void InitPresentation();
+void InitPresentation(const QStringList& paths);
 
 QString GetAttributeName(quint32 index);
 DataType GetAttributeType(quint32 index);

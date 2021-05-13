@@ -41,6 +41,7 @@ ApplicationWindow {
       'pause': 'media-playback-pause',
       'archive': 'folder',
       'preferences': 'preferences-system',
+      'documents': 'folder-documents',
     }
   }
 

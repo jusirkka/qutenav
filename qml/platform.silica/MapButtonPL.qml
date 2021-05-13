@@ -35,18 +35,5 @@ Rectangle {
     anchors.fill: parent
     onClicked: rect.clicked()
   }
-  //  IconButton {
-//    id: button
-//    anchors.verticalCenter: parent.verticalCenter
-//    anchors.horizontalCenter: parent.horizontalCenter
-
-//    height: icon.sourceSize.height
-//    icon.smooth: false
-//    icon.source: rect.iconSource
-//    icon.color: rect.iconColor
-
-//    onClicked: {
-//      rect.clicked()
-//    }
 }
 

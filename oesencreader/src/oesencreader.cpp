@@ -82,7 +82,7 @@ QStringList OesencReaderFactory::filters() const {
   return QStringList {"*.oesenc"};
 }
 
-void OesencReaderFactory::initialize() const {
+void OesencReaderFactory::initialize(const QStringList&) const {
   OeDevice::Kickoff();
 }
 

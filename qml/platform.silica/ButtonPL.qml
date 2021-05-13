@@ -1,5 +1,7 @@
 /* -*- coding: utf-8-unix -*-
  *
+ * File: ListViewPL.qml
+ *
  * Copyright (C) 2021 Jukka Sirkka
  *
  * This program is free software: you can redistribute it and/or modify
@@ -15,29 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import Sailfish.Silica 1.0
 
-import QtQuick 2.9
-import QtQuick.Controls 2.15
-
-Dialog {
-  id: dialog
-
-  property string acceptText: "Accept"
-  property int pageHeight: 300
-  property int pageWidth: parent.width / 3
-  property bool hasOK: false
-
-  visible: true
-  modal: true
-  width: pageWidth
-  height: pageHeight
-
-  anchors.centerIn: parent
-
-  onAccepted: {
-    close();
-  }
-
-
-  standardButtons: hasOK ? (Dialog.Ok | Dialog.Cancel) : Dialog.Cancel
-}
+Button {}

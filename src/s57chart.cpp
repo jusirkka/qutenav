@@ -290,9 +290,9 @@ void S57Chart::updatePaintData(const WGS84PointVector& cs, quint32 scale) {
   GL::VertexVector transforms;
   GL::VertexVector textTransforms;
 
-  const auto maxcat = static_cast<quint8>(Conf::MarinerParams::maxCategory());
+  const auto maxcat = static_cast<quint8>(Conf::MarinerParams::MaxCategory());
   const auto today = QDate::currentDate();
-  const bool showMeta = Conf::MarinerParams::showMeta();
+  const bool showMeta = Conf::MarinerParams::ShowMeta();
   const quint32 unknownClass = S52::FindIndex("######");
 
   KV::Region cover(cs, m_nativeProj);

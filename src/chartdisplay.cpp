@@ -32,6 +32,9 @@
 #include <QOffscreenSurface>
 #include "settings.h"
 #include "logging.h"
+#include "dbupdater_interface.h"
+#include <QProcess>
+#include <QTimer>
 
 ObjectObject::ObjectObject(const QString &n, QObject *parent)
   : QObject(parent)
@@ -51,9 +54,11 @@ ChartDisplay::ChartDisplay()
   , m_flags(0)
   , m_orientation(Qt::PortraitOrientation)
   , m_scaleBarLength(100)
+  , m_updater(new UpdaterInterface(this))
 {
   setMirrorVertically(true);
   connect(this, &QQuickItem::windowChanged, this, &ChartDisplay::handleWindowChanged);
+  connect(m_updater, &UpdaterInterface::status, this, &ChartDisplay::chartDBStatus);
 }
 
 
@@ -103,6 +108,8 @@ void ChartDisplay::initializeSG() {
 
   connect(this, &ChartDisplay::infoRequest, chartMgr, &ChartManager::requestInfo);
   connect(chartMgr, &ChartManager::infoResponse, this, &ChartDisplay::handleInfoResponse);
+
+  connect(chartMgr, &ChartManager::chartSetsUpdated, this, &ChartDisplay::updateChartSet);
 
   connect(chartMgr, &ChartManager::idle, this, [this] () {
     m_flags |= LeavingChartMode;
@@ -160,7 +167,7 @@ QString ChartDisplay::defaultChartSet() const {
   const QStringList sets = chartSets();
   if (sets.empty()) return "None";
 
-  QString s = Conf::MainWindow::chartset();
+  QString s = Conf::MainWindow::Chartset();
   if (sets.contains(s)) return s;
 
   s = chartSet();
@@ -188,6 +195,14 @@ QString ChartDisplay::chartSet() const {
   return ChartManager::instance()->chartSet();
 }
 
+void ChartDisplay::updateChartSet() {
+  const auto name = Conf::MainWindow::Chartset();
+  ChartManager::instance()->setChartSet(name, m_camera->geoprojection(), true);
+  m_flags |= ChartSetChanged;
+  emit updateViewport(m_camera, ChartManager::Force);
+  emit chartSetsChanged();
+  update();
+}
 
 bool ChartDisplay::consume(quint32 flag) {
   const bool ret = (m_flags & flag) != 0;
@@ -473,3 +488,36 @@ void ChartDisplay::advanceNMEALog(int secs) const {
   f.close();
 }
 
+void ChartDisplay::updateChartDB(bool fullUpdate) {
+  auto resp = m_updater->ping();
+  qCDebug(CDPY) << "pong:" << resp.isValid();
+  if (!resp.isValid()) {
+    qCDebug(CDPY) << resp.error().name() << resp.error().message();
+    qCDebug(CDPY) << "Launching dbupdater";
+    auto updater = QString("%1_dbupdater").arg(qAppName());
+    bool ok = QProcess::startDetached(updater, QStringList());
+    qCDebug(CDPY) << "Launched" << updater << ", status =" << ok;
+    if (ok) {
+      if (fullUpdate) {
+        QTimer::singleShot(1000, this, &ChartDisplay::requestChartDBFullUpdate);
+      } else {
+        QTimer::singleShot(1000, this, &ChartDisplay::requestChartDBUpdate);
+      }
+    }
+  } else {
+    if (fullUpdate) {
+      requestChartDBFullUpdate();
+    } else {
+      requestChartDBUpdate();
+    }
+  }
+}
+
+void ChartDisplay::requestChartDBUpdate() {
+  m_updater->sync(Conf::MainWindow::ChartFolders());
+}
+
+
+void ChartDisplay::requestChartDBFullUpdate() {
+  m_updater->fullSync(Conf::MainWindow::ChartFolders());
+}

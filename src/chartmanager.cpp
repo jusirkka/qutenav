@@ -38,6 +38,7 @@
 #include "cachereader.h"
 #include "dbupdater_interface.h"
 #include "gnuplot.h"
+#include "conf_mainwindow.h"
 
 ChartManager* ChartManager::instance() {
   static ChartManager* m = new ChartManager();
@@ -87,7 +88,7 @@ void ChartManager::updateChartSets() {
       if (index < m_readers.size()) { // already created
         m_chartSets[m_factories[name]->displayName()] = index;
       } else {
-        auto reader = m_factories[name]->loadReader();
+        auto reader = m_factories[name]->loadReader(Conf::MainWindow::ChartFolders());
         if (reader == nullptr) continue;
         m_chartSets[m_factories[name]->displayName()] = m_readers.size();
         m_readers.append(reader);

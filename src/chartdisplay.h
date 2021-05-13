@@ -28,6 +28,7 @@ class DetailMode;
 class Camera;
 class QOpenGLContext;
 class QOffscreenSurface;
+class UpdaterInterface;
 
 class AttributeObject: public QObject {
 
@@ -111,6 +112,7 @@ public:
   Q_INVOKABLE void setEye(qreal lng, qreal lat);
   Q_INVOKABLE QPointF position(qreal lng, qreal lat) const;
   Q_INVOKABLE QPointF advance(qreal lng, qreal lat, qreal distance, qreal heading) const;
+  Q_INVOKABLE void updateChartDB(bool fullUpdate);
 
   Q_PROPERTY(QStringList chartSets
              READ chartSets
@@ -165,15 +167,19 @@ private slots:
   void orient(Qt::ScreenOrientation orientation);
 
   void handleInfoResponse(const S57::InfoType& info);
+  void updateChartSet();
+  void requestChartDBUpdate();
+  void requestChartDBFullUpdate();
 
 signals:
 
   void updateViewport(const Camera* cam, quint32 flags = 0);
-  void chartSetsChanged(const QStringList& chartSets);
+  void chartSetsChanged();
   void chartSetChanged(const QString& chartSet);
   void scaleBarLengthChanged(qreal len);
   void infoQueryReady(const QList<QObject*>& info);
   void infoRequest(const WGS84Point& p);
+  void chartDBStatus(const QString& msg);
 
 private:
 
@@ -197,5 +203,7 @@ private:
   QOpenGLVertexArrayObject m_vao;
 
   QObjectList m_info;
+
+  UpdaterInterface* m_updater;
 
 };

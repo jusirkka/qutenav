@@ -50,7 +50,7 @@ Private::Presentation::Presentation()
   connect(Settings::instance(), &Settings::colorTableChanged,
           this, &Presentation::setColorTable);
 
-  setColorTable(static_cast<quint8>(Conf::MarinerParams::colorTable()));
+  setColorTable(static_cast<quint8>(Conf::MarinerParams::ColorTable()));
 
 }
 
@@ -93,11 +93,11 @@ S52::Lookup::Type Private::Presentation::typeFilter(const S57::Object *obj) cons
   const S57::Geometry::Type t = obj->geometry()->type();
   if (t == S57::Geometry::Type::Line) return S52::Lookup::Type::Lines;
   if (t == S57::Geometry::Type::Area) {
-    return Conf::MarinerParams::plainBoundaries() ?
+    return Conf::MarinerParams::PlainBoundaries() ?
           S52::Lookup::Type::PlainBoundaries :
           S52::Lookup::Type::SymbolizedBoundaries;
   }
-  return Conf::MarinerParams::simplifiedSymbols() ?
+  return Conf::MarinerParams::SimplifiedSymbols() ?
         S52::Lookup::Type::Simplified :
         S52::Lookup::Type::PaperChart;
 }

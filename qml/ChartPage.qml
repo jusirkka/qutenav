@@ -59,7 +59,6 @@ ChartPagePL {
 
   Component.onCompleted: {
     app.encdis = encdis
-    console.log("chartpage", encdis)
     infoMode = false;
     posValid = false;
     headingValid = false;
@@ -147,7 +146,11 @@ ChartPagePL {
     anchors.fill: parent
 
     onInfoQueryReady: {
-      pageStack.push(Qt.resolvedUrl("InfoPage.qml"), {content: info});
+      app.show(Qt.resolvedUrl("InfoPage.qml"), {content: info});
+    }
+
+    onChartDBStatus: {
+      bubble.show(msg, "top");
     }
 
     Tracker {

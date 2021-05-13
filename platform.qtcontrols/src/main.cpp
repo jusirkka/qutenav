@@ -34,6 +34,7 @@
 #include "router.h"
 #include "routemodel.h"
 #include "routedatabase.h"
+#include "chartdatabase.h"
 
 Q_IMPORT_PLUGIN(CM93ReaderFactory)
 Q_IMPORT_PLUGIN(S57ReaderFactory)
@@ -77,6 +78,7 @@ int main(int argc, char *argv[]) {
 
   TrackDatabase::createTables();
   RouteDatabase::createTables();
+  ChartDatabase::createTables();
 
   // Set up QML engine.
   QQmlApplicationEngine engine;

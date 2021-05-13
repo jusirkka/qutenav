@@ -7,10 +7,13 @@
 - bug: dash/dot length varies in dashed/dotted lines
 - bug: overlapping charts not handled properly
 - unit preferences
-- better chart object info
 - more detailed track statistics in track archive page
 - more detailed route info in route archive page
 - Route/editor: reverse & edit a route
+- manage chart cache
 
-- user chart manager
+- libqutenav subdir of common src of qutenav and qutenav_updater
+- remove ChartSetComboPL in favour of ComboboxPL
+- fullscreen control & config for desktop app
 - write readme.md
+- better chart object info

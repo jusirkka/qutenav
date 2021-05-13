@@ -29,13 +29,28 @@ public:
   static MainWindow *self();
   ~MainWindow();
 
-  CONF_DECL(chartset, Chartset, chartset, QString, toString)
-  CONF_DECL(width, Width, width, int, toInt)
-  CONF_DECL(height, Height, height, int, toInt)
+  CONF_DECL(Chartset, chartset, QString, toString)
+  CONF_DECL(Width, width, int, toInt)
+  CONF_DECL(Height, height, int, toInt)
+
+  static void setChartFolders(const QStringList& v) {
+    self()->m_chartFolders = v;
+
+    QVariantList items;
+    for (auto i: v) items.append(i);
+
+    self()->m_values["chart_folders"] = items;
+  }
+
+  static QStringList ChartFolders() {
+    return self()->m_chartFolders;
+  }
 
 private:
 
   MainWindow();
+
+  QStringList m_chartFolders;
 
 };
 

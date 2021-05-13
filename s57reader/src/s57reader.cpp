@@ -1307,7 +1307,7 @@ QStringList S57ReaderFactory::filters() const {
   return QStringList {"*.000"};
 }
 
-void S57ReaderFactory::initialize() const {
+void S57ReaderFactory::initialize(const QStringList&) const {
   // noop
 }
 

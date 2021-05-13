@@ -132,7 +132,7 @@ public:
 
 protected:
 
-  void initialize() const override;
+  void initialize(const QStringList&) const override;
   ChartFileReader* create() const override;
 
 };

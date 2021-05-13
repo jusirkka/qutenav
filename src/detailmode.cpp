@@ -28,15 +28,15 @@ DetailMode::DetailMode(QObject *parent): QObject(parent) {}
 
 
 Camera* DetailMode::RestoreCamera() {
-  const float wmm = Conf::DetailMode::widthMM();
-  const float hmm = Conf::DetailMode::heightMM();
+  const float wmm = Conf::DetailMode::WidthMM();
+  const float hmm = Conf::DetailMode::HeightMM();
 
-  auto p = GeoProjection::CreateProjection(Conf::DetailMode::projection());
+  auto p = GeoProjection::CreateProjection(Conf::DetailMode::Projection());
   if (p == nullptr) {
     p = new SimpleMercator;
   }
 
-  const QString name = Conf::DetailMode::name();
+  const QString name = Conf::DetailMode::Name();
   Camera* cam;
   if (name == "OutlineMode") {
     cam = new PersCam(wmm, hmm, p);
@@ -46,15 +46,15 @@ Camera* DetailMode::RestoreCamera() {
     throw ModeError("unsupported mode");
   }
 
-  quint32 scale = Conf::DetailMode::scale();
+  quint32 scale = Conf::DetailMode::Scale();
   scale = qMin(scale, cam->maxScale());
   scale = qMax(scale, cam->minScale());
   cam->setScale(scale);
 
-  WGS84Point e = WGS84Point::parseISO6709(Conf::DetailMode::eye());
+  WGS84Point e = WGS84Point::parseISO6709(Conf::DetailMode::Eye());
   if (!e.valid()) e = cam->eye();
 
-  const Angle a = Angle::fromDegrees(Conf::DetailMode::northAngle());
+  const Angle a = Angle::fromDegrees(Conf::DetailMode::NorthAngle());
 
   cam->reset(e, a);
 
@@ -63,15 +63,15 @@ Camera* DetailMode::RestoreCamera() {
 
 DetailMode* DetailMode::RestoreState() {
 
-  const float wmm = Conf::DetailMode::widthMM();
-  const float hmm = Conf::DetailMode::heightMM();
+  const float wmm = Conf::DetailMode::WidthMM();
+  const float hmm = Conf::DetailMode::HeightMM();
 
-  auto p = GeoProjection::CreateProjection(Conf::DetailMode::projection());
+  auto p = GeoProjection::CreateProjection(Conf::DetailMode::Projection());
   if (p == nullptr) {
     p = new SimpleMercator;
   }
 
-  const QString name = Conf::DetailMode::name();
+  const QString name = Conf::DetailMode::Name();
   DetailMode* mode;
   if (name == "OutlineMode") {
     mode = new OutlineMode(wmm, hmm, p);
@@ -81,15 +81,15 @@ DetailMode* DetailMode::RestoreState() {
     throw ModeError("unsupported mode");
   }
 
-  quint32 scale = Conf::DetailMode::scale();
+  quint32 scale = Conf::DetailMode::Scale();
   scale = qMin(scale, mode->camera()->maxScale());
   scale = qMax(scale, mode->camera()->minScale());
   mode->camera()->setScale(scale);
 
-  WGS84Point e = WGS84Point::parseISO6709(Conf::DetailMode::eye());
+  WGS84Point e = WGS84Point::parseISO6709(Conf::DetailMode::Eye());
   if (!e.valid()) e = mode->camera()->eye();
 
-  const Angle a = Angle::fromDegrees(Conf::DetailMode::northAngle());
+  const Angle a = Angle::fromDegrees(Conf::DetailMode::NorthAngle());
 
   mode->camera()->reset(e, a);
 

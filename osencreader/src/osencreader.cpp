@@ -82,7 +82,7 @@ QStringList OsencReaderFactory::filters() const {
   return QStringList {"*.S57"};
 }
 
-void OsencReaderFactory::initialize() const {
+void OsencReaderFactory::initialize(const QStringList&) const {
   // noop
 }
 

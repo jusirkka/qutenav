@@ -41,14 +41,14 @@ Rectangle {
     State {
       name: "bottom"
       AnchorChanges {
-        anchors.bottom: parent.bottom
+        anchors.bottom: menuButton.top
         target: item
       }
     },
     State {
       name: "top"
       AnchorChanges {
-        anchors.top: parent.top
+        anchors.top: trackInfo.bottom
         target: item
       }
     }
@@ -58,7 +58,7 @@ Rectangle {
 
   function show(msg, pos) {
     info.text = msg;
-    timer.start();
+    timer.restart();
     state = pos;
   }
 

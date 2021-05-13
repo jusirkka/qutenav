@@ -45,17 +45,20 @@ Item {
     onCurrentIndexChanged: {
       encdis.chartSet = model[currentIndex];
     }
+
+    onModelChanged: {
+      currentIndex = 0;
+      var active = encdis.chartSet;
+      for (var i = 0; i < model.length; i++) {
+        if (model[i] === active) {
+          currentIndex = i;
+          break;
+        }
+      }
+    }
   }
 
   Component.onCompleted: {
     box.model = encdis.chartSets;
-    box.currentIndex = 0;
-    var active = encdis.chartSet;
-    for (var i = 0; i < box.model.length; i++) {
-      if (box.model[i] === active) {
-        box.currentIndex = i;
-        break;
-      }
-    }
   }
 }

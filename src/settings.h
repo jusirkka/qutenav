@@ -50,9 +50,6 @@ public:
 
   const QString& description() const {return m_description;}
 
-  void setDefault();
-  bool getDefault() const;
-
 signals:
 
   void enabledChanged();
@@ -79,7 +76,7 @@ public:
              WRITE setPlainBoundaries)
 
   bool plainBoundaries() const {
-    return Conf::MarinerParams::plainBoundaries();
+    return Conf::MarinerParams::PlainBoundaries();
   }
 
   void setPlainBoundaries(bool v) {
@@ -94,7 +91,7 @@ public:
              WRITE setSimplifiedSymbols)
 
   bool simplifiedSymbols() const {
-    return Conf::MarinerParams::simplifiedSymbols();
+    return Conf::MarinerParams::SimplifiedSymbols();
   }
 
   void setSimplifiedSymbols(bool v) {
@@ -109,7 +106,7 @@ public:
              WRITE setFullLengthSectors)
 
   bool fullLengthSectors() const {
-    return Conf::MarinerParams::fullLengthSectors();
+    return Conf::MarinerParams::FullLengthSectors();
   }
 
   void setFullLengthSectors(bool v) {
@@ -124,7 +121,7 @@ public:
              WRITE setShowMeta)
 
   bool showMeta() const {
-    return Conf::MarinerParams::showMeta();
+    return Conf::MarinerParams::ShowMeta();
   }
 
   void setShowMeta(bool v) {
@@ -139,7 +136,7 @@ public:
              WRITE setTwoShades)
 
   bool twoShades() const {
-    return Conf::MarinerParams::twoShades();
+    return Conf::MarinerParams::TwoShades();
   }
 
   void setTwoShades(bool v) {
@@ -160,7 +157,7 @@ public:
              WRITE setMaxCategory)
 
   quint8 maxCategory() const {
-    return static_cast<quint8>(Conf::MarinerParams::maxCategory());
+    return static_cast<quint8>(Conf::MarinerParams::MaxCategory());
   }
 
   void setMaxCategory(quint8 v) {
@@ -181,7 +178,7 @@ public:
              WRITE setColorTable)
 
   quint8 colorTable() const {
-    return static_cast<quint8>(Conf::MarinerParams::colorTable());
+    return static_cast<quint8>(Conf::MarinerParams::ColorTable());
   }
 
   void setColorTable(quint8 v) {
@@ -197,7 +194,7 @@ public:
              WRITE setSafetyDepth)
 
   qreal safetyDepth() const {
-    return Conf::MarinerParams::safetyDepth();
+    return Conf::MarinerParams::SafetyDepth();
   }
 
   void setSafetyDepth(qreal v) {
@@ -212,7 +209,7 @@ public:
              WRITE setSafetyContour)
 
   qreal safetyContour() const {
-    return Conf::MarinerParams::safetyContour();
+    return Conf::MarinerParams::SafetyContour();
   }
 
   void setSafetyContour(qreal v) {
@@ -227,7 +224,7 @@ public:
              WRITE setShallowContour)
 
   qreal shallowContour() const {
-    return Conf::MarinerParams::shallowContour();
+    return Conf::MarinerParams::ShallowContour();
   }
 
   void setShallowContour(qreal v) {
@@ -242,7 +239,7 @@ public:
              WRITE setDeepContour)
 
   qreal deepContour() const {
-    return Conf::MarinerParams::deepContour();
+    return Conf::MarinerParams::DeepContour();
   }
 
   void setDeepContour(qreal v) {
@@ -263,7 +260,7 @@ public:
              WRITE setMainWindowWidth)
 
   int mainWindowWidth() const {
-    return Conf::MainWindow::width();
+    return Conf::MainWindow::Width();
   }
 
   void setMainWindowWidth(int v) {
@@ -275,15 +272,24 @@ public:
              WRITE setMainWindowHeight)
 
   int mainWindowHeight() const {
-    return Conf::MainWindow::height();
+    return Conf::MainWindow::Height();
   }
 
   void setMainWindowHeight(int v) {
     Conf::MainWindow::setHeight(v);
   }
 
-  void setDefault(const QString& prop);
-  QVariant getDefault(const QString& prop) const;
+  Q_PROPERTY(QStringList chartFolders
+             READ chartFolders
+             WRITE setChartFolders)
+
+  QStringList chartFolders() const {
+    return Conf::MainWindow::ChartFolders();
+  }
+
+  void setChartFolders(const QStringList& v) {
+    Conf::MainWindow::setChartFolders(v);
+  }
 
   float displayLengthScaling() const;
   float displayTextSizeScaling() const;

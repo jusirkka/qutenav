@@ -2,10 +2,18 @@
         "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
 <node name="updater">
     <interface name="net.kvanttiapina.qutenav.Updater">
-        <method name="sync"/>
+        <method name="sync">
+          <arg name="paths" type="as"/>
+        </method>
+        <method name="fullSync">
+          <arg name="paths" type="as"/>
+        </method>
         <method name="ping">
           <arg name="pong" direction="out" type="s"/>
         </method>
         <signal name="ready"/>
+        <signal name="status">
+          <arg name="message" type="s"/>
+        </signal>
     </interface>
 </node>

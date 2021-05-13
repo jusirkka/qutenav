@@ -42,10 +42,11 @@ Column {
 
   Item {
     width: parent.width * .75 - theme.horizontalPageMargin
-    height: m.height
+    height: val.height
     anchors.leftMargin: theme.horizontalPageMargin
     TextFieldPL {
       id: val
+      anchors.bottomMargin: theme.paddingMedium
       height: implicitHeight
       width: parent.width - m.width
       font.pixelSize: theme.fontSizeMedium
@@ -73,6 +74,7 @@ Column {
   LabelPL {
     id: desc
     font.pixelSize: theme.fontSizeSmall
+    font.italic: true
     height: text ? implicitHeight : 0
     width: parent.width
     visible: text

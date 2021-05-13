@@ -1193,8 +1193,8 @@ QStringList CM93ReaderFactory::filters() const {
   return QStringList {"*.[A-G]", "*.Z"};
 }
 
-void CM93ReaderFactory::initialize() const {
-  CM93::InitPresentation();
+void CM93ReaderFactory::initialize(const QStringList& path) const {
+  CM93::InitPresentation(path);
 }
 
 ChartFileReader* CM93ReaderFactory::create() const {

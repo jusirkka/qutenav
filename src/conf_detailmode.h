@@ -30,13 +30,13 @@ public:
   static DetailMode *self();
   ~DetailMode();
 
-  CONF_DECL(widthMM, WidthMM, width_mm, double, toDouble)
-  CONF_DECL(heightMM, HeightMM, height_mm, double, toDouble)
-  CONF_DECL(name, Name, name, QString, toString)
-  CONF_DECL(projection, Projection, projection, QString, toString)
-  CONF_DECL(scale, Scale, scale, uint, toUInt)
-  CONF_DECL(eye, Eye, eye, QString, toString)
-  CONF_DECL(northAngle, NorthAngle, north_angle, double, toDouble)
+  CONF_DECL(WidthMM, width_mm, double, toDouble)
+  CONF_DECL(HeightMM, height_mm, double, toDouble)
+  CONF_DECL(Name, name, QString, toString)
+  CONF_DECL(Projection, projection, QString, toString)
+  CONF_DECL(Scale, scale, uint, toUInt)
+  CONF_DECL(Eye, eye, QString, toString)
+  CONF_DECL(NorthAngle, north_angle, double, toDouble)
 
 private:
 

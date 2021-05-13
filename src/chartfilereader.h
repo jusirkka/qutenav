@@ -98,14 +98,14 @@ protected:
 class ChartFileReaderFactory {
 public:
 
-  ChartFileReader* loadReader() const;
+  ChartFileReader* loadReader(const QStringList& paths) const;
   virtual QString name() const = 0;
   virtual QString displayName() const = 0;
   virtual QStringList filters() const = 0;
 
 protected:
 
-  virtual void initialize() const = 0;
+  virtual void initialize(const QStringList& paths) const = 0;
   virtual ChartFileReader* create() const = 0;
 
   virtual ~ChartFileReaderFactory() = default;

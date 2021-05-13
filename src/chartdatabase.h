@@ -27,9 +27,12 @@ class ChartDatabase: public SQLiteDatabase {
 public:
 
   ChartDatabase();
+  ChartDatabase(const QString& connName);
   ~ChartDatabase() = default;
 
   void loadCharts(int chartset);
+
+  static void createTables();
 
 };
 

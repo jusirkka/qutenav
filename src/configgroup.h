@@ -21,27 +21,21 @@
 
 #include <QVariantMap>
 
-#define CONF_DECL(name, Name, key, Type, toType) \
+#define CONF_DECL(Name, key, Type, toType) \
   static void set ## Name(Type v) {\
     self()->m_values[#key] = v;\
   } \
-  static Type name() {\
+  static Type Name() {\
     return self()->m_values[#key].toType(); \
   }
 
 namespace Conf {
 
-class DummyItem {
-public:
-  QVariant getDefault() const {return QVariant();}
-};
 
 class ConfigGroup {
 public:
 
   void save();
-
-  DummyItem* findItem(const QString&) const {return m_dummy;}
 
   virtual ~ConfigGroup();
 
@@ -56,8 +50,6 @@ protected:
   QVariantMap m_defaults;
   QString m_group;
   QString m_path;
-
-  DummyItem* m_dummy;
 
 };
 

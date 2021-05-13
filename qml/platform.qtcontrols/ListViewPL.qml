@@ -21,4 +21,12 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
 
-ListView {}
+ListView {
+  focus: true
+  clip: true
+  highlight: Rectangle {
+    color: "#bcced4"
+  }
+  highlightMoveDuration: 0
+  highlightResizeDuration: 0
+}

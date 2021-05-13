@@ -22,11 +22,11 @@
 #include "platform.h"
 
 bool TextGroup::enabled() const {
-  return Conf::MarinerParams::textGrouping().contains(m_group);
+  return Conf::MarinerParams::TextGrouping().contains(m_group);
 }
 
 void TextGroup::setEnabled(bool v) {
-  auto values = Conf::MarinerParams::textGrouping();
+  auto values = Conf::MarinerParams::TextGrouping();
   if (values.contains(m_group) && v) return;
   if (!values.contains(m_group) && !v) return;
 
@@ -37,14 +37,6 @@ void TextGroup::setEnabled(bool v) {
   }
   Conf::MarinerParams::setTextGrouping(values);
   emit enabledChanged();
-}
-
-bool TextGroup::getDefault() const {
-  return m_default;
-}
-
-void TextGroup::setDefault() {
-  setEnabled(m_default);
 }
 
 Settings* Settings::instance() {
@@ -83,18 +75,6 @@ Settings::Settings(QObject *parent)
   }
 }
 
-QVariant Settings::getDefault(const QString& prop) const {
-  auto key = prop;
-  key[0] = prop[0].toUpper();
-  return Conf::MarinerParams::self()->findItem(key)->getDefault();
-}
-
-void Settings::setDefault(const QString& prop) {
-  auto key = prop;
-  key[0] = prop[0].toUpper();
-  auto def = Conf::MarinerParams::self()->findItem(key)->getDefault();
-  setProperty(prop.toUtf8(), def);
-}
 
 float Settings::displayLengthScaling() const {
   const float y0 = 6.2 / nominal_dpmm;

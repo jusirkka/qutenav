@@ -25,6 +25,8 @@
 #include <QDebug>
 #include <QStandardPaths>
 #include <QDir>
+#include <QDirIterator>
+#include "logging.h"
 
 class Presentation {
 
@@ -90,7 +92,7 @@ void Presentation::readObjectClasses(const QString &path) {
 
   while (!s.atEnd()) {
     const QStringList parts = s.readLine().split("|");
-    // qDebug() << parts;
+    // qCDebug(CS52) << parts;
     if (parts.length() < 5) continue;
     const QString className = parts[0];
     bool ok;
@@ -128,7 +130,7 @@ void Presentation::readAttributes(const QString &path) {
 
   while (!s.atEnd()) {
     const QStringList parts = s.readLine().split("|");
-    // qDebug() << parts;
+    // qCDebug(CS52) << parts;
     if (parts.length() < 3) continue;
     const QString attrName = parts[0];
     bool ok;
@@ -145,39 +147,35 @@ void Presentation::readAttributes(const QString &path) {
 
 }
 
-static QString FindPath(const QString& s) {
-  QDir dataDir;
-  QStringList locs;
+static QString FindPath(const QStringList& dirs, const QString& s) {
+
   QString file;
 
-  // qutenav or harbour-qutenav
-  const QString baseapp = qAppName().split("_").first();
-  for (const QString& loc: QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation)) {
-    locs << QString("%1/%2/charts/cm93").arg(loc).arg(baseapp);
-  }
+  for (const QString& top: dirs) {
 
-  for (const QString& loc: locs) {
-    dataDir = QDir(loc);
-    const QStringList files = dataDir.entryList(QStringList() << s,
-                                                QDir::Files | QDir::Readable);
-    if (files.size() == 1) {
-      file = files.first();
-      break;
-    }
+    QDirIterator it(top,
+                    QStringList() << s,
+                    QDir::Files | QDir::Readable,
+                    QDirIterator::FollowSymlinks | QDirIterator::Subdirectories);
+    if (!it.hasNext()) continue;
+
+    file = it.next();
+    // qCDebug(CS52) << file;
+    break;
   }
 
   if (file.isEmpty()) {
-    throw ChartFileError(QString("%1 not found in any of the standard locations").arg(s));
+    throw ChartFileError(QString("%1 not found in %2").arg(s).arg(dirs.join(", ")));
   }
 
-  return dataDir.absoluteFilePath(file);
+  return file;
 }
 
 
-void CM93::InitPresentation() {
+void CM93::InitPresentation(const QStringList& paths) {
   auto p = Presentation::instance();
-  p->readObjectClasses(FindPath("CM93OBJ.DIC"));
-  p->readAttributes(FindPath("CM93ATTR.DIC"));
+  p->readObjectClasses(FindPath(paths, "CM93OBJ.DIC"));
+  p->readAttributes(FindPath(paths, "CM93ATTR.DIC"));
 }
 
 

@@ -47,6 +47,7 @@ Item {
     anchors.top: sw.bottom
     anchors.topMargin: text ? theme.paddingSmall : 0
     font.pixelSize: theme.fontSizeSmall
+    font.italic: true
     height: text ? implicitHeight : 0
     visible: text
     wrapMode: Text.WordWrap

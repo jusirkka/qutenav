@@ -30,7 +30,7 @@ PagePL {
 
   title: "QuteNav"
 
-  pageHeight: parent.height * .55
+  pageHeight: parent.height
 
 
 
@@ -62,6 +62,39 @@ PagePL {
     enabled: !page.router.edited
   }
 
-  ChartSetComboPL {}
+  IconListItemPL {
+    label: "Chart folders"
+    iconName: app.getSystemIcon('documents')
+    onClicked: {
+      var dialog = app.show(Qt.resolvedUrl("ChartDialog.qml"),
+                            {paths: settings.chartFolders})
+      dialog.onAccepted.connect(function () {
+        settings.chartFolders = dialog.paths
+        encdis.updateChartDB(dialog.fullUpdate)
+      });
+    }
+  }
+
+  ComboBoxPL {
+    id: setBox
+    label: "Chartsets"
+    description: "Select the type of charts to display."
+    Component.onCompleted: {
+      model = encdis.chartSets;
+    }
+    onCurrentIndexChanged: {
+      encdis.chartSet = model[currentIndex];
+    }
+    onModelChanged: {
+      currentIndex = 0;
+      var active = encdis.chartSet;
+      for (var i = 0; i < model.length; i++) {
+        if (model[i] === active) {
+          currentIndex = i;
+          break;
+        }
+      }
+    }
+  }
 }
 

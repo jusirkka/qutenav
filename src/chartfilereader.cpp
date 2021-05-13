@@ -22,9 +22,9 @@
 #include "logging.h"
 
 
-ChartFileReader* ChartFileReaderFactory::loadReader() const {
+ChartFileReader* ChartFileReaderFactory::loadReader(const QStringList& paths) const {
   try {
-    initialize();
+    initialize(paths);
     return create();
   } catch (ChartFileError& e) {
     qCWarning(CENC) << e.msg();

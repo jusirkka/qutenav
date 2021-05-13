@@ -24,56 +24,11 @@
 #include <QDebug>
 
 ChartDatabase::ChartDatabase()
-  : SQLiteDatabase("ChartDatabase")
+  : SQLiteDatabase("manager")
 {
-  // qutenav or harbour-qutenav
-  const QString baseapp = qAppName().split("_").first();
-  QString loc = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
-  loc = QString("%1/%2/charts").arg(loc).arg(baseapp);
-  if (!QDir().mkpath(loc)) {
-    throw ChartFileError(QString("cannot create charts directory %1").arg(loc));
-  }
-  const QString dbfile = QString("%1/charts.db").arg(loc);
-  m_DB.setDatabaseName(dbfile);
+  m_DB.setDatabaseName(databaseName("charts"));
   m_DB.open();
   m_Query = QSqlQuery(m_DB);
-
-  m_Query.exec("create table if not exists chartsets ("
-               "id integer primary key autoincrement, "
-               "name text not null)");
-  checkError();
-
-  m_Query.exec("create table if not exists scales ("
-               "id integer primary key autoincrement, "
-               "chartset_id integer not null, "
-               "scale int not null, "
-               "unique (chartset_id, scale))");
-  checkError();
-
-  m_Query.exec("create table if not exists charts ("
-               "id integer primary key autoincrement, "
-               "scale_id integer not null, "
-               "swx real not null, "
-               "swy real not null, "
-               "nex real not null, "
-               "ney real not null, "
-               "published int not null, " // Julian day
-               "modified int not null, "  // Julian day
-               "path text not null unique)");
-  checkError();
-
-  m_Query.exec("create table if not exists coverage ("
-               "id integer primary key autoincrement, "
-               "type_id integer not null, "
-               "chart_id integer not null)");
-  checkError();
-
-  m_Query.exec("create table if not exists polygons ("
-               "id integer primary key autoincrement, "
-               "cov_id integer not null, "
-               "x real not null, "
-               "y real not null)");
-  checkError();
 
   m_Query.exec("attach database ':memory:' as m");
   checkError();
@@ -100,8 +55,60 @@ ChartDatabase::ChartDatabase()
                "x real not null, "
                "y real not null)");
   checkError();
-
 }
+
+ChartDatabase::ChartDatabase(const QString& connName)
+  : SQLiteDatabase(connName)
+{
+  m_DB.setDatabaseName(databaseName("charts"));
+  m_DB.open();
+  m_Query = QSqlQuery(m_DB);
+}
+
+
+void ChartDatabase::createTables() {
+  auto db = QSqlDatabase::addDatabase("QSQLITE");
+
+  db.setDatabaseName(databaseName("charts"));
+  db.open();
+  auto query = QSqlQuery(db);
+
+  query.exec("create table if not exists chartsets ("
+             "id integer primary key autoincrement, "
+             "name text not null)");
+
+  query.exec("create table if not exists scales ("
+             "id integer primary key autoincrement, "
+             "chartset_id integer not null, "
+             "scale int not null, "
+             "unique (chartset_id, scale))");
+
+  query.exec("create table if not exists charts ("
+             "id integer primary key autoincrement, "
+             "scale_id integer not null, "
+             "swx real not null, "
+             "swy real not null, "
+             "nex real not null, "
+             "ney real not null, "
+             "published int not null, " // Julian day
+             "modified int not null, "  // Julian day
+             "path text not null unique)");
+
+  query.exec("create table if not exists coverage ("
+             "id integer primary key autoincrement, "
+             "type_id integer not null, "
+             "chart_id integer not null)");
+
+  query.exec("create table if not exists polygons ("
+             "id integer primary key autoincrement, "
+             "cov_id integer not null, "
+             "x real not null, "
+             "y real not null)");
+
+  db.close();
+  QSqlDatabase::removeDatabase(db.connectionName());
+}
+
 
 void ChartDatabase::loadCharts(int chartset_id) {
   m_Query = QSqlQuery(m_DB);

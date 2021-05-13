@@ -27,6 +27,7 @@ Dialog {
   property string title
   property string acceptText: "Accept"
   property int pageHeight // dummy
+  property int pageWidth // dummy
   property bool hasOK: false // dummy
 
 

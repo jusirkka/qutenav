@@ -60,7 +60,7 @@ Item {
 
   Label {
     id: desc
-    anchors.left: lab.right
+    anchors.left: parent.left
     anchors.right: parent.right
     anchors.top: val.bottom
     anchors.topMargin: text ? theme.paddingSmall : 0
@@ -68,6 +68,7 @@ Item {
     height: text ? implicitHeight : 0
     visible: text
     wrapMode: Text.WordWrap
+    font.italic: true
   }
 
   function activate() {

@@ -24,6 +24,7 @@
 
 #include "dbupdater_adaptor.h"
 #include "s52names.h"
+#include "chartdatabase.h"
 
 Q_IMPORT_PLUGIN(CM93ReaderFactory)
 Q_IMPORT_PLUGIN(S57ReaderFactory)
@@ -38,10 +39,17 @@ int main(int argc, char *argv[]) {
   new UpdaterAdaptor(updater);
 
   QDBusConnection conn = QDBusConnection::sessionBus();
-  conn.registerObject("/Updater",
-                      updater,
-                      QDBusConnection::ExportAdaptors | QDBusConnection::ExportAllContents);
+  auto ok = conn.registerObject("/Updater",
+                                updater,
+                                QDBusConnection::ExportAdaptors | QDBusConnection::ExportAllContents);
+  if (!ok) {
+    qWarning() << "Cannot register to session dbus. Is" << qAppName() << "already running?";
+    return 255;
+  }
+
   conn.registerService("net.kvanttiapina.qutenav");
+
+  ChartDatabase::createTables();
 
   return app.exec();
 }

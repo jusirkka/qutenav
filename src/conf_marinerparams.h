@@ -40,28 +40,28 @@ public:
     enum type {DayBright, DayBlackBack, DayWhiteBack, Dusk, Night};
   };
 
-  CONF_DECL(twoShades, TwoShades, two_shades, bool, toBool)
-  CONF_DECL(safetyContour, SafetyContour, safety_contour, double, toDouble)
-  CONF_DECL(safetyDepth, SafetyDepth, safety_depth, double, toDouble)
-  CONF_DECL(shallowContour, ShallowContour, shallow_contour, double, toDouble)
-  CONF_DECL(deepContour, DeepContour, deep_contour, double, toDouble)
-  CONF_DECL(shallowPattern, ShallowPattern, shallow_pattern, bool, toBool)
-  CONF_DECL(plainBoundaries, PlainBoundaries, plain_boundaries, bool, toBool)
-  CONF_DECL(simplifiedSymbols, SimplifiedSymbols, simplified_symbols, bool, toBool)
-  CONF_DECL(showMeta, ShowMeta, show_meta, bool, toBool)
-  CONF_DECL(fullLengthSectors, FullLengthSectors, full_length_sectors, bool, toBool)
+  CONF_DECL(TwoShades, two_shades, bool, toBool)
+  CONF_DECL(SafetyContour, safety_contour, double, toDouble)
+  CONF_DECL(SafetyDepth, safety_depth, double, toDouble)
+  CONF_DECL(ShallowContour, shallow_contour, double, toDouble)
+  CONF_DECL(DeepContour, deep_contour, double, toDouble)
+  CONF_DECL(ShallowPattern, shallow_pattern, bool, toBool)
+  CONF_DECL(PlainBoundaries, plain_boundaries, bool, toBool)
+  CONF_DECL(SimplifiedSymbols, simplified_symbols, bool, toBool)
+  CONF_DECL(ShowMeta, show_meta, bool, toBool)
+  CONF_DECL(FullLengthSectors, full_length_sectors, bool, toBool)
 
   static void setColorTable(EnumColorTable::type v) {
     self()->m_values["color_table"] = static_cast<uint>(v);
   }
-  static EnumColorTable::type colorTable() {
+  static EnumColorTable::type ColorTable() {
     return static_cast<EnumColorTable::type>(self()->m_values["color_table"].toUInt());
   }
 
   static void setMaxCategory(EnumMaxCategory::type v) {
     self()->m_values["max_category"] = static_cast<uint>(v);
   }
-  static EnumMaxCategory::type maxCategory() {
+  static EnumMaxCategory::type MaxCategory() {
     return static_cast<EnumMaxCategory::type>(self()->m_values["max_category"].toUInt());
   }
 
@@ -74,7 +74,7 @@ public:
     self()->m_values["text_grouping"] = items;
   }
 
-  static QList<int> textGrouping() {
+  static QList<int> TextGrouping() {
     return self()->m_textGrouping;
   }
 

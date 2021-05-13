@@ -45,8 +45,12 @@ public:
 
 public slots:
 
-  QDBusPendingReply<> sync() {
-    return asyncCall(QStringLiteral("sync"));
+  QDBusPendingReply<> sync(const QStringList& paths) {
+    return asyncCall(QStringLiteral("sync"), paths);
+  }
+
+  QDBusPendingReply<> fullSync(const QStringList& paths) {
+    return asyncCall(QStringLiteral("fullSync"), paths);
   }
 
   QDBusReply<QString> ping() {
@@ -56,6 +60,7 @@ public slots:
 signals:
 
   void ready();
+  void status(const QString& msg);
 
 };
 

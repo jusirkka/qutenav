@@ -137,7 +137,7 @@ public:
 
 protected:
 
-  void initialize() const override;
+  void initialize(const QStringList& path) const override;
   ChartFileReader* create() const override;
 
 };

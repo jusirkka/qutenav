@@ -24,15 +24,12 @@
 
 Conf::ConfigGroup::ConfigGroup(const QString& group, const QString& path)
   : m_group(group)
-  , m_dummy(new DummyItem)
 {
   const QString loc = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation);
   m_path = loc + "/" + path;
 }
 
-Conf::ConfigGroup::~ConfigGroup() {
-  delete m_dummy;
-}
+Conf::ConfigGroup::~ConfigGroup() {}
 
 void Conf::ConfigGroup::load() {
 

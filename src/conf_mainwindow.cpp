@@ -30,8 +30,13 @@ Conf::MainWindow::MainWindow()
   m_defaults["chartset"] = "None";
   m_defaults["width"] = 800;
   m_defaults["height"] = 600;
+  m_defaults["chart_folders"] = QVariantList();
 
   load();
+
+  QVariantList vitems = m_values["chart_folders"].toList();
+  for (auto v: vitems) m_chartFolders.append(v.toString());
+
 }
 
 Conf::MainWindow::~MainWindow() {/*noop*/}
