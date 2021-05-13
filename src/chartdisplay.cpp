@@ -272,8 +272,8 @@ void ChartDisplay::orient(Qt::ScreenOrientation orientation) {
 
   if (m_orientedSize.isEmpty()) return;
 
-  const float wmm = m_orientedSize.width() / dots_per_mm_x;
-  const float hmm = m_orientedSize.height() / dots_per_mm_y;
+  const float wmm = m_orientedSize.width() / dots_per_mm_x();
+  const float hmm = m_orientedSize.height() / dots_per_mm_y();
 
   try {
     m_camera->resize(wmm, hmm);
@@ -454,7 +454,7 @@ void ChartDisplay::computeScaleBar() {
   if (ds.size() > 1 && ds.size() != 4 && ds[ds.size() - 2] >= 5) {
     x += 5 * exp10(ds.size() - 2);
   }
-  m_scaleBarLength = dots_per_mm_x * x / m_camera->scale() * 1000;
+  m_scaleBarLength = dots_per_mm_x() * x / m_camera->scale() * 1000;
   if (ds.size() > 3) {
     const int n = static_cast<int>(x) / 1000;
     m_scaleBarText = QString::number(n) + "km";
@@ -489,12 +489,13 @@ void ChartDisplay::advanceNMEALog(int secs) const {
 }
 
 void ChartDisplay::updateChartDB(bool fullUpdate) {
+  qCDebug(CDPY) << "updateChartDB" << m_updater;
   auto resp = m_updater->ping();
   qCDebug(CDPY) << "pong:" << resp.isValid();
   if (!resp.isValid()) {
     qCDebug(CDPY) << resp.error().name() << resp.error().message();
     qCDebug(CDPY) << "Launching dbupdater";
-    auto updater = QString("%1_dbupdater").arg(qAppName());
+    auto updater = QString("%1_dbupdater").arg(qAppName().replace("-", "_"));
     bool ok = QProcess::startDetached(updater, QStringList());
     qCDebug(CDPY) << "Launched" << updater << ", status =" << ok;
     if (ok) {

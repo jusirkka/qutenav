@@ -144,7 +144,7 @@ GL::TextShader* GL::TextShader::instance() {
 void GL::TextShader::setGlobals(const Camera *cam, const QMatrix4x4 &mt) {
   m_program->setUniformValue(m_locations.m_p, cam->projection());
   m_program->setUniformValue(m_locations.m_model, mt);
-  const float s = .5 * cam->heightMM() * dots_per_mm_y * cam->projection()(1, 1);
+  const float s = .5 * cam->heightMM() * dots_per_mm_y() * cam->projection()(1, 1);
   m_program->setUniformValue(m_locations.windowScale, s);
   m_program->setUniformValue(m_locations.w_atlas, TextManager::instance()->atlasWidth());
   m_program->setUniformValue(m_locations.h_atlas, TextManager::instance()->atlasHeight());

@@ -78,7 +78,7 @@ void Globe::initializeGL() {
   QStringList locs;
 
   for (const QString& loc: QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation)) {
-    locs << QString("%1/%2/globe").arg(loc).arg(qAppName());
+    locs << QString("%1/%2/globe").arg(loc).arg(baseAppName());
   }
 
   for (const QString& loc: locs) {

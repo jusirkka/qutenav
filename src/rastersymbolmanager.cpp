@@ -162,7 +162,7 @@ void RasterSymbolManager::parseSymbolData(QXmlStreamReader &reader,
 
   int w = reader.attributes().value("width").toInt();
   int h = reader.attributes().value("height").toInt();
-  d.size = QSizeF(w / dots_per_mm_x, h  / dots_per_mm_y);
+  d.size = QSizeF(w / dots_per_mm_x(), h  / dots_per_mm_y());
 
   QPoint p;
   QPoint o;
@@ -173,8 +173,8 @@ void RasterSymbolManager::parseSymbolData(QXmlStreamReader &reader,
 
   while (reader.readNextStartElement()) {
     if (reader.name() == "distance") {
-      d.minDist = reader.attributes().value("min").toInt() / dots_per_mm_x;
-      d.maxDist = reader.attributes().value("max").toInt() / dots_per_mm_x;
+      d.minDist = reader.attributes().value("min").toInt() / dots_per_mm_x();
+      d.maxDist = reader.attributes().value("max").toInt() / dots_per_mm_x();
       reader.skipCurrentElement();
     } else if (reader.name() == "pivot") {
       p = QPoint(reader.attributes().value("x").toInt(),
@@ -194,8 +194,8 @@ void RasterSymbolManager::parseSymbolData(QXmlStreamReader &reader,
   }
 
   // offset of the upper left corner
-  d.offset = QPointF((o.x() - p.x()) / dots_per_mm_x,
-                     (p.y() - o.y()) / dots_per_mm_y);
+  d.offset = QPointF((o.x() - p.x()) / dots_per_mm_x(),
+                     (p.y() - o.y()) / dots_per_mm_y());
   d.elements = S57::ElementData {GL_TRIANGLES, indices.size() * sizeof(GLuint), 6};
 
 
@@ -205,7 +205,7 @@ void RasterSymbolManager::parseSymbolData(QXmlStreamReader &reader,
   // upper left
   const QPointF p0(0., 0.);
   // lower right
-  const QPointF p1 = p0 + QPointF(w / dots_per_mm_x, - h / dots_per_mm_y);
+  const QPointF p1 = p0 + QPointF(w / dots_per_mm_x(), - h / dots_per_mm_y());
   const QPointF t1 = t0 + QPointF(w / W, h / H);
 
   vertices << p0.x() << p0.y() << t0.x() << t0.y();

@@ -99,8 +99,8 @@ void ChartPainter::paintGL(const Camera *cam) {
   funcs->glDisable(GL_CULL_FACE);
   funcs->glDisable(GL_BLEND);
   funcs->glViewport(0, 0,
-                    cam->heightMM() * cam->aspect() * dots_per_mm_x,
-                    cam->heightMM() * dots_per_mm_y);
+                    cam->heightMM() * cam->aspect() * dots_per_mm_x(),
+                    cam->heightMM() * dots_per_mm_y());
 
   m_textureShader->initializePaint();
 
@@ -119,7 +119,7 @@ void ChartPainter::updateCharts(const Camera* cam, const QRectF& viewArea) {
   m_viewArea = viewArea;
 
   auto bufCam = createBufferCamera(cam, viewArea.size());
-  qreal scale = .5 * bufCam->heightMM() * dots_per_mm_y * bufCam->projection()(1, 1);
+  qreal scale = .5 * bufCam->heightMM() * dots_per_mm_y() * bufCam->projection()(1, 1);
 
   const QSizeF bufSize(viewArea.width() * scale, viewArea.height() * scale);
   if (m_bufSize != bufSize) {
@@ -196,8 +196,8 @@ void ChartPainter::updateCharts(const Camera* cam, const QRectF& viewArea) {
   m_fbo->bindDefault();
 
   f->glViewport(0, 0,
-                cam->heightMM() * cam->aspect() * dots_per_mm_x,
-                cam->heightMM() * dots_per_mm_y);
+                cam->heightMM() * cam->aspect() * dots_per_mm_x(),
+                cam->heightMM() * dots_per_mm_y());
 
   delete bufCam;
 }

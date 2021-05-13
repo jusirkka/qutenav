@@ -61,7 +61,6 @@ elseif (PLATFORM STREQUAL silica)
     qml/MenuPage.qml
     qml/platform.silica/ApplicationWindowPL.qml
     qml/platform.silica/ChartPagePL.qml
-    qml/platform.silica/ChartSetComboPL.qml
     qml/platform.silica/ComboBoxPL.qml
     qml/platform.silica/DialogPL.qml
     qml/platform.silica/IconListItemPL.qml
@@ -152,6 +151,7 @@ target_sources(qutenav
     src/outliner.cpp
     src/osenc.cpp
     src/perscam.cpp
+    src/platform.cpp
     src/rastersymbolmanager.cpp
     src/region.cpp
     src/s52functions.cpp
@@ -243,6 +243,7 @@ target_sources(qutenav_dbupdater
     src/geoprojection.cpp
     src/logging.cpp
     src/osenc.cpp
+    src/platform.cpp
     src/region.cpp
     src/s52names.cpp
     src/s57chartoutline.cpp

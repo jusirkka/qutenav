@@ -20,6 +20,7 @@
 #include "chartcover.h"
 #include "geoprojection.h"
 #include "logging.h"
+#include <QRectF>
 
 ChartCover::ChartCover(const LLPolygon& cov, const LLPolygon& nocov,
                        const WGS84Point& sw, const WGS84Point& ne,

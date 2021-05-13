@@ -75,11 +75,13 @@ void ChartUpdater::cacheChart(S57Chart *chart) {
   const auto id = CacheReader::CacheId(chart->path());
   const auto base = QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation);
 
-  const auto cachePath = QString("%1/%2/%3").arg(base).arg(qAppName()).arg(QString(id));
+
+  const auto cacheDir = QString("%1/%2").arg(base).arg(baseAppName());
+  const auto cachePath = QString("%1/%2").arg(cacheDir).arg(QString(id));
 
   if (!QFileInfo(cachePath).exists()) {
     // not found - cache
-    if (!QDir().mkpath(QString("%1/%2").arg(base).arg(qAppName()))) return;
+    if (!QDir().mkpath(cacheDir)) return;
     QFile file(cachePath);
     if (!file.open(QFile::WriteOnly)) return;
     QDataStream stream(&file);

@@ -19,13 +19,13 @@
  */
 #pragma once
 
-#include <QGuiApplication>
-#include <QScreen>
+#include <QString>
 
-#define dots_per_mm_x (QGuiApplication::primaryScreen()->physicalDotsPerInchX() / 25.4)
-#define dots_per_mm_y (QGuiApplication::primaryScreen()->physicalDotsPerInchY() / 25.4)
-#define dots_per_inch_x (QGuiApplication::primaryScreen()->physicalDotsPerInchX())
-#define dots_per_inch_y (QGuiApplication::primaryScreen()->physicalDotsPerInchY())
+extern float dots_per_mm_x();
+extern float dots_per_mm_y();
+extern float dots_per_inch_x();
+extern float dots_per_inch_y();
 
+extern const QString& baseAppName();
 
 static const float nominal_dpmm = 3.125;

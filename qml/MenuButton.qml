@@ -33,6 +33,9 @@ MapButtonPL {
   iconSource: app.getIcon("menu")
 
   onClicked: app.show(Qt.resolvedUrl("MenuPage.qml"),
-                      {tracker: tracker, router: router, routeLoader: routeLoader});
+                      {tracker: tracker,
+                        router: router,
+                        routeLoader: routeLoader,
+                      });
 
 }

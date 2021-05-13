@@ -28,10 +28,8 @@
 #include <QDir>
 
 QString SQLiteDatabase::databaseName(const QString& bname) {
-  // qutenav or harbour-qutenav
-  const QString baseapp = qAppName();
   QString loc = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
-  loc = QString("%1/%2/userdata").arg(loc).arg(baseapp);
+  loc = QString("%1/%2/userdata").arg(loc).arg(baseAppName());
   if (!QDir().mkpath(loc)) {
     throw ChartFileError(QString("cannot create userdata directory %1").arg(loc));
   }

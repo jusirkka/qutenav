@@ -23,6 +23,7 @@
 #include <QPoint>
 #include "types.h"
 #include <QDate>
+#include <QSizeF>
 
 using Region = QVector<WGS84PointVector>;
 

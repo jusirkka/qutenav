@@ -21,6 +21,7 @@
 
 #include "types.h"
 #include <QPointF>
+#include <QSizeF>
 
 class GeoProjection {
 public:

@@ -118,7 +118,7 @@ void ChartManager::loadPlugins() {
     m_factories[factory->name()] = factory;
   }
 
-  const QString loc = qAppName().split("_").first();
+  const QString loc = baseAppName();
   const QString base = QLibraryInfo::location(QLibraryInfo::PluginsPath);
   QDir pluginsDir(QString("%1/%2").arg(base).arg(loc));
   qCDebug(CMGR) << "Searching reader plugins in" << pluginsDir.dirName();

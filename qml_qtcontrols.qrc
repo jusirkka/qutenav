@@ -13,7 +13,6 @@
         <file alias="MenuPage.qml">qml/MenuPage.qml</file>
         <file alias="ApplicationWindowPL.qml">qml/platform.qtcontrols/ApplicationWindowPL.qml</file>
         <file alias="ChartPagePL.qml">qml/platform.qtcontrols/ChartPagePL.qml</file>
-        <file alias="ChartSetComboPL.qml">qml/platform.qtcontrols/ChartSetComboPL.qml</file>
         <file alias="ComboBoxPL.qml">qml/platform.qtcontrols/ComboBoxPL.qml</file>
         <file alias="DialogPL.qml">qml/platform.qtcontrols/DialogPL.qml</file>
         <file alias="IconListItemPL.qml">qml/platform.qtcontrols/IconListItemPL.qml</file>
@@ -49,6 +48,7 @@
         <file alias="ChartDialog.qml">qml/ChartDialog.qml</file>
         <file alias="ChartFolderSelector.qml">qml/ChartFolderSelector.qml</file>
         <file alias="ButtonPL.qml">qml/platform.qtcontrols/ButtonPL.qml</file>
+        <file alias="FolderPickerPL.qml">qml/platform.qtcontrols/FolderPickerPL.qml</file>
         <file alias="icons/arrow.png">qml/icons/arrow.png</file>
         <file alias="icons/center-100.png">qml/icons/center-100.png</file>
         <file alias="icons/center-125.png">qml/icons/center-125.png</file>

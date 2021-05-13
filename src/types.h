@@ -25,6 +25,7 @@
 #include <QOpenGLFunctions>
 #include <glm/vec2.hpp>
 #include "platform.h"
+#include <QPointF>
 
 class NotImplementedError {
 public:

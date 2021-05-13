@@ -13,7 +13,6 @@
 - manage chart cache
 
 - libqutenav subdir of common src of qutenav and qutenav_updater
-- remove ChartSetComboPL in favour of ComboboxPL
 - fullscreen control & config for desktop app
 - write readme.md
 - better chart object info

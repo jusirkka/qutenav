@@ -32,8 +32,6 @@ PagePL {
 
   pageHeight: parent.height
 
-
-
   IconListItemPL {
     label: "Preferences"
     iconName: app.getSystemIcon('preferences')
@@ -44,8 +42,8 @@ PagePL {
     label: "Tracks" + (enabled ? "" : "*")
     iconName: app.getSystemIcon('archive')
     onClicked: {
-      var dialog = app.show(Qt.resolvedUrl("TrackDisplayDialog.qml"))
-      dialog.onAccepted.connect(page.tracker.display);
+      var d1 = app.show(Qt.resolvedUrl("TrackDisplayDialog.qml"))
+      d1.onAccepted.connect(page.tracker.display);
     }
     enabled: page.tracker.status !== Tracker.Tracking &&
              page.tracker.status !== Tracker.Paused
@@ -55,9 +53,9 @@ PagePL {
     label: "Routes" + (enabled ? "" : "*")
     iconName: app.getSystemIcon('archive')
     onClicked: {
-      var dialog = app.show(Qt.resolvedUrl("RouteDisplayDialog.qml"),
+      var d2 = app.show(Qt.resolvedUrl("RouteDisplayDialog.qml"),
                             {router: page.router})
-      dialog.onAccepted.connect(page.routeLoader);
+      d2.onAccepted.connect(page.routeLoader);
     }
     enabled: !page.router.edited
   }
@@ -66,13 +64,16 @@ PagePL {
     label: "Chart folders"
     iconName: app.getSystemIcon('documents')
     onClicked: {
-      var dialog = app.show(Qt.resolvedUrl("ChartDialog.qml"),
-                            {paths: settings.chartFolders})
-      dialog.onAccepted.connect(function () {
-        settings.chartFolders = dialog.paths
-        encdis.updateChartDB(dialog.fullUpdate)
-      });
+      var d3 = app.show(Qt.resolvedUrl("ChartDialog.qml"),
+                        {
+                          paths: settings.chartFolders,
+                          encdis: encdis
+                        })
     }
+    function requestDBUpdate(full) {
+      encdis.updateChartDB(full)
+    }
+
   }
 
   ComboBoxPL {

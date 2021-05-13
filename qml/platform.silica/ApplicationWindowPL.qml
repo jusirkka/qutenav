@@ -37,6 +37,7 @@ ApplicationWindow {
       'pause': 'image://theme/icon-m-pause',
       'archive': 'image://theme/icon-m-file-archive-folder',
       'preferences': 'image://theme/icon-m-setting',
+      'documents': 'image://theme/icon-m-document',
     }
   }
 
@@ -45,6 +46,10 @@ ApplicationWindow {
     if (pageStack.depth > 1) {
       return pageStack.replace(url, params ? params : {})
     }
+    return pageStack.push(url, params ? params : {})
+  }
+
+  function showAsDialog(url, params) {
     return pageStack.push(url, params ? params : {})
   }
 }

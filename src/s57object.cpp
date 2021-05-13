@@ -22,6 +22,7 @@
 #include <QDebug>
 #include "region.h"
 #include "s52names.h"
+#include <QDataStream>
 
 bool S57::Attribute::matches(const Attribute &constraint) const {
   if (constraint.type() == Type::Any) {
@@ -53,7 +54,7 @@ bool S57::Attribute::matches(const Attribute &constraint) const {
   return m_value == constraint.value();
 }
 
-void S57::Attribute::encode(QDataStream &stream) const {
+void S57::Attribute::encode(QDataStream& stream) const {
   stream << static_cast<uint8_t>(m_type);
   stream << m_value;
 }

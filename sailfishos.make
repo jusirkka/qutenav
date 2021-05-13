@@ -2,6 +2,8 @@
 
 BASE       = qutenav
 NAME       = harbour-$(BASE)
+BASEUPD	   = $(BASE)_dbupdater
+UPD	   = harbour_$(BASEUPD)
 VERSION    =
 
 DESTDIR    =
@@ -74,9 +76,9 @@ install:
 	@echo "Installing binaries..."
 	mkdir -p $(BINDIR)
 	cp $(BUILDDIR)/$(BASE) $(BINDIR)/$(NAME)
-	cp $(BUILDDIR)/$(BASE)_dbupdater $(BINDIR)/$(NAME)_dbupdater
+	cp $(BUILDDIR)/$(BASEUPD) $(BINDIR)/$(UPD)
 	chmod 755 $(BINDIR)/$(NAME)
-	chmod 755 $(BINDIR)/$(NAME)_dbupdater
+	chmod 755 $(BINDIR)/$(UPD)
 	@echo "Installing oeserverd binaries..."
 	mkdir -p $(LIBDIR)
 	cp data-$(ARCH)/oeserverd $(BINDIR)

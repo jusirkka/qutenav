@@ -59,6 +59,11 @@ ApplicationWindow {
     return dialog;
   }
 
+  function showAsDialog(url, params) {
+    var component = Qt.createComponent(url);
+    return component.createObject(app, params ? params : {});
+  }
+
   Shortcut {
     sequence: StandardKey.Quit
     context: Qt.ApplicationShortcut

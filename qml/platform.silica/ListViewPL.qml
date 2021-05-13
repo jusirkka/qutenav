@@ -17,6 +17,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import QtQuick 2.6
 import Sailfish.Silica 1.0
 
-SilicaListView {}
+SilicaListView {
+  highlight: Rectangle {
+    color: "#bcced4"
+  }
+  highlightMoveDuration: 0
+  highlightResizeDuration: 0
+}
