@@ -14,7 +14,7 @@ target_sources(S57reader
 target_include_directories(S57reader
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/../src
+    ${CMAKE_CURRENT_SOURCE_DIR}/../qutenavlib/src
 )
 
 

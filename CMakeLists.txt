@@ -52,6 +52,7 @@ elseif (PLATFORM STREQUAL silica)
     qml/Bubble.qml
     qml/CenterButton.qml
     qml/ChartPage.qml
+    qml/ChartDialog.qml
     qml/CoverPage.qml
     qml/DimensionalValue.qml
     qml/DistanceButton.qml
@@ -130,8 +131,6 @@ target_sources(qutenav
     src/camera.cpp
     src/cachereader.cpp
     src/chartcover.cpp
-    src/chartdatabase.cpp
-    src/chartfilereader.cpp
     src/chartmanager.cpp
     src/chartmode.cpp
     src/chartpainter.cpp
@@ -139,37 +138,27 @@ target_sources(qutenav
     src/dbupdater_interface.cpp
     src/detailmode.cpp
     src/drawable.cpp
-    src/geoprojection.cpp
     src/globe.cpp
     src/glthread.cpp
     src/glyphmanager.cpp
     src/hpglparser.cpp
     src/linecalculator.cpp
-    src/logging.cpp
     src/orthocam.cpp
     src/outlinemode.cpp
     src/outliner.cpp
-    src/osenc.cpp
     src/perscam.cpp
-    src/platform.cpp
     src/rastersymbolmanager.cpp
-    src/region.cpp
     src/s52functions.cpp
-    src/s52names.cpp
     src/s52presentation.cpp
     src/s52presentation_p.cpp
     src/s57chart.cpp
     src/s57chart_objectinfo.cpp
-    src/s57chartoutline.cpp
-    src/s57object.cpp
     src/s57paintdata.cpp
     src/settings.cpp
     src/shader.cpp
-    src/sqlitedatabase.cpp
     src/symboldata.cpp
     src/textmanager.cpp
     src/tiny_sdf.cpp
-    src/types.cpp
     src/utils.cpp
     src/vectorsymbolmanager.cpp
     src/wfreader.cpp
@@ -214,6 +203,7 @@ FLEX_TARGET(S52HScanner src/s52hpgl_scanner.l ${CMAKE_BINARY_DIR}/s52hpgl_scanne
 BISON_TARGET(S52HParser src/s52hpgl_parser.y ${CMAKE_BINARY_DIR}/s52hpgl_parser.cpp
   DEFINES_FILE ${CMAKE_BINARY_DIR}/s52hpgl_parser.h)
 
+
 # automoc generates duplicate mocs for dbus adaptor files in older versions
 if (${CMAKE_VERSION} VERSION_LESS "3.18")
   set_target_properties(qutenav_dbupdater
@@ -229,27 +219,15 @@ endif()
 
 set(dbus_adaptor_SRCS)
 qt5_add_dbus_adaptor(dbus_adaptor_SRCS
-  src/dbupdater.xml
+  dbupdater/src/dbupdater.xml
   updater.h
   Updater
   dbupdater_adaptor
 )
 
+
 target_sources(qutenav_dbupdater
   PRIVATE
-    src/dbupdater.cpp
-    src/chartdatabase.cpp
-    src/chartfilereader.cpp
-    src/geoprojection.cpp
-    src/logging.cpp
-    src/osenc.cpp
-    src/platform.cpp
-    src/region.cpp
-    src/s52names.cpp
-    src/s57chartoutline.cpp
-    src/s57object.cpp
-    src/sqlitedatabase.cpp
-    src/types.cpp
     ${dbus_adaptor_SRCS}
 )
 
@@ -260,16 +238,15 @@ target_include_directories(qutenav
     ${CMAKE_CURRENT_SOURCE_DIR}/geographiclib/src
     ${CMAKE_CURRENT_SOURCE_DIR}/geos/src
     ${CMAKE_CURRENT_SOURCE_DIR}/triangulate/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/qutenavlib/src
     ${CMAKE_BINARY_DIR}
 )
 
 target_include_directories(qutenav_dbupdater
   PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/dbupdater/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/geographiclib/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/triangulate/src
-    ${CMAKE_BINARY_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/qutenavlib/src
+    #${CMAKE_BINARY_DIR}
 )
 
 
@@ -293,22 +270,24 @@ add_subdirectory(osencreader)
 add_subdirectory(oesencreader)
 add_subdirectory(cm93reader)
 add_subdirectory(s57reader)
-add_subdirectory(dbupdater)
 add_subdirectory(platform.${PLATFORM})
 add_subdirectory(geos)
+add_subdirectory(qutenavlib)
+add_subdirectory(dbupdater)
 
 
 target_link_libraries(qutenav
   PRIVATE
     ${PLATFORM_LDFLAGS}
-    GeographicLib
-    Triangulate
     Platform
     Osencreader
     Oesencreader
     Cm93reader
     S57reader
     Geos
+    QuteNavLib
+    GeographicLib
+    Triangulate
     Qt5::Quick
     Qt5::Gui
     Qt5::Sql
@@ -322,13 +301,14 @@ target_link_libraries(qutenav
 
 target_link_libraries(qutenav_dbupdater
   PRIVATE
+    Dbupdater
     Osencreader
     Oesencreader
     Cm93reader
     S57reader
-    Dbupdater
-    GeographicLib
+    QuteNavLib
     Triangulate
+    GeographicLib
     Qt5::Core
     Qt5::Sql
     Qt5::OpenGL

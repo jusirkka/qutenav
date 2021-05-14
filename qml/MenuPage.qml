@@ -64,16 +64,11 @@ PagePL {
     label: "Chart folders"
     iconName: app.getSystemIcon('documents')
     onClicked: {
-      var d3 = app.show(Qt.resolvedUrl("ChartDialog.qml"),
-                        {
-                          paths: settings.chartFolders,
-                          encdis: encdis
-                        })
+      app.show(Qt.resolvedUrl("ChartDialog.qml"), {
+                 paths: settings.chartFolders,
+                 encdis: encdis
+               })
     }
-    function requestDBUpdate(full) {
-      encdis.updateChartDB(full)
-    }
-
   }
 
   ComboBoxPL {

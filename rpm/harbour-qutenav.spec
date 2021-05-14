@@ -1,7 +1,7 @@
 Name: harbour-qutenav
 
 Summary: Chart plotter / navigator for Sailfish OS
-Version: 0.05
+Version: 0.09
 Release: 1
 Group: Qt/Qt
 URL: https://github.com/jusirkka/qutenav

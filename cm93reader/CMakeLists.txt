@@ -14,7 +14,7 @@ target_sources(Cm93reader
 target_include_directories(Cm93reader
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/../src
+    ${CMAKE_CURRENT_SOURCE_DIR}/../qutenavlib/src
     ${CMAKE_CURRENT_SOURCE_DIR}/../triangulate/src
 )
 

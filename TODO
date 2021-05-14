@@ -12,7 +12,6 @@
 - Route/editor: reverse & edit a route
 - manage chart cache
 
-- libqutenav subdir of common src of qutenav and qutenav_updater
 - fullscreen control & config for desktop app
 - write readme.md
 - better chart object info

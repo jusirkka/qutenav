@@ -107,7 +107,6 @@ DialogPL {
 
   }
 
-
   TextSwitchPL {
     text: "Full update"
     description: "Check also previously added chart folders for changes"

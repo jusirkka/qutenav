@@ -11,6 +11,7 @@ target_include_directories(Platform
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/../src
     ${CMAKE_CURRENT_SOURCE_DIR}/../geos/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/../qutenavlib/src
     ${SAILFISH_INCLUDE_DIRS}
     $ENV{EMU_PATH}/include/sailfishapp
 )

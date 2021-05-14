@@ -14,7 +14,7 @@ target_sources(Oesencreader
 target_include_directories(Oesencreader
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/../src
+    ${CMAKE_CURRENT_SOURCE_DIR}/../qutenavlib/src
 )
 
 

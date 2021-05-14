@@ -10,7 +10,7 @@ target_sources(Triangulate
 target_include_directories(Triangulate
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/../src
+    ${CMAKE_CURRENT_SOURCE_DIR}/../qutenavlib/src
 )
 
 target_link_libraries(Triangulate
