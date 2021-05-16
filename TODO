@@ -8,7 +8,6 @@
 - bug: make oeserverd calls more reliable (hangs sometimes)
 - bug: intermittent segfault when zooming rapidly
 
-- write readme.md
 - better chart object info
 - unit preferences
 - more detailed track statistics in track archive page
