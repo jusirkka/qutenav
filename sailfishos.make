@@ -14,7 +14,9 @@ ICONDIR    = $(DESTDIR)$(PREFIX)/share/icons/hicolor
 BINDIR     = $(DESTDIR)$(PREFIX)/bin
 LIBDIR     = $(DESTDIR)$(PREFIX)/lib
 
-ICONS = data/$(BASE)-86x86.png \
+ICONS = data/$(BASE)-48x48.png \
+        data/$(BASE)-64x64.png \
+        data/$(BASE)-86x86.png \
         data/$(BASE)-108x108.png \
         data/$(BASE)-128x128.png \
         data/$(BASE)-172x172.png \

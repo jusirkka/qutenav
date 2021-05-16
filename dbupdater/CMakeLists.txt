@@ -8,7 +8,6 @@ set_target_properties(Dbupdater
 target_sources(Dbupdater
   PRIVATE
     src/updater.cpp
-    src/main.cpp
 )
 
 target_include_directories(Dbupdater

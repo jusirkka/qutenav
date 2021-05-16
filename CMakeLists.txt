@@ -228,6 +228,7 @@ qt5_add_dbus_adaptor(dbus_adaptor_SRCS
 
 target_sources(qutenav_dbupdater
   PRIVATE
+    dbupdater/src/main.cpp
     ${dbus_adaptor_SRCS}
 )
 
@@ -246,6 +247,7 @@ target_include_directories(qutenav_dbupdater
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/dbupdater/src
     ${CMAKE_CURRENT_SOURCE_DIR}/qutenavlib/src
+    ${CMAKE_BINARY_DIR}
 )
 
 
@@ -313,6 +315,36 @@ target_link_libraries(qutenav_dbupdater
     Qt5::OpenGL
 )
 
-install(TARGETS qutenav DESTINATION bin)
-install(TARGETS qutenav_dbupdater DESTINATION bin)
+include(GNUInstallDirs)
 
+# binaries
+install(TARGETS qutenav
+        DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(TARGETS qutenav_dbupdater
+        DESTINATION ${CMAKE_INSTALL_BINDIR})
+# desktop file
+install(FILES data/qutenav.desktop
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
+# icons
+install(FILES data/qutenav-48x48.png
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/48x48/apps
+        RENAME qutenav.png)
+install(FILES data/qutenav-64x64.png
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/64x64/apps
+        RENAME qutenav.png)
+
+# wavefront file & world map
+install(FILES data/sphere.obj
+              data/negx.jpg data/negy.jpg data/negz.jpg
+              data/posx.jpg data/posy.jpg data/posz.jpg
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/qutenav/globe)
+
+# s57 data files
+install(FILES data/s57expectedinput.csv
+              data/chartsymbols.xml
+              data/rastersymbols-dark.png
+              data/rastersymbols-day.png
+              data/rastersymbols-dusk.png
+              data/s57attributes.csv
+              data/s57objectclasses.csv
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/qutenav/s57data)
