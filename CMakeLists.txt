@@ -246,7 +246,6 @@ target_include_directories(qutenav_dbupdater
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/dbupdater/src
     ${CMAKE_CURRENT_SOURCE_DIR}/qutenavlib/src
-    #${CMAKE_BINARY_DIR}
 )
 
 

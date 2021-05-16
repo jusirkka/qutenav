@@ -28,8 +28,9 @@ Conf::MainWindow::MainWindow()
   : ConfigGroup("MainWindow", "qutenavrc")
 {
   m_defaults["chartset"] = "None";
-  m_defaults["width"] = 800;
-  m_defaults["height"] = 600;
+  m_defaults["window_geom"] = QSizeF(800, 600);
+  m_defaults["last_geom"] = QSizeF(800, 600);
+  m_defaults["full_screen"] = false;
   m_defaults["chart_folders"] = QVariantList();
 
   load();

@@ -23,7 +23,7 @@ DialogPL {
   id: dialog
   title: "Chart folders"
   hasOK: true
-  pageHeight: parent.height * .6
+  pageHeight: parent.height * .7
 
   property var paths: []
   property bool fullUpdate: false
@@ -36,7 +36,7 @@ DialogPL {
 
   Rectangle {
     id: pathFrame
-    height: 5 * theme.itemSizeMedium
+    height: 3 * theme.itemSizeMedium
     anchors {
       top: parent.top
       left: parent.left

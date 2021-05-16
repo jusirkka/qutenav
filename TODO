@@ -1,4 +1,3 @@
-- distance measurement
 - tides
 - busy spinner while charts are loading
 - symbolized lines: draw simple line in the remaining part of the symbol fill string.
@@ -6,12 +5,14 @@
 - bug: sometimes safety contour line is drawn incorrectly
 - bug: dash/dot length varies in dashed/dotted lines
 - bug: overlapping charts not handled properly
+- bug: make oeserverd calls more reliable (hangs sometimes)
+- bug: intermittent segfault when zooming rapidly
+
+- write readme.md
+- better chart object info
 - unit preferences
 - more detailed track statistics in track archive page
 - more detailed route info in route archive page
 - Route/editor: reverse & edit a route
+- distance measurement
 - manage chart cache
-
-- fullscreen control & config for desktop app
-- write readme.md
-- better chart object info

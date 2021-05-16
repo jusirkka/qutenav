@@ -27,12 +27,12 @@ ApplicationWindow {
 
   property var dialog: null
   property var systemIcons: null
+  property bool fullScreen
+  property size fallbackGeom
 
   ChartPage {}
 
   Component.onCompleted: {
-    width = settings.mainWindowWidth
-    height = settings.mainWindowHeight
     systemIcons = {
       'clear': 'edit-clear',
       'save': 'document-save',
@@ -43,11 +43,21 @@ ApplicationWindow {
       'preferences': 'preferences-system',
       'documents': 'folder-documents',
     }
+    width = settings.windowGeom.width
+    height = settings.windowGeom.height
+    fullScreen = settings.fullScreen
+    if (fullScreen) {
+      fallbackGeom = settings.lastGeom
+      width = fallbackGeom.width
+      height = fallbackGeom.height
+      showFullScreen()
+    }
   }
 
   Component.onDestruction: {
-    settings.mainWindowWidth = width
-    settings.mainWindowHeight = height
+    settings.windowGeom = Qt.size(width, height)
+    settings.lastGeom = fallbackGeom
+    settings.fullScreen = fullScreen
   }
 
   function show(url, params) {
@@ -86,6 +96,20 @@ ApplicationWindow {
     sequence: "N"
     context: Qt.ApplicationShortcut
     onActivated: encdis.northUp();
+  }
+
+  Shortcut {
+    sequence: StandardKey.FullScreen
+    context: Qt.ApplicationShortcut
+    onActivated: {
+      fullScreen = !fullScreen
+      if (fullScreen) {
+        fallbackGeom = Qt.size(width, height)
+        showFullScreen()
+      } else {
+        showNormal()
+      }
+    }
   }
 
 }

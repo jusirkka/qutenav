@@ -15,6 +15,7 @@ target_include_directories(Platform
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/../src
+    ${CMAKE_CURRENT_SOURCE_DIR}/../qutenavlib/src
     ${CMAKE_CURRENT_SOURCE_DIR}/../geos/src
 )
 

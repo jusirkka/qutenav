@@ -20,6 +20,7 @@
 #pragma once
 
 #include "configgroup.h"
+#include <QSizeF>
 
 namespace Conf {
 
@@ -30,8 +31,9 @@ public:
   ~MainWindow();
 
   CONF_DECL(Chartset, chartset, QString, toString)
-  CONF_DECL(Width, width, int, toInt)
-  CONF_DECL(Height, height, int, toInt)
+  CONF_DECL(WindowGeom, window_geom, QSizeF, toSizeF)
+  CONF_DECL(LastGeom, last_geom, QSizeF, toSizeF)
+  CONF_DECL(FullScreen, full_screen, bool, toBool)
 
   static void setChartFolders(const QStringList& v) {
     self()->m_chartFolders = v;

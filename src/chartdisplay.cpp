@@ -156,6 +156,8 @@ ChartDisplay::~ChartDisplay() {
   delete m_surface;
   delete m_context;
   qDeleteAll(m_info);
+  // This can be done only when exiting
+  delete ChartManager::instance();
 }
 
 ChartDisplay::Renderer* ChartDisplay::createRenderer() const {

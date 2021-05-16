@@ -255,28 +255,40 @@ public:
 
   QList<QObject*> textGroups() const {return m_textGroups;}
 
-  Q_PROPERTY(int mainWindowWidth
-             READ mainWindowWidth
-             WRITE setMainWindowWidth)
+  Q_PROPERTY(QSizeF windowGeom
+             READ windowGeom
+             WRITE setWindowGeom)
 
-  int mainWindowWidth() const {
-    return Conf::MainWindow::Width();
+  QSizeF windowGeom() const {
+    return Conf::MainWindow::WindowGeom();
   }
 
-  void setMainWindowWidth(int v) {
-    Conf::MainWindow::setWidth(v);
+  void setWindowGeom(const QSizeF& v) {
+    Conf::MainWindow::setWindowGeom(v);
   }
 
-  Q_PROPERTY(int mainWindowHeight
-             READ mainWindowHeight
-             WRITE setMainWindowHeight)
+  Q_PROPERTY(QSizeF lastGeom
+             READ lastGeom
+             WRITE setLastGeom)
 
-  int mainWindowHeight() const {
-    return Conf::MainWindow::Height();
+  QSizeF lastGeom() const {
+    return Conf::MainWindow::LastGeom();
   }
 
-  void setMainWindowHeight(int v) {
-    Conf::MainWindow::setHeight(v);
+  void setLastGeom(const QSizeF& v) {
+    Conf::MainWindow::setLastGeom(v);
+  }
+
+  Q_PROPERTY(bool fullScreen
+             READ fullScreen
+             WRITE setFullScreen)
+
+  bool fullScreen() const {
+    return Conf::MainWindow::FullScreen();
+  }
+
+  void setFullScreen(bool v) {
+    Conf::MainWindow::setFullScreen(v);
   }
 
   Q_PROPERTY(QStringList chartFolders

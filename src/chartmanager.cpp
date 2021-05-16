@@ -249,6 +249,7 @@ ChartManager::~ChartManager() {
 
   // Cache charts before quitting
   for (auto chart: m_charts) {
+    qCDebug(CMGR) << "Caching" << chart->id() << "before exit";
     QMetaObject::invokeMethod(m_cacheWorker, "cacheChart",
                               Q_ARG(S57Chart*, chart));
   }
