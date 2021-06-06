@@ -35,6 +35,7 @@
 #include "routemodel.h"
 #include "routedatabase.h"
 #include "chartdatabase.h"
+#include "s57imageprovider.h"
 
 Q_IMPORT_PLUGIN(CM93ReaderFactory)
 Q_IMPORT_PLUGIN(S57ReaderFactory)
@@ -82,9 +83,9 @@ int main(int argc, char *argv[]) {
 
   // Set up QML engine.
   QQmlApplicationEngine engine;
-  QQmlContext* rootContext = engine.rootContext();
-
-  rootContext->setContextProperty("settings", Settings::instance());
+  engine.addImageProvider(QLatin1String("s57"), new S57::ImageProvider);
+  engine.rootContext()->setContextProperty("settings", Settings::instance());
   engine.load(QUrl("qrc:///qutenav.qml"));
+
   return app->exec();
 }

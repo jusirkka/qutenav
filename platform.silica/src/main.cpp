@@ -38,6 +38,7 @@
 #include "routemodel.h"
 #include "routedatabase.h"
 #include "chartdatabase.h"
+#include "s57imageprovider.h"
 
 Q_IMPORT_PLUGIN(CM93ReaderFactory)
 Q_IMPORT_PLUGIN(S57ReaderFactory)
@@ -102,6 +103,8 @@ int main(int argc, char *argv[]) {
   QScopedPointer<QQuickView> view(SailfishApp::createView());
 
   view->rootContext()->setContextProperty("settings", Settings::instance());
+  view->engine()->addImageProvider(QLatin1String("s57"), new S57::ImageProvider);
+
   view->setSource(SailfishApp::pathTo("qml/harbour-qutenav.qml"));
   view->show();
 

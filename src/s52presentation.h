@@ -28,6 +28,7 @@
 #include "conf_marinerparams.h"
 
 
+class QPainter;
 
 namespace S52 {
 
@@ -61,7 +62,7 @@ public:
     , m_priorityId(prioId)
     , m_category(cat)
     , m_attributes(attrs)
-    , m_description(comment)
+    , m_comment(comment)
     , m_source(source)
     , m_needUnderling(false)
   {}
@@ -72,13 +73,15 @@ public:
   int priority() const {return m_priorityId;}
   Category category() const {return m_category;}
   const AttributeMap& attributes() const {return m_attributes;}
-  const QString& description() const {return m_description;}
+  const QString& comment() const {return m_comment;}
   const QString& source() const {return m_source;}
   bool byteCodeReady() const {return !m_code.isEmpty();}
   bool canOverride() const {return m_canOverride;}
   bool needUnderling() const {return m_needUnderling;}
 
   S57::PaintDataMap execute(const S57::Object* obj) const;
+  QString description(const S57::Object* obj) const;
+  void paintIcon(QPainter& painter, const S57::Object* obj) const;
 
   // bytecode interface
   enum class Code: quint8 {Immed, Var, Fun, DefVar};
@@ -91,7 +94,7 @@ private:
   int m_priorityId;
   Category m_category;
   AttributeMap m_attributes;
-  QString m_description;
+  QString m_comment;
   QString m_source;
 
   bool m_needUnderling;
@@ -117,6 +120,7 @@ QVariant GetAttribute(const QString& name, const S57::Object* obj);
 void InitPresentation();
 QString GetRasterFileName();
 QString GetSymbolInfo(quint32 index, S52::SymbolType t);
+QString GetSymbolInfo(const SymbolKey& key);
 QString GetAttributeInfo(quint32 index, const S57::Object* obj);
 quint32 FindIndex(const QString& name);
 quint32 FindIndex(const QString& name, bool* ok);

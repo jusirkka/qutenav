@@ -107,7 +107,7 @@ void ChartDisplay::initializeSG() {
   connect(this, &ChartDisplay::updateViewport, chartMgr, &ChartManager::updateCharts);
 
   connect(this, &ChartDisplay::infoRequest, chartMgr, &ChartManager::requestInfo);
-  connect(chartMgr, &ChartManager::infoResponse, this, &ChartDisplay::handleInfoResponse);
+  connect(chartMgr, &ChartManager::infoResponse, this, &ChartDisplay::infoQueryReady);
 
   connect(chartMgr, &ChartManager::chartSetsUpdated, this, &ChartDisplay::updateChartSet);
 
@@ -144,6 +144,12 @@ void ChartDisplay::initializeSG() {
   connect(settings, &Settings::lookupUpdateNeeded, this, [this] () {
     qCDebug(CDPY) << "lookup update needed";
     emit updateViewport(m_camera, ChartManager::UpdateLookups);
+    update();
+  });
+
+  connect(Settings::instance(), &Settings::colorTableChanged, this, [this] () {
+    qCDebug(CDPY) << "colortable changed";
+    m_flags |= ColorTableChanged;
     update();
   });
 
@@ -231,6 +237,7 @@ void ChartDisplay::initializeGL(QOpenGLContext* ctx) {
 
   m_vao.create();
   m_vao.bind();
+
 
   ChartManager::instance()->createThreads(m_context);
   TextManager::instance()->createTexture(512, 512);
@@ -409,7 +416,7 @@ void ChartDisplay::infoQuery(const QPointF& q) {
   emit infoRequest(location(q));
 }
 
-void ChartDisplay::handleInfoResponse(const S57::InfoType &info) {
+void ChartDisplay::handleFullInfoResponse(const S57::InfoTypeFull &info) {
   qDeleteAll(m_info);
   m_info.clear();
   for (const S57::Description& d: info) {
@@ -419,7 +426,7 @@ void ChartDisplay::handleInfoResponse(const S57::InfoType &info) {
     }
     m_info.append(obj);
   }
-  emit infoQueryReady(m_info);
+  emit infoQueryFullReady(m_info);
   update();
 }
 

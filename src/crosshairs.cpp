@@ -25,11 +25,14 @@
 #include <QSGFlatColorMaterial>
 #include <QQuickWindow>
 #include <QDebug>
-#include "types.h"
 
 CrossHairs::CrossHairs(QQuickItem *parent)
   : QQuickItem(parent)
   , m_peepHole(100, 100)
+  , m_indices {0, 1, 2, 1, 3, 2,
+               4, 5, 6, 5, 7, 6,
+               8, 9, 10, 9, 11, 10,
+               12, 13, 14, 13, 15, 14}
 {
   setFlag(ItemHasContents, true);
 }
@@ -51,15 +54,20 @@ QSGNode *CrossHairs::updatePaintNode(QSGNode* oldNode, UpdatePaintNodeData*) {
 
   if (!oldNode) {
     node = new QSGGeometryNode;
-    geometry = new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(), 8);
-    geometry->setLineWidth(lineWidth);
-    geometry->setDrawingMode(GL_LINES);
+    geometry = new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(),
+                               16,
+                               24,
+                               GL_UNSIGNED_INT);
+    geometry->setDrawingMode(GL_TRIANGLES);
     node->setGeometry(geometry);
     node->setFlag(QSGNode::OwnsGeometry);
     auto material = new QSGFlatColorMaterial;
     material->setColor(QColor(255, 0, 0));
     node->setMaterial(material);
     node->setFlag(QSGNode::OwnsMaterial);
+
+    memcpy(geometry->indexData(), m_indices.constData(), m_indices.size() * sizeof(GLuint));
+
   } else {
     node = static_cast<QSGGeometryNode*>(oldNode);
     geometry = node->geometry();
@@ -70,17 +78,25 @@ QSGNode *CrossHairs::updatePaintNode(QSGNode* oldNode, UpdatePaintNodeData*) {
   const float d = .5 * KV::PeepHoleSize;
   QSGGeometry::Point2D* vertices = geometry->vertexDataAsPoint2D();
 
-  vertices[0].set(x0 - d, y0);
-  vertices[1].set(0, y0);
+  vertices[0].set(0, y0 + lineWidth / 2);
+  vertices[1].set(0, y0 - lineWidth / 2);
+  vertices[2].set(x0 - d, y0 + lineWidth / 2);
+  vertices[3].set(x0 - d, y0 - lineWidth / 2);
 
-  vertices[2].set(x0, y0 + d);
-  vertices[3].set(x0, window()->height());
+  vertices[4].set(x0 + d, y0 + lineWidth / 2);
+  vertices[5].set(x0 + d, y0 - lineWidth / 2);
+  vertices[6].set(window()->width(), y0 + lineWidth / 2);
+  vertices[7].set(window()->width(), y0 - lineWidth / 2);
 
-  vertices[4].set(x0 + d, y0);
-  vertices[5].set(window()->width(), y0);
+  vertices[8].set(x0 + lineWidth / 2, y0 + d);
+  vertices[9].set(x0 - lineWidth / 2, y0 + d);
+  vertices[10].set(x0 + lineWidth / 2, window()->height());
+  vertices[11].set(x0 - lineWidth / 2, window()->height());
 
-  vertices[6].set(x0, y0 - d);
-  vertices[7].set(x0, 0);
+  vertices[12].set(x0 + lineWidth / 2, 0);
+  vertices[13].set(x0 - lineWidth / 2, 0);
+  vertices[14].set(x0 + lineWidth / 2, y0 - d);
+  vertices[15].set(x0 - lineWidth / 2, y0 - d);
 
   node->markDirty(QSGNode::DirtyGeometry);
   return node;

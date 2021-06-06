@@ -25,9 +25,39 @@
 #include <QHash>
 #include <QOpenGLBuffer>
 #include "symboldata.h"
+#include <QCache>
 
 
 class QXmlStreamReader;
+class QPainter;
+
+struct CacheKey {
+
+  CacheKey(quint32 idx, S52::SymbolType s, qint16 a)
+    : index(idx)
+    , type(s)
+    , angle(a) {}
+
+  CacheKey() = default;
+
+  SymbolKey key() const {
+    return SymbolKey(index, type);
+  }
+
+  quint32 index;
+  S52::SymbolType type;
+  qint16 angle;
+};
+
+inline bool operator== (const CacheKey& k1, const CacheKey& k2) {
+  if (k1.index != k2.index) return false;
+  if (k1.type != k2.type) return false;
+  return k1.angle == k2.angle;
+}
+
+inline uint qHash(const CacheKey& key) {
+  return qHash(qMakePair(key.index, 360 * as_numeric(key.type) + 180 + key.angle));
+}
 
 
 class VectorSymbolManager {
@@ -40,6 +70,7 @@ public:
   void createSymbols();
 
   SymbolData symbolData(quint32 index, S52::SymbolType type) const;
+  bool paintIcon(QPainter& painter, quint32 index, S52::SymbolType type, qint16 angle);
 
   void bind();
 
@@ -57,9 +88,25 @@ private:
     QSizeF size;
     qreal minDist;
     qreal maxDist;
+    QPoint center;
   };
 
+  struct PainterData {
+    PainterData(const QString& s, const QString& c, const QPoint& p)
+      : src(s)
+      , cmap(c)
+      , center(p) {}
+    PainterData() = default;
+
+    QString src;
+    QString cmap;
+    QPoint center;
+  };
+
+
   using SymbolMap = QHash<SymbolKey, SymbolData>;
+  using PainterDataMap = QHash<SymbolKey, PainterData>;
+  using PixmapCache = QCache<CacheKey, QPixmap>;
 
   void parseSymbols(QXmlStreamReader& reader,
                     GL::VertexVector& vertices,
@@ -75,4 +122,7 @@ private:
   QOpenGLBuffer m_coordBuffer;
   QOpenGLBuffer m_indexBuffer;
   const QStringList m_blacklist;
+  // paintIcon interface
+  PainterDataMap m_painterData;
+  PixmapCache m_pixmapCache;
 };

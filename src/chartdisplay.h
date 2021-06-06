@@ -156,6 +156,8 @@ public:
   static const quint32 EnteringChartMode = 2;
   static const quint32 LeavingChartMode = 4;
   static const quint32 ChartSetChanged = 8;
+  static const quint32 ColorTableChanged = 16;
+
 
 private slots:
 
@@ -166,7 +168,7 @@ private slots:
   void resize(int l = 0); // dummy argument
   void orient(Qt::ScreenOrientation orientation);
 
-  void handleInfoResponse(const S57::InfoType& info);
+  void handleFullInfoResponse(const S57::InfoTypeFull& info);
   void updateChartSet();
   void requestChartDBUpdate();
   void requestChartDBFullUpdate();
@@ -177,7 +179,8 @@ signals:
   void chartSetsChanged();
   void chartSetChanged(const QString& chartSet);
   void scaleBarLengthChanged(qreal len);
-  void infoQueryReady(const QList<QObject*>& info);
+  void infoQueryReady(const QString& objectId, const QString& info);
+  void infoQueryFullReady(const QList<QObject*>& info);
   void infoRequest(const WGS84Point& p);
   void chartDBStatus(const QString& msg);
 

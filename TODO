@@ -7,8 +7,18 @@
 - bug: overlapping charts not handled properly
 - bug: make oeserverd calls more reliable (hangs sometimes)
 - bug: intermittent segfault when zooming rapidly
+- bug: loading a route when already tracking does not find correct location in the route
+- bug: some of the sounding texts are off by 0.1m
+- bug: s57 chart fatal error: bbox is empty in some areas/lines/points
+- add depth values to recommended track info
+- add category to the relevant point symbol info
+- check consistency of attdecode.csv and s57expectedinput.csv
+- correct text frag shader parameters as uniforms
+- add missing ack in readme: bin packing in glyph manager
+- fix chartsymbols.xml: typos, remove unsupported classcodes/lookups
 
-- better chart object info
+- draw triangle strips instead of lines in Tracks and Routes: linewidths > 1 not supported in
+  OpenGL core profiles
 - unit preferences
 - more detailed track statistics in track archive page
 - more detailed route info in route archive page

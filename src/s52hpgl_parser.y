@@ -22,44 +22,44 @@
 #include "hpglparser.h"
 #include <QDebug>
 
-int s52hpgl_lex(HPGLParser::ValueType*, HPGLParser::LocationType*, yyscan_t);
+int s52hpgl_lex(HPGL::ValueType*, HPGL::LocationType*, yyscan_t);
 
 class HPGLHelper {
 public:
-  inline void setColor(HPGLParser* p, char c) {
+  inline void setColor(HPGL::Parser* p, char c) {
     p->setColor(c);
   }
-  inline void setAlpha(HPGLParser* p, int a) {
+  inline void setAlpha(HPGL::Parser* p, int a) {
     p->setAlpha(a);
   }
-  inline void setWidth(HPGLParser* p, int w) {
+  inline void setWidth(HPGL::Parser* p, int w) {
     p->setWidth(w);
   }
-  inline void movePen(HPGLParser* p, const QVector<int>& ps) {
+  inline void movePen(HPGL::Parser* p, const QVector<int>& ps) {
     p->movePen(ps);
   }
-  inline void drawLineString(HPGLParser* p, const QVector<int>& ps) {
+  inline void drawLineString(HPGL::Parser* p, const QVector<int>& ps) {
     p->drawLineString(ps);
   }
-  inline void drawCircle(HPGLParser* p, int r) {
+  inline void drawCircle(HPGL::Parser* p, int r) {
     p->drawCircle(r);
   }
-  inline void drawArc(HPGLParser* p, int x, int y, int a) {
+  inline void drawArc(HPGL::Parser* p, int x, int y, int a) {
     p->drawArc(x, y, a);
   }
-  inline void pushSketch(HPGLParser* p) {
+  inline void pushSketch(HPGL::Parser* p) {
     p->pushSketch();
   }
-  inline void endSketch(HPGLParser* p) {
+  inline void endSketch(HPGL::Parser* p) {
     p->endSketch();
   }
-  inline void fillSketch(HPGLParser* p) {
+  inline void fillSketch(HPGL::Parser* p) {
     p->fillSketch();
   }
-  inline void edgeSketch(HPGLParser* p) {
+  inline void edgeSketch(HPGL::Parser* p) {
     p->edgeSketch();
   }
-  inline void setError(HPGLParser* p) {
+  inline void setError(HPGL::Parser* p) {
     p->m_ok = false;
   }
 };
@@ -73,9 +73,9 @@ public:
 
 %define api.prefix {s52hpgl_}
 %define api.pure full
-%define api.value.type {HPGLParser::ValueType}
+%define api.value.type {HPGL::ValueType}
 
-%parse-param {HPGLParser* parent}
+%parse-param {HPGL::Parser* parent}
 %parse-param {yyscan_t scanner}
 %lex-param {yyscan_t scanner}
 
@@ -132,7 +132,7 @@ command: PD points {
 
 command: PD /*empty*/ {
   HPGLHelper h;
-  h.drawLineString(parent, HPGLParser::RawPoints());
+  h.drawLineString(parent, HPGL::RawPoints());
   if (!parent->ok()) ABORT(parent, scanner);
 };
 

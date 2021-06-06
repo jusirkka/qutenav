@@ -27,6 +27,7 @@
 #include <QDir>
 #include <QFile>
 #include <QStandardPaths>
+#include "logging.h"
 
 ChartData::ChartData(S57Chart* c, quint32 s, const WGS84PointVector& cs, bool upd)
   : chart(c)
@@ -52,7 +53,7 @@ ChartData::ChartData(quint32 i, const QString& pth,
 void ChartUpdater::createChart(const ChartData& d) {
   try {
     auto chart = new S57Chart(d.id, d.path);
-    // qDebug() << "ChartUpdater::createChart";
+    // qCDebug(CMGR) << "ChartUpdater::createChart";
     chart->updatePaintData(d.cover, d.scale);
     emit done(chart);
   } catch (ChartFileError& e) {
@@ -100,6 +101,6 @@ void ChartUpdater::cacheChart(S57Chart *chart) {
 void ChartUpdater::requestInfo(S57Chart *chart, const WGS84Point &p,
                                quint32 scale, quint32 tid) {
   auto info = chart->objectInfo(p, scale);
-  qDebug() << "ChartUpdater::requestInfo";
+  qCDebug(CMGR) << "ChartUpdater::requestInfo";
   emit infoResponse(info, tid);
 }

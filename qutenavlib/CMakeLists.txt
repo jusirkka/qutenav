@@ -5,6 +5,7 @@ target_sources(QuteNavLib
   PRIVATE
     src/chartdatabase.cpp
     src/chartfilereader.cpp
+    src/geomutils.cpp
     src/geoprojection.cpp
     src/logging.cpp
     src/osenc.cpp

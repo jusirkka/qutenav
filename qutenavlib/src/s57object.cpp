@@ -23,6 +23,7 @@
 #include "region.h"
 #include "s52names.h"
 #include <QDataStream>
+#include "geomutils.h"
 
 bool S57::Attribute::matches(const Attribute &constraint) const {
   if (constraint.type() == Type::Any) {
@@ -139,6 +140,20 @@ void S57::Geometry::Point::doDecode(QDataStream &stream) {
   stream >> m_points;
 }
 
+bool S57::Geometry::Point::containedBy(const QRectF& box, int& index) const {
+  if (m_points.size() < 3) return box.contains(center());
+  const int N = m_points.size() / 3;
+  for (int k = 0; k < N; k++) {
+    const QPointF p(m_points[3 * k], m_points[3 * k + 1]);
+    if (box.contains(p)) {
+      index = 3 * k;
+      return true;
+    }
+  }
+  return false;
+}
+
+
 void S57::Geometry::Line::doEncode(QDataStream& stream, Transform /*transform*/) const {
   const int ne = m_lineElements.size();
   stream << ne;
@@ -170,6 +185,22 @@ void S57::Geometry::Line::doDecode(QDataStream& stream) {
 
   stream >> m_vertexOffset;
 }
+
+bool S57::Geometry::Line::crosses(const glm::vec2* vertices, const GLuint* indices,
+                                  const QRectF& box) const {
+  for (const S57::ElementData& elem: m_lineElements) {
+    if (!elem.bbox.intersects(box)) continue;
+    const int n = elem.count - 2;
+    const int first = elem.offset / sizeof(GLuint) + 1;
+    for (int i0 = 0; i0 < n - 1; i0++) {
+      const glm::vec2 p1 = vertices[indices[first + i0]];
+      const glm::vec2 p2 = vertices[indices[first + i0 + 1]];
+      if (crossesBox(p1, p2, box)) return true;
+    }
+  }
+  return false;
+}
+
 
 void S57::Geometry::Area::doEncode(QDataStream& stream, Transform transform) const {
   Line::doEncode(stream, transform);
@@ -205,6 +236,33 @@ void S57::Geometry::Area::doDecode(QDataStream& stream) {
 
   stream >> m_indexed;
 }
+
+bool S57::Geometry::Area::includes(const glm::vec2* vs, const GLuint* is, const QPointF& p) const {
+
+  auto inbox = [] (const S57::ElementData& elem, const QPointF& p) {
+    return elem.bbox.contains(p);
+  };
+
+  auto closed = [is] (const S57::ElementData& elem) {
+    auto first = elem.offset / sizeof(GLuint);
+    auto last = first + elem.count - 1;
+    // Note: adjacency
+    return is[first + 1] == is[last - 1];
+  };
+
+  const S57::ElementDataVector elems = m_lineElements;
+  if (!closed(elems.first())) return false;
+  if (!inbox(elems.first(), p)) return false;
+  if (!insidePolygon(elems.first().count, elems.first().offset, vs, is, p)) return false;
+
+  for (int i = 1; i < elems.count(); i++) {
+    if (!closed(elems[i])) continue;
+    if (!inbox(elems[i], p)) continue;
+    if (insidePolygon(elems[i].count, elems[i].offset, vs, is, p)) return false;
+  }
+  return true;
+}
+
 
 
 static QDate stringToDate(const QString& s, const QDate& today, bool start) {
@@ -365,5 +423,21 @@ S57::Object* S57::Object::Decode(QDataStream &stream) {
   return obj;
 }
 
+S57::Description S57::Object::description(const WGS84Point& snd, qreal depth) const {
+  S57::Description desc(S52::GetClassDescription(classCode()));
+  if (geometry()->type() == S57::Geometry::Type::Point) {
+    if (snd.valid()) {
+      desc.attributes.append(S57::Pair("Location", snd.toISO6709()));
+      desc.attributes.append(S57::Pair("Value", QString::number(depth)));
+    } else {
+      desc.attributes.append(S57::Pair("Location", geometry()->centerLL().toISO6709()));
+    }
+  }
+  for (S57::AttributeMap::const_iterator it = m_attributes.cbegin(); it != m_attributes.cend(); ++it) {
+    desc.attributes.append(S57::Pair(S52::GetAttributeDescription(it.key()),
+                                     S52::GetAttributeValueDescription(it.key(), it.value().value())));
+  }
+  return desc;
+}
 
 

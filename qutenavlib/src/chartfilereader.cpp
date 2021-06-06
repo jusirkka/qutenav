@@ -78,6 +78,10 @@ QRectF ChartFileReader::computeSoundingsBBox(const GL::VertexVector &ps) {
     const QPointF q(ps[3 * i], ps[3 * i + 1]);
     maxbox(ll, ur, q.x(), q.y());
   }
+  if (ll == ur) {
+    const qreal res = 20; // 20 meters
+    return QRectF(ll - .5 * QPointF(res, res), QSizeF(res, res));
+  }
   return QRectF(ll, ur);
 }
 

@@ -27,8 +27,8 @@ Rectangle {
   anchors.bottomMargin: theme.paddingLarge
   anchors.horizontalCenter: parent.horizontalCenter
 
-  width: info.width + 2 * theme.paddingLarge
-  height: info.height + 2 * theme.paddingLarge
+  width: content.width + 2 * theme.paddingLarge
+  height: content.height + 2 * theme.paddingLarge
   radius: 20
   color: "white"
   border.color: "black"
@@ -54,20 +54,34 @@ Rectangle {
     }
   ]
 
-  property int tics: 16
-
-  function show(msg, pos) {
+  function show(msg, img, pos) {
     info.text = msg;
+    fig.source = img ? img : ""
+    state = pos ? pos : "top";
     timer.restart();
-    state = pos;
   }
 
-  Text {
-    id: info
-    color: "black"
+  Row {
+    id: content
+
     anchors.horizontalCenter: parent.horizontalCenter
     anchors.verticalCenter: parent.verticalCenter
-    font.pixelSize: theme.fontSizeMedium
+
+    spacing: theme.paddingMedium
+
+    Image {
+      id: fig
+      width: 32
+      height: 32
+      visible: source
+    }
+
+    Text {
+      id: info
+      color: "black"
+      font.pixelSize: theme.fontSizeMedium
+      horizontalAlignment: Text.AlignHCenter
+    }
   }
 
   Timer {

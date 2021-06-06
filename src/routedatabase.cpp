@@ -26,24 +26,26 @@
 
 
 void RouteDatabase::createTables() {
-  auto db = QSqlDatabase::addDatabase("QSQLITE");
+  {
+    auto db = QSqlDatabase::addDatabase("QSQLITE", "RouteDatabase::createTables");
 
-  db.setDatabaseName(databaseName("routes"));
-  db.open();
-  auto query = QSqlQuery(db);
+    db.setDatabaseName(databaseName("routes"));
+    db.open();
+    auto query = QSqlQuery(db);
 
-  query.exec("create table if not exists routes ("
-             "id integer primary key autoincrement, "
-             "name text not null)");
+    query.exec("create table if not exists routes ("
+               "id integer primary key autoincrement, "
+               "name text not null)");
 
-  query.exec("create table if not exists paths ("
-             "id integer primary key autoincrement, "
-             "route_id integer not null, "
-             "lng real not null, "
-             "lat real not null)");
+    query.exec("create table if not exists paths ("
+               "id integer primary key autoincrement, "
+               "route_id integer not null, "
+               "lng real not null, "
+               "lat real not null)");
 
-  db.close();
-  QSqlDatabase::removeDatabase(db.connectionName());
+    db.close();
+  }
+  QSqlDatabase::removeDatabase("RouteDatabase::createTables");
 }
 
 RouteDatabase::RouteDatabase(const QString& connName)

@@ -1,8 +1,8 @@
 /* -*- coding: utf-8-unix -*-
  *
- * crosshairs.h
+ * geomutils.h
  *
- * Created: 07/02/2021 2021 by Jukka Sirkka
+ * Created: 09/02/2021 2021 by Jukka Sirkka
  *
  * Copyright (C) 2021 Jukka Sirkka
  *
@@ -19,40 +19,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 #pragma once
 
-#include <QQuickItem>
-#include "types.h"
+#include <QRectF>
+#include <glm/glm.hpp>
 
-class CrossHairs: public QQuickItem {
+// Cohen-Sutherland test
+bool crossesBox(const glm::vec2& v1, const glm::vec2& v2, const QRectF& box);
 
-  Q_OBJECT
-
-public:
-
-  CrossHairs(QQuickItem* parent = nullptr);
-  ~CrossHairs();
-
-  Q_PROPERTY(QPointF peepHole
-             READ peepHole
-             WRITE setPeepHole
-             NOTIFY peepHoleChanged)
-
-  QPointF peepHole() const {return m_peepHole;}
-  void setPeepHole(const QPointF& p);
-
-  QSGNode *updatePaintNode(QSGNode* node, UpdatePaintNodeData*) override;
-
-signals:
-
-  void peepHoleChanged(const QPointF& p);
-
-private:
-
-  static inline const float lineWidth = 3.2;
-
-  QPointF m_peepHole;
-  const GL::IndexVector m_indices;
-};
-
+bool insidePolygon(uint count, uint offset, const glm::vec2* q, const uint* indices, const QPointF& p);

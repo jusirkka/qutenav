@@ -23,13 +23,16 @@
 #include <QFile>
 #include <QXmlStreamReader>
 #include "logging.h"
-#include "hpglparser.h"
+#include "hpglopenglparser.h"
+#include "hpglpixmapparser.h"
+#include <QPainter>
 
 VectorSymbolManager::VectorSymbolManager()
   : m_invalid()
   , m_coordBuffer(QOpenGLBuffer::VertexBuffer)
   , m_indexBuffer(QOpenGLBuffer::IndexBuffer)
   , m_blacklist {"BOYSPR01"}
+  , m_pixmapCache(100 * sizeof(QPixmap))
 {}
 
 
@@ -131,7 +134,7 @@ void VectorSymbolManager::parseSymbols(QXmlStreamReader& reader,
       continue;
     }
 
-    HPGLParser parser(src, cmap, d.pivot);
+    HPGL::OpenGLParser parser(src, cmap, d.pivot);
     if (!parser.ok()) {
       qCWarning(CSYM) << "HPGLParser failed, skipping" << symbolName;
       continue;
@@ -140,7 +143,7 @@ void VectorSymbolManager::parseSymbols(QXmlStreamReader& reader,
     S57::ElementDataVector elems;
     S52::ColorVector colors;
 
-    for (const HPGLParser::Data& item: parser.data()) {
+    for (const HPGL::OpenGLParser::Data& item: parser.data()) {
       colors.append(item.color);
       // create ElementData and append to elems
       S57::ElementData e;
@@ -167,6 +170,7 @@ void VectorSymbolManager::parseSymbols(QXmlStreamReader& reader,
                  << symbolName << ", skipping earlier";
     }
     m_symbolMap.insert(key, s);
+    m_painterData.insert(key, PainterData(src, cmap, d.center));
   }
 }
 
@@ -191,8 +195,9 @@ void VectorSymbolManager::parseSymbolData(QXmlStreamReader &reader,
                         reader.attributes().value("y").toInt() * mmUnit);
       reader.skipCurrentElement();
     } else if (reader.name() == "origin") {
-      o = QPointF(reader.attributes().value("x").toInt() * mmUnit,
-                  reader.attributes().value("y").toInt() * mmUnit);
+      d.center = QPoint(reader.attributes().value("x").toInt(),
+                        reader.attributes().value("y").toInt());
+      o = QPointF(d.center.x() * mmUnit, d.center.y() * mmUnit);
       reader.skipCurrentElement();
     } else if (reader.name() == "HPGL") {
       src = reader.readElementText();
@@ -205,4 +210,30 @@ void VectorSymbolManager::parseSymbolData(QXmlStreamReader &reader,
   d.offset = QPointF(o.x() - d.pivot.x(),
                      d.pivot.y() - o.y());
 
+}
+
+bool VectorSymbolManager::paintIcon(QPainter& painter,
+                                    quint32 index, S52::SymbolType type,
+                                    qint16 angle) {
+  const CacheKey key(index, type, angle);
+  if (!m_pixmapCache.contains(key)) {
+    const SymbolKey key0 = key.key();
+    if (!m_painterData.contains(key0)) return false;
+    auto pix = new QPixmap;
+    const PainterData& d = m_painterData[key0];
+    HPGL::PixmapParser parser(d.src, d.cmap, angle);
+    *pix = parser.pixmap();
+    m_pixmapCache.insert(key, pix);
+  }
+  QPixmap pix = *m_pixmapCache[key];
+  if (pix.width() > .75 * painter.device()->width()) {
+    pix = pix.scaledToWidth(.75 * painter.device()->width());
+  }
+  if (pix.height() > .75 * painter.device()->height()) {
+    pix = pix.scaledToHeight(.75 * painter.device()->height());
+  }
+  const auto ox = (painter.device()->width() - pix.width()) / 2;
+  const auto oy = (painter.device()->height() - pix.height()) / 2;
+  painter.drawPixmap(ox, oy, pix);
+  return true;
 }

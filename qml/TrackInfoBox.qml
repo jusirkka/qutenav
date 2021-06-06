@@ -90,7 +90,7 @@ Rectangle {
     color: "white"
     radius: padding / 2
     height: dist.height
-    width: dist.width + bearing.width + 3 * padding
+    width: 3 * dist.width + 3 * padding
     anchors {
       left: parent.left
       right: parent.right
@@ -107,8 +107,8 @@ Rectangle {
 
       anchors {
         left: parent.left
-        leftMargin: padding / 2
-        rightMargin: 2.5 * padding
+        leftMargin: padding
+        rightMargin: padding
       }
       unit: "Nm"
       value: rect.dist
@@ -121,10 +121,11 @@ Rectangle {
 
       anchors {
         left: dist.right
+        right: parent.right
         verticalCenter: dist.verticalCenter
-        leftMargin: 2.5 * padding
-        rightMargin: 2 * padding
+        leftMargin: padding
       }
+      horizontalAlignment: Text.AlignHCenter
       font.pixelSize: rect.fontSize * .8
       text: (!isNaN(rect.bearing)) ?
               ("" + pad(Math.floor(rect.bearing + .5), "000") + "°") : "---°"

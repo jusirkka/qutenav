@@ -28,30 +28,32 @@
 
 
 void TrackDatabase::createTables() {
-  auto db = QSqlDatabase::addDatabase("QSQLITE");
+  {
+    auto db = QSqlDatabase::addDatabase("QSQLITE", "TrackDatabase::createTables");
 
-  db.setDatabaseName(databaseName("tracks"));
-  db.open();
-  auto query = QSqlQuery(db);
+    db.setDatabaseName(databaseName("tracks"));
+    db.open();
+    auto query = QSqlQuery(db);
 
-  query.exec("create table if not exists tracks ("
-             "id integer primary key autoincrement, "
-             "name text not null, "
-             "enabled integer not null)"); // boolean
+    query.exec("create table if not exists tracks ("
+               "id integer primary key autoincrement, "
+               "name text not null, "
+               "enabled integer not null)"); // boolean
 
-  query.exec("create table if not exists strings ("
-             "id integer primary key autoincrement, "
-             "track_id integer not null)");
+    query.exec("create table if not exists strings ("
+               "id integer primary key autoincrement, "
+               "track_id integer not null)");
 
-  query.exec("create table if not exists events ("
-              "id integer primary key autoincrement, "
-              "string_id integer not null, "
-              "time integer not null, " // millisecs since epoch
-              "lng real not null, "
-              "lat real not null)");
+    query.exec("create table if not exists events ("
+               "id integer primary key autoincrement, "
+               "string_id integer not null, "
+               "time integer not null, " // millisecs since epoch
+               "lng real not null, "
+               "lat real not null)");
 
-  db.close();
-  QSqlDatabase::removeDatabase(db.connectionName());
+    db.close();
+  }
+  QSqlDatabase::removeDatabase("TrackDatabase::createTables");
 }
 
 TrackDatabase::TrackDatabase(const QString& connName)

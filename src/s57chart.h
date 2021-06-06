@@ -31,6 +31,7 @@
 class GeoProjection;
 class Camera;
 class QOpenGLContext;
+class QPainter;
 namespace KV {class Region;}
 
 inline uint qHash(const QColor& c) {
@@ -66,7 +67,11 @@ public:
   void updatePaintData(const WGS84PointVector& cover, quint32 scale);
   void updateLookups();
 
+  S57::InfoTypeFull objectInfoFull(const WGS84Point& p, quint32 scale);
   S57::InfoType objectInfo(const WGS84Point& p, quint32 scale);
+
+  void paintIcon(QPainter& painter, quint32 objectIndex) const;
+
 
   ~S57Chart();
 
@@ -128,7 +133,12 @@ private:
   GLsizei m_staticElemOffset;
 
   QMatrix4x4 m_modelMatrix;
+
+  const QVector<quint32> m_infoSkipList;
+  const QVector<quint32> m_navaids;
+  const quint32 m_light;
 };
+
 
 Q_DECLARE_METATYPE(S57Chart*)
 

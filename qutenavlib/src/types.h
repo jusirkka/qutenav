@@ -353,7 +353,16 @@ enum class AttributeType: uint8_t {
   Deleted,
 };
 
-// Data type for info requests
+// Data type for object info requests
+struct InfoType {
+  quint8 priority;
+  QString objectId;
+  QString info;
+};
+
+
+
+// Data types for full object info requests
 struct Pair {
   Pair(const QString& k, const QString& v)
     : key(k)
@@ -377,18 +386,18 @@ struct Description {
   PairVector attributes;
 };
 
-using InfoType = QVector<Description>;
-
+using InfoTypeFull = QVector<Description>;
 
 }
 
+Q_DECLARE_METATYPE(S57::InfoTypeFull)
 Q_DECLARE_METATYPE(S57::InfoType)
 
 
 namespace KV {
 using ColorVector = QVector<QColor>;
-// For mobile/crosshairs
-static const int PeepHoleSize = 20;
+// For Crosshair / Object info queries
+static const int PeepHoleSize = 25;
 }
 
 namespace GL {

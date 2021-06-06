@@ -72,6 +72,106 @@ S57::PaintDataMap S52::Lookup::execute(const S57::Object *obj) const {
   return paintData;
 }
 
+QString S52::Lookup::description(const S57::Object* obj) const {
+
+  // TODO: remove duplicate code: execute / description are almost identical
+  int stackPos = 0;
+  int immedPos = 0;
+  int refPos = 0;
+
+  ValueStack stack(20);
+
+
+  QStringList descriptions;
+  if (obj->classCode() != FindCIndex("LIGHTS")) {
+    descriptions.append(GetClassDescription(obj->classCode()));
+  }
+
+  for (auto code: m_code) {
+
+    switch (code) {
+
+    case Code::Immed:
+      stack[stackPos++] = m_immed[immedPos++];
+      break;
+
+    case Code::Fun: {
+      auto fun = S52::FindFunction(m_references[refPos++]);
+      // qCDebug(CS52) << "function" << fun->name();
+      stackPos = 0;
+      descriptions += fun->descriptions(stack, obj);
+      break;
+    }
+
+    case Code::Var:
+      stack[stackPos++] = obj->attributeValue(m_references[refPos++]);
+      break;
+
+    case Code::DefVar: {
+      QVariant v = obj->attributeValue(m_references[refPos++]);
+      QVariant d = m_immed[immedPos++];
+      if (v.isValid()) {
+        stack[stackPos++] = v;
+      } else {
+        stack[stackPos++] = d;
+      }
+      break;
+    }
+    default:
+      Q_ASSERT(false);
+    }
+  }
+
+  return descriptions.join("; ");
+}
+
+
+void S52::Lookup::paintIcon(QPainter& painter, const S57::Object* obj) const {
+
+  int stackPos = 0;
+  int immedPos = 0;
+  int refPos = 0;
+
+  ValueStack stack(20);
+
+
+  for (auto code: m_code) {
+
+    switch (code) {
+
+    case Code::Immed:
+      stack[stackPos++] = m_immed[immedPos++];
+      break;
+
+    case Code::Fun: {
+      auto fun = S52::FindFunction(m_references[refPos++]);
+      // qCDebug(CS52) << "function" << fun->name();
+      stackPos = 0;
+      fun->paintIcon(painter, stack, obj);
+      break;
+    }
+
+    case Code::Var:
+      stack[stackPos++] = obj->attributeValue(m_references[refPos++]);
+      break;
+
+    case Code::DefVar: {
+      QVariant v = obj->attributeValue(m_references[refPos++]);
+      QVariant d = m_immed[immedPos++];
+      if (v.isValid()) {
+        stack[stackPos++] = v;
+      } else {
+        stack[stackPos++] = d;
+      }
+      break;
+    }
+    default:
+      Q_ASSERT(false);
+    }
+  }
+}
+
+
 S52::Lookup* S52::FindLookup(const S57::Object* obj) {
   const quint32 code = obj->classCode();
   const Private::Presentation* p = Private::Presentation::instance();
@@ -147,12 +247,14 @@ void S52::InitPresentation() {
 }
 
 QString S52::GetSymbolInfo(quint32 index, S52::SymbolType t) {
+  return GetSymbolInfo(SymbolKey(index, t));
+}
+
+QString S52::GetSymbolInfo(const SymbolKey& key) {
   const Private::Presentation* p = Private::Presentation::instance();
-  const SymbolKey key(index, t);
   if (!p->symbols.contains(key)) return QString();
   return p->symbols[key].code + ": " + p->symbols[key].description;
 }
-
 
 QString S52::GetAttributeInfo(quint32 index, const S57::Object* obj) {
   auto code = GetAttributeName(index);

@@ -40,10 +40,6 @@ public:
   bool commit();
   void close();
 
-
-  QString path() const {return m_DB.databaseName();}
-  QSqlDatabase connection() const {return m_DB;}
-
 protected:
 
   void checkError() const;

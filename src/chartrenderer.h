@@ -24,6 +24,7 @@
 
 class QQuickWindow;
 class DetailMode;
+class QOpenGLDebugLogger;
 
 class ChartRenderer: public QQuickFramebufferObject::Renderer {
 
@@ -49,7 +50,7 @@ private:
   DetailMode* m_mode;
   QQuickWindow* m_window;
   QOpenGLVertexArrayObject m_vao;
-
+  QOpenGLDebugLogger* m_logger;
 
 };
 

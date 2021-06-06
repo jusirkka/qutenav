@@ -62,6 +62,7 @@ void TextManager::createTexture(int w, int h) {
   m_glyphTexture->setSize(w, h);
   m_glyphTexture->setWrapMode(QOpenGLTexture::ClampToEdge);
   m_glyphTexture->setMinMagFilters(QOpenGLTexture::Linear, QOpenGLTexture::Linear);
+  m_glyphTexture->setMipLevels(1);
   m_glyphTexture->allocateStorage(QOpenGLTexture::Red, QOpenGLTexture::UInt8);
 }
 

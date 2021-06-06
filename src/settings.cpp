@@ -84,7 +84,10 @@ float Settings::displayLengthScaling() const {
 }
 
 float Settings::displayTextSizeScaling() const {
-  return .5 * dots_per_mm_y();
+  const float y0 = 3.5;
+  const float y1 = 4.2;
+  const float t = (dots_per_mm_y() - dpmm0) / delta_dpmm1;
+  return (y1 * t + y0 * (1 - t));
 }
 
 float Settings::displayLineWidthScaling() const {

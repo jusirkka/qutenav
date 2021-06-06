@@ -167,6 +167,8 @@ public:
 
   const GL::VertexVector& points() const {return m_points;}
 
+  bool containedBy(const QRectF& box, int& index) const;
+
 protected:
 
   void doEncode(QDataStream &stream, Transform transform) const override;
@@ -194,12 +196,13 @@ public:
   const ElementDataVector& lineElements() const {return m_lineElements;}
   GLsizei vertexOffset() const {return m_vertexOffset;}
 
+  bool crosses(const glm::vec2* vertices, const GLuint* indices, const QRectF& box) const;
+
+
 protected:
 
   virtual void doEncode(QDataStream &stream, Transform transform) const override;
   virtual void doDecode(QDataStream& stream) override;
-
-private:
 
   ElementDataVector m_lineElements;
   GLsizei m_vertexOffset;
@@ -226,6 +229,9 @@ public:
 
   const ElementDataVector& triangleElements() const {return m_triangleElements;}
   bool indexed() const {return m_indexed;}
+
+  bool includes(const glm::vec2* vs, const GLuint* is, const QPointF& p) const;
+
 
 protected:
 
@@ -291,6 +297,8 @@ public:
 
   void encode(QDataStream& stream, Transform transform) const;
   static Object* Decode(QDataStream& stream);
+
+  S57::Description description(const WGS84Point& snd = WGS84Point(), qreal depth = 0.) const;
 
 private:
 

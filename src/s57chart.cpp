@@ -34,7 +34,7 @@
 #include "chartfilereader.h"
 #include "camera.h"
 #include "chartmanager.h"
-#include "utils.h"
+#include "geomutils.h"
 #include "logging.h"
 
 
@@ -71,6 +71,28 @@ S57Chart::S57Chart(quint32 id, const QString& path)
   , m_pivotBuffer(QOpenGLBuffer::VertexBuffer)
   , m_transformBuffer(QOpenGLBuffer::VertexBuffer)
   , m_textTransformBuffer(QOpenGLBuffer::VertexBuffer)
+  , m_infoSkipList {S52::FindCIndex("MAGVAR"),
+                    S52::FindCIndex("ADMARE"),
+                    S52::FindCIndex("CTNARE")}
+  , m_navaids({S52::FindIndex("LITFLT"),
+              S52::FindIndex("LITVES"),
+              S52::FindIndex("BOYCAR"),
+              S52::FindIndex("BOYINB"),
+              S52::FindIndex("BOYISD"),
+              S52::FindIndex("BOYLAT"),
+              S52::FindIndex("BOYSAW"),
+              S52::FindIndex("BOYSPP"),
+              S52::FindIndex("boylat"),
+              S52::FindIndex("boywtw"),
+              S52::FindIndex("BCNCAR"),
+              S52::FindIndex("BCNISD"),
+              S52::FindIndex("BCNLAT"),
+              S52::FindIndex("BCNSAW"),
+              S52::FindIndex("BCNSPP"),
+              S52::FindIndex("bcnlat"),
+              S52::FindIndex("bcnwtw"),
+              })
+    , m_light(S52::FindIndex("LIGHTS"))
 {
 
   ChartFileReader* reader = nullptr;
@@ -973,4 +995,207 @@ void S57Chart::drawVectorPatterns(const Camera *cam) {
   f->glDisable(GL_STENCIL_TEST);
   f->glEnable(GL_DEPTH_TEST);
 }
+
+S57::InfoTypeFull S57Chart::objectInfoFull(const WGS84Point& p, quint32 scale) {
+  const auto q = m_nativeProj->fromWGS84(p);
+
+  // 20 pixel resolution mapped to meters
+  const float res = 0.001 / dots_per_mm_y() * KV::PeepHoleSize * scale;
+  const QRectF box(q - .5 * QPointF(res, res), QSizeF(res, res));
+
+  QSet<quint32> handled;
+  const quint32 c_lights = S52::FindIndex("LIGHTS");
+
+  m_coordBuffer.bind();
+  auto vertices = reinterpret_cast<const glm::vec2*>(m_coordBuffer.mapRange(0, m_staticVertexOffset, QOpenGLBuffer::RangeRead));
+
+  m_indexBuffer.bind();
+  auto indices = reinterpret_cast<const GLuint*>(m_indexBuffer.mapRange(0, m_staticElemOffset, QOpenGLBuffer::RangeRead));
+
+  struct WrappedDesc {
+    int geom;
+    int prio;
+    S57::Description desc;
+  };
+
+  const QMap<S57::Geometry::Type, int> tmap {{S57::Geometry::Type::Point, 4},
+                                             {S57::Geometry::Type::Line, 3},
+                                             {S57::Geometry::Type::Area, 3},
+                                             {S57::Geometry::Type::Meta, 1}};
+  QVector<WrappedDesc> wrapper;
+
+  for (const ObjectLookup& p: m_lookups) {
+
+    if (handled.contains(p.object->classCode())) continue;
+    if (S52::IsMetaClass(p.object->classCode())) continue;
+    if (!p.object->boundingBox().intersects(box)) continue;
+
+    auto geom = p.object->geometry();
+
+    WrappedDesc desc;
+    desc.geom = tmap[geom->type()];
+    desc.prio = p.lookup->priority();
+    desc.desc.name = "";
+
+    if (geom->type() == S57::Geometry::Type::Point) {
+      auto ps = dynamic_cast<const S57::Geometry::Point*>(geom);
+      int soundingIndex = -1;
+      if (ps->containedBy(box, soundingIndex)) {
+        if (soundingIndex >= 0) {
+          auto s = m_nativeProj->toWGS84(QPointF(ps->points()[soundingIndex],
+                                                 ps->points()[soundingIndex + 1]));
+          desc.desc = p.object->description(s, ps->points()[soundingIndex + 2]);
+        } else {
+          desc.desc = p.object->description();
+        }
+      }
+    } else if (geom->type() == S57::Geometry::Type::Line) {
+      auto ls = dynamic_cast<const S57::Geometry::Line*>(geom);
+      if (ls->crosses(vertices, indices, box)) {
+        desc.desc = p.object->description();
+      }
+    } else if (geom->type() == S57::Geometry::Type::Area) {
+      auto as = dynamic_cast<const S57::Geometry::Area*>(geom);
+      if (as->includes(vertices, indices, q)) {
+        desc.desc = p.object->description();
+      }
+    }
+    if (!desc.desc.name.isEmpty()) {
+      if (p.object->classCode() != c_lights) {
+        handled << p.object->classCode();
+      }
+      wrapper.append(desc);
+    }
+  }
+
+  m_coordBuffer.unmap();
+  m_coordBuffer.release();
+
+  m_indexBuffer.unmap();
+  m_indexBuffer.release();
+
+  std::sort(wrapper.begin(), wrapper.end(), [] (const WrappedDesc& w1, const WrappedDesc& w2) {
+    if (w1.geom != w2.geom) {
+      return w1.geom > w2.geom;
+    }
+    return w1.prio > w2.prio;
+  });
+
+  S57::InfoTypeFull info;
+  for (const WrappedDesc& desc: wrapper) {
+    info.append(desc.desc);
+  }
+
+  return info;
+}
+
+
+S57::InfoType S57Chart::objectInfo(const WGS84Point& wp, quint32 scale) {
+  const auto q = m_nativeProj->fromWGS84(wp);
+
+  // Resolution in pixels mapped to meters
+  const float res = 0.001 / dots_per_mm_y() * KV::PeepHoleSize * scale;
+  const QRectF box(q - .5 * QPointF(res, res), QSizeF(res, res));
+  m_coordBuffer.bind();
+  auto vertices = reinterpret_cast<const glm::vec2*>(m_coordBuffer.mapRange(0, m_staticVertexOffset, QOpenGLBuffer::RangeRead));
+
+  m_indexBuffer.bind();
+  auto indices = reinterpret_cast<const GLuint*>(m_indexBuffer.mapRange(0, m_staticElemOffset, QOpenGLBuffer::RangeRead));
+
+
+  const QMap<S57::Geometry::Type, int> tmap {{S57::Geometry::Type::Point, 4},
+                                             {S57::Geometry::Type::Line, 3},
+                                             {S57::Geometry::Type::Area, 2},
+                                             {S57::Geometry::Type::Meta, 1}};
+
+  S57::InfoType info;
+  info.priority = 0;
+  qreal minArea = 1.e60;
+
+  const auto maxcat = static_cast<quint8>(Conf::MarinerParams::MaxCategory());
+  const auto today = QDate::currentDate();
+  const KV::Region cover(box);
+
+
+  for (int i = 0; i < m_lookups.size(); ++i) {
+
+    const ObjectLookup& p = m_lookups[i];
+    if (S52::IsMetaClass(p.object->classCode())) continue;
+    if (m_infoSkipList.contains(p.object->classCode())) continue;
+
+    if (p.object->classCode() == S52::FindCIndex("RDOCAL")) {
+      const quint32 trafic = p.object->attributeValue(S52::FindCIndex("TRAFIC")).toUInt();
+      if (trafic == 4) {
+        for (auto k: p.object->attributes().keys()) {
+          qDebug() << S52::GetAttributeInfo(k, p.object);
+        }
+      }
+    }
+
+    // check bbox & scale
+    if (!p.object->canPaint(cover, scale, today, p.lookup->canOverride())) continue;
+    // check display category
+    if (!p.lookup->canOverride() && as_numeric(p.lookup->category()) > maxcat) continue;
+
+
+    auto geom = p.object->geometry();
+    const int prio = p.lookup->priority() + 10 * tmap[geom->type()];
+    if (prio < info.priority) continue;
+
+    QString desc;
+    if (geom->type() == S57::Geometry::Type::Point) {
+      auto ps = dynamic_cast<const S57::Geometry::Point*>(geom);
+      int soundingIndex = -1;
+      if (ps->containedBy(box, soundingIndex)) {
+        const QString depth = soundingIndex < 0 ? "" : QString(" (%1m)").arg(ps->points()[soundingIndex + 2]);
+        desc = p.lookup->description(p.object) + depth;
+      }
+    } else if (geom->type() == S57::Geometry::Type::Line) {
+      auto ls = dynamic_cast<const S57::Geometry::Line*>(geom);
+      if (ls->crosses(vertices, indices, box)) {
+        desc = p.lookup->description(p.object);
+      }
+    } else if (geom->type() == S57::Geometry::Type::Area) {
+      auto as = dynamic_cast<const S57::Geometry::Area*>(geom);
+      if (as->includes(vertices, indices, q)) {
+        desc = p.lookup->description(p.object);
+      }
+    }
+    if (desc.isEmpty()) continue;
+
+    if (info.priority == prio) {
+      if (geom->type() == S57::Geometry::Type::Area) {
+        const QRectF bbox = p.object->boundingBox();
+        const qreal area = bbox.width() * bbox.height();
+        if (area < minArea) {
+          minArea = area;
+          info.info = desc;
+          info.objectId = QString("%1/%2").arg(id()).arg(i);
+          continue;
+        }
+      }
+      info.info += " - " + desc;
+      info.objectId += QString("-%1").arg(i);
+    } else {
+      info.priority = prio;
+      info.info = desc;
+      info.objectId = QString("%1/%2").arg(id()).arg(i);
+    }
+  }
+
+  m_coordBuffer.unmap();
+  m_coordBuffer.release();
+
+  m_indexBuffer.unmap();
+  m_indexBuffer.release();
+
+  return info;
+}
+
+void S57Chart::paintIcon(QPainter& painter, quint32 objectIndex) const {
+  if (static_cast<int>(objectIndex) >= m_lookups.size()) return;
+  const ObjectLookup& p = m_lookups[objectIndex];
+  p.lookup->paintIcon(painter, p.object);
+}
+
 

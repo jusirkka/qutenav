@@ -38,9 +38,14 @@ QString SQLiteDatabase::databaseName(const QString& bname) {
 
 
 
-SQLiteDatabase::SQLiteDatabase(const QString &connName)
-  : m_DB(QSqlDatabase::addDatabase("QSQLITE", connName))
-{}
+SQLiteDatabase::SQLiteDatabase(const QString& connName)
+{
+  if (QSqlDatabase::contains(connName)) {
+    m_DB = QSqlDatabase::database(connName, false);
+  } else {
+    m_DB = QSqlDatabase::addDatabase("QSQLITE", connName);
+  }
+}
 
 
 const QSqlQuery& SQLiteDatabase::exec(const QString& sql) {
@@ -80,9 +85,8 @@ void SQLiteDatabase::close() {
 }
 
 SQLiteDatabase::~SQLiteDatabase() {
-  qDebug() << "SQLiteDatabase::~SQLiteDatabase" << m_DB.connectionName();
+  // qDebug() << "SQLiteDatabase::~SQLiteDatabase" << m_DB.connectionName();
   close();
-  QSqlDatabase::removeDatabase(m_DB.connectionName());
 }
 
 void SQLiteDatabase::checkError() const {

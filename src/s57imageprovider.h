@@ -1,8 +1,8 @@
 /* -*- coding: utf-8-unix -*-
  *
- * utils.h
+ * s57imageprovider.h
  *
- * Created: 09/02/2021 2021 by Jukka Sirkka
+ * Created: 2021-05-19 2021 by Jukka Sirkka
  *
  * Copyright (C) 2021 Jukka Sirkka
  *
@@ -21,10 +21,18 @@
  */
 #pragma once
 
-#include <QRectF>
-#include <glm/glm.hpp>
+#include <QQuickImageProvider>
 
-// Cohen-Sutherland test
-bool outsideBox(const glm::vec2& v1, const glm::vec2& v2, const QRectF& box);
+namespace S57 {
 
-bool insidePolygon(uint count, uint offset, const glm::vec2* q, const uint* indices, const QPointF& p);
+class ImageProvider: public QQuickImageProvider {
+public:
+
+  ImageProvider();
+  QPixmap requestPixmap(const QString& id, QSize* size, const QSize& requestedSize) override;
+
+
+};
+
+} // namespace S57
+

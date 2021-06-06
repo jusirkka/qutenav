@@ -20,7 +20,7 @@
 #include "linecalculator.h"
 #include <QOpenGLExtraFunctions>
 #include <glm/glm.hpp>
-#include "utils.h"
+#include "geomutils.h"
 
 GL::LineCalculator* GL::LineCalculator::instance() {
   static LineCalculator* lc = new LineCalculator();
@@ -60,7 +60,7 @@ void GL::LineCalculator::calculate(VertexVector& transforms,
     const glm::vec2 p1 = vertexBufferIn[v1];
     const glm::vec2 p2 = vertexBufferIn[v2];
 
-    if (outsideBox(p1, p2, va)) {
+    if (!crossesBox(p1, p2, va)) {
       continue;
     }
 

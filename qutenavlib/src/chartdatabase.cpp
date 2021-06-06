@@ -67,23 +67,24 @@ ChartDatabase::ChartDatabase(const QString& connName)
 
 
 void ChartDatabase::createTables() {
-  auto db = QSqlDatabase::addDatabase("QSQLITE");
+  {
+    auto db = QSqlDatabase::addDatabase("QSQLITE", "ChartDatabase::createTables");
 
-  db.setDatabaseName(databaseName("charts"));
-  db.open();
-  auto query = QSqlQuery(db);
+    db.setDatabaseName(databaseName("charts"));
+    db.open();
+    auto query = QSqlQuery(db);
 
-  query.exec("create table if not exists chartsets ("
+    query.exec("create table if not exists chartsets ("
              "id integer primary key autoincrement, "
              "name text not null)");
 
-  query.exec("create table if not exists scales ("
+    query.exec("create table if not exists scales ("
              "id integer primary key autoincrement, "
              "chartset_id integer not null, "
              "scale int not null, "
              "unique (chartset_id, scale))");
 
-  query.exec("create table if not exists charts ("
+    query.exec("create table if not exists charts ("
              "id integer primary key autoincrement, "
              "scale_id integer not null, "
              "swx real not null, "
@@ -91,22 +92,23 @@ void ChartDatabase::createTables() {
              "nex real not null, "
              "ney real not null, "
              "published int not null, " // Julian day
-             "modified int not null, "  // Julian day
-             "path text not null unique)");
+               "modified int not null, "  // Julian day
+               "path text not null unique)");
 
-  query.exec("create table if not exists coverage ("
+    query.exec("create table if not exists coverage ("
              "id integer primary key autoincrement, "
              "type_id integer not null, "
              "chart_id integer not null)");
 
-  query.exec("create table if not exists polygons ("
+    query.exec("create table if not exists polygons ("
              "id integer primary key autoincrement, "
              "cov_id integer not null, "
              "x real not null, "
              "y real not null)");
 
-  db.close();
-  QSqlDatabase::removeDatabase(db.connectionName());
+    db.close();
+  }
+  QSqlDatabase::removeDatabase("ChartDatabase::createTables");
 }
 
 

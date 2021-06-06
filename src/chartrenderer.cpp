@@ -24,10 +24,14 @@
 #include "chartdisplay.h"
 #include <QOpenGLFramebufferObjectFormat>
 #include "logging.h"
+#include <QOpenGLDebugLogger>
+#include "rastersymbolmanager.h"
 
 ChartRenderer::ChartRenderer(QQuickWindow *window)
-  : m_mode(DetailMode::RestoreState())
+  : QQuickFramebufferObject::Renderer()
+  , m_mode(DetailMode::RestoreState())
   , m_window(window)
+  , m_logger(nullptr)
 {
   m_vao.create();
   initializeGL();
@@ -40,6 +44,14 @@ void ChartRenderer::initializeGL() {
   for (Drawable* drawable: m_mode->drawables()) {
     drawable->initializeGL();
   }
+
+  if (m_logger == nullptr) {
+    m_logger = new QOpenGLDebugLogger;
+    m_logger->initialize();
+  }
+  // I suspect Desktop/Mesa has a bug in textures / context sharing:
+  // If initialized in Chartdisplay, raster symbols are not shown
+  RasterSymbolManager::instance()->changeSymbolAtlas();
 }
 
 
@@ -78,6 +90,10 @@ void ChartRenderer::render() {
     drawable->paintGL(m_mode->camera());
   }
 
+  for (const QOpenGLDebugMessage& message: m_logger->loggedMessages()) {
+    qCDebug(CDPY) << message;
+  }
+
   m_window->resetOpenGLState();
 }
 
@@ -92,6 +108,7 @@ ChartRenderer::~ChartRenderer() {
   qCDebug(CDPY) << "ChartRenderer::~ChartRenderer";
   m_mode->saveState();
   delete m_mode;
+  delete m_logger;
 }
 
 void ChartRenderer::synchronize(QQuickFramebufferObject *parent) {
@@ -124,5 +141,18 @@ void ChartRenderer::synchronize(QQuickFramebufferObject *parent) {
   if (item->consume(ChartDisplay::ChartSetChanged)) {
     initializeGL();
   }
+
+  if (item->consume(ChartDisplay::ColorTableChanged)) {
+    // I suspect Desktop/Mesa has a bug in textures / context sharing:
+    // If initialized in Chartdisplay, raster symbols are not shown
+    RasterSymbolManager::instance()->changeSymbolAtlas();
+  }
+
+  m_window->resetOpenGLState();
+
+  for (const QOpenGLDebugMessage& message: m_logger->loggedMessages()) {
+    qCDebug(CDPY) << message;
+  }
+
 }
 

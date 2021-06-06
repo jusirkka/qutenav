@@ -25,10 +25,12 @@
 #include <QHash>
 #include <QOpenGLBuffer>
 #include "symboldata.h"
+#include <QCache>
 
 
 class QOpenGLTexture;
 class QXmlStreamReader;
+class QPainter;
 
 
 class RasterSymbolManager: public QObject {
@@ -43,14 +45,12 @@ public:
   void createSymbols();
 
   SymbolData symbolData(quint32 index, S52::SymbolType type) const;
+  bool paintIcon(QPainter& painter, quint32 index, S52::SymbolType type);
+  void changeSymbolAtlas();
 
   void bind();
 
   ~RasterSymbolManager();
-
-private slots:
-
-  void changeSymbolAtlas();
 
 private:
 
@@ -60,9 +60,23 @@ private:
     qreal minDist;
     qreal maxDist;
     S57::ElementData elements;
+    QRect graphicsLocation;
+    QPoint graphicsOffset;
+  };
+
+  struct PainterData {
+    PainterData(const QRect& g, const QPoint& o)
+      : graphicsLocation(g)
+      , offset(o) {}
+    PainterData() = default;
+
+    QRect graphicsLocation;
+    QPoint offset;
   };
 
   using SymbolMap = QHash<SymbolKey, SymbolData>;
+  using PainterDataMap = QHash<SymbolKey, PainterData>;
+  using PixmapCache = QCache<SymbolKey, QPixmap>;
 
   void parseSymbols(QXmlStreamReader& reader,
                     GL::VertexVector& vertices,
@@ -80,4 +94,8 @@ private:
   QOpenGLBuffer m_indexBuffer;
   QOpenGLTexture* m_symbolTexture;
   QString m_symbolAtlas;
+  // paintIcon interface
+  PainterDataMap m_painterData;
+  PixmapCache m_pixmapCache;
+
 };

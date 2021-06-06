@@ -48,7 +48,6 @@ struct ChartData {
   ChartData& operator= (const ChartData&) = default;
 };
 
-
 class ChartUpdater: public QObject {
 
   Q_OBJECT

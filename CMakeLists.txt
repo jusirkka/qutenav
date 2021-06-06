@@ -142,6 +142,8 @@ target_sources(qutenav
     src/glthread.cpp
     src/glyphmanager.cpp
     src/hpglparser.cpp
+    src/hpglopenglparser.cpp
+    src/hpglpixmapparser.cpp
     src/linecalculator.cpp
     src/orthocam.cpp
     src/outlinemode.cpp
@@ -151,15 +153,14 @@ target_sources(qutenav
     src/s52functions.cpp
     src/s52presentation.cpp
     src/s52presentation_p.cpp
+    src/s57imageprovider.cpp
     src/s57chart.cpp
-    src/s57chart_objectinfo.cpp
     src/s57paintdata.cpp
     src/settings.cpp
     src/shader.cpp
     src/symboldata.cpp
     src/textmanager.cpp
     src/tiny_sdf.cpp
-    src/utils.cpp
     src/vectorsymbolmanager.cpp
     src/wfreader.cpp
     src/chartdisplay.cpp

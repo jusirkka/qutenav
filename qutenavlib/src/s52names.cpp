@@ -314,6 +314,7 @@ QString S52::GetAttributeEnumDescription(quint32 aid, quint32 eid) {
   return p->attributes[aid].enumDescriptions[eid];
 }
 
+
 bool S52::IsMetaClass(quint32 code) {
   auto p = Names::instance();
   Q_ASSERT(p->classes.contains(code));

@@ -37,6 +37,7 @@ class QOpenGLContext;
 class ChartFileReader;
 class ChartFileReaderFactory;
 class UpdaterInterface;
+class QPainter;
 
 namespace GL {
 class Thread;
@@ -60,6 +61,8 @@ public:
   void setChartSet(const QString& charts, const GeoProjection* vproj, bool force = false);
   QString chartSet() const;
 
+  void paintIcon(QPainter& painter, quint32 chartId, quint32 objectIndex) const;
+
   const ChartVector& charts() const {return m_charts;}
   const GL::VertexVector& outlines() const {return m_outlines;}
   const ChartReaderVector& readers() const {return m_readers;}
@@ -76,7 +79,7 @@ signals:
   void idle();
   void active();
   void chartsUpdated(const QRectF& viewArea);
-  void infoResponse(const S57::InfoType& info);
+  void infoResponse(const QString& objectId, const QString& info);
   void chartSetsUpdated();
 
 public slots:
@@ -135,7 +138,9 @@ private:
 
   QMap<quint32, quint8> m_transactions;
   quint32 m_transactionCounter;
-  QMap<quint32, S57::InfoType> m_info;
+
+  using InfoTypeVector = QVector<S57::InfoType>;
+  QMap<quint32, InfoTypeVector> m_info;
 
   GL::Thread* m_cacheThread;
   ChartUpdater* m_cacheWorker;

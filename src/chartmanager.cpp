@@ -564,7 +564,7 @@ void ChartManager::requestInfo(const WGS84Point &p) {
   }
 
   if (reqs.isEmpty()) {
-    qInfo() << p.print() << "is outside of area covered by current chartset";
+    qCInfo(CMGR) << p.print() << "is outside of area covered by current chartset";
     return;
   }
 
@@ -584,19 +584,29 @@ void ChartManager::requestInfo(const WGS84Point &p) {
 void ChartManager::manageInfoResponse(const S57::InfoType& info, quint32 tid) {
   m_transactions[tid] = m_transactions[tid] + 1;
 
-  if (m_info[tid].isEmpty()) {
-    m_info[tid] = info;
-  } else {
-    qCWarning(CMGR) << "Object info in more than one chart";
-  }
+  m_info[tid] << info;
 
   if (m_transactions[tid] == m_charts.size()) {
-    S57::InfoType info = m_info[tid];
+    // All responses received
+    const S57::InfoType* resp = nullptr;
+    quint8 prio = 0;
+    for (const S57::InfoType& info: m_info[tid]) {
+      if (info.priority > prio) {
+        prio = info.priority;
+        resp = &info;
+      }
+    }
+    if (resp != nullptr) {
+      qCDebug(CMGR) << "ChartManager::manageInfoResponse" << resp->objectId << resp->info;
+      emit infoResponse(resp->objectId, resp->info);
+    }
     m_info.remove(tid);
     m_transactions.remove(tid);
-    qCDebug(CMGR) << "ChartManager::manageInfoResponse";
-    emit infoResponse(info);
   }
 }
 
+void ChartManager::paintIcon(QPainter& painter, quint32 chartId, quint32 objectIndex) const {
+  if (!m_chartIds.contains(chartId)) return;
+  m_charts[m_chartIds[chartId]]->paintIcon(painter, objectIndex);
+}
 

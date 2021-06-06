@@ -25,6 +25,8 @@
 #include <QXmlStreamReader>
 #include "logging.h"
 #include "settings.h"
+#include <QPainter>
+#include <QOpenGLExtraFunctions>
 
 RasterSymbolManager::RasterSymbolManager()
   : QObject()
@@ -33,6 +35,7 @@ RasterSymbolManager::RasterSymbolManager()
   , m_indexBuffer(QOpenGLBuffer::IndexBuffer)
   , m_symbolTexture(nullptr)
   , m_symbolAtlas()
+  , m_pixmapCache(100 * sizeof(QPixmap))
 {}
 
 
@@ -53,26 +56,22 @@ SymbolData RasterSymbolManager::symbolData(quint32 index, S52::SymbolType type) 
 }
 
 void RasterSymbolManager::bind() {
-  m_indexBuffer.bind();
   m_coordBuffer.bind();
+  m_indexBuffer.bind();
   m_symbolTexture->bind();
 }
 
 void RasterSymbolManager::changeSymbolAtlas() {
-  auto atlas = S52::GetRasterFileName();
-  if (atlas != m_symbolAtlas) {
-    m_symbolAtlas = atlas;
-    delete m_symbolTexture;
-    m_symbolTexture = new QOpenGLTexture(QImage(atlas), QOpenGLTexture::DontGenerateMipMaps);
-  }
+  m_symbolAtlas = S52::GetRasterFileName();
+  delete m_symbolTexture;
+  m_symbolTexture = new QOpenGLTexture(QImage(S52::GetRasterFileName()), QOpenGLTexture::DontGenerateMipMaps);
+  m_symbolTexture->setWrapMode(QOpenGLTexture::ClampToEdge);
+  m_symbolTexture->setMinMagFilters(QOpenGLTexture::Linear, QOpenGLTexture::Linear);
 }
 
 void RasterSymbolManager::createSymbols() {
 
   changeSymbolAtlas();
-
-  connect(Settings::instance(), &Settings::colorTableChanged,
-          this, &RasterSymbolManager::changeSymbolAtlas);
 
   QFile file(S52::FindPath("chartsymbols.xml"));
   file.open(QFile::ReadOnly);
@@ -147,9 +146,10 @@ void RasterSymbolManager::parseSymbols(QXmlStreamReader &reader,
     const SymbolKey key(S52::FindIndex(symbolName), t);
     if (m_symbolMap.contains(key) && s != m_symbolMap[key]) {
       qCWarning(CS52) << "multiple raster symbol/pattern definitions for"
-                 << symbolName << ", skipping earlier";
+                      << symbolName << ", skipping earlier";
     }
     m_symbolMap.insert(key, s);
+    m_painterData.insert(key, PainterData(d.graphicsLocation, d.graphicsOffset));
   }
 }
 
@@ -179,14 +179,17 @@ void RasterSymbolManager::parseSymbolData(QXmlStreamReader &reader,
     } else if (reader.name() == "pivot") {
       p = QPoint(reader.attributes().value("x").toInt(),
                  reader.attributes().value("y").toInt());
+      d.graphicsOffset = p;
       reader.skipCurrentElement();
     } else if (reader.name() == "origin") {
       o = QPoint(reader.attributes().value("x").toInt(),
                  reader.attributes().value("y").toInt());
       reader.skipCurrentElement();
     } else if (reader.name() == "graphics-location") {
-      t0 = QPointF(reader.attributes().value("x").toInt() / W,
-                   reader.attributes().value("y").toInt() / H);
+      const auto x = reader.attributes().value("x").toInt();
+      const auto y = reader.attributes().value("y").toInt();
+      t0 = QPointF(x / W, y / H);
+      d.graphicsLocation = QRect(x, y, w, h);
       reader.skipCurrentElement();
     } else {
       reader.skipCurrentElement();
@@ -214,3 +217,19 @@ void RasterSymbolManager::parseSymbolData(QXmlStreamReader &reader,
   vertices << p0.x() << p1.y() << t0.x() << t1.y();
 
 }
+
+bool RasterSymbolManager::paintIcon(QPainter& painter, quint32 index, S52::SymbolType type) {
+  const SymbolKey key(index, type);
+  if (!m_pixmapCache.contains(key)) {
+    if (!m_painterData.contains(key)) return false;
+    auto pix = new QPixmap;
+    int h = 2 * m_painterData[key].graphicsLocation.height();
+    *pix = QPixmap(m_symbolAtlas).copy(m_painterData[key].graphicsLocation).scaledToHeight(h);
+    m_pixmapCache.insert(key, pix);
+  }
+  const auto ox = qMax(0, painter.device()->width() / 6 + m_painterData[key].offset.x());
+  const auto oy = qMax(0, painter.device()->height() / 6 + m_painterData[key].offset.y());
+  painter.drawPixmap(ox, oy, *m_pixmapCache[key]);
+  return true;
+}
+

@@ -24,8 +24,8 @@
 #include "types.h"
 #include <QStack>
 
-#define S52HPGL_LTYPE HPGLParser::LocationType
-#define S52HPGL_STYPE HPGLParser::ValueType
+#define S52HPGL_LTYPE HPGL::LocationType
+#define S52HPGL_STYPE HPGL::ValueType
 
 #ifndef YY_TYPEDEF_YY_SCANNER_T
 #define YY_TYPEDEF_YY_SCANNER_T
@@ -44,115 +44,66 @@ using yyscan_t = void *;
 
 class HPGLHelper;
 
-class HPGLParser {
+namespace HPGL {
 
-  friend class HPGLHelper;
+// flex/bison location and value types
+struct LocationType {
+  int prev_pos;
+  int pos;
+};
+
+struct ValueType {
+  char v_char;
+  int v_int;
+  QVector<int> v_int_list;
+};
+
+using RawPoints = QVector<int>;
+
+class Parser {
+
+  friend class ::HPGLHelper;
 
 public:
 
-  // flex/bison location and value types
-  struct LocationType {
-    int prev_pos;
-    int pos;
-  };
+  Parser(const QString& colors);
 
-  struct ValueType {
-    char v_char;
-    int v_int;
-    QVector<int> v_int_list;
-  };
-
-
-  HPGLParser(const QString& src, const QString& colors, const QPointF& pivot);
-
-  using RawPoints = QVector<int>;
-
-  struct Data {
-    S52::Color color;
-    GL::IndexVector indices;
-    GL::VertexVector vertices;
-  };
-
-  using DataVector = QVector<Data>;
-
-  const DataVector& data() const {return m_data;}
   bool ok() const {return m_ok;}
 
-private:
+  virtual ~Parser() = default;
+
+protected:
 
   using ColorRef = QMap<char, quint32>;
-  using DataHash = QHash<S52::Color, Data>;
-  using DataIterator = QHash<S52::Color, Data>::iterator;
 
   void parseColorRef(const QString& cmap);
   bool m_ok;
-  DataVector m_data;
 
   ColorRef m_cmap;
 
-private: // bison interface
+  void parse(const QString& src);
 
-  // length units to millimeters
-  static const inline qreal mmUnit = .01;
+protected: // bison interface
 
+  virtual void setColor(char c) = 0;
+  virtual void setAlpha(int a) = 0;
+  virtual void setWidth(int w) = 0;
+  virtual void movePen(const RawPoints& ps) = 0;
+  virtual void drawLineString(const RawPoints& ps) = 0;
+  virtual void drawCircle(int r) = 0;
+  virtual void drawArc(int x, int y, int a) = 0;
+  virtual void pushSketch() = 0;
+  virtual void endSketch() = 0;
+  virtual void fillSketch() = 0;
+  virtual void edgeSketch() = 0;
+  virtual void drawPoint() = 0;
 
-  void setColor(char c);
-  void setAlpha(int a);
-  void setWidth(int w);
-  void movePen(const RawPoints& ps);
-  void drawLineString(const RawPoints& ps);
-  void drawCircle(int r);
-  void drawArc(int x, int y, int a);
-  void pushSketch();
-  void endSketch();
-  void fillSketch();
-  void edgeSketch();
-  void drawPoint();
-
-  using PointList = QVector<QPointF>;
-
-  struct LineString {
-    PointList points;
-    bool closed;
-  };
-
-  using LineStringList = QVector<LineString>;
-
-  struct Sketch {
-    inline Sketch clone() {
-      Sketch s;
-      s.color = color;
-      s.lineWidth = lineWidth;
-      LineString ls;
-      ls.closed = false;
-      s.parts.append(ls);
-      return s;
-    }
-    S52::Color color;
-    qreal lineWidth;
-    LineStringList parts;
-  };
-
-  void triangulate(const PointList& points, Data& out);
-  void thickerlines(const LineString& ls, qreal lw, Data& out);
-  static void mergeData(Data& tgt, const Data& d);
-  QPointF makePoint(int x, int y) const;
-
-  Sketch m_currentSketch;
-  QStack<Sketch> m_sketches;
-
-  bool m_started;
-  bool m_penDown;
-
-  QPointF m_pen;
-  QPointF m_pivot;
-
-  DataHash m_storage;
 
 };
+}
 
-void s52hpgl_error(HPGLParser::LocationType*,
-                   HPGLParser*,
+void s52hpgl_error(HPGL::LocationType*,
+                   HPGL::Parser*,
                    yyscan_t, const char*);
 
 

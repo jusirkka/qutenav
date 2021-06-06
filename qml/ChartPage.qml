@@ -30,6 +30,7 @@ ChartPagePL {
   property bool posValid
   property bool headingValid
   property bool boatCentered: centerButton.centered
+  property bool infoQueryPending
   property var mouseMoveHandler
   property var position: gps.position
   property var lastPos: undefined
@@ -55,6 +56,10 @@ ChartPagePL {
     infoPoint.peepHole = Qt.point(infoPoint.peepHole.x + m.x - mouse.prev.x,
                                   infoPoint.peepHole.y + m.y - mouse.prev.y);
     mouse.prev = Qt.point(m.x, m.y);
+    if (!infoQueryPending) {
+      infoQueryPending = true;
+      encdis.infoQuery(infoPoint.peepHole);
+    }
   }
 
   Component.onCompleted: {
@@ -62,7 +67,8 @@ ChartPagePL {
     infoMode = false;
     posValid = false;
     headingValid = false;
-    page.mouseMoveHandler = page.panModeMouseMoveHandler;
+    infoQueryPending = false;
+    mouseMoveHandler = panModeMouseMoveHandler;
   }
 
   onOrientationChanged: {
@@ -146,11 +152,13 @@ ChartPagePL {
     anchors.fill: parent
 
     onInfoQueryReady: {
-      app.show(Qt.resolvedUrl("InfoPage.qml"), {content: info});
+      page.infoQueryPending = false;
+      bubble.show(info, "image://s57/" + objectId,
+                  infoPoint.peepHole.y > page.height / 2 ? "top" : "bottom")
     }
 
     onChartDBStatus: {
-      bubble.show(msg, "top");
+      bubble.show(msg);
     }
 
     Tracker {
@@ -214,7 +222,7 @@ ChartPagePL {
     visible: !page.infoMode
     onCenteredChanged: {
       if (centered) {
-        bubble.show(Util.printPos(lastPos), "top");
+        bubble.show(Util.printPos(lastPos));
       }
     }
   }
@@ -280,15 +288,6 @@ ChartPagePL {
     visible: page.infoMode
   }
 
-  Timer {
-    id: infoTimer
-    interval: 1500
-    repeat: false
-    onTriggered: {
-      encdis.infoQuery(infoPoint.peepHole);
-    }
-  }
-
   PinchArea {
     id: zoom
 
@@ -348,18 +347,13 @@ ChartPagePL {
         first = Qt.point(mouse.x, mouse.y);
         prev = first;
         encdis.panStart(mouse.x, mouse.y);
-        infoTimer.stop();
       }
       onReleased: {
         var p = Qt.point(mouse.x, mouse.y);
-        if (p !== first) {
-          if (page.infoMode) {
-            infoTimer.start();
-          } else if (routeButton.editing) {
-            if (routePoint !== undefined) {
-              routePoint.selected = false;
-              routePoint = undefined;
-            }
+        if (p != first) {
+          if (routeButton.editing && routePoint !== undefined) {
+            routePoint.selected = false;
+            routePoint = undefined;
           }
           return;
         }
@@ -378,7 +372,6 @@ ChartPagePL {
           infoPoint.peepHole = Qt.point(page.width / 2, page.height / 2);
         } else {
           page.mouseMoveHandler = page.panModeMouseMoveHandler;
-          infoTimer.stop();
         }
       }
     }
