@@ -175,8 +175,8 @@ void HPGL::PixmapParser::drawLineString(const RawPoints &ps) {
 void HPGL::PixmapParser::drawPoint() {
   const qreal lw = m_currentSketch.lineWidth == 0. ?
         S52::LineWidthMM(1) * dots_per_mm_x() : m_currentSketch.lineWidth;
-  const auto q = QPoint(lw / 2, lw / 2);
-  const auto p = QPoint(lw / 2, -lw / 2);
+  const auto q = QPointF(lw / 2, lw / 2);
+  const auto p = QPointF(lw / 2, -lw / 2);
   QPolygonF poly;
   poly.append(m_penPos - q);
   poly.append(m_penPos + p);

@@ -49,6 +49,10 @@ S57::PaintDataMap S52::AreaColor::execute(const QVector<QVariant>& vals,
   return S57::PaintDataMap{{p->type(), p}};
 }
 
+QStringList S52::AreaColor::descriptions(const QVector<QVariant>& vals, const S57::Object* obj) const {
+  return QStringList {GetClassDescription(obj->classCode())};
+}
+
 void S52::AreaColor::paintIcon(QPainter& painter,
                                const QVector<QVariant>& vals, const S57::Object* obj) const {
   auto color = S52::GetColor(vals[0].toUInt());
@@ -124,6 +128,11 @@ S57::PaintDataMap S52::AreaPattern::execute(const QVector<QVariant>& vals,
 
 }
 
+QStringList S52::AreaPattern::descriptions(const QVector<QVariant>& vals, const S57::Object* obj) const {
+  return QStringList {GetClassDescription(obj->classCode())};
+}
+
+
 void S52::AreaPattern::paintIcon(QPainter& painter,
                                  const QVector<QVariant>& vals, const S57::Object* obj) const {
   quint32 index = vals[0].toUInt();
@@ -155,6 +164,11 @@ S57::PaintDataMap S52::LineSimple::execute(const QVector<QVariant>& vals,
 
   return S57::PaintDataMap{{p->type(), p}};
 }
+
+QStringList S52::LineSimple::descriptions(const QVector<QVariant>& vals, const S57::Object* obj) const {
+  return QStringList {GetClassDescription(obj->classCode())};
+}
+
 
 void S52::LineSimple::paintIcon(QPainter& painter,
                                 const QVector<QVariant>& vals, const S57::Object* obj) const {
@@ -223,12 +237,22 @@ S57::PaintDataMap S52::LineComplex::execute(const QVector<QVariant>& vals,
   return S57::PaintDataMap{{p->type(), p}};
 }
 
+QStringList S52::LineComplex::descriptions(const QVector<QVariant>& vals, const S57::Object* obj) const {
+  return QStringList {GetClassDescription(obj->classCode())};
+}
+
+
 void S52::LineComplex::paintIcon(QPainter& painter,
                                  const QVector<QVariant>& vals, const S57::Object* obj) const {
   quint32 index = vals[0].toUInt();
   VectorSymbolManager::instance()->paintIcon(painter, index, S52::SymbolType::LineStyle, 0);
 }
 
+
+S52::PointSymbol::PointSymbol(quint32 index)
+  : S52::Function("SY", index)
+  , m_catlam(S52::FindIndex("CATLAM"))
+  , m_catcam(S52::FindIndex("CATCAM")) {}
 
 
 S57::PaintDataMap S52::PointSymbol::execute(const QVector<QVariant>& vals,
@@ -288,6 +312,18 @@ S57::PaintDataMap S52::PointSymbol::execute(const QVector<QVariant>& vals,
   }
 
   return S57::PaintDataMap{{p->type(), p}};
+}
+
+QStringList S52::PointSymbol::descriptions(const QVector<QVariant>& vals, const S57::Object* obj) const {
+  QStringList ds;
+  if (obj->attributeValue(m_catlam).isValid()) {
+    ds << S52::GetAttributeValueDescription(m_catlam, obj->attributeValue(m_catlam));
+  } else if (obj->attributeValue(m_catcam).isValid()) {
+    ds << S52::GetAttributeValueDescription(m_catcam, obj->attributeValue(m_catcam));
+  } else {
+    ds << GetClassDescription(obj->classCode());
+  }
+  return ds;
 }
 
 void S52::PointSymbol::paintIcon(QPainter& painter,
@@ -1509,6 +1545,19 @@ void S52::CSLights05::paintIcon(QPainter& painter,
     }
     return;
   }
+
+  // Continuation B
+  auto s1 = obj->attributeValue(m_sectr1).toFloat();
+  auto s2 = obj->attributeValue(m_sectr2).toFloat();
+  while (s2 < s1) s2 += 360.;
+  const bool allRound = s2 - s1 < 1. || std::abs(s2 - s1 - 360.) < 1.;
+
+  if (allRound) {
+    QVector<QVariant> vals {lightSymbol, 135.};
+    S52::FindFunction("SY")->paintIcon(painter, vals, obj);
+    return;
+  }
+
   // TODO: draw some symbol for sector light
 }
 
@@ -2091,6 +2140,11 @@ S57::PaintDataMap S52::CSQualOfPos01::execute(const QVector<QVariant>&,
   return S57::PaintDataMap();
 }
 
+QStringList S52::CSQualOfPos01::descriptions(const QVector<QVariant>& vals, const S57::Object* obj) const {
+  return QStringList {GetClassDescription(obj->classCode())};
+}
+
+
 void S52::CSQualOfPos01::paintIcon(QPainter& painter, const QVector<QVariant>&,
                                    const S57::Object* obj) const {
 
@@ -2642,6 +2696,11 @@ S57::PaintDataMap S52::CSTopmarks01::execute(const QVector<QVariant>&,
 
   QVector<QVariant> vals {topmrk, 0.};
   return S52::FindFunction("SY")->execute(vals, obj);
+}
+
+QStringList S52::CSTopmarks01::descriptions(const QVector<QVariant>&,
+                                            const S57::Object* obj) const {
+  return QStringList {"hidden"};
 }
 
 void S52::CSTopmarks01::paintIcon(QPainter& painter, const QVector<QVariant>&,

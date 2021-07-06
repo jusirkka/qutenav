@@ -83,9 +83,6 @@ QString S52::Lookup::description(const S57::Object* obj) const {
 
 
   QStringList descriptions;
-  if (obj->classCode() != FindCIndex("LIGHTS")) {
-    descriptions.append(GetClassDescription(obj->classCode()));
-  }
 
   for (auto code: m_code) {
 

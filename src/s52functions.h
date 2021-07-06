@@ -40,9 +40,7 @@ public:
   const QString& name() {return m_name;}
 
   virtual S57::PaintDataMap execute(const QVector<QVariant>& vals, const S57::Object* obj) = 0;
-  virtual QStringList descriptions(const QVector<QVariant>& vals, const S57::Object* obj) const {
-    return QStringList();
-  }
+  virtual QStringList descriptions(const QVector<QVariant>& vals, const S57::Object* obj) const = 0;
   virtual void paintIcon(QPainter& painter,
                          const QVector<QVariant>& vals, const S57::Object* obj) const {}
 
@@ -68,6 +66,7 @@ public:
     : Function("AC", index) {}
 
   S57::PaintDataMap execute(const QVector<QVariant>& vals, const S57::Object* obj) override;
+  QStringList descriptions(const QVector<QVariant>& vals, const S57::Object* obj) const override;
   void paintIcon(QPainter& painter,
                  const QVector<QVariant>& vals, const S57::Object* obj) const override;
 };
@@ -78,6 +77,7 @@ public:
     : Function("AP", index) {}
 
   S57::PaintDataMap execute(const QVector<QVariant>& vals, const S57::Object* obj) override;
+  QStringList descriptions(const QVector<QVariant>& vals, const S57::Object* obj) const override;
   void paintIcon(QPainter& painter,
                  const QVector<QVariant>& vals, const S57::Object* obj) const override;
 
@@ -89,6 +89,7 @@ public:
     : Function("LS", index) {}
 
   S57::PaintDataMap execute(const QVector<QVariant>& vals, const S57::Object* obj) override;
+  QStringList descriptions(const QVector<QVariant>& vals, const S57::Object* obj) const override;
   void paintIcon(QPainter& painter,
                  const QVector<QVariant>& vals, const S57::Object* obj) const override;
 
@@ -100,6 +101,7 @@ public:
     : Function("LC", index) {}
 
   S57::PaintDataMap execute(const QVector<QVariant>& vals, const S57::Object* obj) override;
+  QStringList descriptions(const QVector<QVariant>& vals, const S57::Object* obj) const override;
   void paintIcon(QPainter& painter,
                  const QVector<QVariant>& vals, const S57::Object* obj) const override;
 
@@ -107,12 +109,18 @@ public:
 
 class PointSymbol: public Function {
 public:
-  PointSymbol(quint32 index)
-    : Function("SY", index) {}
+  PointSymbol(quint32 index);
 
   S57::PaintDataMap execute(const QVector<QVariant>& vals, const S57::Object* obj) override;
+  QStringList descriptions(const QVector<QVariant>& vals, const S57::Object* obj) const override;
   void paintIcon(QPainter& painter,
                  const QVector<QVariant>& vals, const S57::Object* obj) const override;
+
+private:
+
+  const quint32 m_catlam;
+  const quint32 m_catcam;
+
 
 };
 
@@ -212,6 +220,9 @@ class CSDataCov01: public Function {
 public:
   CSDataCov01(quint32 index);
   S57::PaintDataMap execute(const QVector<QVariant>&, const S57::Object* obj) override;
+  QStringList descriptions(const QVector<QVariant>& vals, const S57::Object* obj) const override {
+    return QStringList();
+  }
 private:
   const quint32 m_hodata01;
 };
@@ -360,6 +371,7 @@ public:
   CSQualOfPos01(quint32 index);
 
   S57::PaintDataMap execute(const QVector<QVariant>&, const S57::Object* obj) override;
+  QStringList descriptions(const QVector<QVariant>& vals, const S57::Object* obj) const override;
   void paintIcon(QPainter& painter,
                  const QVector<QVariant>& vals, const S57::Object* obj) const override;
 
@@ -434,6 +446,9 @@ public:
   CSSoundings02(quint32 index);
 
   S57::PaintDataMap execute(const QVector<QVariant>&, const S57::Object* obj) override;
+  QStringList descriptions(const QVector<QVariant>& vals, const S57::Object* obj) const override {
+    return QStringList();
+  }
   S57::PaintDataMap symbols(double depth, int index, const S57::Object* obj) const;
 
 private:
@@ -461,6 +476,7 @@ public:
   CSTopmarks01(quint32 index);
 
   S57::PaintDataMap execute(const QVector<QVariant>&, const S57::Object* obj) override;
+  QStringList descriptions(const QVector<QVariant>& vals, const S57::Object* obj) const override;
   void paintIcon(QPainter& painter,
                  const QVector<QVariant>& vals, const S57::Object* obj) const override;
 

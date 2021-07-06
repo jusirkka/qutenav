@@ -16,7 +16,10 @@
 - correct text frag shader parameters as uniforms
 - add missing ack in readme: bin packing in glyph manager
 - fix chartsymbols.xml: typos, remove unsupported classcodes/lookups
+- start with last known location fix
+- center chart to loaded route / track
 
+- handle undefined location gracefully
 - draw triangle strips instead of lines in Tracks and Routes: linewidths > 1 not supported in
   OpenGL core profiles
 - unit preferences

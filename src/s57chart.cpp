@@ -1108,7 +1108,13 @@ S57::InfoType S57Chart::objectInfo(const WGS84Point& wp, quint32 scale) {
                                              {S57::Geometry::Type::Area, 2},
                                              {S57::Geometry::Type::Meta, 1}};
 
-  S57::InfoType info;
+  struct WrappedInfo {
+    QString objectId;
+    int priority;
+    QStringList desc;
+  };
+
+  WrappedInfo info;
   info.priority = 0;
   qreal minArea = 1.e60;
 
@@ -1123,23 +1129,15 @@ S57::InfoType S57Chart::objectInfo(const WGS84Point& wp, quint32 scale) {
     if (S52::IsMetaClass(p.object->classCode())) continue;
     if (m_infoSkipList.contains(p.object->classCode())) continue;
 
-    if (p.object->classCode() == S52::FindCIndex("RDOCAL")) {
-      const quint32 trafic = p.object->attributeValue(S52::FindCIndex("TRAFIC")).toUInt();
-      if (trafic == 4) {
-        for (auto k: p.object->attributes().keys()) {
-          qDebug() << S52::GetAttributeInfo(k, p.object);
-        }
-      }
-    }
-
     // check bbox & scale
     if (!p.object->canPaint(cover, scale, today, p.lookup->canOverride())) continue;
     // check display category
     if (!p.lookup->canOverride() && as_numeric(p.lookup->category()) > maxcat) continue;
 
-
     auto geom = p.object->geometry();
-    const int prio = p.lookup->priority() + 10 * tmap[geom->type()];
+    // select all points at same location; use highest priority for other geometries
+    const int prio = 10 * tmap[geom->type()] +
+        (geom->type() == S57::Geometry::Type::Point ? 0 : p.lookup->priority());
     if (prio < info.priority) continue;
 
     QString desc;
@@ -1147,7 +1145,7 @@ S57::InfoType S57Chart::objectInfo(const WGS84Point& wp, quint32 scale) {
       auto ps = dynamic_cast<const S57::Geometry::Point*>(geom);
       int soundingIndex = -1;
       if (ps->containedBy(box, soundingIndex)) {
-        const QString depth = soundingIndex < 0 ? "" : QString(" (%1m)").arg(ps->points()[soundingIndex + 2]);
+        const QString depth = soundingIndex < 0 ? "" : QString("Sounding (%1m)").arg(ps->points()[soundingIndex + 2]);
         desc = p.lookup->description(p.object) + depth;
       }
     } else if (geom->type() == S57::Geometry::Type::Line) {
@@ -1169,16 +1167,22 @@ S57::InfoType S57Chart::objectInfo(const WGS84Point& wp, quint32 scale) {
         const qreal area = bbox.width() * bbox.height();
         if (area < minArea) {
           minArea = area;
-          info.info = desc;
+          if (desc != "hidden") {
+            info.desc.append(desc);
+          }
           info.objectId = QString("%1/%2").arg(id()).arg(i);
           continue;
         }
       }
-      info.info += " - " + desc;
+      if (desc != "hidden") {
+        info.desc.append(desc);
+      }
       info.objectId += QString("-%1").arg(i);
     } else {
       info.priority = prio;
-      info.info = desc;
+      if (desc != "hidden") {
+        info.desc.append(desc);
+      }
       info.objectId = QString("%1/%2").arg(id()).arg(i);
     }
   }
@@ -1189,7 +1193,11 @@ S57::InfoType S57Chart::objectInfo(const WGS84Point& wp, quint32 scale) {
   m_indexBuffer.unmap();
   m_indexBuffer.release();
 
-  return info;
+  S57::InfoType ret;
+  ret.objectId = info.objectId;
+  ret.priority = info.priority;
+  ret.info = info.desc.join("; ");
+  return ret;
 }
 
 void S57Chart::paintIcon(QPainter& painter, quint32 objectIndex) const {
