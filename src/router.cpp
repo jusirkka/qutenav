@@ -26,10 +26,13 @@
 #include "chartdisplay.h"
 #include <QQmlProperty>
 #include "routedatabase.h"
+#include "geomutils.h"
 
 Router::Router(QQuickItem* parent)
   : QQuickItem(parent)
   , m_edited(false)
+  , m_synced(false)
+  , m_modified(false)
   , m_routeId(-1)
 {
   setFlag(ItemHasContents, true);
@@ -48,9 +51,10 @@ void Router::sync() {
 
   for (QQuickItem* kid: childItems()) {
     auto index = QQmlProperty::read(kid, "index").toInt();
-    const QSGGeometry::Point2D p = m_vertices[index];
-    kid->setProperty("center", QPointF(p.x, p.y));
+    kid->setProperty("center", m_vertices[index]);
   }
+
+  m_synced = true;
 
   update();
 
@@ -66,10 +70,7 @@ int Router::append(const QPointF& q) {
   const bool wasEmpty = m_vertices.isEmpty();
 
   m_positions << encdis->location(q);
-
-  QSGGeometry::Point2D p;
-  p.set(q.x(), q.y());
-  m_vertices << p;
+  m_vertices << q;
 
   if (wasEmpty) {
     emit emptyChanged();
@@ -79,6 +80,8 @@ int Router::append(const QPointF& q) {
     m_edited = true;
     emit editedChanged();
   }
+
+  m_modified = true;
 
   update();
 
@@ -92,14 +95,11 @@ void Router::move(int index, const QPointF& dp) {
     return;
   }
 
-  QPointF q(m_vertices[index].x + dp.x(), m_vertices[index].y + dp.y());
+  const QPointF q = m_vertices[index] + dp;
 
 
   m_positions[index] = encdis->location(q);
-
-  QSGGeometry::Point2D p2;
-  p2.set(q.x(), q.y());
-  m_vertices[index] = p2;
+  m_vertices[index] = q;
 
   for (QQuickItem* kid: childItems()) {
     auto k = QQmlProperty::read(kid, "index").toInt();
@@ -113,6 +113,8 @@ void Router::move(int index, const QPointF& dp) {
     m_edited = true;
     emit editedChanged();
   }
+
+  m_synced = true;
 
 
   update();
@@ -156,6 +158,8 @@ void Router::remove(int index) {
     emit editedChanged();
   }
 
+  m_modified = true;
+
   update();
 }
 
@@ -183,6 +187,9 @@ void Router::clear() {
   }
 
   m_routeId = -1;
+
+  m_modified = true;
+  m_synced = true;
 
   update();
 }
@@ -249,9 +256,7 @@ void Router::load(int rid) {
     m_positions << wp;
 
     const auto q = encdis->position(wp);
-    QSGGeometry::Point2D p;
-    p.set(q.x(), q.y());
-    m_vertices << p;
+    m_vertices << q;
   }
 
   m_routeId = m_vertices.isEmpty() ? -1 : rid;
@@ -259,6 +264,10 @@ void Router::load(int rid) {
   if (wasEmpty != m_vertices.isEmpty()) {
     emit emptyChanged();
   }
+
+  m_modified = true;
+  m_synced = true;
+
 
   // No need to test m_edited - archive page enabled only if there are no edits.
 
@@ -272,9 +281,7 @@ int Router::length() const {
 
 QPointF Router::vertex(int index) const {
   if (index < 0 || index >= m_vertices.size()) return QPointF();
-
-  const QSGGeometry::Point2D p = m_vertices[index];
-  return QPointF(p.x, p.y);
+  return m_vertices[index];
 }
 
 QPointF Router::insert(int index) {
@@ -290,16 +297,9 @@ QPointF Router::insert(int index) {
     return QPointF();
   }
 
-  QPointF q(.5 * (m_vertices[index - 1].x + m_vertices[index].x),
-            .5 * (m_vertices[index - 1].y + m_vertices[index].y));
-
-
+  const QPointF q = .5 * (m_vertices[index - 1] + m_vertices[index]);
   m_positions.insert(index, encdis->location(q));
-
-  QSGGeometry::Point2D p;
-  p.set(q.x(), q.y());
-
-  m_vertices.insert(index, p);
+  m_vertices.insert(index, q);
 
 
   for (QQuickItem* kid: childItems()) {
@@ -313,6 +313,8 @@ QPointF Router::insert(int index) {
     m_edited = true;
     emit editedChanged();
   }
+
+  m_modified = true;
 
   update();
 
@@ -333,29 +335,53 @@ QSGNode* Router::updatePaintNode(QSGNode* oldNode, UpdatePaintNodeData*) {
   QSGGeometryNode *node = nullptr;
   QSGGeometry *geometry = nullptr;
 
+  GL::VertexVector vertices;
+  GL::IndexVector indices;
+
+  // Triangulate
+  if ((m_synced || m_modified) && m_vertices.size() >= 2) {
+    thickerLines(m_vertices, false, lineWidth, vertices, indices);
+  }
+
   if (!oldNode) {
     node = new QSGGeometryNode;
     geometry = new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(),
-                               m_vertices.size());
-    geometry->setLineWidth(lineWidth);
-    geometry->setDrawingMode(GL_LINE_STRIP);
+                               vertices.size() / 2,
+                               indices.size(),
+                               GL_UNSIGNED_INT);
+    geometry->setDrawingMode(GL_TRIANGLES);
+    geometry->setVertexDataPattern(QSGGeometry::DynamicPattern);
+    geometry->setIndexDataPattern(QSGGeometry::DynamicPattern);
     node->setGeometry(geometry);
     node->setFlag(QSGNode::OwnsGeometry);
+
     auto material = new QSGFlatColorMaterial;
     material->setColor(QColor("#214cad"));
     node->setMaterial(material);
     node->setFlag(QSGNode::OwnsMaterial);
+
   } else {
     node = static_cast<QSGGeometryNode*>(oldNode);
     geometry = node->geometry();
-    if (geometry->vertexCount() != m_vertices.size()) {
-      geometry->allocate(m_vertices.size());
+    if (geometry->vertexCount() != vertices.size() / 2 || geometry->indexCount() != indices.size()) {
+      geometry->allocate(vertices.size() / 2, indices.size());
     }
   }
 
-  memcpy(geometry->vertexData(), m_vertices.constData(), m_vertices.size() * sizeof(QSGGeometry::Point2D));
+  if (m_synced || m_modified) {
+    memcpy(geometry->vertexData(), vertices.constData(), vertices.size() * sizeof(GLfloat));
+    geometry->markVertexDataDirty();
+    node->markDirty(QSGNode::DirtyGeometry);
+  }
 
-  node->markDirty(QSGNode::DirtyGeometry);
+  if (m_modified) {
+    memcpy(geometry->indexData(), indices.constData(), indices.size() * sizeof(GLuint));
+    geometry->markIndexDataDirty();
+  }
+
+  m_synced = false;
+  m_modified = false;
+
   return node;
 }
 

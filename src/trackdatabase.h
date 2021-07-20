@@ -22,9 +22,8 @@
 #pragma once
 
 #include "sqlitedatabase.h"
-#include "types.h"
+#include "event.h"
 
-using InstantVector = QVector<qint64>; // UTC unix times in millisecs
 
 class TrackDatabase: public SQLiteDatabase {
 public:
@@ -34,21 +33,10 @@ public:
   TrackDatabase(const QString& connName);
   ~TrackDatabase() = default;
 
-  void createTrack(const InstantVector& events, const WGS84PointVector& positions, const GL::IndexVector& indices);
+  void createTrack(const KV::EventStringVector& events);
 
 private:
 
-  struct Event {
-    Event(qint64 t, const WGS84Point& p)
-      : instant(t)
-      , position(p) {}
 
-    Event() = default;
-
-    quint64 instant;
-    WGS84Point position;
-  };
-
-  using EventVector = QVector<Event>;
 };
 

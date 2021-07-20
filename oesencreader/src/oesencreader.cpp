@@ -32,6 +32,10 @@ OesencReader::OesencReader(const QString& name)
   , m_proj(GeoProjection::CreateProjection("SimpleMercator"))
 {}
 
+OesencReader::~OesencReader() {
+  delete m_proj;
+}
+
 
 GeoProjection* OesencReader::configuredProjection(const QString &path) const {
 

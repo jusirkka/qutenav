@@ -44,6 +44,8 @@ public:
   using PRegion = QVector<PointVector>;
   using Region = S57ChartOutline::Region;
 
+  ~CM93Reader();
+
 
 private:
 

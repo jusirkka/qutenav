@@ -42,6 +42,8 @@ public:
 
   static QByteArray CacheId(const QString& path);
 
+  ~CacheReader();
+
 private:
 
   GeoProjection* m_proj;

@@ -64,17 +64,24 @@ TrackDatabase::TrackDatabase(const QString& connName)
   m_Query = QSqlQuery(m_DB);
 }
 
-void TrackDatabase::createTrack(const InstantVector& instants,
-                                const WGS84PointVector& positions,
-                                const GL::IndexVector& indices) {
+void TrackDatabase::createTrack(const KV::EventStringVector& events) {
 
-  if (indices.isEmpty()) return;
+  // check consistency & set name
+  QString name;
+  for (const KV::EventString& string: events) {
+    if (string.size() >= 2) {
+      name = QDateTime::fromMSecsSinceEpoch(string.first().instant).toString("yyyy-MM-dd");
+      break;
+    }
+  }
+
+  if (name.isEmpty()) return;
+
 
   if (!transaction()) {
     qWarning() << "Transactions not supported";
   }
 
-  auto name = QDateTime::fromMSecsSinceEpoch(instants.first()).toString("yyyy-MM-dd");
 
   auto r0 = prepare("insert into tracks "
                     "(name, enabled) "
@@ -85,17 +92,8 @@ void TrackDatabase::createTrack(const InstantVector& instants,
 
   auto track_id = r0.lastInsertId().toUInt();
 
-  int i = 0;
-  while (i < indices.size()) {
-    EventVector string;
-    string << Event(instants[indices[i]], positions[indices[i]]);
-    i++;
-    while (i < indices.size() - 1 && indices[i + 1] == indices[i]) {
-      string << Event(instants[indices[i]], positions[indices[i]]);
-      i += 2;
-    }
-    string << Event(instants[indices[i]], positions[indices[i]]);
-    i++;
+  for (const KV::EventString& string: events) {
+    if (string.size() < 2) continue;
     auto r1 = prepare("insert into strings "
                       "(track_id) "
                       "values(?)");
@@ -103,10 +101,11 @@ void TrackDatabase::createTrack(const InstantVector& instants,
     exec(r1);
     auto string_id = r1.lastInsertId().toUInt();
 
+
     auto r2 = prepare("insert into events "
                       "(string_id, time, lng, lat) "
                       "values (?, ?, ?, ?)");
-    for (const Event& ev: string) {
+    for (const KV::Event& ev: string) {
       r2.bindValue(0, string_id);
       r2.bindValue(1, ev.instant);
       r2.bindValue(2, ev.position.lng());

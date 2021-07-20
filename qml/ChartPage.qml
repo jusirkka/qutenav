@@ -45,11 +45,7 @@ ChartPagePL {
 
     if (centerButton.centered) centerButton.centered = false;
     encdis.pan(m.x, m.y)
-    if (boat.visible && lastPos !== undefined) {
-      boat.center = encdis.position(lastPos.coordinate.longitude, lastPos.coordinate.latitude)
-    }
-    tracker.sync();
-    router.sync();
+    syncLayers();
   }
 
   function infoModeMouseMoveHandler(m) {
@@ -62,6 +58,23 @@ ChartPagePL {
     }
   }
 
+  function syncLayers(swap) {
+    if (lastPos !== undefined) {
+      if (!centerButton.centered) {
+        boat.center = encdis.position(lastPos.coordinate.longitude, lastPos.coordinate.latitude)
+      } else {
+        if (swap !== undefined) {
+          boat.center = Qt.point(height / 2, width / 2);
+        } else {
+          boat.center = Qt.point(width / 2, height / 2);
+        }
+        encdis.setEye(lastPos.coordinate.longitude, lastPos.coordinate.latitude)
+      }
+    }
+    tracker.sync();
+    router.sync();
+  }
+
   Component.onCompleted: {
     app.encdis = encdis
     infoMode = false;
@@ -72,19 +85,22 @@ ChartPagePL {
   }
 
   onOrientationChanged: {
-    if (boat.visible && lastPos !== undefined) {
-      if (boatCentered) {
-        // console.log(width, height)
-        // WTF: width & height seem to have their old values at this point
-        boat.center = Qt.point(height / 2, width / 2);
-        encdis.setEye(lastPos.coordinate.longitude, lastPos.coordinate.latitude)
-      } else {
-        boat.center = encdis.position(lastPos.coordinate.longitude, lastPos.coordinate.latitude)
-      }
+    if (boat.visible && lastPos !== undefined && centerButton.centered) {
+      // console.log(width, height)
+      // WTF: width & height seem to have their old values at this point
+      boat.center = Qt.point(height / 2, width / 2);
+      encdis.setEye(lastPos.coordinate.longitude, lastPos.coordinate.latitude)
     }
-    tracker.sync();
-    router.sync();
+    syncLayers(true);
     headingValid = false;
+  }
+
+  onHeightChanged: {
+    syncLayers();
+  }
+
+  onWidthChanged: {
+    syncLayers();
   }
 
   onPositionChanged: {
@@ -116,13 +132,10 @@ ChartPagePL {
   }
 
   onBoatCenteredChanged: {
-    if (boatCentered) {
+    if (centerButton.centered && lastPos !== undefined) {
       boat.center = Qt.point(width / 2, height / 2);
-      if (lastPos !== undefined) {
-        encdis.setEye(lastPos.coordinate.longitude, lastPos.coordinate.latitude)
-        tracker.sync();
-        router.sync();
-      }
+      encdis.setEye(lastPos.coordinate.longitude, lastPos.coordinate.latitude)
+      syncLayers();
     }
   }
 
@@ -309,11 +322,7 @@ ChartPagePL {
 
     onPinchFinished: {
       zooming = false;
-      if (!centerButton.centered && lastPos !== undefined) {
-        boat.center = encdis.position(lastPos.coordinate.longitude, lastPos.coordinate.latitude)
-      }
-      tracker.sync();
-      router.sync();
+      syncLayers();
     }
 
     onPinchUpdated: {

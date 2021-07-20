@@ -33,6 +33,10 @@ Dialog {
 
   default property alias content: body.data
 
+  function textTricks(txt) {
+    return txt;
+  }
+
   SilicaFlickable {
     id: flickable
     anchors.fill: parent

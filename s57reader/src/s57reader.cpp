@@ -37,7 +37,9 @@ S57Reader::S57Reader(const QString& name)
   , m_proj(GeoProjection::CreateProjection("SimpleMercator"))
 {}
 
-
+S57Reader::~S57Reader() {
+  delete m_proj;
+}
 
 struct FieldInfo {
   FieldInfo() = default;

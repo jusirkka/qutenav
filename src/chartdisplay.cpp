@@ -377,7 +377,7 @@ QPointF ChartDisplay::advance(qreal lng, qreal lat, qreal distance, qreal headin
   return position(wp);
 }
 
-void ChartDisplay::syncPositions(const WGS84PointVector& wps, Point2DVector& vertices) const {
+void ChartDisplay::syncPositions(const WGS84PointVector& wps, PointVector& vertices) const {
 
   const float w = m_orientedSize.width();
   const float h = m_orientedSize.height();
@@ -385,8 +385,21 @@ void ChartDisplay::syncPositions(const WGS84PointVector& wps, Point2DVector& ver
   for (int i = 0; i < wps.size(); ++i) {
     // Normalized device coordinates
     const QPointF pos = m_camera->position(wps[i]);
-    vertices[i].x = w / 2. * (pos.x() + 1);
-    vertices[i].y = h / 2. * (1 - pos.y());
+    vertices[i].rx() = w / 2. * (pos.x() + 1);
+    vertices[i].ry() = h / 2. * (1 - pos.y());
+  }
+}
+
+void ChartDisplay::syncPositions(const KV::EventString& events, PointVector& vertices) const {
+
+  const float w = m_orientedSize.width();
+  const float h = m_orientedSize.height();
+
+  for (int i = 0; i < events.size(); ++i) {
+    // Normalized device coordinates
+    const QPointF pos = m_camera->position(events[i].position);
+    vertices[i].rx() = w / 2. * (pos.x() + 1);
+    vertices[i].ry() = h / 2. * (1 - pos.y());
   }
 }
 

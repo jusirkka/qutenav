@@ -42,6 +42,8 @@ public:
                  const QString& path,
                  const GeoProjection* proj) const override;
 
+  ~S57Reader();
+
 private:
 
   using PointVector = QVector<QPointF>;

@@ -9,5 +9,5 @@ in vec3 texCoord;
 out vec4 color;
 
 void main() {
-  color = diffuse * textureCube(globe, texCoord);
+  color = diffuse * texture(globe, texCoord);
 }

@@ -23,8 +23,7 @@
 
 #include <QQuickItem>
 #include <QSGGeometry>
-#include "types.h"
-#include "trackdatabase.h"
+#include "event.h"
 #include "routetracker.h"
 
 class Tracker: public QQuickItem {
@@ -155,16 +154,16 @@ private:
   static const inline qreal maxSpeed = 15. / toKnots; // meters / sec, = 15 knots
   static const inline qreal eps = .05;
 
-  using PointVector = QVector<QSGGeometry::Point2D>;
+  using PointVector = QVector<QPointF>;
+  using TrackVector = QVector<PointVector>;
 
-  PointVector m_vertices;
-  GL::IndexVector m_indices;
+  TrackVector m_trackpoints;
+  KV::EventStringVector m_events;
 
-  WGS84PointVector m_positions;
-  InstantVector m_instants;
+  bool m_synced;
+  bool m_appended;
 
   Status m_status;
-  int m_lastIndex;
 
   qreal m_duration; // secs
   qreal m_speed; // meters / sec

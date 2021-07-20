@@ -21,6 +21,10 @@ function pad(s, p) {
 
 function printPos(p) {
 
+  if (p === undefined || !p.longitudeValid || !p.latitudeValid) {
+    return "N/A";
+  }
+
   var lat = Math.abs(p.coordinate.latitude);
   var latdeg = pad(Math.floor(lat).toString(), "00");
   var latmin = pad(((lat - Math.floor(lat)) * 60).toFixed(2), "00000");

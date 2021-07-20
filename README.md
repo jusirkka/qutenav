@@ -20,6 +20,7 @@ Charles Karney and licensed under the MIT/X11 License.
 - The binaries oeserverd and libsgl*.so from [oesenc_pi OpenCPN plugin](https://github.com/bdbcat/oesenc_pi/)
 needed to decrypt oesenc files are closed source, but re-distribution is allowed (C) David S. Register.
 - The design to organize platform dependencies of the qml code was copied from [pure-maps](https://github.com/rinigus/pure-maps)
+- The Glyph manager contains the Skyline bin packing algorithm from [RectangleBinPack](https://github.com/juj/RectangleBinPack)
 - The QuteNav logo is from [svgrepo.com](https://www.svgrepo.com/svg/233528/buoy), CC0 Licence.
 
 ## Build dependencies

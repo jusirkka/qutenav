@@ -1,5 +1,9 @@
 /* -*- coding: utf-8-unix -*-
  *
+ * event.h
+ *
+ * Created: 2021-07-19 2021 by Jukka Sirkka
+ *
  * Copyright (C) 2021 Jukka Sirkka
  *
  * This program is free software: you can redistribute it and/or modify
@@ -15,33 +19,23 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+#pragma once
 
-import QtQuick 2.9
-import QtQuick.Controls 2.15
+#include "types.h"
 
-Dialog {
-  id: dialog
+namespace KV {
+struct Event {
+  Event(qint64 t, const WGS84Point& p)
+    : instant(t)
+    , position(p) {}
 
-  property string acceptText: "Accept"
-  property int pageHeight: 300
-  property int pageWidth: parent.width / 3
-  property bool hasOK: false
+  Event() = default;
 
-  visible: true
-  modal: true
-  width: pageWidth
-  height: pageHeight
+  qint64 instant; // UTC unix time in millisecs
+  WGS84Point position;
+};
 
-  anchors.centerIn: parent
+using EventString = QVector<Event>;
+using EventStringVector = QVector<EventString>;
 
-  onAccepted: {
-    close();
-  }
-
-  function textTricks(txt) {
-    return txt.replace("&", "&&");
-  }
-
-
-  standardButtons: hasOK ? (Dialog.Ok | Dialog.Cancel) : Dialog.Cancel
 }

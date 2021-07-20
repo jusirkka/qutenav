@@ -23,8 +23,12 @@
 
 #include <QRectF>
 #include <glm/glm.hpp>
+#include "types.h"
 
 // Cohen-Sutherland test
 bool crossesBox(const glm::vec2& v1, const glm::vec2& v2, const QRectF& box);
 
 bool insidePolygon(uint count, uint offset, const glm::vec2* q, const uint* indices, const QPointF& p);
+
+void thickerLines(const QVector<QPointF> &ls, bool closed, qreal lw,
+                  GL::VertexVector& vertices, GL::IndexVector& indices);

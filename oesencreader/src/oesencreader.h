@@ -40,6 +40,8 @@ public:
                  const QString& path,
                  const GeoProjection* proj) const override;
 
+  ~OesencReader();
+
 
 private:
 

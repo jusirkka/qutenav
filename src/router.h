@@ -77,14 +77,16 @@ public slots:
 
 private:
 
-  static const int lineWidth = 16;
+  static const int lineWidth = 4;
 
-  using PointVector = QVector<QSGGeometry::Point2D>;
+  using PointVector = QVector<QPointF>;
 
   PointVector m_vertices;
   WGS84PointVector m_positions;
 
   bool m_edited;
+  bool m_synced;
+  bool m_modified;
   int m_routeId;
 
 };

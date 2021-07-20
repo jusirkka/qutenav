@@ -21,6 +21,7 @@
 #include <QDebug>
 #include <glm/glm.hpp>
 #include "triangulator.h"
+#include "geomutils.h"
 
 
 
@@ -306,89 +307,7 @@ void HPGL::OpenGLParser::triangulate(const PointList& points, Data& out) {
 
 }
 
-//
-// Original source:
-// https://github.com/paulhoux/Cinder-Samples/blob/master/GeometryShader/assets/shaders/lines1.geom
-//
-
 void HPGL::OpenGLParser::thickerlines(const LineString &ls, qreal lw, Data &out) {
-  const GLfloat MITER_LIMIT = .75;
-
-  const float HW = .5 * lw;
-
-  GLuint offset = out.vertices.size() / 2;
-  const int n = ls.closed ? ls.points.size() - 2 : ls.points.size() - 1;
-  for (int i = 0; i < n; i++) {
-
-    const glm::vec2 p0 = GL::Vec2(i == 0 ? (ls.closed ? ls.points[n] : 2 * ls.points[0] - ls.points[1]) :
-      ls.points[i - 1]);
-    const glm::vec2 p1 = GL::Vec2(ls.points[i]);
-    const glm::vec2 p2 = GL::Vec2(ls.points[i + 1]);
-    const glm::vec2 p3 = GL::Vec2(i == n - 1 ? (ls.closed ? ls.points[0] : ls.points[n - 1] -  2 * ls.points[n]) :
-      ls.points[i + 2]);
-
-    // determine the direction of each of the 3 segments (previous, current, next)
-    const glm::vec2 v0 = glm::normalize(p1 - p0);
-    const glm::vec2 v1 = glm::normalize(p2 - p1);
-    const glm::vec2 v2 = glm::normalize(p3 - p2);
-
-    // determine the normal of each of the 3 segments (previous, current, next)
-    const glm::vec2 n0 = glm::vec2(-v0.y, v0.x);
-    const glm::vec2 n1 = glm::vec2(-v1.y, v1.x);
-    const glm::vec2 n2 = glm::vec2(-v2.y, v2.x);
-
-    // determine miter lines by averaging the normals of the 2 segments
-    glm::vec2 miter_a = glm::normalize(n0 + n1);	// miter at start of current segment
-    glm::vec2 miter_b = glm::normalize(n1 + n2);	// miter at end of current segment
-
-    // determine the length of the miter from a right angled triangle (miter, n, v)
-    GLfloat len_a = HW / glm::dot(miter_a, n1);
-    GLfloat len_b = HW / glm::dot(miter_b, n1);
-
-    glm::vec2 r;
-    // prevent excessively long miters at sharp corners
-    if (glm::dot(v0, v1) < - MITER_LIMIT) {
-      miter_a = n1;
-      len_a = HW;
-
-      // close the gap
-      if(glm::dot(v0, n1) > 0) {
-        r = p1 + HW * n0;
-        out.vertices << r.x << r.y;
-        r = p1 + HW * n1;
-        out.vertices << r.x << r.y;
-        r = p1;
-        out.vertices << r.x << r.y;
-      } else {
-        r = p1 - HW * n1;
-        out.vertices << r.x << r.y;
-        r = p1 - HW * n0;
-        out.vertices << r.x << r.y;
-        r = p1;
-        out.vertices << r.x << r.y;
-      }
-      out.indices << offset << offset + 1 << offset + 2;
-      offset += 3;
-    }
-
-    if (glm::dot(v1, v2) < -MITER_LIMIT ) {
-      miter_b = n1;
-      len_b = HW;
-    }
-
-    // generate the triangle strip
-    r = p1 + len_a * miter_a;
-    out.vertices << r.x << r.y;
-    r = p1 - len_a * miter_a;
-    out.vertices << r.x << r.y;
-    r = p2 + len_b * miter_b;
-    out.vertices << r.x << r.y;
-    r = p2 - len_b * miter_b;
-    out.vertices << r.x << r.y;
-
-    out.indices << offset << offset + 1 << offset + 3
-                << offset << offset + 3 << offset + 2;
-    offset += 4;
-  }
+  thickerLines(ls.points, ls.closed, lw, out.vertices, out.indices);
 }
 

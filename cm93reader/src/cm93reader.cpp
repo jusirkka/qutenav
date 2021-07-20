@@ -33,6 +33,10 @@ const GeoProjection* CM93Reader::geoprojection() const {
   return m_proj;
 }
 
+CM93Reader::~CM93Reader() {
+  delete m_proj;
+}
+
 CM93Reader::CM93Reader(const QString &name)
   : ChartFileReader(name)
   , m_m_sor(CM93::FindIndex("_m_sor"))

@@ -27,7 +27,7 @@ DialogPL {
   property bool saveNeeded: true
 
   title: router.name()
-  acceptText: "Save & Show"
+  acceptText: textTricks("Save & Show")
 
   onAccepted: {
     if (saveNeeded) {
@@ -46,7 +46,7 @@ DialogPL {
     width: parent.width
 
     IconListItemPL {
-      label: "Save & Show"
+      label: dialog.textTricks("Save & Show")
       iconName: app.getSystemIcon('save')
       onClicked: {
         dialog.accept();
@@ -54,7 +54,7 @@ DialogPL {
     }
 
     IconListItemPL {
-      label: "Save & Close"
+      label: dialog.textTricks("Save & Close")
       iconName: app.getSystemIcon('save')
       onClicked: {
         dialog.router.save();

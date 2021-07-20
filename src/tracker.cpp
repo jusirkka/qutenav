@@ -28,11 +28,15 @@
 #include <QDateTime>
 #include "trackmodel.h"
 #include "router.h"
+#include "geomutils.h"
 
 Tracker::Tracker(QQuickItem* parent)
   : QQuickItem(parent)
+  , m_trackpoints({PointVector()})
+  , m_events({KV::EventString()})
+  , m_synced(false)
+  , m_appended(false)
   , m_status(Inactive)
-  , m_lastIndex(-1)
   , m_duration(0)
   , m_speed(0)
   , m_distance(0)
@@ -72,6 +76,10 @@ void Tracker::start() {
     return;
   }
 
+  if (m_status == Displaying) {
+    remove();
+  }
+
   auto rt = dynamic_cast<const Router*>(*it);
   m_router.initialize(rt->waypoints());
 
@@ -98,17 +106,15 @@ void Tracker::append(qreal lng, qreal lat) {
   const auto wp = WGS84Point::fromLL(lng, lat);
   const auto now = QDateTime::currentMSecsSinceEpoch();
 
-  if (m_lastIndex < 0) {
-    m_lastIndex = m_positions.size();
-  } else {
-    const WGS84Bearing b = wp - m_positions[m_lastIndex];
+  if (!m_events.last().isEmpty()) {
+    const WGS84Bearing b = wp - m_events.last().last().position;
     const auto dist = b.meters();
     if (dist < mindist) {
       // qDebug() << "Distance to previous point =" << dist << ", skipping";
       return;
     }
 
-    const qreal delta = (now - m_instants[m_lastIndex]) * .001;
+    const qreal delta = (now - m_events.last().last().instant) * .001;
 
     const auto speed = dist / delta;
     if (speed > maxSpeed) {
@@ -120,15 +126,12 @@ void Tracker::append(qreal lng, qreal lat) {
     updateBearing(b.degrees());
     updateSpeed(speed);
     updateDuration(delta);
-
-    m_indices << m_lastIndex;
-    m_lastIndex = m_positions.size();
-    m_indices << m_lastIndex;
   }
 
-  m_positions << wp;
-  m_instants << now;
-  m_vertices << fromPoint(encdis->position(wp));
+  m_events.last() << KV::Event(now, wp);
+  m_trackpoints.last() << encdis->position(wp);
+
+  m_appended = true;
 
   m_router.update(wp, now);
 
@@ -137,7 +140,6 @@ void Tracker::append(qreal lng, qreal lat) {
 
 
 void Tracker::sync() {
-  if (m_positions.isEmpty()) return;
 
   auto encdis = qobject_cast<const ChartDisplay*>(parentItem());
   if (encdis == nullptr) {
@@ -145,14 +147,20 @@ void Tracker::sync() {
     return;
   }
 
-  encdis->syncPositions(m_positions, m_vertices);
+  for (int i = 0; i < m_events.size(); i++) {
+    encdis->syncPositions(m_events[i], m_trackpoints[i]);
+  }
 
+  m_synced = true;
   update();
 }
 
 void Tracker::pause() {
   if (m_status == Paused) return;
-  m_lastIndex = -1;
+  if (!m_events.last().isEmpty()) {
+    m_events << KV::EventString();
+    m_trackpoints << PointVector();
+  }
   m_speed = 0;
   emit speedChanged();
   m_status = Paused;
@@ -162,7 +170,7 @@ void Tracker::pause() {
 void Tracker::save() {
   try {
     TrackDatabase db("Tracker::save");
-    db.createTrack(m_instants, m_positions, m_indices);
+    db.createTrack(m_events);
     remove();
   } catch (DatabaseError& e){
     qWarning() << e.msg();
@@ -171,11 +179,10 @@ void Tracker::save() {
 }
 
 void Tracker::remove() {
-  m_positions.clear();
-  m_vertices.clear();
-  m_indices.clear();
-  m_instants.clear();
-  m_lastIndex = -1;
+  m_events.clear();
+  m_trackpoints.clear();
+  m_events << KV::EventString();
+  m_trackpoints << PointVector();
   m_duration = 0;
   emit durationChanged();
   m_speed = 0;
@@ -186,14 +193,21 @@ void Tracker::remove() {
     m_status = Inactive;
     emit statusChanged();
   }
+
+  m_appended = true;
+  m_synced = true;
 }
 
 void Tracker::display() {
 
-  m_positions.clear();
-  m_vertices.clear();
-  m_indices.clear();
-  m_instants.clear();
+  auto encdis = qobject_cast<const ChartDisplay*>(parentItem());
+  if (encdis == nullptr) {
+    qWarning() << "Expected ChartDisplay parent, cannot display tracks";
+    return;
+  }
+
+  m_events.clear();
+  m_trackpoints.clear();
 
   try {
 
@@ -209,38 +223,32 @@ void Tracker::display() {
 
       const auto string_id = r0.value(0).toInt();
       if (string_id != prev) {
-        m_lastIndex = -1;
+        m_events << KV::EventString();
+        m_trackpoints << PointVector();
       }
       prev = string_id;
 
-      if (m_lastIndex < 0) {
-        m_lastIndex = m_positions.size();
-      } else {
-        m_indices << m_lastIndex;
-        m_lastIndex = m_positions.size();
-        m_indices << m_lastIndex;
-      }
-
-      m_positions << WGS84Point::fromLL(r0.value(2).toReal(), r0.value(3).toReal());
-      m_instants << r0.value(1).toLongLong();
-
+      auto wp = WGS84Point::fromLL(r0.value(2).toReal(), r0.value(3).toReal());
+      m_events.last() << KV::Event(r0.value(1).toLongLong(), wp);
+      m_trackpoints.last() << encdis->position(wp);
     }
 
-    if (!m_positions.isEmpty()) {
-      m_vertices.resize(m_positions.size());
-      sync();
+    if (!m_events.isEmpty()) {
       if (m_status != Displaying) {
         m_status = Displaying;
         emit statusChanged();
       }
     } else {
+      m_events << KV::EventString();
+      m_trackpoints << PointVector();
       if (m_status != Inactive) {
         m_status = Inactive;
         emit statusChanged();
       }
-      update();
     }
 
+    m_appended = true;
+    m_synced = true;
 
   } catch (DatabaseError& e) {
     qWarning() << e.msg();
@@ -251,32 +259,56 @@ QSGNode *Tracker::updatePaintNode(QSGNode* oldNode, UpdatePaintNodeData*) {
   QSGGeometryNode *node = nullptr;
   QSGGeometry *geometry = nullptr;
 
+  GL::VertexVector vertices;
+  GL::IndexVector indices;
+
+  // Triangulate
+  if (m_synced || m_appended) {
+    for (const PointVector& ps: m_trackpoints) {
+      if (ps.size() < 2) continue;
+      thickerLines(ps, false, lineWidth, vertices, indices);
+    }
+  }
+
   if (!oldNode) {
     node = new QSGGeometryNode;
     geometry = new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(),
-                               m_vertices.size(),
-                               m_indices.size(),
+                               vertices.size() / 2,
+                               indices.size(),
                                GL_UNSIGNED_INT);
-    geometry->setLineWidth(lineWidth);
-    geometry->setDrawingMode(GL_LINES);
+    geometry->setDrawingMode(GL_TRIANGLES);
+    geometry->setVertexDataPattern(QSGGeometry::DynamicPattern);
+    geometry->setIndexDataPattern(QSGGeometry::DynamicPattern);
     node->setGeometry(geometry);
     node->setFlag(QSGNode::OwnsGeometry);
+
     auto material = new QSGFlatColorMaterial;
     material->setColor(QColor(255, 255, 0));
     node->setMaterial(material);
     node->setFlag(QSGNode::OwnsMaterial);
+
   } else {
     node = static_cast<QSGGeometryNode*>(oldNode);
     geometry = node->geometry();
-    if (geometry->vertexCount() != m_vertices.size() || geometry->indexCount() != m_indices.size()) {
-      geometry->allocate(m_vertices.size(), m_indices.size());
+    if (geometry->vertexCount() != vertices.size() / 2 || geometry->indexCount() != indices.size()) {
+      geometry->allocate(vertices.size() / 2, indices.size());
     }
   }
 
-  memcpy(geometry->vertexData(), m_vertices.constData(), m_vertices.size() * sizeof(QSGGeometry::Point2D));
-  memcpy(geometry->indexData(), m_indices.constData(), m_indices.size() * sizeof(GLuint));
+  if (m_synced || m_appended) {
+    memcpy(geometry->vertexData(), vertices.constData(), vertices.size() * sizeof(GLfloat));
+    geometry->markVertexDataDirty();
+    node->markDirty(QSGNode::DirtyGeometry);
+  }
 
-  node->markDirty(QSGNode::DirtyGeometry);
+  if (m_appended) {
+    memcpy(geometry->indexData(), indices.constData(), indices.size() * sizeof(GLuint));
+    geometry->markIndexDataDirty();
+  }
+
+  m_synced = false;
+  m_appended = false;
+
   return node;
 }
 

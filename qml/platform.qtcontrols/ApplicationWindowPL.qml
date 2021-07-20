@@ -30,7 +30,9 @@ ApplicationWindow {
   property bool fullScreen
   property size fallbackGeom
 
-  ChartPage {}
+  ChartPage {
+    id: chartPage
+  }
 
   Component.onCompleted: {
     systemIcons = {
@@ -83,19 +85,28 @@ ApplicationWindow {
   Shortcut {
     sequence: StandardKey.ZoomIn
     context: Qt.ApplicationShortcut
-    onActivated: encdis.zoomIn();
+    onActivated: {
+      encdis.zoomIn()
+      chartPage.syncLayers()
+    }
   }
 
   Shortcut {
     sequence: StandardKey.ZoomOut
     context: Qt.ApplicationShortcut
-    onActivated: encdis.zoomOut();
+    onActivated: {
+      encdis.zoomOut()
+      chartPage.syncLayers()
+    }
   }
 
   Shortcut {
     sequence: "N"
     context: Qt.ApplicationShortcut
-    onActivated: encdis.northUp();
+    onActivated: {
+      encdis.northUp()
+      chartPage.syncLayers()
+    }
   }
 
   Shortcut {
@@ -109,6 +120,7 @@ ApplicationWindow {
       } else {
         showNormal()
       }
+      chartPage.syncLayers()
     }
   }
 

@@ -33,6 +33,10 @@ CacheReader::CacheReader()
   , m_proj(GeoProjection::CreateProjection("SimpleMercator"))
 {}
 
+CacheReader::~CacheReader() {
+  delete m_proj;
+}
+
 GeoProjection* CacheReader::configuredProjection(const QString &path) const {
   auto id = CacheId(path);
   const auto base = QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation);

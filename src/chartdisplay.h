@@ -22,6 +22,7 @@
 #include <QtQuick/QQuickFramebufferObject>
 #include <QOpenGLVertexArrayObject>
 #include "types.h"
+#include "event.h"
 #include <QSGGeometry>
 
 class DetailMode;
@@ -130,8 +131,9 @@ public:
   Q_PROPERTY(QString scaleBarText
              READ scaleBarText)
 
-  using Point2DVector = QVector<QSGGeometry::Point2D>;
-  void syncPositions(const WGS84PointVector& positions, Point2DVector& vertices) const;
+  using PointVector = QVector<QPointF>;
+  void syncPositions(const WGS84PointVector& positions, PointVector& vertices) const;
+  void syncPositions(const KV::EventString& events, PointVector& vertices) const;
 
   QStringList chartSets() const;
   QString chartSet() const;

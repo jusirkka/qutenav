@@ -113,4 +113,91 @@ bool insidePolygon(uint count, uint offset, const glm::vec2* q,
   return c;
 }
 
+//
+// Original source:
+// https://github.com/paulhoux/Cinder-Samples/blob/master/GeometryShader/assets/shaders/lines1.geom
+//
+
+void thickerLines(const QVector<QPointF> &points, bool closed, qreal lw,
+                  GL::VertexVector& vertices, GL::IndexVector& indices) {
+
+  const GLfloat MITER_LIMIT = .75;
+
+  const float HW = .5 * lw;
+
+  GLuint offset = vertices.size() / 2;
+  const int n = closed ? points.size() - 2 : points.size() - 1;
+  for (int i = 0; i < n; i++) {
+
+    const glm::vec2 p0 = GL::Vec2(i == 0 ? (closed ? points[n] : 2 * points[0] - points[1]) :
+        points[i - 1]);
+    const glm::vec2 p1 = GL::Vec2(points[i]);
+    const glm::vec2 p2 = GL::Vec2(points[i + 1]);
+    const glm::vec2 p3 = GL::Vec2(i == n - 1 ? (closed ? points[0] : points[n - 1] -  2 * points[n]) :
+        points[i + 2]);
+
+    // determine the direction of each of the 3 segments (previous, current, next)
+    const glm::vec2 v0 = glm::normalize(p1 - p0);
+    const glm::vec2 v1 = glm::normalize(p2 - p1);
+    const glm::vec2 v2 = glm::normalize(p3 - p2);
+
+    // determine the normal of each of the 3 segments (previous, current, next)
+    const glm::vec2 n0 = glm::vec2(-v0.y, v0.x);
+    const glm::vec2 n1 = glm::vec2(-v1.y, v1.x);
+    const glm::vec2 n2 = glm::vec2(-v2.y, v2.x);
+
+    // determine miter lines by averaging the normals of the 2 segments
+    glm::vec2 miter_a = glm::normalize(n0 + n1);	// miter at start of current segment
+    glm::vec2 miter_b = glm::normalize(n1 + n2);	// miter at end of current segment
+
+    // determine the length of the miter from a right angled triangle (miter, n, v)
+    GLfloat len_a = HW / glm::dot(miter_a, n1);
+    GLfloat len_b = HW / glm::dot(miter_b, n1);
+
+    glm::vec2 r;
+    // prevent excessively long miters at sharp corners
+    if (glm::dot(v0, v1) < - MITER_LIMIT) {
+      miter_a = n1;
+      len_a = HW;
+
+      // close the gap
+      if(glm::dot(v0, n1) > 0) {
+        r = p1 + HW * n0;
+        vertices << r.x << r.y;
+        r = p1 + HW * n1;
+        vertices << r.x << r.y;
+        r = p1;
+        vertices << r.x << r.y;
+      } else {
+        r = p1 - HW * n1;
+        vertices << r.x << r.y;
+        r = p1 - HW * n0;
+        vertices << r.x << r.y;
+        r = p1;
+        vertices << r.x << r.y;
+      }
+      indices << offset << offset + 1 << offset + 2;
+      offset += 3;
+    }
+
+    if (glm::dot(v1, v2) < -MITER_LIMIT ) {
+      miter_b = n1;
+      len_b = HW;
+    }
+
+    // generate the triangle strip
+    r = p1 + len_a * miter_a;
+    vertices << r.x << r.y;
+    r = p1 - len_a * miter_a;
+    vertices << r.x << r.y;
+    r = p2 + len_b * miter_b;
+    vertices << r.x << r.y;
+    r = p2 - len_b * miter_b;
+    vertices << r.x << r.y;
+
+    indices << offset << offset + 1 << offset + 3
+            << offset << offset + 3 << offset + 2;
+    offset += 4;
+  }
+}
 

@@ -16,6 +16,9 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+ * Contains skyline bin packing algorithm from https://github.com/juj/RectangleBinPack
+ * Original copyright: "This work is released to Public Domain, do whatever you want with it."
  */
 #include "glyphmanager.h"
 #include <fontconfig/fontconfig.h>
