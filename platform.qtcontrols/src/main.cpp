@@ -28,6 +28,7 @@
 #include "textmanager.h"
 #include "s57chart.h"
 #include "settings.h"
+#include "units.h"
 #include "chartupdater.h"
 #include "tracker.h"
 #include "trackmodel.h"
@@ -75,16 +76,22 @@ int main(int argc, char *argv[]) {
   qRegisterMetaType<S57::InfoType>();
   qRegisterMetaType<ChartData>();
 
+  QTranslator tr;
+  loadTranslation(tr);
+  app->installTranslator(&tr);
+
   S52::InitPresentation();
 
   TrackDatabase::createTables();
   RouteDatabase::createTables();
   ChartDatabase::createTables();
 
+
   // Set up QML engine.
   QQmlApplicationEngine engine;
   engine.addImageProvider(QLatin1String("s57"), new S57::ImageProvider);
   engine.rootContext()->setContextProperty("settings", Settings::instance());
+  engine.rootContext()->setContextProperty("units", Units::Manager::instance());
   engine.load(QUrl("qrc:///qutenav.qml"));
 
   return app->exec();

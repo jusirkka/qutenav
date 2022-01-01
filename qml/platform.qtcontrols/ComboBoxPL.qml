@@ -47,6 +47,7 @@ Item {
     anchors.top: parent.top
     font.pixelSize: theme.fontSizeMedium
     property bool initialized: false
+
     onCurrentIndexChanged: {
       if (initialized && currentIndex != item.currentIndex) {
         item.currentIndex = currentIndex;

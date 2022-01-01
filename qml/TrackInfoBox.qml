@@ -26,10 +26,11 @@ Rectangle {
   property int padding: theme.paddingSmall
 
   property real seconds
-  property real dist
+  property real meters
   property real bearing: NaN
 
   property alias target: upperLeft.sourceComponent
+  property alias targetItem: upperLeft.item
 
   height: upperBox.height + lowerBox.height + 3 * padding
   width: upperLeft.width + upperBox.width + 3 * padding
@@ -38,6 +39,10 @@ Rectangle {
 
   function pad(s, p) {
     return String(p + s).slice(- p.length);
+  }
+
+  onMetersChanged: {
+    dist.value = units.distance(meters)
   }
 
   Loader {
@@ -110,9 +115,13 @@ Rectangle {
         leftMargin: padding
         rightMargin: padding
       }
-      unit: "Nm"
-      value: rect.dist
+      unit: units.distanceSymbol
+      value: units.distance(rect.meters)
       fontSize: rect.fontSize
+
+      onUnitChanged: {
+        value = units.distance(rect.meters)
+      }
     }
 
     Text {

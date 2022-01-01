@@ -1,6 +1,6 @@
 /* -*- coding: utf-8-unix -*-
  *
- * File: mobile/qml/TrackInfo.qml
+ * File: mobile/src/conf_units.cpp
  *
  * Copyright (C) 2021 Jukka Sirkka
  *
@@ -17,35 +17,26 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import QtQuick 2.6
+#include "conf_units.h"
 
-Row {
-
-  id: row
-
-  spacing: theme.paddingSmall
-
-  anchors.top: parent.top
-  anchors.left: parent.left
-
-  TrackSpeedInfoBox {
-    mps: tracker.speed
-    seconds: tracker.duration
-    meters: tracker.distance
-    bearing: tracker.bearing
-  }
-
-  TrackPointInfoBox {
-    index: tracker.segmentEndPoint
-    seconds: tracker.segmentETA
-    meters: tracker.segmentDTG
-    bearing: tracker.segmentBearing
-    visible: !router.empty && !router.edited
-  }
-
-  TrackTargetInfoBox {
-    seconds: tracker.targetETA
-    meters: tracker.targetDTG
-    visible: !router.empty && !router.edited
-  }
+Conf::Units* Conf::Units::self() {
+  static Units* s = new Units();
+  return s;
 }
+
+Conf::Units::Units()
+  : ConfigGroup("Units", "qutenavrc")
+{
+
+  m_defaults["location"] = static_cast<uint>(EnumLocation::type::DegMin);
+  m_defaults["depth"] = static_cast<uint>(EnumDepth::type::Meters);
+  m_defaults["distance"] = static_cast<uint>(EnumDistance::type::KM);
+  m_defaults["short_distance"] = static_cast<uint>(EnumShortDistance::type::M);
+  m_defaults["boat_speed"] = static_cast<uint>(EnumBoatSpeed::type::Kn);
+
+
+  load();
+
+}
+
+Conf::Units::~Units() {}

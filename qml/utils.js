@@ -22,18 +22,7 @@ function pad(s, p) {
 function printPos(p) {
 
   if (p === undefined || !p.longitudeValid || !p.latitudeValid) {
-    return "N/A";
+    return "N/A"
   }
-
-  var lat = Math.abs(p.coordinate.latitude);
-  var latdeg = pad(Math.floor(lat).toString(), "00");
-  var latmin = pad(((lat - Math.floor(lat)) * 60).toFixed(2), "00000");
-  var n = p.coordinate.latitude > 0 ? 'N' : 'S';
-
-  var lng = Math.abs(p.coordinate.longitude);
-  var lngdeg = pad(Math.floor(lng).toString(), "000");
-  var lngmin = pad(((lng - Math.floor(lng)) * 60).toFixed(2), "00000");
-  var e = p.coordinate.longitude > 0 ? 'E' : 'W';
-
-  return "" + latdeg + "°" + latmin + "‘" + n + " " + lngdeg + "°" + lngmin + "‘" + e;
+  return units.location(p.coordinate.longitude, p.coordinate.latitude)
 }

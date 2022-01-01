@@ -210,7 +210,11 @@ double WGS84Point::normalizeAngle(double a) {
   return a;
 }
 
-WGS84Point::WGS84Point(double lng, double lat): m_Valid(true) {
+WGS84Point::WGS84Point(double lng, double lat)
+  : m_Valid(!std::isnan(lng) && !std::isnan(lat)) {
+
+  if (!m_Valid) return;
+
   // normalize angles here - valid implies normalized
   lng = normalizeAngle(lng);
   lat = normalizeAngle(lat);

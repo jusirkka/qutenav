@@ -34,10 +34,10 @@ public:
 
   int segmentEndPoint() const {return m_segmentEndPoint;}
   qreal segmentBearing() const {return m_segmentBearing;}
-  qreal segmentETA() const {return m_segmentETA;} // Seconds
-  qreal segmentDTG() const {return m_segmentDTG / 1852.;} // Nautical miles
-  qreal targetETA() const {return m_targetETA;} // Seconds
-  qreal targetDTG() const {return m_targetDTG / 1852.;} // Nautical miles
+  qreal segmentETA() const {return m_segmentETA;} // seconds
+  qreal segmentDTG() const {return m_segmentDTG;} // meters
+  qreal targetETA() const {return m_targetETA;} // seconds
+  qreal targetDTG() const {return m_targetDTG;} // meters
 
   void update(const WGS84Point& wp, qint64 msecs);
   void initialize(const WGS84PointVector& route);

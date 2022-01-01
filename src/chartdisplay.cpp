@@ -27,10 +27,12 @@
 #include "chartrenderer.h"
 #include "conf_mainwindow.h"
 #include "conf_marinerparams.h"
+#include "conf_units.h"
 #include "detailmode.h"
 #include <QQuickWindow>
 #include <QOffscreenSurface>
 #include "settings.h"
+#include "units.h"
 #include "logging.h"
 #include "dbupdater_interface.h"
 #include <QProcess>
@@ -97,6 +99,7 @@ void ChartDisplay::finalizeSG() {
 
   Conf::MainWindow::self()->save();
   Conf::MarinerParams::self()->save();
+  Conf::Units::self()->save();
 }
 
 void ChartDisplay::initializeSG() {
@@ -137,6 +140,8 @@ void ChartDisplay::initializeSG() {
 
   connect(settings, &Settings::settingsChanged, this, [this] () {
     qCDebug(CDPY) << "settings changed";
+    computeScaleBar();
+    emit scaleBarLengthChanged(m_scaleBarLength);
     emit updateViewport(m_camera, ChartManager::Force);
     update();
   });
@@ -458,32 +463,32 @@ void ChartDisplay::checkChartSet() const {
 }
 
 static QVector<quint32> digits(quint32 v) {
-  // Fails if v = 0, but it's ok
   QVector<quint32> ds;
-  while (v != 0) {
+  do {
     ds.append(v % 10);
     v /= 10;
-  }
+  } while (v != 0);
+
   return ds;
 }
 
 void ChartDisplay::computeScaleBar() {
   // quarter width of the window in meters
   const float w = m_camera->heightMM() * m_camera->aspect();
-  const quint32 threshold = 2.5e-4 * w * m_camera->scale();
+  const float thresholdSI = 2.5e-4 * w * m_camera->scale();
+  auto conv = Units::Manager::instance()->distance();
+  float threshold = conv->fromSI(thresholdSI);
+  if (threshold < 1.) {
+    conv = Units::Manager::instance()->shortDistance();
+    threshold = conv->fromSI(thresholdSI);
+  }
   auto ds = digits(threshold);
-  qreal x = ds[ds.size() - 1] * exp10(ds.size() - 1);
-  if (ds.size() > 1 && ds.size() != 4 && ds[ds.size() - 2] >= 5) {
+  float x = ds[ds.size() - 1] * exp10(ds.size() - 1);
+  if (ds.size() > 1 && ds[ds.size() - 2] >= 5) {
     x += 5 * exp10(ds.size() - 2);
   }
-  m_scaleBarLength = dots_per_mm_x() * x / m_camera->scale() * 1000;
-  if (ds.size() > 3) {
-    const int n = static_cast<int>(x) / 1000;
-    m_scaleBarText = QString::number(n) + "km";
-  } else {
-    const int n = static_cast<int>(x);
-    m_scaleBarText = QString::number(n) + "m";
-  }
+  m_scaleBarLength = dots_per_mm_x() * conv->toSI(x) / m_camera->scale() * 1000;
+  m_scaleBarText = conv->display(x);
   // qCDebug(CDPY) << "scalebar:" << m_scaleBarText;
 }
 

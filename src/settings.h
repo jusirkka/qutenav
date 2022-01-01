@@ -22,6 +22,8 @@
 #include <QObject>
 #include "conf_marinerparams.h"
 #include "conf_mainwindow.h"
+#include "conf_units.h"
+#include "logging.h"
 
 class TextGroup: public QObject {
   Q_OBJECT
@@ -150,7 +152,9 @@ public:
              READ maxCategoryNames
              NOTIFY maxCategoryNamesChanged)
 
-  QStringList maxCategoryNames() const {return m_categories;}
+  QStringList maxCategoryNames() const {
+    return Conf::MarinerParams::EnumMaxCategory::names;
+  }
 
   Q_PROPERTY(quint8 maxCategory
              READ maxCategory
@@ -171,7 +175,9 @@ public:
              READ colorTableNames
              NOTIFY colorTableNamesChanged)
 
-  QStringList colorTableNames() const {return m_colorTables;}
+  QStringList colorTableNames() const {
+    return Conf::MarinerParams::EnumColorTable::names;
+  }
 
   Q_PROPERTY(quint8 colorTable
              READ colorTable
@@ -303,6 +309,133 @@ public:
     Conf::MainWindow::setChartFolders(v);
   }
 
+
+  Q_PROPERTY(QStringList locationUnitNames
+             READ locationUnitNames
+             NOTIFY locationUnitNamesChanged)
+
+  QStringList locationUnitNames() const {
+    return Conf::Units::EnumLocation::names;
+  }
+
+  Q_PROPERTY(quint8 locationUnits
+             READ locationUnits
+             WRITE setLocationUnits)
+
+  quint8 locationUnits() const {
+    return static_cast<quint8>(Conf::Units::Location());
+  }
+
+  void setLocationUnits(quint8 v) {
+    if (v != locationUnits()) {
+      Conf::Units::setLocation(static_cast<Conf::Units::EnumLocation::type>(v));
+      // Note: order is important
+      emit unitsChanged();
+      emit settingsChanged();
+    }
+  }
+
+  Q_PROPERTY(QStringList depthUnitNames
+             READ depthUnitNames
+             NOTIFY depthUnitNamesChanged)
+
+  QStringList depthUnitNames() const {
+    return Conf::Units::EnumDepth::names;
+  }
+
+  Q_PROPERTY(quint8 depthUnits
+             READ depthUnits
+             WRITE setDepthUnits)
+
+  quint8 depthUnits() const {
+    return static_cast<quint8>(Conf::Units::Depth());
+  }
+
+  void setDepthUnits(quint8 v) {
+    if (v != depthUnits()) {
+      Conf::Units::setDepth(static_cast<Conf::Units::EnumDepth::type>(v));
+      // Note: order is important
+      emit unitsChanged();
+      emit settingsChanged();
+    }
+  }
+
+  Q_PROPERTY(QStringList distanceUnitNames
+             READ distanceUnitNames
+             NOTIFY distanceUnitNamesChanged)
+
+  QStringList distanceUnitNames() const {
+    return Conf::Units::EnumDistance::names;
+  }
+
+  Q_PROPERTY(quint8 distanceUnits
+             READ distanceUnits
+             WRITE setDistanceUnits)
+
+  quint8 distanceUnits() const {
+    return static_cast<quint8>(Conf::Units::Distance());
+  }
+
+  void setDistanceUnits(quint8 v) {
+    if (v != distanceUnits()) {
+      Conf::Units::setDistance(static_cast<Conf::Units::EnumDistance::type>(v));
+      // Note: order is important
+      emit unitsChanged();
+      emit settingsChanged();
+    }
+  }
+
+  Q_PROPERTY(QStringList shortDistanceUnitNames
+             READ shortDistanceUnitNames
+             NOTIFY shortDistanceUnitNamesChanged)
+
+  QStringList shortDistanceUnitNames() const {
+    return Conf::Units::EnumShortDistance::names;
+  }
+
+  Q_PROPERTY(quint8 shortDistanceUnits
+             READ shortDistanceUnits
+             WRITE setShortDistanceUnits)
+
+  quint8 shortDistanceUnits() const {
+    return static_cast<quint8>(Conf::Units::ShortDistance());
+  }
+
+  void setShortDistanceUnits(quint8 v) {
+    if (v != shortDistanceUnits()) {
+      Conf::Units::setShortDistance(static_cast<Conf::Units::EnumShortDistance::type>(v));
+      // Note: order is important
+      emit unitsChanged();
+      emit settingsChanged();
+    }
+  }
+
+  Q_PROPERTY(QStringList boatSpeedUnitNames
+             READ boatSpeedUnitNames
+             NOTIFY boatSpeedUnitNamesChanged)
+
+  QStringList boatSpeedUnitNames() const {
+    return Conf::Units::EnumBoatSpeed::names;
+  }
+
+  Q_PROPERTY(quint8 boatSpeedUnits
+             READ boatSpeedUnits
+             WRITE setBoatSpeedUnits)
+
+  quint8 boatSpeedUnits() const {
+    return static_cast<quint8>(Conf::Units::BoatSpeed());
+  }
+
+  void setBoatSpeedUnits(quint8 v) {
+    if (v != boatSpeedUnits()) {
+      Conf::Units::setBoatSpeed(static_cast<Conf::Units::EnumBoatSpeed::type>(v));
+      // Note: order is important
+      emit unitsChanged();
+      emit settingsChanged();
+    }
+  }
+
+
   float displayLengthScaling() const;
   float displayTextSizeScaling() const;
   float displayLineWidthScaling() const;
@@ -313,19 +446,23 @@ signals:
   void colorTableChanged(quint8 t);
   void settingsChanged();
   void lookupUpdateNeeded();
+  void unitsChanged();
 
   // dummies to keep qtquick from moaning about missing signals
   void maxCategoryNamesChanged(const QStringList&);
   void colorTableNamesChanged(const QStringList&);
   void textGroupsChanged(const QObjectList&);
+  void locationUnitNamesChanged(const QStringList&);
+  void depthUnitNamesChanged(const QStringList&);
+  void distanceUnitNamesChanged(const QStringList&);
+  void shortDistanceUnitNamesChanged(const QStringList&);
+  void boatSpeedUnitNamesChanged(const QStringList&);
 
 private:
 
   Settings(QObject* parent = nullptr);
 
   QObjectList m_textGroups;
-  QStringList m_categories;
-  QStringList m_colorTables;
 
   static inline const float dpmm0 = 6.2;
   static inline const float delta_dpmm1 = 9.7;

@@ -29,6 +29,7 @@
 #include "logging.h"
 #include <QPainter>
 #include <QPaintDevice>
+#include "units.h"
 
 S57::PaintDataMap S52::AreaColor::execute(const QVector<QVariant>& vals,
                                           const S57::Object* obj) {
@@ -2532,7 +2533,7 @@ S57::PaintDataMap S52::CSSoundings02::symbols(double depth, int index,
 
   S57::PaintDataMap ps;
 
-  bool shallow = depth < Conf::MarinerParams::SafetyDepth();
+  const bool shallow = depth < Conf::MarinerParams::SafetyDepth();
   if (obj->attributeValue(m_tecsou).isValid()) {
     QSet<int> tecsou;
     auto items = obj->attributeValue(m_tecsou).toList();
@@ -2569,13 +2570,14 @@ S57::PaintDataMap S52::CSSoundings02::symbols(double depth, int index,
     ps += S52::FindFunction("SY")->execute(vals, obj);
   }
 
-  auto txt = QString::number(static_cast<int>(std::abs(depth)));
+  const double cdepth = Units::Manager::instance()->depth()->fromSI(std::abs(depth));
+  auto txt = QString::number(static_cast<int>(cdepth));
 
   bool hasFrac = false;
-  if (depth < 31) {
-    auto lead = static_cast<int>(std::abs(depth));
-    auto frac = static_cast<int>((std::abs(depth) - lead) * 10);
-    if (depth < 10 || frac != 0) {
+  if (cdepth < 31) {
+    auto lead = static_cast<int>(cdepth);
+    auto frac = static_cast<int>((cdepth - lead) * 10);
+    if (cdepth < 10 || frac != 0) {
       txt = txt + QChar(0x2080 + frac);
       hasFrac = true;
       // qCDebug(CS57) << "Depth" << txt;

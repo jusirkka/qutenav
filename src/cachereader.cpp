@@ -183,6 +183,16 @@ void CacheReader::readChart(GL::VertexVector& vertices,
   }
 
   file.close();
+
+  if (file.open(QFile::ReadWrite)) { // update mtime - saner cache mgmt
+    QDataStream stream2(&file);
+    stream2.setVersion(QDataStream::Qt_5_6);
+    stream2.setByteOrder(QDataStream::LittleEndian);
+    // rewrite magic
+    stream2.writeRawData(id.constData(), 8);
+    file.close();
+  }
+
 }
 
 QByteArray CacheReader::CacheId(const QString& path) {

@@ -23,7 +23,10 @@
 #include "platform.h"
 #include <QGuiApplication>
 #include <QScreen>
-
+#include <QTranslator>
+#include <QStandardPaths>
+#include <QLocale>
+#include "logging.h"
 
 float dots_per_mm_x() {
   static float v = QGuiApplication::primaryScreen()->physicalDotsPerInchX() / 25.4;
@@ -50,4 +53,32 @@ const QString& baseAppName() {
   // qutenav or harbour-qutenav
   static QString name = qAppName().replace("_dbupdater", "").replace("_", "-");
   return name;
+}
+
+
+void loadTranslation(QTranslator& translator) {
+
+  QStringList langs = QLocale().uiLanguages();
+  // append fallback
+  if (!langs.contains("en")) {
+    langs.append("en");
+  }
+
+  QStringList trs;
+  for (const QString& lang: langs) {
+    for (const QString& loc: QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation)) {
+      trs << QString("%1/%2/translations/%2_%3").arg(loc).arg(baseAppName()).arg(lang);
+    }
+  }
+
+  for (const QString& tr: trs) {
+    qCDebug(CDPY) << "checking" << tr;
+    if (translator.load(tr)) {
+      break;
+    }
+  }
+
+  if (translator.isEmpty()) {
+    qCWarning(CDPY) << "No translations: UI might be difficult to read";
+  }
 }

@@ -20,6 +20,7 @@ find_package(Qt5 ${QT_MIN_VERSION} REQUIRED COMPONENTS
   Quick
   OpenGL
   DBus
+  LinguistTools
 )
 
 
@@ -109,6 +110,13 @@ find_package(Freetype ${FREETYPE_MIN_VERSION} REQUIRED)
 
 find_package(harfbuzz REQUIRED)
 
+#
+# translations
+#
+
+qt5_add_translation(QUTENAV_QMS translations/qutenav_en.ts
+  OPTIONS -idbased)
+
 
 #
 # targets
@@ -161,6 +169,7 @@ target_sources(qutenav
     src/symboldata.cpp
     src/textmanager.cpp
     src/tiny_sdf.cpp
+    src/units.cpp
     src/vectorsymbolmanager.cpp
     src/wfreader.cpp
     src/chartdisplay.cpp
@@ -169,6 +178,7 @@ target_sources(qutenav
     src/conf_detailmode.cpp
     src/conf_mainwindow.cpp
     src/conf_marinerparams.cpp
+    src/conf_units.cpp
     src/crosshairs.cpp
     src/databasemodel.cpp
     src/routedatabase.cpp
@@ -184,6 +194,7 @@ target_sources(qutenav
     ${CMAKE_BINARY_DIR}/s52instr_scanner.cpp
     ${CMAKE_BINARY_DIR}/s52hpgl_parser.cpp
     ${CMAKE_BINARY_DIR}/s52hpgl_scanner.cpp
+    ${QUTENAV_QMS}
 )
 
 FLEX_TARGET(WFScanner src/wavefront_scanner.l ${CMAKE_BINARY_DIR}/wavefront_scanner.cpp
@@ -316,6 +327,7 @@ target_link_libraries(qutenav_dbupdater
     Qt5::OpenGL
 )
 
+
 include(GNUInstallDirs)
 
 # binaries
@@ -349,3 +361,7 @@ install(FILES data/s57expectedinput.csv
               data/s57attributes.csv
               data/s57objectclasses.csv
         DESTINATION ${CMAKE_INSTALL_DATADIR}/qutenav/s57data)
+
+# translations
+install(FILES ${QUTENAV_QMS}
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/qutenav/translations)

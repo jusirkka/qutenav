@@ -39,6 +39,7 @@ Tracker::Tracker(QQuickItem* parent)
   , m_status(Inactive)
   , m_duration(0)
   , m_speed(0)
+  , m_lastSpeed(-1.e20)
   , m_distance(0)
   , m_bearing(0.)
   , m_router()
@@ -247,12 +248,13 @@ void Tracker::display() {
       }
     }
 
-    m_appended = true;
-    m_synced = true;
 
   } catch (DatabaseError& e) {
     qWarning() << e.msg();
   }
+
+  m_appended = true;
+  m_synced = true;
 }
 
 QSGNode *Tracker::updatePaintNode(QSGNode* oldNode, UpdatePaintNodeData*) {

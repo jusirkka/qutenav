@@ -23,17 +23,17 @@ TrackInfoBox {
 
   id: info
 
-  property real speed: NaN
-
   target: Rectangle {
     id: speedBox
     color: "white"
     radius: 4
-    height: speed.height
+    height: speedDisplay.height
     width: 1.5 * height + 2 * padding
 
+    property alias speed: speedDisplay.value
+
     DimensionalValue {
-      id: speed
+      id: speedDisplay
 
       anchors {
         left: parent.left
@@ -42,9 +42,21 @@ TrackInfoBox {
         centerIn: parent
       }
 
-      unit: "Kn"
-      value: info.speed
+      unit: units.speedSymbol
+      value: units.speed(info.mps)
       fontSize: info.fontSize
+
+      onUnitChanged: {
+        value = units.speed(info.mps)
+      }
     }
   }
+
+  property real mps: NaN
+
+  onMpsChanged: {
+    targetItem.speed = units.speed(mps)
+    // console.log("speed changed", mps, units.speed(mps))
+  }
+
 }

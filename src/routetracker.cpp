@@ -157,7 +157,7 @@ void RouteTracker::updateDTG() {
   if (std::isnan(prevDTG)) {
     emit targetDTGChanged();
   } else {
-    if (static_cast<int>(m_targetDTG / 185.2) != static_cast<int>(prevDTG / 185.2)) {
+    if (static_cast<int>(m_targetDTG / 100) != static_cast<int>(prevDTG / 100)) {
       emit targetDTGChanged();
     }
   }
@@ -165,7 +165,7 @@ void RouteTracker::updateDTG() {
   if (std::isnan(prevSDTG)) {
     emit segmentDTGChanged();
   } else {
-    if (static_cast<int>(m_segmentDTG / 185.2) != static_cast<int>(prevSDTG / 185.2)) {
+    if (static_cast<int>(m_segmentDTG / 100) != static_cast<int>(prevSDTG / 100)) {
       emit segmentDTGChanged();
     }
   }

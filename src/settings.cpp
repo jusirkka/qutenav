@@ -46,8 +46,6 @@ Settings* Settings::instance() {
 
 Settings::Settings(QObject *parent)
   : QObject(parent)
-  , m_categories({"Base", "Standard", "Other", "Mariners"})
-  , m_colorTables({"Day Bright", "Day Black/Bg", "Day White/Bg", "Dusk", "Night"})
 {
   m_textGroups << new TextGroup(10, true, "Important text");
   m_textGroups << new TextGroup(11, true, "Vertical clearances etc.",

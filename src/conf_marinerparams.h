@@ -33,11 +33,35 @@ public:
   class EnumMaxCategory {
   public:
     enum type {Base, Standard, Other, Mariners};
+    static const inline QStringList names {
+      //% "Base"
+      QT_TRID_NOOP("qtnav-category-base"),
+      //% "Standard"
+      QT_TRID_NOOP("qtnav-category-standard"),
+      //% "Other"
+      QT_TRID_NOOP("qtnav-category-other"),
+      //% "Mariners"
+      QT_TRID_NOOP("qtnav-category-mariners"),
+    };
+
   };
 
   class EnumColorTable {
   public:
     enum type {DayBright, DayBlackBack, DayWhiteBack, Dusk, Night};
+    static const inline QStringList names {
+      //% "Day Bright"
+      QT_TRID_NOOP("qtnav-colortable-day-bright"),
+      //% "Day Black/Bg"
+      QT_TRID_NOOP("qtnav-colortable-day-black-bg"),
+      //% "Day White/Bg"
+      QT_TRID_NOOP("qtnav-colortable-day-white-bg"),
+      //% "Dusk"
+      QT_TRID_NOOP("qtnav-colortable-dusk"),
+      //% "Night"
+      QT_TRID_NOOP("qtnav-colortable-night"),
+    };
+
   };
 
   CONF_DECL(TwoShades, two_shades, bool, toBool)

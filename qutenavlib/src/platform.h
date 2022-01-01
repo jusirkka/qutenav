@@ -19,7 +19,8 @@
  */
 #pragma once
 
-#include <QString>
+class QTranslator;
+class QString;
 
 extern float dots_per_mm_x();
 extern float dots_per_mm_y();
@@ -29,3 +30,6 @@ extern float dots_per_inch_y();
 extern const QString& baseAppName();
 
 static const float nominal_dpmm = 3.125;
+
+extern void loadTranslation(QTranslator& translator);
+

@@ -53,13 +53,13 @@ public:
              READ distance
              NOTIFY distanceChanged)
 
-  qreal distance() const {return m_distance / 1852.;} // nautical miles
+  qreal distance() const {return m_distance;} // meters
 
   Q_PROPERTY(qreal speed
              READ speed
              NOTIFY speedChanged)
 
-  qreal speed() const {return m_speed * toKnots;} // knots
+  qreal speed() const {return m_speed;} // meters / second
 
   Q_PROPERTY(qreal bearing
              READ bearing
@@ -150,8 +150,7 @@ private:
 
   static const int lineWidth = 8;
   static const inline qreal mindist = 10.; // meters
-  static const inline qreal toKnots = 3600. / 1852.;
-  static const inline qreal maxSpeed = 15. / toKnots; // meters / sec, = 15 knots
+  static const inline qreal maxSpeed = 30; // meters / sec
   static const inline qreal eps = .05;
 
   using PointVector = QVector<QPointF>;
@@ -167,6 +166,7 @@ private:
 
   qreal m_duration; // secs
   qreal m_speed; // meters / sec
+  qreal m_lastSpeed; // for emit control
   qreal m_distance; // meters
   qreal m_bearing; // degrees
 
@@ -174,9 +174,9 @@ private:
 };
 
 inline void Tracker::updateDistance(qreal dist) {
-  const auto prevDistance = static_cast<int>(m_distance / 185.2); // decimal nautical miles
+  const auto prevDistance = static_cast<int>(m_distance / 100); // 100m resolution
   m_distance += dist;
-  if (static_cast<int>(m_distance / 185.2) != prevDistance) {
+  if (static_cast<int>(m_distance / 100) != prevDistance) {
     emit distanceChanged();
   }
 }
@@ -192,16 +192,16 @@ inline void Tracker::updateBearing(qreal deg) {
 }
 
 inline void Tracker::updateSpeed(qreal speed) {
-  const auto prevSpeed = m_speed;
   m_speed = speed;
-  if (std::abs(m_speed - prevSpeed) / m_speed > eps) {
+  if (std::abs(m_speed - m_lastSpeed) / m_speed > eps) {
+    m_lastSpeed = m_speed;
     emit speedChanged();
   }
 }
 
 inline void Tracker::updateDuration(qreal delta) {
   // duration
-  const auto prevDuration = static_cast<int>(m_duration / 60);
+  const auto prevDuration = static_cast<int>(m_duration / 60); // one minute resolution
   m_duration += delta;
   if (static_cast<int>(m_duration / 60) != prevDuration) {
     emit durationChanged();

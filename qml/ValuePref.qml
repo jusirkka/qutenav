@@ -30,6 +30,7 @@ Column {
   property alias description: desc.text
   property alias label: label.text
   property real value
+  property string symbol
 
   LabelPL {
     id: label
@@ -65,7 +66,8 @@ Column {
     LabelPL {
       id: m
       anchors.left: val.right
-      text: "meters"
+      anchors.leftMargin: theme.horizontalPageMargin
+      text: root.symbol
       width: .5 * parent.width
       height: implicitHeight
     }
