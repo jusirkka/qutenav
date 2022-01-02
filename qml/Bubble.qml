@@ -73,7 +73,7 @@ Rectangle {
       id: fig
       width: 32
       height: 32
-      visible: source
+      visible: source !== ""
     }
 
     Text {

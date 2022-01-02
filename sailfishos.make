@@ -104,6 +104,9 @@ install:
 	cp data/rastersymbols-dusk.png $(DATADIR)/s57data
 	cp data/s57attributes.csv $(DATADIR)/s57data
 	cp data/s57objectclasses.csv $(DATADIR)/s57data
+	@echo "Installing translations..."
+	mkdir -p $(DATADIR)/translations
+	cp $(BUILDDIR)/*.qm $(DATADIR)/translations
 
 
 %.png:

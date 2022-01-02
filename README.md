@@ -62,9 +62,9 @@ Minimum supported Qt version is 5.6
 
 ### Install build dependencies
 
-- `vboxmanage startvm --type headless "Sailfish OS Build Engine"`
-- Copy the glm package to the build engine: `scp -P 2222 -i $SDK/vmshare/ssh/private_keys/engine/mersdk data-arm/glm-0.9.9.8-1.armv7hl.rpm mersdk@localhost:`, where $SDK is the SDK installation path.
-- Login to the build engine: `ssh -p 2222 -i $SDK/vmshare/ssh/private_keys/engine/mersdk mersdk@localhost`
+- `vboxmanage startvm --type headless "Sailfish SDK Build Engine"`
+- Copy the glm package to the build engine: `scp -P 2222 -i $SDK/vmshare/ssh/private_keys/sdk data-arm/glm-0.9.9.8-1.armv7hl.rpm mersdk@localhost:`, where $SDK is the SDK installation path.
+- Login to the build engine: `ssh -p 2222 -i $SDK/vmshare/ssh/private_keys/sdk mersdk@localhost`
 - `sb2 -t SailfishOS-$VERSION-armv7hl -m sdk-install -R zypper in flex bison harfbuzz-devel`, where
 $VERSION is the sfos version.
 - `sb2 -t SailfishOS-$VERSION-armv7hl -m sdk-install -R rpm -U glm-0.9.9.8-1.armv7hl.rpm`

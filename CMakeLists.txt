@@ -114,7 +114,10 @@ find_package(harfbuzz REQUIRED)
 # translations
 #
 
-qt5_add_translation(QUTENAV_QMS translations/qutenav_en.ts
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+include(MyAddTranslation)
+
+my_add_translation(QUTENAV_QMS translations/id_en.ts
   OPTIONS -idbased)
 
 
@@ -216,8 +219,8 @@ BISON_TARGET(S52HParser src/s52hpgl_parser.y ${CMAKE_BINARY_DIR}/s52hpgl_parser.
   DEFINES_FILE ${CMAKE_BINARY_DIR}/s52hpgl_parser.h)
 
 
-# automoc generates duplicate mocs for dbus adaptor files in older versions
-if (${CMAKE_VERSION} VERSION_LESS "3.18")
+# automoc generates duplicate mocs for dbus adaptor files in sfos-sdk versions
+if (PLATFORM STREQUAL silica)
   set_target_properties(qutenav_dbupdater
     PROPERTIES
       AUTOMOC OFF

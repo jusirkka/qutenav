@@ -67,7 +67,7 @@ void loadTranslation(QTranslator& translator) {
   QStringList trs;
   for (const QString& lang: langs) {
     for (const QString& loc: QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation)) {
-      trs << QString("%1/%2/translations/%2_%3").arg(loc).arg(baseAppName()).arg(lang);
+      trs << QString("%1/%2/translations/id_%3").arg(loc).arg(baseAppName()).arg(lang);
     }
   }
 

@@ -1,3 +1,5 @@
+# % global __strip /bin/true
+
 Name: harbour-qutenav
 
 Summary: Chart plotter / navigator for Sailfish OS
@@ -34,8 +36,8 @@ Marine chart plotter / navigator for Sailfish OS. Supports cm93v2, S57 and OpenC
 
 %build
 mkdir -p rpmbuilddir-%{_arch}
-cd rpmbuilddir-%{_arch} && cmake -DPLATFORM=silica -DCMAKE_BUILD_TYPE=Debug ..
-#cd rpmbuilddir-%{_arch} && cmake -DPLATFORM=silica -DCMAKE_BUILD_TYPE=Release ..
+#cd rpmbuilddir-%{_arch} && cmake -DPLATFORM=silica -DCMAKE_BUILD_TYPE=Debug ..
+cd rpmbuilddir-%{_arch} && cmake -DPLATFORM=silica -DCMAKE_BUILD_TYPE=Release ..
 cd ..
 make %{?_smp_mflags} -C rpmbuilddir-%{_arch} VERBOSE=1
 

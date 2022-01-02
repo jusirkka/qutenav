@@ -62,9 +62,19 @@ void RasterSymbolManager::bind() {
 }
 
 void RasterSymbolManager::changeSymbolAtlas() {
-  m_symbolAtlas = S52::GetRasterFileName();
-  delete m_symbolTexture;
-  m_symbolTexture = new QOpenGLTexture(QImage(S52::GetRasterFileName()), QOpenGLTexture::DontGenerateMipMaps);
+  auto rname = S52::GetRasterFileName();
+  if (rname == m_symbolAtlas) return;
+  m_symbolAtlas = rname;
+  if (m_symbolTexture != nullptr) {
+    // bare delete without destroying underlying resources first leads to a segfault in
+    // sfos/qt5.6. A bug?
+    qCDebug(CDPY) << "destroy texture";
+    m_symbolTexture->destroy();
+    qCDebug(CDPY) << "delete texture";
+    delete m_symbolTexture;
+  }
+  qCDebug(CDPY) << "new texture";
+  m_symbolTexture = new QOpenGLTexture(QImage(m_symbolAtlas), QOpenGLTexture::DontGenerateMipMaps);
   m_symbolTexture->setWrapMode(QOpenGLTexture::ClampToEdge);
   m_symbolTexture->setMinMagFilters(QOpenGLTexture::Linear, QOpenGLTexture::Linear);
 }
