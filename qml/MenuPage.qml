@@ -21,6 +21,8 @@ import QtQuick 2.6
 
 import org.qutenav 1.0
 
+import "./platform"
+
 PagePL {
   id: page
 
@@ -65,8 +67,7 @@ PagePL {
     iconName: app.getSystemIcon('documents')
     onClicked: {
       app.show(Qt.resolvedUrl("ChartDialog.qml"), {
-                 paths: settings.chartFolders,
-                 encdis: encdis
+                 paths: settings.chartFolders
                })
     }
   }

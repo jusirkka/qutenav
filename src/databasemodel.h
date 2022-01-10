@@ -30,7 +30,7 @@ class DatabaseModel: public QAbstractListModel {
 
 public:
 
-  DatabaseModel(QObject* parent = nullptr);
+  DatabaseModel(QObject* parent, int sortColumn);
 
   QHash<int, QByteArray> roleNames() const override;
   QVariant data(const QModelIndex& index, int role) const override;
@@ -39,6 +39,7 @@ public:
   Qt::ItemFlags flags(const QModelIndex &index) const override;
 
   Q_INVOKABLE QVariant get(const QByteArray& roleName, int row) const;
+  Q_INVOKABLE void sort();
 
   Q_PROPERTY(int count
              READ count
@@ -55,6 +56,8 @@ signals:
 protected:
 
   QSqlTableModel* m_model;
+
+  int m_sortColumn;
 
 };
 

@@ -28,9 +28,10 @@
 
 
 
-DatabaseModel::DatabaseModel(QObject *parent)
+DatabaseModel::DatabaseModel(QObject *parent, int sortColumn)
   : QAbstractListModel(parent)
   , m_model(nullptr)
+  , m_sortColumn(sortColumn)
 {}
 
 
@@ -47,9 +48,7 @@ Qt::ItemFlags DatabaseModel::flags(const QModelIndex& index) const {
 
 DatabaseModel::~DatabaseModel() {
   m_model->database().close();
-  const auto connName = m_model->database().connectionName();
   delete m_model;
-  QSqlDatabase::removeDatabase(connName);
 }
 
 
@@ -57,7 +56,7 @@ DatabaseModel::~DatabaseModel() {
 QHash<int, QByteArray> DatabaseModel::roleNames() const {
   QHash<int, QByteArray> roles;
   // record() returns an empty QSqlRecord
-  for (int i = 0; i < m_model->record().count(); i ++) {
+  for (int i = 0; i < m_model->record().count(); i++) {
     roles.insert(Qt::UserRole + 1 + i, m_model->record().fieldName(i).toUtf8());
   }
   return roles;
@@ -99,7 +98,14 @@ bool DatabaseModel::setData(const QModelIndex& item, const QVariant &value, int 
   QModelIndex modelIndex = m_model->index(item.row(), columnIdx);
   bool ret = m_model->setData(modelIndex, value, Qt::EditRole);
   if (ret) {
-    emit dataChanged(item, item);
+      emit dataChanged(item, item);
   }
   return ret;
 }
+
+void DatabaseModel::sort() {
+  beginResetModel();
+  m_model->sort(m_sortColumn, Qt::DescendingOrder);
+  endResetModel();
+}
+

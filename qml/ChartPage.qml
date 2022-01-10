@@ -22,6 +22,8 @@ import org.qutenav 1.0
 
 import "./utils.js" as Util
 
+import "./platform"
+
 ChartPagePL {
 
   id: page
@@ -61,14 +63,14 @@ ChartPagePL {
   function syncLayers(swap) {
     if (lastPos !== undefined) {
       if (!centerButton.centered) {
-        boat.center = encdis.position(lastPos.coordinate.longitude, lastPos.coordinate.latitude)
+        boat.center = encdis.position(lastPos.coordinate)
       } else {
         if (swap !== undefined) {
           boat.center = Qt.point(height / 2, width / 2);
         } else {
           boat.center = Qt.point(width / 2, height / 2);
         }
-        encdis.setEye(lastPos.coordinate.longitude, lastPos.coordinate.latitude)
+        encdis.setEye(lastPos.coordinate)
       }
     }
     tracker.sync();
@@ -89,7 +91,7 @@ ChartPagePL {
       // console.log(width, height)
       // WTF: width & height seem to have their old values at this point
       boat.center = Qt.point(height / 2, width / 2);
-      encdis.setEye(lastPos.coordinate.longitude, lastPos.coordinate.latitude)
+      encdis.setEye(lastPos.coordinate)
     }
     syncLayers(true);
     headingValid = false;
@@ -113,19 +115,18 @@ ChartPagePL {
     if (posValid && position.longitudeValid && position.latitudeValid) {
       lastPos = position;
       if (centerButton.centered) {
-        encdis.setEye(position.coordinate.longitude, position.coordinate.latitude);
+        encdis.setEye(position.coordinate);
       } else {
-        boat.center = encdis.position(position.coordinate.longitude, position.coordinate.latitude);
+        boat.center = encdis.position(position.coordinate);
       }
       if (tracker.status === Tracker.Tracking) {
-        tracker.append(position.coordinate.longitude, position.coordinate.latitude);
+        tracker.append(position.coordinate);
       }
     }
     if (position.speedValid && position.directionValid) {
       headingValid = position.speed > .5;
       if (headingValid) {
-        var p = encdis.advance(position.coordinate.longitude, position.coordinate.latitude,
-                               3600 * position.speed, position.direction);
+        var p = encdis.advance(position.coordinate, 3600 * position.speed, position.direction);
         boat.heading = Qt.point(p.x - boat.center.x, p.y - boat.center.y);
       }
     }
@@ -134,7 +135,7 @@ ChartPagePL {
   onBoatCenteredChanged: {
     if (centerButton.centered && lastPos !== undefined) {
       boat.center = Qt.point(width / 2, height / 2);
-      encdis.setEye(lastPos.coordinate.longitude, lastPos.coordinate.latitude)
+      encdis.setEye(lastPos)
       syncLayers();
     }
   }

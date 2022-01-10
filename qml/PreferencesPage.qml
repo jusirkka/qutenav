@@ -21,6 +21,8 @@ import QtQuick 2.6
 
 import org.qutenav 1.0
 
+import "./platform"
+
 PagePL {
   id: page
 

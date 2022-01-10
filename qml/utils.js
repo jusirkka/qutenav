@@ -24,5 +24,14 @@ function printPos(p) {
   if (p === undefined || !p.longitudeValid || !p.latitudeValid) {
     return "N/A"
   }
-  return units.location(p.coordinate.longitude, p.coordinate.latitude)
+  return units.location(p.coordinate)
+}
+
+
+function printDuration(v) {
+  var s = Math.round(v)
+  var hours = pad(Math.floor(s / 3600), "00")
+  var mins = pad(Math.floor(s / 60), "00")
+  var secs = pad(s % 60, "00")
+  return hours + ":" + mins + ":" + secs
 }

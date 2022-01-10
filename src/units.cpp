@@ -187,3 +187,4 @@ void Manager::handleUnitChange() {
 
   emit depthSymbolChanged();
 }
+

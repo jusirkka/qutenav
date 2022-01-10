@@ -21,6 +21,8 @@
 import QtQuick 2.6
 import QtPositioning 5.2
 
+import "./platform"
+
 ApplicationWindowPL {
 
   id: app
@@ -37,6 +39,10 @@ ApplicationWindowPL {
 
   PositionSource {
     id: gps
+  }
+
+  ChartPage {
+    id: chartPage
   }
 
   Component.onCompleted: {
@@ -64,11 +70,16 @@ ApplicationWindowPL {
   }
 
   function getIcon(name) {
-    return "icons/%1-%2.png".arg(name).arg(app.pixelRatio);
+    return Qt.resolvedUrl("icons/%1-%2.png".arg(name).arg(app.pixelRatio))
   }
 
   function getSystemIcon(name) {
     return systemIcons[name]
+  }
+
+  function setEye(coord) {
+    encdis.setEye(coord)
+    chartPage.syncLayers()
   }
 
 }

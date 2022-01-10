@@ -24,6 +24,7 @@
 #include "logging.h"
 #include <cmath>
 #include "types.h"
+#include <QGeoCoordinate>
 
 namespace Units {
 
@@ -68,6 +69,7 @@ public:
   }
 
   Q_INVOKABLE float speed(float v) const {return m_speed->fromSI(v);}
+  Q_INVOKABLE QString displaySpeed(float v) const {return m_speed->displaySI(v);}
 
   Q_PROPERTY(QString distanceSymbol
              READ distanceSymbol
@@ -78,6 +80,7 @@ public:
   }
 
   Q_INVOKABLE float distance(float v) const {return m_distance->fromSI(v);}
+  Q_INVOKABLE QString displayDistance(float v) const {return m_distance->displaySI(v);}
 
 
   Q_PROPERTY(QString depthSymbol
@@ -96,11 +99,10 @@ public:
   const Converter* shortDistance() const {return m_shortDistance;}
   const Converter* depth() const {return m_depth;}
 
-  Q_INVOKABLE QString location(float lng, float lat) const {
-    WGS84Point p = WGS84Point::fromLL(lng, lat);
+  Q_INVOKABLE QString location(const QGeoCoordinate& q) const {
+    WGS84Point p = WGS84Point::fromLL(q.longitude(), q.latitude());
     return p.print(locMap[Conf::Units::Location()]);
   }
-
 
 private slots:
 

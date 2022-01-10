@@ -4,7 +4,7 @@
 <context>
     <name></name>
     <message id="qtnav-units">
-        <location filename="../qml/UnitPreferencesPage.qml" line="+24"/>
+        <location filename="../qml/UnitPreferencesPage.qml" line="+25"/>
         <source>Units</source>
         <translation>Units</translation>
     </message>
@@ -29,7 +29,7 @@
         <translation>Boat Speed</translation>
     </message>
     <message id="qtnav-chart">
-        <location filename="../qml/ChartPreferencesPage.qml" line="+24"/>
+        <location filename="../qml/ChartPreferencesPage.qml" line="+26"/>
         <source>Chart</source>
         <translation>Chart</translation>
     </message>
@@ -119,7 +119,7 @@
         <translation>Depth contour shallower than safety contour is highlighted.</translation>
     </message>
     <message id="qtnav-shallow-water-contour">
-        <location line="+12"/>
+        <location line="+13"/>
         <source>Shallow water contour</source>
         <translation>Shallow water contour</translation>
     </message>
@@ -129,7 +129,7 @@
         <translation>Select shallow water contour for depth area coloring.</translation>
     </message>
     <message id="qtnav-deep-water-contour">
-        <location line="+12"/>
+        <location line="+13"/>
         <source>Deep water contour</source>
         <translation>Deep water contour</translation>
     </message>
@@ -139,7 +139,7 @@
         <translation>Select deep water contour for depth area coloring.</translation>
     </message>
     <message id="qtnav-two-shades">
-        <location line="+12"/>
+        <location line="+13"/>
         <source>Two shades</source>
         <translation>Two shades</translation>
     </message>
@@ -348,6 +348,128 @@
         <location line="+7"/>
         <source>ft</source>
         <translation>ft</translation>
+    </message>
+    <message id="qtnav-renamer-title">
+        <location filename="../qml/Renamer.qml" line="+11"/>
+        <source>Edit name</source>
+        <translation>Edit name</translation>
+    </message>
+    <message id="qutenav-renamer-accept-text">
+        <location line="+3"/>
+        <source>Rename</source>
+        <translation>Rename</translation>
+    </message>
+    <message id="qutenav-track-display-title">
+        <location filename="../qml/TrackDisplayDialog.qml" line="+30"/>
+        <source>Select tracks to show</source>
+        <translation>Select tracks to show</translation>
+    </message>
+    <message id="qutenav-track-display-accept-text">
+        <location line="+2"/>
+        <source>Show</source>
+        <translation>Show</translation>
+    </message>
+    <message id="qutenav-track-display-menu-top">
+        <location line="+19"/>
+        <source>Move to top</source>
+        <translation>Move to top</translation>
+    </message>
+    <message id="qutenav-track-display-menu-rename">
+        <location line="+8"/>
+        <source>Rename</source>
+        <translation>Rename</translation>
+    </message>
+    <message id="qutenav-track-display-menu-delete">
+        <location line="+10"/>
+        <source>Delete</source>
+        <translation>Delete</translation>
+    </message>
+    <message id="qutenav-track-display-ph-text">
+        <location line="+69"/>
+        <source>No tracks.</source>
+        <translation>No tracks.</translation>
+    </message>
+    <message id="qutenav-track-display-ph-hint">
+        <location line="+2"/>
+        <source>Tap tracks record button in Chart view to record a track.</source>
+        <translation>Tap tracks record button in Chart view to record a track.</translation>
+    </message>
+    <message id="qtnav-stats">
+        <location filename="../qml/TrackStatisticsPage.qml" line="+31"/>
+        <source>Statistics</source>
+        <translation>Statistics</translation>
+    </message>
+    <message id="qtnav-stats-start">
+        <location line="+5"/>
+        <source>Start</source>
+        <translation>Start</translation>
+    </message>
+    <message id="qtnav-stats-location">
+        <location line="+5"/>
+        <location line="+18"/>
+        <source>Location</source>
+        <translation>Location</translation>
+    </message>
+    <message id="qtnav-stats-date">
+        <location line="-11"/>
+        <location line="+18"/>
+        <source>Date</source>
+        <translation>Date</translation>
+    </message>
+    <message id="qtnav-stats-finish">
+        <location line="-12"/>
+        <source>Finish</source>
+        <translation>Finish</translation>
+    </message>
+    <message id="qtnav-stats-others">
+        <location line="+18"/>
+        <source>Other numbers</source>
+        <translation>Other numbers</translation>
+    </message>
+    <message id="qtnav-stats-dist">
+        <location line="+5"/>
+        <source>Covered distance</source>
+        <translation>Covered distance</translation>
+    </message>
+    <message id="qtnav-stats-straight-dist">
+        <location line="+6"/>
+        <source>Straight line distance</source>
+        <translation>Straight line distance</translation>
+    </message>
+    <message id="qtnav-stats-bearing">
+        <location line="+6"/>
+        <source>Bearing</source>
+        <translation>Bearing</translation>
+    </message>
+    <message id="qtnav-stats-duration">
+        <location line="+6"/>
+        <source>Duration</source>
+        <translation>Duration</translation>
+    </message>
+    <message id="qtnav-stats-paused">
+        <location line="+6"/>
+        <source>Paused</source>
+        <translation>Paused</translation>
+    </message>
+    <message id="qtnav-stats-av-speed">
+        <location line="+6"/>
+        <source>Average speed</source>
+        <translation>Average speed</translation>
+    </message>
+    <message id="qtnav-stats-av-speed-moving">
+        <location line="+6"/>
+        <source>Average speed when moving</source>
+        <translation>Average speed when moving</translation>
+    </message>
+    <message id="qtnav-stats-st-speed">
+        <location line="+6"/>
+        <source>Straight line speed</source>
+        <translation>Straight line speed</translation>
+    </message>
+    <message id="qtnav-stats-max-speed">
+        <location line="+6"/>
+        <source>Maximum speed</source>
+        <translation>Maximum speed</translation>
     </message>
 </context>
 </TS>

@@ -95,7 +95,7 @@ void Tracker::reset() {
   start();
 }
 
-void Tracker::append(qreal lng, qreal lat) {
+void Tracker::append(const QGeoCoordinate& q) {
   if (m_status != Tracking) return;
 
   auto encdis = qobject_cast<const ChartDisplay*>(parentItem());
@@ -104,7 +104,7 @@ void Tracker::append(qreal lng, qreal lat) {
     return;
   }
 
-  const auto wp = WGS84Point::fromLL(lng, lat);
+  const auto wp = WGS84Point::fromLL(q.longitude(), q.latitude());
   const auto now = QDateTime::currentMSecsSinceEpoch();
 
   if (!m_events.last().isEmpty()) {

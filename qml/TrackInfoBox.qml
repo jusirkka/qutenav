@@ -18,6 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import QtQuick 2.6
+import "./utils.js" as Util
 
 Rectangle {
   id: rect
@@ -36,10 +37,6 @@ Rectangle {
   width: upperLeft.width + upperBox.width + 3 * padding
   radius: padding / 2
   color: "#01356b"
-
-  function pad(s, p) {
-    return String(p + s).slice(- p.length);
-  }
 
   onMetersChanged: {
     dist.value = units.distance(meters)
@@ -80,8 +77,8 @@ Rectangle {
         leftMargin: padding / 2
       }
       text: "" + (!isNaN(rect.seconds) ?
-                    rect.pad(Math.floor(rect.seconds / 3600), "00") + ":" +
-                    rect.pad(Math.floor((rect.seconds % 3600) / 60), "00") : "--:--")
+                    Util.pad(Math.floor(rect.seconds / 3600), "00") + ":" +
+                    Util.pad(Math.floor((rect.seconds % 3600) / 60), "00") : "--:--")
       font.pixelSize: rect.fontSize * .8
       font.family: "Arial Black"
       horizontalAlignment: Text.AlignHCenter
@@ -137,7 +134,7 @@ Rectangle {
       horizontalAlignment: Text.AlignHCenter
       font.pixelSize: rect.fontSize * .8
       text: (!isNaN(rect.bearing)) ?
-              ("" + pad(Math.floor(rect.bearing + .5), "000") + "°") : "---°"
+              ("" + Util.pad(Math.floor(rect.bearing + .5), "000") + "°") : "---°"
       font.family: "Arial Black"
     }
   }

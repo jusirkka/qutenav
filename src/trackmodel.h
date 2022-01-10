@@ -22,6 +22,7 @@
 #pragma once
 
 #include "databasemodel.h"
+#include <QGeoCoordinate>
 
 class TrackModel: public DatabaseModel {
 
@@ -31,4 +32,24 @@ public:
 
   TrackModel(QObject* parent = nullptr);
   ~TrackModel() = default;
+
+  Q_INVOKABLE qreal distance(quint32 id) const; // meters
+  Q_INVOKABLE qreal straightLineDistance(quint32 id) const; // meters
+  Q_INVOKABLE qreal bearing(quint32 id) const; // degrees
+  Q_INVOKABLE qreal duration(quint32 id) const; // seconds
+  Q_INVOKABLE qreal pausedDuration(quint32 id) const; // seconds
+  Q_INVOKABLE qreal speed(quint32 id) const; // meters / second
+  Q_INVOKABLE qreal speedWhileMoving(quint32 id) const; // meters / second
+  Q_INVOKABLE qreal straightLineSpeed(quint32 id) const; // meters / second
+  Q_INVOKABLE qreal maxSpeed(quint32 id) const; // meters / second
+  Q_INVOKABLE qint64 instant(quint32 id, qint32 index) const; // unix time in msecs
+  Q_INVOKABLE QGeoCoordinate location(quint32 id, qint32 index) const;
+  Q_INVOKABLE quint32 topPreference() const;
+  Q_INVOKABLE void remove(quint32 id);
+
+
+private:
+
+  static const int preferenceColumn = 3;
+
 };

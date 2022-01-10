@@ -24,7 +24,7 @@
 
 
 RouteModel::RouteModel(QObject *parent)
-  : DatabaseModel(parent)
+  : DatabaseModel(parent, 0)
 {
   auto db = QSqlDatabase::addDatabase("QSQLITE", "RouteModel");
   db.setDatabaseName(SQLiteDatabase::databaseName("routes"));
@@ -33,6 +33,6 @@ RouteModel::RouteModel(QObject *parent)
   m_model = new QSqlTableModel(nullptr, db);
   m_model->setEditStrategy(QSqlTableModel::OnFieldChange);
   m_model->setTable("routes");
-  m_model->setSort(0, Qt::DescendingOrder);
+  m_model->setSort(m_sortColumn, Qt::DescendingOrder);
   m_model->select();
 }

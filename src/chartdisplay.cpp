@@ -357,8 +357,8 @@ void ChartDisplay::pan(qreal x, qreal y) {
 }
 
 
-void ChartDisplay::setEye(qreal lng, qreal lat) {
-  m_camera->setEye(WGS84Point::fromLL(lng, lat));
+void ChartDisplay::setEye(const QGeoCoordinate& q) {
+  m_camera->setEye(WGS84Point::fromLL(q.longitude(), q.latitude()));
   emit updateViewport(m_camera);
   update();
 }
@@ -373,12 +373,12 @@ QPointF ChartDisplay::position(const WGS84Point& wp) const {
   return QPointF(w / 2. * (pos.x() + 1), h / 2. * (1 - pos.y()));
 }
 
-QPointF ChartDisplay::position(qreal lng, qreal lat) const {
-  return position(WGS84Point::fromLL(lng, lat));
+QPointF ChartDisplay::position(const QGeoCoordinate& q) const {
+  return position(WGS84Point::fromLL(q.longitude(), q.latitude()));
 }
 
-QPointF ChartDisplay::advance(qreal lng, qreal lat, qreal distance, qreal heading) const {
-  const auto wp = WGS84Point::fromLL(lng, lat) + WGS84Bearing::fromMeters(distance, Angle::fromDegrees(heading));
+QPointF ChartDisplay::advance(const QGeoCoordinate& q, qreal distance, qreal heading) const {
+  const auto wp = WGS84Point::fromLL(q.longitude(), q.latitude()) + WGS84Bearing::fromMeters(distance, Angle::fromDegrees(heading));
   return position(wp);
 }
 

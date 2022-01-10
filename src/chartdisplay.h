@@ -24,6 +24,7 @@
 #include "types.h"
 #include "event.h"
 #include <QSGGeometry>
+#include <QGeoCoordinate>
 
 class DetailMode;
 class Camera;
@@ -110,9 +111,9 @@ public:
   Q_INVOKABLE void northUp();
   Q_INVOKABLE void rotate(qreal degrees);
   Q_INVOKABLE void infoQuery(const QPointF& p);
-  Q_INVOKABLE void setEye(qreal lng, qreal lat);
-  Q_INVOKABLE QPointF position(qreal lng, qreal lat) const;
-  Q_INVOKABLE QPointF advance(qreal lng, qreal lat, qreal distance, qreal heading) const;
+  Q_INVOKABLE void setEye(const QGeoCoordinate& q);
+  Q_INVOKABLE QPointF position(const QGeoCoordinate& q) const;
+  Q_INVOKABLE QPointF advance(const QGeoCoordinate& q, qreal distance, qreal heading) const;
   Q_INVOKABLE void updateChartDB(bool fullUpdate);
 
   Q_PROPERTY(QStringList chartSets

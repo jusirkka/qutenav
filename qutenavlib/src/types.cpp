@@ -280,7 +280,9 @@ WGS84Bearing::WGS84Bearing(double m, const Angle& a)
   : m_meters(m)
   , m_radians(a.radians)
   , m_valid(a.valid() && m > 0.)
-{}
+{
+  if (m_radians < 0.) m_radians += M_PI * 2;
+}
 
 
 WGS84Bearing operator- (const WGS84Bearing& b) {

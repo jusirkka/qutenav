@@ -25,6 +25,7 @@
 #include <QSGGeometry>
 #include "event.h"
 #include "routetracker.h"
+#include <QGeoCoordinate>
 
 class Tracker: public QQuickItem {
 
@@ -104,7 +105,7 @@ public:
   qreal targetDTG() const {return m_router.targetDTG();}
 
 
-  Q_INVOKABLE void append(qreal lng, qreal lat);
+  Q_INVOKABLE void append(const QGeoCoordinate& q);
   Q_INVOKABLE void sync();
 
   Q_INVOKABLE void start();

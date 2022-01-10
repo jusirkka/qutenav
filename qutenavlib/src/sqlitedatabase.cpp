@@ -79,6 +79,10 @@ bool SQLiteDatabase::commit() {
   return m_DB.commit();
 }
 
+bool SQLiteDatabase::rollback() {
+  return m_DB.rollback();
+}
+
 void SQLiteDatabase::close() {
   m_DB.commit();
   m_DB.close();

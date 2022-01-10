@@ -18,6 +18,7 @@ find_package(Qt5 ${QT_MIN_VERSION} REQUIRED COMPONENTS
   Sql
   Xml
   Quick
+  Positioning
   OpenGL
   DBus
   LinguistTools
@@ -307,6 +308,7 @@ target_link_libraries(qutenav
     Qt5::Quick
     Qt5::Gui
     Qt5::Sql
+    Qt5::Positioning
     Qt5::DBus
     Freetype::Freetype
     fontconfig

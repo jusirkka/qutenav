@@ -63,7 +63,7 @@ void Updater::manageCharts(const QStringList& dirs, ChartInfoMap* charts) {
   PathHash candidates;
   for (auto ft = m_factories.cbegin(); ft != m_factories.cend(); ++ft) {
     const ChartFileReaderFactory* ftor = ft.value();
-    for (const auto dir: dirs) {
+    for (const auto& dir: dirs) {
       QDirIterator it(dir,
                       ftor->filters(),
                       QDir::Files | QDir::Readable,

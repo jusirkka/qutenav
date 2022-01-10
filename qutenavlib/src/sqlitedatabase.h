@@ -38,6 +38,7 @@ public:
   void exec(QSqlQuery& query);
   bool transaction();
   bool commit();
+  bool rollback();
   void close();
 
 protected:

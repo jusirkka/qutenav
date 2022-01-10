@@ -38,7 +38,8 @@ void TrackDatabase::createTables() {
     query.exec("create table if not exists tracks ("
                "id integer primary key autoincrement, "
                "name text not null, "
-               "enabled integer not null)"); // boolean
+               "enabled integer not null, " // boolean
+               "preference integer not null)"); // provides sorting order
 
     query.exec("create table if not exists strings ("
                "id integer primary key autoincrement, "
@@ -66,28 +67,38 @@ TrackDatabase::TrackDatabase(const QString& connName)
 
 void TrackDatabase::createTrack(const KV::EventStringVector& events) {
 
-  // check consistency & set name
-  QString name;
-  for (const KV::EventString& string: events) {
-    if (string.size() >= 2) {
-      name = QDateTime::fromMSecsSinceEpoch(string.first().instant).toString("yyyy-MM-dd");
-      break;
-    }
+  // check validity
+  auto it = std::find_if(events.cbegin(), events.cend(), [] (const KV::EventString& string) {
+    return string.size() >= 2;
+  });
+
+  if (it == events.cend()) return;
+
+  QString name = "Track 1";
+  // find largest primary key
+  auto r0 = exec("select max(id) from tracks");
+  if (r0.first()) {
+    name = QString("Track %1").arg(r0.value(0).toUInt() + 1);
   }
 
-  if (name.isEmpty()) return;
-
+  quint32 pr = 1;
+  // find largest preference
+  r0 = exec("select max(preference) from tracks");
+  if (r0.first()) {
+    pr = r0.value(0).toUInt() + 1;
+  }
 
   if (!transaction()) {
     qWarning() << "Transactions not supported";
   }
 
 
-  auto r0 = prepare("insert into tracks "
-                    "(name, enabled) "
-                    "values(?, ?)");
+  r0 = prepare("insert into tracks "
+               "(name, enabled, preference) "
+               "values(?, ?, ?)");
   r0.bindValue(0, name);
   r0.bindValue(1, 0);
+  r0.bindValue(1, pr);
   exec(r0);
 
   auto track_id = r0.lastInsertId().toUInt();
@@ -119,3 +130,89 @@ void TrackDatabase::createTrack(const KV::EventStringVector& events) {
   }
 
 }
+
+KV::EventStringVector TrackDatabase::events(quint32 id) {
+
+  KV::EventStringVector evs;
+
+  try {
+
+
+    auto r0 = prepare("select e.string_id, e.time, e.lng, e.lat from events e "
+                      "join strings s on e.string_id = s.id "
+                      "where s.track_id = ? "
+                      "order by e.string_id, e.id");
+    r0.bindValue(0, id);
+    exec(r0);
+
+    int prev = - 1;
+    while (r0.next()) {
+
+      const auto string_id = r0.value(0).toInt();
+      if (string_id != prev) {
+        evs << KV::EventString();
+      }
+      prev = string_id;
+
+      auto wp = WGS84Point::fromLL(r0.value(2).toReal(), r0.value(3).toReal());
+      evs.last() << KV::Event(r0.value(1).toLongLong(), wp);
+    }
+
+  } catch (DatabaseError& e) {
+    qWarning() << e.msg();
+  }
+
+  return evs;
+
+}
+
+void TrackDatabase::remove(quint32 id) {
+  try {
+
+    if (!transaction()) {
+      qWarning() << "Transactions not supported";
+    }
+
+    auto r0 = prepare("select e.id "
+                      "from events e "
+                      "join strings s on e.string_id = s.id "
+                      "where s.track_id = ?");
+    r0.bindValue(0, id);
+    exec(r0);
+    QVector<quint32> eids;
+    while (r0.next()) {
+      eids << r0.value(0).toUInt();
+    }
+    auto sql = QString("delete from events where id in (");
+    sql += QString("?,").repeated(eids.size());
+    sql = sql.replace(sql.length() - 1, 1, ")");
+    r0 = prepare(sql);
+    int index = 0;
+    for (auto eid: eids) {
+      r0.bindValue(index, eid);
+      index++;
+    }
+    exec(r0);
+
+    r0 = prepare("delete from strings where track_id = ?");
+    r0.bindValue(0, id);
+    exec(r0);
+
+    r0 = prepare("delete from tracks where id = ?");
+    r0.bindValue(0, id);
+    exec(r0);
+
+    if (!commit()) {
+      qWarning() << "Transactions/Commits not supported";
+    }
+  } catch (DatabaseError& e) {
+    qWarning() << e.msg();
+    if (!rollback()) {
+      qWarning() << "Transactions/Commits/Rollbacks not supported";
+    }
+  }
+}
+
+
+
+

@@ -19,6 +19,8 @@
  */
 import QtQuick 2.6
 
+import "./platform"
+
 DialogPL {
   id: dialog
   title: "Chart folders"
@@ -27,11 +29,10 @@ DialogPL {
 
   property var paths: []
   property bool fullUpdate: false
-  property var encdis: undefined
 
   onAccepted: {
     settings.chartFolders = paths
-    encdis.updateChartDB(fullUpdate)
+    app.encdis.updateChartDB(fullUpdate)
   }
 
   Rectangle {

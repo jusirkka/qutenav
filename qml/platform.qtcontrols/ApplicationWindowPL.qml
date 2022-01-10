@@ -30,10 +30,6 @@ ApplicationWindow {
   property bool fullScreen
   property size fallbackGeom
 
-  ChartPage {
-    id: chartPage
-  }
-
   Component.onCompleted: {
     systemIcons = {
       'clear': 'edit-clear',
@@ -67,13 +63,21 @@ ApplicationWindow {
       dialog.close();
     }
     var component = Qt.createComponent(url);
-    dialog = component.createObject(app, params ? params : {});
+    if (component.status === Component.Error) {
+      console.log("Error: " + component.errorString())
+      return null
+    }
+    dialog = component.createObject(app, params ? params : {})
     return dialog;
   }
 
   function showAsDialog(url, params) {
     var component = Qt.createComponent(url);
-    return component.createObject(app, params ? params : {});
+    if (component.status === Component.Error) {
+      console.log("Error: " + component.errorString())
+      return null
+    }
+    return component.createObject(app, params ? params : {})
   }
 
   Shortcut {

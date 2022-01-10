@@ -19,6 +19,8 @@
  */
 import QtQuick 2.6
 
+import "./platform"
+
 FolderPickerPL {
   title: "Select chart folder"
 }

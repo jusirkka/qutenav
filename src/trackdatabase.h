@@ -35,6 +35,9 @@ public:
 
   void createTrack(const KV::EventStringVector& events);
 
+  KV::EventStringVector events(quint32 id);
+  void remove(quint32 id);
+
 private:
 
 
