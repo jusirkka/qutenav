@@ -28,5 +28,6 @@ target_link_libraries(Platform
     Qt5::Core
     Qt5::Quick
     Qt5::Sql
+    Qt5::Positioning
     Freetype::Freetype
 )

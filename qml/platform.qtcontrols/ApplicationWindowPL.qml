@@ -20,6 +20,8 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.12
 
+import ".."
+
 ApplicationWindow {
   id: aw
 
@@ -29,6 +31,10 @@ ApplicationWindow {
   property var systemIcons: null
   property bool fullScreen
   property size fallbackGeom
+
+  ChartPage {
+    id: chartPage
+  }
 
   Component.onCompleted: {
     systemIcons = {
@@ -50,6 +56,7 @@ ApplicationWindow {
       height = fallbackGeom.height
       showFullScreen()
     }
+    app.chartPage = chartPage
   }
 
   Component.onDestruction: {

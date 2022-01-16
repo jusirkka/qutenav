@@ -4,6 +4,7 @@ cmake_minimum_required(VERSION 3.11 FATAL_ERROR)
 
 project(qutenav LANGUAGES CXX C)
 
+
 if (NOT DEFINED PLATFORM)
   set(PLATFORM qtcontrols)
 endif()
@@ -62,22 +63,6 @@ elseif (PLATFORM STREQUAL silica)
     qml/InfoPage.qml
     qml/MenuButton.qml
     qml/MenuPage.qml
-    qml/platform.silica/ApplicationWindowPL.qml
-    qml/platform.silica/ChartPagePL.qml
-    qml/platform.silica/ComboBoxPL.qml
-    qml/platform.silica/DialogPL.qml
-    qml/platform.silica/IconListItemPL.qml
-    qml/platform.silica/LabelPL.qml
-    qml/platform.silica/ListViewDelegatePL.qml
-    qml/platform.silica/ListViewPL.qml
-    qml/platform.silica/MapButtonPL.qml
-    qml/platform.silica/PagePL.qml
-    qml/platform.silica/SectionHeaderPL.qml
-    qml/platform.silica/SwitchDelegatePL.qml
-    qml/platform.silica/TextFieldPL.qml
-    qml/platform.silica/TextSwitchPL.qml
-    qml/platform.silica/ThemePL.qml
-    qml/platform.silica/ViewPlaceholderPL.qml
     qml/PreferencesPage.qml
     qml/qutenav.qml
     qml/RouteButton.qml
@@ -93,12 +78,36 @@ elseif (PLATFORM STREQUAL silica)
     qml/TrackPointInfoBox.qml
     qml/TrackResultDialog.qml
     qml/TrackSpeedInfoBox.qml
+    qml/TrackStatisticsPage.qml
     qml/TrackTargetInfoBox.qml
     qml/ValuePref.qml
+    qml/platform.silica/ApplicationWindowPL.qml
+    qml/platform.silica/ChartPagePL.qml
+    qml/platform.silica/ComboBoxPL.qml
+    qml/platform.silica/DialogPL.qml
+    qml/platform.silica/IconListItemPL.qml
+    qml/platform.silica/LabelPL.qml
+    qml/platform.silica/LinkAreaPL.qml
+    qml/platform.silica/LinkDetailItemPL.qml
+    qml/platform.silica/ListViewDelegatePL.qml
+    qml/platform.silica/ListViewPL.qml
+    qml/platform.silica/MapButtonPL.qml
+    qml/platform.silica/PagePL.qml
+    qml/platform.silica/SectionHeaderPL.qml
+    qml/platform.silica/TextFieldPL.qml
+    qml/platform.silica/TextSwitchPL.qml
+    qml/platform.silica/ThemePL.qml
+    qml/platform.silica/ViewPlaceholderPL.qml
   )
 
 
 endif ()
+
+add_custom_target(Doc SOURCES
+  TODO
+  README.md
+  )
+
 
 set(BISON_MIN_VERSION "3.1")
 find_package(BISON ${BISON_MIN_VERSION} REQUIRED)

@@ -55,10 +55,10 @@ ICONS = data/$(BASE)-48x48.png \
 
 install:
 	@echo "Installing QML files..."
-	mkdir -p $(DATADIR)/qml
+	mkdir -p $(DATADIR)/qml/platform
 	cp qml/$(BASE).qml $(DATADIR)/qml/$(NAME).qml
 	cp qml/[A-Z]*.qml $(DATADIR)/qml
-	cp qml/platform.silica/[A-Z]*.qml $(DATADIR)/qml
+	cp qml/platform.silica/[A-Z]*.qml $(DATADIR)/qml/platform
 	@echo "Installing JS files..."
 	cp qml/*.js $(DATADIR)/qml
 	mkdir -p $(DATADIR)/qml/icons

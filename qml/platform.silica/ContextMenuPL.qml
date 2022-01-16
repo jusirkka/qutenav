@@ -1,8 +1,6 @@
 /* -*- coding: utf-8-unix -*-
  *
- * File: ButtonPL.qml
- *
- * Copyright (C) 2021 Jukka Sirkka
+ * Copyright (C) 2018 Rinigus
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,6 +15,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
+import QtQuick 2.0
 import Sailfish.Silica 1.0
 
-Button {}
+ContextMenu {
+    hasContent: enabled && children.length > 0
+    enabled: true
+}

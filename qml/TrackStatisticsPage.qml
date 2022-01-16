@@ -23,9 +23,12 @@ import "./utils.js" as Util
 
 PagePL {
 
+  id: page
+
   property int key
   property string name
   property var trackModel: TrackModel {}
+  property var info: Bubble {parent: page}
 
   //% "Statistics"
   title: name + " " + qsTrId("qtnav-stats")
@@ -36,11 +39,15 @@ PagePL {
     text: qsTrId("qtnav-stats-start")
   }
 
-  DetailItemPL {
+  LinkDetailItemPL {
     //% "Location"
     label: qsTrId("qtnav-stats-location")
-    value: "<a href='0'>" + units.location(trackModel.location(key, 0)) + "</a>"
-    onLinkActivated: app.setEye(trackModel.location(key, 0))
+    value: units.location(trackModel.location(key, 0), 0)
+    onValueLinkActivated: {
+      //% "Centering chart"
+      info.notify(qsTrId("qutenav-centering-chart"))
+      app.setEye(trackModel.location(key, 0))
+    }
   }
 
   DetailItemPL {
@@ -54,11 +61,15 @@ PagePL {
     text: qsTrId("qtnav-stats-finish")
   }
 
-  DetailItemPL {
+  LinkDetailItemPL {
     //% "Location"
     label: qsTrId("qtnav-stats-location")
-    value: "<a href='-1'>" + units.location(trackModel.location(key, -1)) + "</a>"
-    onLinkActivated: app.setEye(trackModel.location(key, -1))
+    value: units.location(trackModel.location(key, -1), 0)
+    onValueLinkActivated: {
+      //% "Centering chart"
+      info.notify(qsTrId("qutenav-centering-chart"))
+      app.setEye(trackModel.location(key, -1))
+    }
   }
 
   DetailItemPL {

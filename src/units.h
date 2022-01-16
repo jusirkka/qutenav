@@ -99,9 +99,9 @@ public:
   const Converter* shortDistance() const {return m_shortDistance;}
   const Converter* depth() const {return m_depth;}
 
-  Q_INVOKABLE QString location(const QGeoCoordinate& q) const {
+  Q_INVOKABLE QString location(const QGeoCoordinate& q, quint8 prec = 4) const {
     WGS84Point p = WGS84Point::fromLL(q.longitude(), q.latitude());
-    return p.print(locMap[Conf::Units::Location()]);
+    return p.print(locMap[Conf::Units::Location()], prec);
   }
 
 private slots:

@@ -14,10 +14,11 @@
 - check consistency of attdecode.csv and s57expectedinput.csv
 - correct text frag shader parameters as uniforms
 - fix chartsymbols.xml: typos, remove unsupported classcodes/lookups
-- center chart to loaded route / track
 - ObjectInfo rewrite
 - Route/editor: reverse & edit a route
+- Datetime format to Units: standard, localized
 
+- check desktop track display
 - more detailed route info in route archive page
 - distance measurement
 - manage chart cache

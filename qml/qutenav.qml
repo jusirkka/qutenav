@@ -28,6 +28,7 @@ ApplicationWindowPL {
   id: app
 
   property var encdis: null
+  property var syncLayers: null
   property int pixelRatio: 100
 
   // for testing
@@ -39,10 +40,6 @@ ApplicationWindowPL {
 
   PositionSource {
     id: gps
-  }
-
-  ChartPage {
-    id: chartPage
   }
 
   Component.onCompleted: {
@@ -79,7 +76,7 @@ ApplicationWindowPL {
 
   function setEye(coord) {
     encdis.setEye(coord)
-    chartPage.syncLayers()
+    syncLayers()
   }
 
 }

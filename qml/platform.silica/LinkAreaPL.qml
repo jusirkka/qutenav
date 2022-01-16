@@ -18,5 +18,28 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import Sailfish.Silica 1.0
+import org.qutenav 1.0
+import QtQuick 2.6
 
-Button {}
+BackgroundItem {
+  id: item
+  width: link.width + theme.paddingSmall
+  height: link.height
+
+  property alias text: link.text
+  signal linkActivated()
+
+  onClicked: {
+    linkActivated()
+  }
+
+  Text {
+    id: link
+    color: item.highlighted ? theme.highlightColor : theme.primaryColor
+    font.underline: true
+    font.pixelSize: theme.fontSizeSmall
+    textFormat: Text.PlainText
+    wrapMode: Text.Wrap
+  }
+
+}

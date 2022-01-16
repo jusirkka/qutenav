@@ -12,7 +12,7 @@ Item {
   property alias label: key.text
   property alias value: val.text
 
-  signal linkActivated(string link)
+  signal valueLinkActivated(string link)
 
   anchors.horizontalCenter: parent.horizontalCenter
 
@@ -30,6 +30,6 @@ Item {
       right: parent.right
       verticalCenter: key.verticalCenter
     }
-    onLinkActivated: main.linkActivated(link)
+    onLinkActivated: main.valueLinkActivated(link)
   }
 }

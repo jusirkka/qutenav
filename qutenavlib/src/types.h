@@ -118,7 +118,7 @@ public:
   WGS84Point& operator=(const WGS84Point& a) {m_Longitude = a.m_Longitude; m_Latitude = a.m_Latitude; m_Valid = a.m_Valid; return *this;}
   WGS84Point(): m_Longitude(0), m_Latitude(0), m_Valid(false) {}
 
-  QString print(Units units = Units::DegMin) const;
+  QString print(Units units = Units::DegMin, quint8 prec = 4) const;
   QString toISO6709() const;
   double lng() const {return m_Longitude;}
   double lat() const {return m_Latitude;}

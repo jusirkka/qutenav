@@ -79,6 +79,7 @@ ChartPagePL {
 
   Component.onCompleted: {
     app.encdis = encdis
+    app.syncLayers = syncLayers
     infoMode = false;
     posValid = false;
     headingValid = false;
@@ -293,6 +294,8 @@ ChartPagePL {
 
   Bubble {
     id: bubble
+    bottomItem: menuButton
+    topItem: trackInfo
     z: 301
   }
 

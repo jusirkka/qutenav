@@ -112,7 +112,7 @@ static double sexas(double r) {
 }
 
 
-QString WGS84Point::print(Units units) const {
+QString WGS84Point::print(Units units, quint8 prec) const {
   if (!m_Valid) return "N/A";
 
   const QChar z('0');
@@ -134,21 +134,22 @@ QString WGS84Point::print(Units units) const {
     // 50°40.7667'N 024°48.4333'E
     const QString s("%1°%2‘%3");
     QString r;
-    r += s.arg(degreesLat(), 2, 10, z).arg(sexas(m_Latitude), 7, 'f', 4, z)
+    const int w = prec == 0 ? 2 : 3 + prec;
+    r += s.arg(degreesLat(), 2, 10, z).arg(sexas(m_Latitude), w, 'f', prec, z)
         .arg(northern() ? "N" : "S");
     r += " ";
-    r += s.arg(degreesLng(), 3, 10, z).arg(sexas(m_Longitude), 7, 'f', 4, z)
+    r += s.arg(degreesLng(), 3, 10, z).arg(sexas(m_Longitude), w, 'f', prec, z)
         .arg(eastern() ? "E" : "W");
 
     return r;
   }
   case Units::Deg: {
     // 50.679445° 024.807222°
-    const QString s("%1°");
+    const QString s("%1%2°");
     QString r;
-    r += s.arg(m_Latitude, 9, 'f', 6, z);
+    r += s.arg(northern() ? "" : "-").arg(std::abs(m_Latitude), 5 + prec, 'f', 2 + prec, z);
     r += " ";
-    r += s.arg(m_Longitude, 10, 'f', 6, z);
+    r += s.arg(eastern() ? "" : "-").arg(std::abs(m_Longitude), 6 + prec, 'f', 2 + prec, z);
 
     return r;
   }

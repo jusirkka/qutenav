@@ -33,6 +33,9 @@ Rectangle {
   color: "white"
   border.color: "black"
 
+  property var topItem: null
+  property var bottomItem: null
+
   visible: timer.running
 
   state: "top"
@@ -41,14 +44,22 @@ Rectangle {
     State {
       name: "bottom"
       AnchorChanges {
-        anchors.bottom: menuButton.top
+        anchors.bottom: bottomItem ? bottomItem.top : parent.bottom
         target: item
       }
     },
     State {
       name: "top"
       AnchorChanges {
-        anchors.top: trackInfo.bottom
+        anchors.top: topItem ? topItem.bottom : parent.top
+        target: item
+      }
+    },
+    State {
+      name: "center"
+      AnchorChanges {
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.verticalCenter: parent.verticalCenter
         target: item
       }
     }
@@ -58,6 +69,14 @@ Rectangle {
     info.text = msg;
     fig.source = img ? img : ""
     state = pos ? pos : "top";
+    timer.restart();
+  }
+
+  function notify(msg) {
+    info.text = msg;
+    fig.source = ""
+    state = "center";
+    timer.interval = 2500
     timer.restart();
   }
 

@@ -20,6 +20,7 @@
 
 import QtQuick 2.6
 import org.qutenav 1.0
+import Sailfish.Silica 1.0
 
 import "./platform"
 
@@ -30,13 +31,15 @@ DialogPL {
   title: qsTrId("qutenav-track-display-title")
   //% "Show"
   acceptText: qsTrId("qutenav-track-display-accept-text")
-  pageHeight: parent.height * .75
+  pageHeight: parent.height * .95
   hasOK: true
 
   ListViewPL {
     id: tracks
 
     anchors.fill: parent
+
+    spacing: theme.paddingLarge
 
     model: TrackModel {
       id: trackModel
@@ -86,7 +89,7 @@ DialogPL {
         }
         Column {
           id: s1
-          width: dialog.width * 0.7
+          width: dialog.width * 0.8
           spacing: theme.paddingSmall
 
           Item {
@@ -113,12 +116,15 @@ DialogPL {
               font.pixelSize: theme.fontSizeSmall
               anchors.left: parent.left
             }
-            LabelPL {
+            LinkAreaPL {
               id: x22
-              text: "<a href='0'>" + units.location(trackModel.location(model.id, 0)) + "</a>"
-              font.pixelSize: theme.fontSizeSmall
+              text: units.location(trackModel.location(model.id, 0), 0)
               anchors.right: parent.right
-              onLinkActivated: app.setEye(trackModel.location(model.id, 0))
+              onLinkActivated: {
+                //% "Centering chart"
+                info.notify(qsTrId("qutenav-centering-chart"))
+                app.setEye(trackModel.location(model.id, 0))
+              }
             }
           }
         }
@@ -130,6 +136,10 @@ DialogPL {
                            name: model.name
                          })
       }
+    }
+
+    Bubble {
+      id: info
     }
 
     ViewPlaceholderPL {
