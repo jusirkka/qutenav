@@ -56,7 +56,6 @@ ApplicationWindow {
       height = fallbackGeom.height
       showFullScreen()
     }
-    app.chartPage = chartPage
   }
 
   Component.onDestruction: {

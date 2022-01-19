@@ -27,6 +27,7 @@ Page {
   property int pageHeight: 0 // dummy
   property string title
   default property alias content: body.data
+  property alias contentItem: flickable
 
 
   SilicaFlickable {

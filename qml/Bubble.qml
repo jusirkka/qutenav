@@ -66,37 +66,50 @@ Rectangle {
   ]
 
   function show(msg, img, pos) {
-    info.text = msg;
-    fig.source = img ? img : ""
-    state = pos ? pos : "top";
-    timer.restart();
+    info.text = msg
+    if (img) {
+      fig.source = img
+      fig.width = 32
+    } else {
+      fig.source = ""
+      fig.width = 0
+    }
+    state = pos ? pos : "top"
+    timer.restart()
   }
 
   function notify(msg) {
-    info.text = msg;
+    info.text = msg
     fig.source = ""
-    state = "center";
-    timer.interval = 2500
-    timer.restart();
+    fig.width = 0
+    state = "center"
+    timer.interval = 1500
+    timer.restart()
   }
 
-  Row {
+  Item {
     id: content
+
+    height: Math.max(fig.height, info.height)
+    width: fig.width + info.width + 2 * theme.paddingSmall
 
     anchors.horizontalCenter: parent.horizontalCenter
     anchors.verticalCenter: parent.verticalCenter
 
-    spacing: theme.paddingMedium
 
     Image {
       id: fig
-      width: 32
-      height: 32
-      visible: source !== ""
+      visible: !!source
+      width: visible ? 32 : 0
+      height: width
     }
 
     Text {
       id: info
+      anchors {
+        right: parent.right
+        verticalCenter: content.verticalCenter
+      }
       color: "black"
       font.pixelSize: theme.fontSizeMedium
       horizontalAlignment: Text.AlignHCenter

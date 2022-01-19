@@ -36,6 +36,8 @@ public:
   void modifyRoute(int rid, const WGS84PointVector& wps);
   void deleteRoute(int rid);
 
+  WGS84PointVector wayPoints(quint32 id);
+
 private:
 
 };

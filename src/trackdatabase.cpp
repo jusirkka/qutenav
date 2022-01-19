@@ -98,7 +98,7 @@ void TrackDatabase::createTrack(const KV::EventStringVector& events) {
                "values(?, ?, ?)");
   r0.bindValue(0, name);
   r0.bindValue(1, 0);
-  r0.bindValue(1, pr);
+  r0.bindValue(2, pr);
   exec(r0);
 
   auto track_id = r0.lastInsertId().toUInt();

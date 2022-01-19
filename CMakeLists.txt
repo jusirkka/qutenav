@@ -61,6 +61,7 @@ elseif (PLATFORM STREQUAL silica)
     qml/DistanceButton.qml
     qml/EditButton.qml
     qml/InfoPage.qml
+    qml/LinkDetailItem.qml
     qml/MenuButton.qml
     qml/MenuPage.qml
     qml/PreferencesPage.qml
@@ -88,8 +89,6 @@ elseif (PLATFORM STREQUAL silica)
     qml/platform.silica/IconListItemPL.qml
     qml/platform.silica/LabelPL.qml
     qml/platform.silica/LinkAreaPL.qml
-    qml/platform.silica/LinkDetailItemPL.qml
-    qml/platform.silica/ListViewDelegatePL.qml
     qml/platform.silica/ListViewPL.qml
     qml/platform.silica/MapButtonPL.qml
     qml/platform.silica/PagePL.qml

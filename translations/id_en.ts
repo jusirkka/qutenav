@@ -360,7 +360,7 @@
         <translation>Rename</translation>
     </message>
     <message id="qutenav-track-display-title">
-        <location filename="../qml/TrackDisplayDialog.qml" line="+30"/>
+        <location filename="../qml/TrackDisplayDialog.qml" line="+29"/>
         <source>Select tracks to show</source>
         <translation>Select tracks to show</translation>
     </message>
@@ -370,22 +370,70 @@
         <translation>Show</translation>
     </message>
     <message id="qutenav-track-display-menu-top">
-        <location line="+19"/>
+        <source>Move to top</source>
+        <translation type="vanished">Move to top</translation>
+    </message>
+    <message id="qutenav-track-display-menu-rename">
+        <source>Rename</source>
+        <translation type="vanished">Rename</translation>
+    </message>
+    <message id="qutenav-track-display-menu-delete">
+        <source>Delete</source>
+        <translation type="vanished">Delete</translation>
+    </message>
+    <message id="qutenav-route-display-title">
+        <location filename="../qml/RouteDisplayDialog.qml" line="+31"/>
+        <source>Select route</source>
+        <translation>Select route</translation>
+    </message>
+    <message id="qutenav-route-display-accept-text">
+        <location line="+2"/>
+        <source>Top</source>
+        <translation>Top</translation>
+    </message>
+    <message id="qutenav-context-menu-top">
+        <location line="+24"/>
+        <location filename="../qml/TrackDisplayDialog.qml" line="+19"/>
         <source>Move to top</source>
         <translation>Move to top</translation>
     </message>
-    <message id="qutenav-track-display-menu-rename">
+    <message id="qutenav-context-menu-rename">
         <location line="+8"/>
+        <location filename="../qml/TrackDisplayDialog.qml" line="+8"/>
         <source>Rename</source>
         <translation>Rename</translation>
     </message>
-    <message id="qutenav-track-display-menu-delete">
+    <message id="qutenav-context-menu-delete">
         <location line="+10"/>
+        <location filename="../qml/TrackDisplayDialog.qml" line="+10"/>
         <source>Delete</source>
         <translation>Delete</translation>
     </message>
+    <message id="qutenav-wps">
+        <location line="+33"/>
+        <source>wps</source>
+        <translation>wps</translation>
+    </message>
+    <message id="qutenav-centering-chart">
+        <location line="+10"/>
+        <location filename="../qml/TrackDisplayDialog.qml" line="+53"/>
+        <location filename="../qml/TrackStatisticsPage.qml" line="+52"/>
+        <location line="+22"/>
+        <source>Centering chart</source>
+        <translation>Centering chart</translation>
+    </message>
+    <message id="qutenav-route-display-ph-text">
+        <location line="+20"/>
+        <source>No routes.</source>
+        <translation>No routes.</translation>
+    </message>
+    <message id="qutenav-route-display-ph-hint">
+        <location line="+2"/>
+        <source>Click route edit button in Chart view to create a route.</source>
+        <translation>Click route edit button in Chart view to create a route.</translation>
+    </message>
     <message id="qutenav-track-display-ph-text">
-        <location line="+69"/>
+        <location filename="../qml/TrackDisplayDialog.qml" line="+23"/>
         <source>No tracks.</source>
         <translation>No tracks.</translation>
     </message>
@@ -395,34 +443,34 @@
         <translation>Tap tracks record button in Chart view to record a track.</translation>
     </message>
     <message id="qtnav-stats">
-        <location filename="../qml/TrackStatisticsPage.qml" line="+31"/>
+        <location filename="../qml/TrackStatisticsPage.qml" line="-41"/>
         <source>Statistics</source>
         <translation>Statistics</translation>
     </message>
     <message id="qtnav-stats-start">
-        <location line="+5"/>
+        <location line="+10"/>
         <source>Start</source>
         <translation>Start</translation>
     </message>
     <message id="qtnav-stats-location">
         <location line="+5"/>
-        <location line="+18"/>
+        <location line="+22"/>
         <source>Location</source>
         <translation>Location</translation>
     </message>
     <message id="qtnav-stats-date">
         <location line="-11"/>
-        <location line="+18"/>
+        <location line="+22"/>
         <source>Date</source>
         <translation>Date</translation>
     </message>
     <message id="qtnav-stats-finish">
-        <location line="-12"/>
+        <location line="-16"/>
         <source>Finish</source>
         <translation>Finish</translation>
     </message>
     <message id="qtnav-stats-others">
-        <location line="+18"/>
+        <location line="+22"/>
         <source>Other numbers</source>
         <translation>Other numbers</translation>
     </message>

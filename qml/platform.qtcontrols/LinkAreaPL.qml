@@ -1,6 +1,6 @@
 /* -*- coding: utf-8-unix -*-
  *
- * File: ListViewDelegatePL.qml
+ * File: ButtonPL.qml
  *
  * Copyright (C) 2021 Jukka Sirkka
  *
@@ -17,7 +17,29 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
+import org.qutenav 1.0
+import QtQuick 2.6
 import QtQuick.Controls 2.12
 
-ItemDelegate {}
+AbstractButton {
+  id: item
+  width: link.width + theme.paddingSmall
+  height: link.height
+
+  property alias linkText: link.text
+  signal linkActivated()
+
+  onClicked: {
+    linkActivated()
+  }
+
+  Text {
+    id: link
+    color: item.highlighted ? theme.highlightColor : theme.primaryColor
+    font.underline: true
+    font.pixelSize: theme.fontSizeSmall
+    textFormat: Text.PlainText
+    wrapMode: Text.Wrap
+  }
+
+}

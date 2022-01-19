@@ -26,7 +26,7 @@ BackgroundItem {
   width: link.width + theme.paddingSmall
   height: link.height
 
-  property alias text: link.text
+  property alias linkText: link.text
   signal linkActivated()
 
   onClicked: {

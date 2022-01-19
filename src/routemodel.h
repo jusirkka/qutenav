@@ -22,6 +22,7 @@
 #pragma once
 
 #include "databasemodel.h"
+#include <QGeoCoordinate>
 
 class RouteModel: public DatabaseModel {
 
@@ -31,4 +32,16 @@ public:
 
   RouteModel(QObject* parent = nullptr);
   ~RouteModel() = default;
+
+  Q_INVOKABLE qreal distance(quint32 id) const; // meters
+  Q_INVOKABLE int wayPointCount(quint32 id) const;
+  Q_INVOKABLE QGeoCoordinate location(quint32 id, qint32 index) const;
+  Q_INVOKABLE quint32 topPreference() const;
+  Q_INVOKABLE void remove(quint32 id);
+
+
+private:
+
+  static const int preferenceColumn = 2;
+
 };

@@ -20,8 +20,6 @@
 
 import QtQuick 2.6
 import org.qutenav 1.0
-import Sailfish.Silica 1.0
-
 import "./platform"
 
 DialogPL {
@@ -36,9 +34,7 @@ DialogPL {
 
   ListViewPL {
     id: tracks
-
     anchors.fill: parent
-
     spacing: theme.paddingLarge
 
     model: TrackModel {
@@ -51,7 +47,7 @@ DialogPL {
         ContextMenuItemPL {
           visible: model.preference < trackModel.topPreference()
           //% "Move to top"
-          text: qsTrId("qutenav-track-display-menu-top")
+          text: qsTrId("qutenav-context-menu-top")
           onClicked: {
             model.preference = trackModel.topPreference() + 1
             trackModel.sort()
@@ -59,7 +55,7 @@ DialogPL {
         }
         ContextMenuItemPL {
           //% "Rename"
-          text: qsTrId("qutenav-track-display-menu-rename")
+          text: qsTrId("qutenav-context-menu-rename")
           onClicked: {
             var renamer = app.showAsDialog(Qt.resolvedUrl("Renamer.qml"), {name: model.name})
             renamer.onAccepted.connect(function () {
@@ -69,7 +65,7 @@ DialogPL {
         }
         ContextMenuItemPL {
           //% "Delete"
-          text: qsTrId("qutenav-track-display-menu-delete")
+          text: qsTrId("qutenav-context-menu-delete")
           onClicked: {
             trackModel.remove(model.id);
           }
@@ -118,7 +114,7 @@ DialogPL {
             }
             LinkAreaPL {
               id: x22
-              text: units.location(trackModel.location(model.id, 0), 0)
+              linkText: units.location(trackModel.location(model.id, 0), 0)
               anchors.right: parent.right
               onLinkActivated: {
                 //% "Centering chart"

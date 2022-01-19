@@ -1,6 +1,7 @@
 import QtQuick 2.6
-import Sailfish.Silica 1.0
 import org.qutenav 1.0
+
+import "./platform"
 
 Item {
 
@@ -9,17 +10,18 @@ Item {
   height: Math.max(key.height, val.height + theme.paddingSmall)
 
   property alias label: key.text
-  property alias value: val.text
+  property alias value: val.linkText
 
   signal valueLinkActivated()
 
   anchors.horizontalCenter: parent.horizontalCenter
 
-  Label {
+  Text {
     id: key
     width: parent.width / 2 - theme.paddingSmall
     horizontalAlignment:  Text.AlignRight
     color: theme.secondaryHighlightColor
+    font.pixelSize: theme.fontSizeMedium
     textFormat: Text.PlainText
     wrapMode: Text.Wrap
   }

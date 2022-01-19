@@ -28,18 +28,22 @@ PagePL {
   property int key
   property string name
   property var trackModel: TrackModel {}
-  property var info: Bubble {parent: page}
 
   //% "Statistics"
   title: name + " " + qsTrId("qtnav-stats")
   pageHeight: parent.height
+
+  Bubble {
+    id: info
+    parent: page.contentItem
+  }
 
   SectionHeaderPL {
     //% "Start"
     text: qsTrId("qtnav-stats-start")
   }
 
-  LinkDetailItemPL {
+  LinkDetailItem {
     //% "Location"
     label: qsTrId("qtnav-stats-location")
     value: units.location(trackModel.location(key, 0), 0)
@@ -61,7 +65,7 @@ PagePL {
     text: qsTrId("qtnav-stats-finish")
   }
 
-  LinkDetailItemPL {
+  LinkDetailItem {
     //% "Location"
     label: qsTrId("qtnav-stats-location")
     value: units.location(trackModel.location(key, -1), 0)
