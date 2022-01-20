@@ -113,7 +113,8 @@ static double sexas(double r) {
 
 
 QString WGS84Point::print(Units units, quint8 prec) const {
-  if (!m_Valid) return "N/A";
+  //% "N/A"
+  if (!m_Valid) return QT_TRID_NOOP("qutenav-not-applicable");
 
   const QChar z('0');
 
@@ -154,13 +155,15 @@ QString WGS84Point::print(Units units, quint8 prec) const {
     return r;
   }
   default:
-    return "N/A";
+    //% "N/A"
+    return QT_TRID_NOOP("qutenav-not-applicable");
   }
 
 }
 
 QString WGS84Point::toISO6709() const {
-  if (!m_Valid) return "N/A";
+  //% "N/A"
+  if (!m_Valid) return QT_TRID_NOOP("qutenav-not-applicable");
   // +27.5916+086.5640CRSWGS_84/
   QChar z('0');
   QString s("%1%2%3%4CRSWGS_84/"); // sign lat, abs lat, sign lng, abs lng

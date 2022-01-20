@@ -100,7 +100,10 @@ public:
   const Converter* depth() const {return m_depth;}
 
   Q_INVOKABLE QString location(const QGeoCoordinate& q, quint8 prec = 4) const {
-    WGS84Point p = WGS84Point::fromLL(q.longitude(), q.latitude());
+    WGS84Point p = WGS84Point();
+    if (q.isValid()) {
+      p = WGS84Point::fromLL(q.longitude(), q.latitude());
+    }
     return p.print(locMap[Conf::Units::Location()], prec);
   }
 

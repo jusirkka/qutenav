@@ -50,6 +50,7 @@ DialogPL {
 
     delegate: ListItemPL {
       contentHeight: s1.height
+      anchors.horizontalCenter: parent.horizontalCenter
       menu: ContextMenuPL {
         ContextMenuItemPL {
           visible: model.preference < routeModel.topPreference()
@@ -81,9 +82,9 @@ DialogPL {
 
       Column {
         id: s1
-        width: dialog.width * 0.8
+        width: dialog.width * 0.95
+        anchors.horizontalCenter: parent.horizontalCenter
         spacing: theme.paddingSmall
-
         Item {
           height: x11.height
           width: parent.width

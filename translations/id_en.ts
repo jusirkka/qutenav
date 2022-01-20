@@ -392,7 +392,7 @@
         <translation>Top</translation>
     </message>
     <message id="qutenav-context-menu-top">
-        <location line="+24"/>
+        <location line="+25"/>
         <location filename="../qml/TrackDisplayDialog.qml" line="+19"/>
         <source>Move to top</source>
         <translation>Move to top</translation>
@@ -518,6 +518,13 @@
         <location line="+6"/>
         <source>Maximum speed</source>
         <translation>Maximum speed</translation>
+    </message>
+    <message id="qutenav-not-applicable">
+        <location filename="../qutenavlib/src/types.cpp" line="+117"/>
+        <location line="+42"/>
+        <location line="+7"/>
+        <source>N/A</source>
+        <translation>N/A</translation>
     </message>
 </context>
 </TS>

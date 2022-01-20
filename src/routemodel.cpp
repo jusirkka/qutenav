@@ -66,7 +66,7 @@ int RouteModel::wayPointCount(quint32 id) const {
 QGeoCoordinate RouteModel::location(quint32 id, qint32 index) const {
   RouteDatabase db("RouteModel::location");
   const WGS84PointVector wps = db.wayPoints(id);
-
+  if (wps.isEmpty()) return QGeoCoordinate();
 
   qint32 pos = (wps.size() + index) % wps.size();
   Q_ASSERT(pos >= 0);

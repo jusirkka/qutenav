@@ -358,6 +358,7 @@ void ChartDisplay::pan(qreal x, qreal y) {
 
 
 void ChartDisplay::setEye(const QGeoCoordinate& q) {
+  if (!q.isValid()) return;
   m_camera->setEye(WGS84Point::fromLL(q.longitude(), q.latitude()));
   emit updateViewport(m_camera);
   update();
@@ -374,10 +375,12 @@ QPointF ChartDisplay::position(const WGS84Point& wp) const {
 }
 
 QPointF ChartDisplay::position(const QGeoCoordinate& q) const {
+  if (!q.isValid()) throw InvalidCoordinateError("Cannot convert QGeoCoordinate to WGS84Point");
   return position(WGS84Point::fromLL(q.longitude(), q.latitude()));
 }
 
 QPointF ChartDisplay::advance(const QGeoCoordinate& q, qreal distance, qreal heading) const {
+  if (!q.isValid()) throw InvalidCoordinateError("Cannot convert QGeoCoordinate to WGS84Point");
   const auto wp = WGS84Point::fromLL(q.longitude(), q.latitude()) + WGS84Bearing::fromMeters(distance, Angle::fromDegrees(heading));
   return position(wp);
 }

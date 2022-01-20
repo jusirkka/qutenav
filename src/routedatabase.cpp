@@ -68,7 +68,7 @@ int RouteDatabase::createRoute(const WGS84PointVector& wps) {
 
   quint32 pr = 1;
   // find largest preference
-  r0 = exec("select max(preference) from tracks");
+  r0 = exec("select max(preference) from routes");
   if (r0.first()) {
     pr = r0.value(0).toUInt() + 1;
   }

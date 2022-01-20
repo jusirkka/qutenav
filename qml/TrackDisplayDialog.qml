@@ -85,7 +85,7 @@ DialogPL {
         }
         Column {
           id: s1
-          width: dialog.width * 0.8
+          width: dialog.width * .8
           spacing: theme.paddingSmall
 
           Item {
