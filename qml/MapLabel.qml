@@ -1,8 +1,8 @@
 /* -*- coding: utf-8-unix -*-
  *
- * File: mobile/qml/DistanceButton.qml
+ * File: qml/Maplabel.qml
  *
- * Copyright (C) 2021 Jukka Sirkka
+ * Copyright (C) 2022 Jukka Sirkka
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,32 +19,31 @@
  */
 import QtQuick 2.6
 
+Rectangle {
+  id: rect
 
-import "./platform"
+  property string label
 
-MapButtonPL {
-  id: button
-
-  property bool measuring: false
+  width: label.width + 2 * theme.paddingLarge
+  height: label.height + 2 * theme.paddingMedium
+  radius: .15 * height
+  color: "#214cad"
+  border.color: "black"
 
   anchors {
-    bottom: parent.bottom
     bottomMargin: theme.paddingMedium
     leftMargin: theme.paddingMedium
+    rightMargin: theme.paddingMedium
   }
 
-  iconColor: "transparent"
-  iconSource: app.getIcon("compass")
-
-  onMeasuringChanged: {
-    if (measuring) {
-      iconColor = "#0000aa";
-    } else {
-      iconColor = "transparent";
-    }
-  }
-
-  onClicked: {
-    measuring = !measuring
+  Text {
+    id: label
+    anchors.centerIn: parent
+    text: rect.label
+    color: "white"
+    horizontalAlignment: Text.AlignHCenter
+    verticalAlignment: Text.AlignVCenter
+    font.pixelSize: theme.fontSizeSmall
+    font.bold: true
   }
 }

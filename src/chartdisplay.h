@@ -113,8 +113,10 @@ public:
   Q_INVOKABLE void infoQuery(const QPointF& p);
   Q_INVOKABLE void setEye(const QGeoCoordinate& q);
   Q_INVOKABLE QPointF position(const QGeoCoordinate& q) const;
+  Q_INVOKABLE QGeoCoordinate tocoord(const QPointF& p) const;
   Q_INVOKABLE QPointF advance(const QGeoCoordinate& q, qreal distance, qreal heading) const;
   Q_INVOKABLE void updateChartDB(bool fullUpdate);
+  Q_INVOKABLE QString displayBearing(const QGeoCoordinate& q1, const QGeoCoordinate& q2, bool swap) const;
 
   Q_PROPERTY(QStringList chartSets
              READ chartSets

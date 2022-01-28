@@ -11,6 +11,9 @@
         <file alias="InfoPage.qml">qml/InfoPage.qml</file>
         <file alias="MenuButton.qml">qml/MenuButton.qml</file>
         <file alias="MenuPage.qml">qml/MenuPage.qml</file>
+        <file alias="MapLabel.qml">qml/MapLabel.qml</file>
+        <file alias="Pinpoint.qml">qml/Pinpoint.qml</file>
+        <file alias="Ruler.qml">qml/Ruler.qml</file>
         <file alias="LinkDetailItem.qml">qml/LinkDetailItem.qml</file>
         <file alias="platform/ApplicationWindowPL.qml">qml/platform.qtcontrols/ApplicationWindowPL.qml</file>
         <file alias="platform/ChartPagePL.qml">qml/platform.qtcontrols/ChartPagePL.qml</file>

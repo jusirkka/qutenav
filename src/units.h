@@ -35,11 +35,9 @@ public:
 
   const QString& symbol() const {return m_symbol;}
 
-  virtual QString display(float v) const { // TODO: formatting
-    return QString::number(static_cast<int>(std::round(v))) + QString(" ") + m_symbol;
-  }
+  virtual QString display(float v, int prec = 0) const;
 
-  QString displaySI(float v) const {return display(fromSI(v));}
+  QString displaySI(float v, int prec = 0) const {return display(fromSI(v), prec);}
 
   virtual ~Converter() = default;
 protected:

@@ -40,23 +40,29 @@ ChartPagePL {
 
   function panModeMouseMoveHandler(m) {
     if (routeButton.editing && routePoint !== undefined) {
-      router.move(routePoint.index, Qt.point(m.x - mouse.prev.x, m.y - mouse.prev.y));
-      mouse.prev = Qt.point(m.x, m.y);
-      return;
+      router.move(routePoint.index, Qt.point(m.x - mouse.prev.x, m.y - mouse.prev.y))
+      mouse.prev = Qt.point(m.x, m.y)
+      return
+    }
+    if (distButton.measuring && ruler.selection !== Ruler.Selection.None) {
+      ruler.delta = Qt.point(m.x - mouse.prev.x, m.y - mouse.prev.y)
+      mouse.prev = Qt.point(m.x, m.y)
+      return
     }
 
-    if (centerButton.centered) centerButton.centered = false;
+    if (centerButton.centered) centerButton.centered = false
+
     encdis.pan(m.x, m.y)
-    syncLayers();
+    syncLayers()
   }
 
   function infoModeMouseMoveHandler(m) {
     infoPoint.peepHole = Qt.point(infoPoint.peepHole.x + m.x - mouse.prev.x,
-                                  infoPoint.peepHole.y + m.y - mouse.prev.y);
+                                  infoPoint.peepHole.y + m.y - mouse.prev.y)
     mouse.prev = Qt.point(m.x, m.y);
     if (!infoQueryPending) {
-      infoQueryPending = true;
-      encdis.infoQuery(infoPoint.peepHole);
+      infoQueryPending = true
+      encdis.infoQuery(infoPoint.peepHole)
     }
   }
 
@@ -66,15 +72,18 @@ ChartPagePL {
         boat.center = encdis.position(lastPos.coordinate)
       } else {
         if (swap !== undefined) {
-          boat.center = Qt.point(height / 2, width / 2);
+          boat.center = Qt.point(height / 2, width / 2)
         } else {
-          boat.center = Qt.point(width / 2, height / 2);
+          boat.center = Qt.point(width / 2, height / 2)
         }
         encdis.setEye(lastPos.coordinate)
       }
     }
-    tracker.sync();
-    router.sync();
+    tracker.sync()
+    router.sync()
+    if (distButton.measuring) {
+      ruler.sync()
+    }
   }
 
   Component.onCompleted: {
@@ -249,13 +258,29 @@ ChartPagePL {
     visible: !page.infoMode
   }
 
+  Ruler {
+    id: ruler
+    visible: distButton.measuring && !page.infoMode
+    measuring: distButton.measuring
+    z: 300
+  }
+
+  MapLabel {
+    visible: ruler.visible
+    z: 300
+    anchors.left: parent.left
+    anchors.bottom: distButton.top
+    label: encdis.displayBearing(ruler.c1, ruler.c2, ruler.selection === Ruler.Selection.P2)
+  }
+
   EditButton {
     id: deleteButton
     anchors.left: parent.left
     anchors.bottom: distButton.top
     z: 300
     visible: routeButton.editing && routePoint !== undefined
-    label: "Remove selected"
+    //% "Remove selected"
+    label:  qsTrId("qutenav-edit-remove-selected")
     onClicked: {
       router.remove(routePoint.index);
       routePoint = undefined;
@@ -268,7 +293,8 @@ ChartPagePL {
     z: 300
     visible: routeButton.editing && routePoint !== undefined &&
              routePoint.index !== router.length() - 1
-    label: "Insert after"
+    //% "Insert after"
+    label:  qsTrId("qutenav-edit-insert-after")
     onClicked: {
       var index = routePoint.index + 1;
       var qi = router.insert(index);

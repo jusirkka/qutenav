@@ -17,6 +17,6 @@
 - ObjectInfo rewrite
 - Route/editor: reverse & edit a route
 - Datetime format to Units: standard, localized
+- display entered distance when editing a route
 
-- distance measurement
 - manage chart cache

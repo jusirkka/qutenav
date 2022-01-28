@@ -433,6 +433,11 @@ WGS84Point ChartDisplay::location(const QPointF& q) const {
   return m_camera->location(p);
 }
 
+QGeoCoordinate ChartDisplay::tocoord(const QPointF& p) const {
+  const WGS84Point q = location(p);
+  return QGeoCoordinate(q.lat(), q.lng());
+}
+
 void ChartDisplay::infoQuery(const QPointF& q) {
   emit infoRequest(location(q));
 }
@@ -493,6 +498,33 @@ void ChartDisplay::computeScaleBar() {
   m_scaleBarLength = dots_per_mm_x() * conv->toSI(x) / m_camera->scale() * 1000;
   m_scaleBarText = conv->display(x);
   // qCDebug(CDPY) << "scalebar:" << m_scaleBarText;
+}
+
+
+QString ChartDisplay::displayBearing(const QGeoCoordinate& q1, const QGeoCoordinate& q2, bool swap) const {
+  if (!q1.isValid() || !q2.isValid()) return "";
+
+  const WGS84Bearing d = WGS84Point::fromLL(q2.longitude(), q2.latitude()) - WGS84Point::fromLL(q1.longitude(), q1.latitude());
+
+  auto conv = Units::Manager::instance()->distance();
+  if (conv->fromSI(d.meters()) < 1.) {
+    conv = Units::Manager::instance()->shortDistance();
+  }
+
+  int b = std::round(d.degrees());
+
+  if (b < 0) b += 360;
+  int b1 = (b + 180) % 360;
+  if (swap) {
+    const int tmp = b;
+    b = b1;
+    b1 = tmp;
+  }
+
+  const QString tmpl = "%1   %2° - %3°";
+  const QChar z('0');
+
+  return tmpl.arg(conv->displaySI(d.meters(), 3)).arg(b, 3, 10, z).arg(b1, 3, 10, z);
 }
 
 #include <QTextStream>

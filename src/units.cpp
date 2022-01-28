@@ -24,6 +24,47 @@
 
 using namespace Units;
 
+static quint8 numdigits(quint32 v) {
+  quint8 num = 0;
+  do {
+    num++;
+    v /= 10;
+  } while (v != 0);
+  return num;
+}
+
+
+QString Converter::display(float v, int prec) const {
+  Q_ASSERT(v >= 0.f);
+
+  quint32 a = static_cast<int>(v);
+  const float b = v - a;
+
+  if (a > 0) {
+    const quint8 d = numdigits(a);
+    if (prec > d) {
+      // manipulate b -> b' (int)
+      const quint32 m = std::pow(10, prec - d);
+      quint32 b1 = std::round(m * b);
+      if (b1 == m) {
+        b1 = 0;
+        a += 1;
+      }
+      // print a + b'
+      const QString r = QString::number(a) + ".%1 " + m_symbol;
+      return r.arg(b1, prec - d, 10, QChar('0'));
+    }
+    // print a
+    return QString::number(static_cast<int>(std::round(v))) + " " + m_symbol;
+  }
+  // manipulate b -> b' (int)
+  const quint32 m = std::pow(10, prec);
+  const quint32 b1 = std::round(m * b);
+  // print b'
+  const QString r = ".%1 " + m_symbol;
+  return r.arg(b1, prec, 10, QChar('0'));
+}
+
 Manager* Manager::instance() {
   static Manager* m = new Manager();
   return m;
@@ -84,7 +125,7 @@ class NMSConverter: public Converter {
 public:
   NMSConverter(): Converter(qtTrId(symbol), 18.52) {}
 
-  QString display(float v) const override {
+  QString display(float v, int) const override {
     v *= .01;
     const int a = static_cast<int>(v);
     const int b = std::round(100 * (v - a));
