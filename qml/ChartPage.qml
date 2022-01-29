@@ -44,7 +44,7 @@ ChartPagePL {
       mouse.prev = Qt.point(m.x, m.y)
       return
     }
-    if (distButton.measuring && ruler.selection !== Ruler.Selection.None) {
+    if (distButton.measuring && ruler.selection !== 0) {
       ruler.delta = Qt.point(m.x - mouse.prev.x, m.y - mouse.prev.y)
       mouse.prev = Qt.point(m.x, m.y)
       return
@@ -260,7 +260,7 @@ ChartPagePL {
 
   Ruler {
     id: ruler
-    visible: distButton.measuring && !page.infoMode
+    visible: distButton.measuring && !page.infoMode && !zoom.zooming
     measuring: distButton.measuring
     z: 300
   }
@@ -270,7 +270,7 @@ ChartPagePL {
     z: 300
     anchors.left: parent.left
     anchors.bottom: distButton.top
-    label: encdis.displayBearing(ruler.c1, ruler.c2, ruler.selection === Ruler.Selection.P2)
+    label: encdis.displayBearing(ruler.c1, ruler.c2, ruler.selection === 2)
   }
 
   EditButton {

@@ -23,8 +23,6 @@ import QtPositioning 5.2
 Item {
   id: item
 
-  enum Selection {P1, P2, None}
-
   property point delta
   property int selection
   property var positionChangeHandler
@@ -44,14 +42,14 @@ Item {
 
   function selection1(down) {
     if (down) {
-      if (selection === Ruler.Selection.P2) {
+      if (selection === 2) {
         p2.selected = false
       }
-      selection = Ruler.Selection.P1
+      selection = 1
       positionChangeHandler = moveP1
     } else {
-      if (selection === Ruler.Selection.P1) {
-        selection = Ruler.Selection.None
+      if (selection === 1) {
+        selection = 0
         positionChangeHandler = noop
       }
     }
@@ -59,14 +57,14 @@ Item {
 
   function selection2(down) {
     if (down) {
-      if (selection === Ruler.Selection.P1) {
+      if (selection === 1) {
         p1.selected = false
       }
-      selection = Ruler.Selection.P2
+      selection = 2
       positionChangeHandler = moveP2
     } else {
-      if (selection === Ruler.Selection.P2) {
-        selection = Ruler.Selection.None
+      if (selection === 2) {
+        selection = 0
         positionChangeHandler = noop
       }
     }
@@ -84,7 +82,7 @@ Item {
   }
 
   Component.onCompleted: {
-    selection = Ruler.Selection.None
+    selection = 0
     positionChangeHandler = noop
     p1.clicked.connect(selection1)
     p2.clicked.connect(selection2)

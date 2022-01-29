@@ -25,7 +25,7 @@ Item {
   property point position
   property bool selected
 
-  readonly property real sc: 16
+  readonly property real sc: theme.paddingLarge
 
   signal clicked(bool down)
 

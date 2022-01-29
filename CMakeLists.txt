@@ -62,8 +62,10 @@ elseif (PLATFORM STREQUAL silica)
     qml/EditButton.qml
     qml/InfoPage.qml
     qml/LinkDetailItem.qml
+    qml/MapLabel.qml
     qml/MenuButton.qml
     qml/MenuPage.qml
+    qml/Pinpoint.qml
     qml/PreferencesPage.qml
     qml/qutenav.qml
     qml/RouteButton.qml
@@ -71,6 +73,7 @@ elseif (PLATFORM STREQUAL silica)
     qml/RoutePoint.qml
     qml/RoutingResultDialog.qml
     qml/RoutingStartDialog.qml
+    qml/Ruler.qml
     qml/ScaleBar.qml
     qml/TrackButton.qml
     qml/TrackDisplayDialog.qml
