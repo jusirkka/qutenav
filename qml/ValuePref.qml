@@ -32,6 +32,7 @@ Column {
   property alias label: label.text
   property real value
   property string symbol
+  property int precision: 1
 
   LabelPL {
     id: label
@@ -56,7 +57,7 @@ Column {
       color: theme.highlightColor
       horizontalAlignment: TextInput.AlignHCenter
       Component.onCompleted: {
-        text = root.value.toFixed(1);
+        text = root.value.toFixed(root.precision);
       }
       onFocusChanged: {
         if (!val.focus) {

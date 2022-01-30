@@ -1,8 +1,8 @@
 /* -*- coding: utf-8-unix -*-
  *
- * File: src/platform.h
+ * File: src/utils.h
  *
- * Copyright (C) 2021 Jukka Sirkka
+ * Copyright (C) 2022 Jukka Sirkka
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,13 +20,6 @@
 #pragma once
 
 class QTranslator;
-class QString;
 
-extern float dots_per_mm_x();
-extern float dots_per_mm_y();
-extern float dots_per_inch_x();
-extern float dots_per_inch_y();
-
-extern const QString& baseAppName();
-
-static const float nominal_dpmm = 3.125;
+extern void loadTranslation(QTranslator& translator);
+extern void checkCache();

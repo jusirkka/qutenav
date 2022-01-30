@@ -26,20 +26,30 @@ import "./platform"
 PagePL {
   id: page
 
-  title: "Preferences"
+  //% "Preferences"
+  title: qsTrId("qutenav-title-preferences")
 
   pageHeight: parent.height
 
   IconListItemPL {
-    label: "Chart"
+    //% "Chart"
+    label: qsTrId("qutenav-preferences-chart")
     iconName: app.getSystemIcon('preferences')
     onClicked: app.show(Qt.resolvedUrl("ChartPreferencesPage.qml"))
   }
 
   IconListItemPL {
-    label: "Units"
+    //% "Units"
+    label: qsTrId("qutenav-preferences-units")
     iconName: app.getSystemIcon('preferences')
     onClicked: app.show(Qt.resolvedUrl("UnitPreferencesPage.qml"))
+  }
+
+  IconListItemPL {
+    //% "System"
+    label: qsTrId("qutenav-preferences-system")
+    iconName: app.getSystemIcon('preferences')
+    onClicked: app.show(Qt.resolvedUrl("SystemPreferencesPage.qml"))
   }
 }
 

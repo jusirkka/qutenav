@@ -39,6 +39,7 @@
         <file alias="PreferencesPage.qml">qml/PreferencesPage.qml</file>
         <file alias="ChartPreferencesPage.qml">qml/ChartPreferencesPage.qml</file>
         <file alias="UnitPreferencesPage.qml">qml/UnitPreferencesPage.qml</file>
+        <file alias="SystemPreferencesPage.qml">qml/SystemPreferencesPage.qml</file>
         <file alias="qutenav.qml">qml/qutenav.qml</file>
         <file alias="RouteButton.qml">qml/RouteButton.qml</file>
         <file alias="RouteDisplayDialog.qml">qml/RouteDisplayDialog.qml</file>

@@ -44,7 +44,7 @@ ApplicationWindowPL {
 
   Component.onCompleted: {
     setPixelRatio()
-    // gps.nmeaSource = "file:///tmp/nmea.log"
+    gps.nmeaSource = "file:///tmp/nmea.log"
     gps.start()
     startInstant = Date.now() / 1000;
   }

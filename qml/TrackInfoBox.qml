@@ -38,10 +38,6 @@ Rectangle {
   radius: padding / 2
   color: "#01356b"
 
-  onMetersChanged: {
-    dist.value = units.distance(meters)
-  }
-
   Loader {
     id: upperLeft
 
@@ -117,7 +113,7 @@ Rectangle {
       fontSize: rect.fontSize
 
       onUnitChanged: {
-        value = units.distance(rect.meters)
+        value = Qt.binding(function () {return units.distance(rect.meters)})
       }
     }
 

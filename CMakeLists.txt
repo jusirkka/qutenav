@@ -51,56 +51,69 @@ elseif (PLATFORM STREQUAL silica)
   set(PLATFORM_SHADERS "shaders_opengl_es")
 
   add_custom_target(Qml SOURCES
-    qml/Boat.qml
-    qml/Bubble.qml
-    qml/CenterButton.qml
-    qml/ChartPage.qml
-    qml/ChartDialog.qml
-    qml/CoverPage.qml
-    qml/DimensionalValue.qml
-    qml/DistanceButton.qml
-    qml/EditButton.qml
-    qml/InfoPage.qml
-    qml/LinkDetailItem.qml
-    qml/MapLabel.qml
-    qml/MenuButton.qml
-    qml/MenuPage.qml
-    qml/Pinpoint.qml
-    qml/PreferencesPage.qml
-    qml/qutenav.qml
-    qml/RouteButton.qml
-    qml/RouteDisplayDialog.qml
-    qml/RoutePoint.qml
-    qml/RoutingResultDialog.qml
-    qml/RoutingStartDialog.qml
-    qml/Ruler.qml
-    qml/ScaleBar.qml
-    qml/TrackButton.qml
-    qml/TrackDisplayDialog.qml
-    qml/TrackInfoBox.qml
-    qml/TrackInfo.qml
-    qml/TrackPointInfoBox.qml
-    qml/TrackResultDialog.qml
-    qml/TrackSpeedInfoBox.qml
-    qml/TrackStatisticsPage.qml
-    qml/TrackTargetInfoBox.qml
-    qml/ValuePref.qml
-    qml/platform.silica/ApplicationWindowPL.qml
-    qml/platform.silica/ChartPagePL.qml
-    qml/platform.silica/ComboBoxPL.qml
-    qml/platform.silica/DialogPL.qml
-    qml/platform.silica/IconListItemPL.qml
-    qml/platform.silica/LabelPL.qml
-    qml/platform.silica/LinkAreaPL.qml
-    qml/platform.silica/ListViewPL.qml
-    qml/platform.silica/MapButtonPL.qml
-    qml/platform.silica/PagePL.qml
-    qml/platform.silica/SectionHeaderPL.qml
-    qml/platform.silica/TextFieldPL.qml
-    qml/platform.silica/TextSwitchPL.qml
-    qml/platform.silica/ThemePL.qml
-    qml/platform.silica/ViewPlaceholderPL.qml
-  )
+    Boat.qml
+    Bubble.qml
+    CenterButton.qml
+    ChartDialog.qml
+    ChartFolderSelector.qml
+    ChartPage.qml
+    ChartPreferencesPage.qml
+    CoverPage.qml
+    DimensionalValue.qml
+    DistanceButton.qml
+    EditButton.qml
+    InfoPage.qml
+    LinkDetailItem.qml
+    MapLabel.qml
+    MenuButton.qml
+    MenuPage.qml
+    Pinpoint.qml
+    PreferencesPage.qml
+    Renamer.qml
+    RouteButton.qml
+    RouteDisplayDialog.qml
+    RoutePoint.qml
+    RoutingResultDialog.qml
+    RoutingStartDialog.qml
+    Ruler.qml
+    ScaleBar.qml
+    SystemPreferencesPage.qml
+    TrackButton.qml
+    TrackDisplayDialog.qml
+    TrackInfo.qml
+    TrackInfoBox.qml
+    TrackPointInfoBox.qml
+    TrackResultDialog.qml
+    TrackSpeedInfoBox.qml
+    TrackStatisticsPage.qml
+    TrackTargetInfoBox.qml
+    UnitPreferencesPage.qml
+    ValuePref.qml
+    platform.silica/ApplicationWindowPL.qml
+    platform.silica/ButtonPL.qml
+    platform.silica/ChartPagePL.qml
+    platform.silica/ComboBoxPL.qml
+    platform.silica/ContextMenuItemPL.qml
+    platform.silica/ContextMenuPL.qml
+    platform.silica/DetailItemPL.qml
+    platform.silica/DialogPL.qml
+    platform.silica/FolderPickerPL.qml
+    platform.silica/IconListItemPL.qml
+    platform.silica/LabelPL.qml
+    platform.silica/LinkAreaPL.qml
+    platform.silica/ListItemPL.qml
+    platform.silica/ListViewPL.qml
+    platform.silica/MapButtonPL.qml
+    platform.silica/PagePL.qml
+    platform.silica/SectionHeaderPL.qml
+    platform.silica/SwitchPL.qml
+    platform.silica/TextFieldPL.qml
+    platform.silica/TextSwitchPL.qml
+    platform.silica/ThemePL.qml
+    platform.silica/ViewPlaceholderPL.qml
+    qutenav.qml
+    utils.js
+)
 
 
 endif ()
@@ -185,6 +198,7 @@ target_sources(qutenav
     src/textmanager.cpp
     src/tiny_sdf.cpp
     src/units.cpp
+    src/utils.cpp
     src/vectorsymbolmanager.cpp
     src/wfreader.cpp
     src/chartdisplay.cpp

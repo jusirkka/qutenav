@@ -309,6 +309,19 @@ public:
     Conf::MainWindow::setChartFolders(v);
   }
 
+  Q_PROPERTY(quint32 cacheSize
+             READ cacheSize
+             WRITE setCacheSize)
+
+  quint32 cacheSize() const {
+    return Conf::MainWindow::CacheSize();
+  }
+
+  void setCacheSize(quint32 v) {
+    Conf::MainWindow::setCacheSize(v);
+  }
+
+
 
   Q_PROPERTY(QStringList locationUnitNames
              READ locationUnitNames

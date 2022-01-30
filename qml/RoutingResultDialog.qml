@@ -24,7 +24,7 @@ import "./platform"
 DialogPL {
   id: dialog
 
-  property var router: undefined
+  property var router
   property bool saveNeeded: true
 
   title: router.name()

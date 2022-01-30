@@ -26,9 +26,9 @@ import "./platform"
 PagePL {
   id: page
 
-  property var tracker: undefined
-  property var router: undefined
-  property var routeLoader: undefined
+  property var tracker
+  property var router
+  property var routeLoader
 
   title: "QuteNav"
 

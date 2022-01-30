@@ -23,7 +23,7 @@ import "./platform"
 DialogPL {
   id: dialog
 
-  property var tracker: undefined
+  property var tracker
   property bool saveNeeded: true
 
   onAccepted: {

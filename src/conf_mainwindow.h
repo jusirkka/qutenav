@@ -34,10 +34,10 @@ public:
   CONF_DECL(WindowGeom, window_geom, QSizeF, toSizeF)
   CONF_DECL(LastGeom, last_geom, QSizeF, toSizeF)
   CONF_DECL(FullScreen, full_screen, bool, toBool)
+  CONF_DECL(CacheSize, cache_size, quint32, toUInt)
 
   static void setChartFolders(const QStringList& v) {
     self()->m_chartFolders = v;
-
     QVariantList items;
     for (auto i: v) items.append(i);
 

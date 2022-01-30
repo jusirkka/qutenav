@@ -32,6 +32,7 @@ Conf::MainWindow::MainWindow()
   m_defaults["last_geom"] = QSizeF(800, 600);
   m_defaults["full_screen"] = false;
   m_defaults["chart_folders"] = QVariantList();
+  m_defaults["cache_size"] = 2000; // 2GB
 
   load();
 

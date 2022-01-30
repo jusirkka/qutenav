@@ -23,6 +23,8 @@ TrackInfoBox {
 
   id: info
 
+  property real mps: NaN
+
   target: Rectangle {
     id: speedBox
     color: "white"
@@ -47,16 +49,8 @@ TrackInfoBox {
       fontSize: info.fontSize
 
       onUnitChanged: {
-        value = units.speed(info.mps)
+        value = Qt.binding(function () {return units.speed(info.mps)})
       }
     }
   }
-
-  property real mps: NaN
-
-  onMpsChanged: {
-    targetItem.speed = units.speed(mps)
-    // console.log("speed changed", mps, units.speed(mps))
-  }
-
 }

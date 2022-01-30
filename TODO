@@ -17,6 +17,5 @@
 - ObjectInfo rewrite
 - Route/editor: reverse & edit a route
 - Datetime format to Units: standard, localized
-- display entered distance when editing a route
-
-- manage chart cache
+- display total distance when editing a route
+- RulerSelection enum type -> create enumerations.h to hold all custom enums

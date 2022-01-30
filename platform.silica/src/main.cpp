@@ -40,6 +40,7 @@
 #include "chartdatabase.h"
 #include "s57imageprovider.h"
 #include "units.h"
+#include "utils.h"
 
 Q_IMPORT_PLUGIN(CM93ReaderFactory)
 Q_IMPORT_PLUGIN(S57ReaderFactory)
@@ -87,6 +88,8 @@ int main(int argc, char *argv[]) {
   QTranslator tr;
   loadTranslation(tr);
   app->installTranslator(&tr);
+
+  checkCache();
 
   // remove stutter
   app->setOrganizationName("");

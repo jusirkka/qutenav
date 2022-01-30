@@ -294,7 +294,7 @@
         <translation>Km/h</translation>
     </message>
     <message id="qtnav-symbol-km">
-        <location filename="../src/units.cpp" line="+49"/>
+        <location filename="../src/units.cpp" line="+90"/>
         <source>km</source>
         <oldsource> km</oldsource>
         <translation>km</translation>
@@ -525,6 +525,62 @@
         <location line="+7"/>
         <source>N/A</source>
         <translation>N/A</translation>
+    </message>
+    <message id="qutenav-edit-remove-selected">
+        <location filename="../qml/ChartPage.qml" line="+283"/>
+        <source>Remove selected</source>
+        <translation>Remove selected</translation>
+    </message>
+    <message id="qutenav-edit-insert-after">
+        <location line="+14"/>
+        <source>Insert after</source>
+        <translation>Insert after</translation>
+    </message>
+    <message id="qutenav-title-preferences">
+        <location filename="../qml/PreferencesPage.qml" line="+30"/>
+        <source>Preferences</source>
+        <translation>Preferences</translation>
+    </message>
+    <message id="qutenav-preferences-chart">
+        <location line="+6"/>
+        <source>Chart</source>
+        <translation>Chart</translation>
+    </message>
+    <message id="qutenav-preferences-units">
+        <location line="+7"/>
+        <source>Units</source>
+        <translation>Units</translation>
+    </message>
+    <message id="qutenav-preferences-system">
+        <location line="+7"/>
+        <source>System</source>
+        <translation>System</translation>
+    </message>
+    <message id="qtnav-title-system">
+        <location filename="../qml/SystemPreferencesPage.qml" line="+25"/>
+        <source>System</source>
+        <translation>System</translation>
+    </message>
+    <message id="qtnav-header-cache">
+        <location line="+5"/>
+        <source>Cache</source>
+        <translation>Cache</translation>
+    </message>
+    <message id="qtnav-system-cache-size">
+        <location line="+6"/>
+        <source>Size</source>
+        <oldsource>Cache size</oldsource>
+        <translation>Size</translation>
+    </message>
+    <message id="qtnav-system-cache-description">
+        <location line="+2"/>
+        <source>Charts are cached. The cache files are deleted starting from the oldest if the cache grows larger than this value.</source>
+        <translation>Charts are cached. The cache files are deleted starting from the oldest if the cache grows larger than this value.</translation>
+    </message>
+    <message id="qtnav-unit-mb-si">
+        <location line="+2"/>
+        <source>MB</source>
+        <translation>MB</translation>
     </message>
 </context>
 </TS>
