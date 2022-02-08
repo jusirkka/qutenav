@@ -5,7 +5,9 @@ const uint PAT_LEN = 18;
 uniform uint pattern; // an integer representing the bitwise pattern
 uniform vec4 base_color;
 
-in float texCoord;
+noperspective in float texCoord;
+flat in float segmentLength;
+
 out vec4 color;
 
 void main() {
@@ -14,7 +16,7 @@ void main() {
     color = base_color;
   } else {
     // create a filter with period patlen.
-    const uint bitpos = uint(round(10 * texCoord)) % PAT_LEN;
+    const uint bitpos = uint(round(5 * texCoord * segmentLength)) % PAT_LEN;
     const uint bit = (1U << bitpos);
     // discard the bit if it doesn't match the masking pattern
     if ((pattern & bit) == 0U) {

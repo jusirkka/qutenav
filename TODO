@@ -12,11 +12,10 @@
 - bug: intermittent segfault when zooming rapidly
 - bug in Converter::display
 - bug in NMSConverter::display
-- bug: areas overlap texts (only intel/gpu, sw/desktop & mobile are ok)
+- bug: areas overlap texts (only intel/gpu; sw/desktop & mobile are ok)
 
 
 - check consistency of attdecode.csv and s57expectedinput.csv
-- bug: dash/dot length varies in dashed/dotted lines
 - correct text frag shader parameters as uniforms
 - fix chartsymbols.xml: typos, remove unsupported classcodes/lookups
 - bug: s57 chart fatal error: bbox is empty in some areas/lines/points

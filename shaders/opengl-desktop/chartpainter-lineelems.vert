@@ -11,7 +11,8 @@ uniform mat4 m_model;
 uniform mat4 m_p;
 uniform float windowScale; // transform between display (mm) and chart (m) units
 
-out float texCoord;
+noperspective out float texCoord;
+flat out float segmentLength;
 
 layout(std430, binding = 0) buffer VertexBufferIn {
   vec2 data[];
@@ -63,10 +64,6 @@ void main() {
     }
   }
 
-  if ((gl_VertexID / 2) % 2 == 1) {
-    // texCoord = length(m_p * (p2 - p1));
-    texCoord = length(p2.xy - p1.xy) * windowScale;
-  } else {
-    texCoord = 0.;
-  }
+  texCoord = (gl_VertexID / 2) % 2;
+  segmentLength = length(p1.xy - p0.xy) * windowScale;
 }
