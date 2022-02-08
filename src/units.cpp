@@ -75,6 +75,7 @@ Manager::Manager(QObject *parent)
   , m_distance(nullptr)
   , m_shortDistance(nullptr)
   , m_speed(nullptr)
+  , m_depth(nullptr)
 {
   handleUnitChange();
   connect(Settings::instance(), &Settings::unitsChanged, this, &Manager::handleUnitChange);

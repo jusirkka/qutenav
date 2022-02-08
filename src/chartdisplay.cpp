@@ -376,12 +376,18 @@ QPointF ChartDisplay::position(const WGS84Point& wp) const {
 }
 
 QPointF ChartDisplay::position(const QGeoCoordinate& q) const {
-  if (!q.isValid()) throw InvalidCoordinateError("Cannot convert QGeoCoordinate to WGS84Point");
+  if (!q.isValid()) {
+    qCWarning(CDPY) << "position: Cannot convert QGeoCoordinate to WGS84Point";
+    return position(WGS84Point::fromLL(0, 0));
+  }
   return position(WGS84Point::fromLL(q.longitude(), q.latitude()));
 }
 
 QPointF ChartDisplay::advance(const QGeoCoordinate& q, qreal distance, qreal heading) const {
-  if (!q.isValid()) throw InvalidCoordinateError("Cannot convert QGeoCoordinate to WGS84Point");
+  if (!q.isValid()) {
+    qCWarning(CDPY) << "advance: Cannot convert QGeoCoordinate to WGS84Point";
+    return position(WGS84Point::fromLL(0, 0));
+  }
   const auto wp = WGS84Point::fromLL(q.longitude(), q.latitude()) + WGS84Bearing::fromMeters(distance, Angle::fromDegrees(heading));
   return position(wp);
 }
