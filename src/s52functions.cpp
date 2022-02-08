@@ -204,8 +204,8 @@ void S52::LineSimple::paintIcon(QPainter& painter,
 S57::PaintDataMap S52::LineComplex::execute(const QVector<QVariant>& vals,
                                             const S57::Object* obj) {
 
-  quint32 index = vals[0].toUInt();
-  SymbolData s = VectorSymbolManager::instance()->symbolData(index, S52::SymbolType::LineStyle);
+  const quint32 index = vals[0].toUInt();
+  const SymbolData s = VectorSymbolManager::instance()->symbolData(index, S52::SymbolType::LineStyle);
 
   if (!s.isValid()) {
     qCWarning(CS57) << "Missing linestyle" << S52::GetSymbolInfo(index, S52::SymbolType::LineStyle);
@@ -2571,13 +2571,18 @@ S57::PaintDataMap S52::CSSoundings02::symbols(double depth, int index,
   }
 
   const double cdepth = Units::Manager::instance()->depth()->fromSI(std::abs(depth));
-  auto txt = QString::number(static_cast<int>(cdepth));
+  auto txt = QString::number(static_cast<int>(std::round(cdepth)));
 
   bool hasFrac = false;
   if (cdepth < 31) {
     auto lead = static_cast<int>(cdepth);
-    auto frac = static_cast<int>((cdepth - lead) * 10);
-    if (cdepth < 10 || frac != 0) {
+    auto frac = static_cast<int>(std::round((cdepth - lead) * 10));
+    if (frac == 10) {
+      lead += 1;
+      frac = 0;
+    }
+    txt = QString::number(lead);
+    if (lead < 10 || frac != 0) {
       txt = txt + QChar(0x2080 + frac);
       hasFrac = true;
       // qCDebug(CS57) << "Depth" << txt;

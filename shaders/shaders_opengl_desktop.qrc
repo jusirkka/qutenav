@@ -4,6 +4,7 @@
     <file alias="chartpainter-lineelems.vert">opengl-desktop/chartpainter-lineelems.vert</file>
     <file alias="chartpainter-lines.frag">opengl-desktop/chartpainter-lines.frag</file>
     <file alias="chartpainter-rastersymbol.vert">opengl-desktop/chartpainter-rastersymbol.vert</file>
+    <file alias="chartpainter-segmentarrays.vert">opengl-desktop/chartpainter-segmentarrays.vert</file>
     <file alias="chartpainter-text.frag">opengl-desktop/chartpainter-text.frag</file>
     <file alias="chartpainter-text.vert">opengl-desktop/chartpainter-text.vert</file>
     <file alias="chartpainter-texture.frag">opengl-desktop/chartpainter-texture.frag</file>

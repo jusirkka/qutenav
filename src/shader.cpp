@@ -136,6 +136,33 @@ GL::LineArrayShader::LineArrayShader()
   m_locations.vertexOffset = m_program->uniformLocation("vertexOffset");
 }
 
+GL::SegmentArrayShader* GL::SegmentArrayShader::instance() {
+  static auto shader = new GL::SegmentArrayShader;
+  return shader;
+}
+
+
+void GL::SegmentArrayShader::setGlobals(const Camera *cam, const QMatrix4x4 &mt) {
+  m_program->setUniformValue(m_locations.m_p, cam->projection());
+  m_program->setUniformValue(m_locations.m_model, mt);
+  const float s = .5 * cam->heightMM() * cam->projection()(1, 1);
+  m_program->setUniformValue(m_locations.windowScale, s);
+}
+
+
+GL::SegmentArrayShader::SegmentArrayShader()
+  : Shader({{QOpenGLShader::Vertex, ":chartpainter-segmentarrays.vert"},
+            {QOpenGLShader::Fragment, ":chartpainter-lines.frag"}}, .02)
+{
+  m_locations.m_p = m_program->uniformLocation("m_p");
+  m_locations.m_model = m_program->uniformLocation("m_model");
+  m_locations.windowScale = m_program->uniformLocation("windowScale");
+  m_locations.lineWidth = m_program->uniformLocation("lineWidth");
+  m_locations.base_color = m_program->uniformLocation("base_color");
+  m_locations.pattern = m_program->uniformLocation("pattern");
+  m_locations.vertexOffset = m_program->uniformLocation("vertexOffset");
+}
+
 GL::TextShader* GL::TextShader::instance() {
   static auto shader = new GL::TextShader;
   return shader;

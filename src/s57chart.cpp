@@ -379,13 +379,13 @@ void S57Chart::updatePaintData(const WGS84PointVector& cs, quint32 scale) {
 
   PaintPriorityVector updates(S52::Lookup::PriorityCount);
 
-//  int areaCount = 0;
-//  int filteredAreaCount = 0;
+  //  int areaCount = 0;
+  //  int filteredAreaCount = 0;
   for (ObjectLookup& d: m_lookups) {
 
-//    if (d.object->geometry()->type() == S57::Geometry::Type::Area && !S52::IsMetaClass(d.object->classCode())) {
-//      areaCount += 1;
-//    }
+    //    if (d.object->geometry()->type() == S57::Geometry::Type::Area && !S52::IsMetaClass(d.object->classCode())) {
+    //      areaCount += 1;
+    //    }
 
     // check bbox & scale
     if (!d.object->canPaint(cover, scale, today, d.lookup->canOverride())) continue;
@@ -443,16 +443,16 @@ void S57Chart::updatePaintData(const WGS84PointVector& cs, quint32 scale) {
       pd.erase(pr);
     }
 
-//    if (d.object->geometry()->type() == S57::Geometry::Type::Area) {
-//      filteredAreaCount += 1;
-//    }
+    //    if (d.object->geometry()->type() == S57::Geometry::Type::Area) {
+    //      filteredAreaCount += 1;
+    //    }
 
 
     updates[prio] += pd;
   }
 
-//  qCDebug(CS57) << "Chart" << id() << ": Area objects =" << areaCount
-//           << "to be painted" << filteredAreaCount;
+  //  qCDebug(CS57) << "Chart" << id() << ": Area objects =" << areaCount
+  //           << "to be painted" << filteredAreaCount;
 
 
   for (int prio = 0; prio < S52::Lookup::PriorityCount; prio++) {
@@ -529,6 +529,36 @@ void S57Chart::updatePaintData(const WGS84PointVector& cs, quint32 scale) {
     }
   }
 
+  // Symbolized line updates to the transform buffer. Store remaining segments.
+  for (int prio = 0; prio < S52::Lookup::PriorityCount; prio++) {
+    LineVertexHash lineSegments;
+    const S57::PaintMutIterator end = m_paintData[prio].end();
+    S57::PaintMutIterator elem = m_paintData[prio].find(S57::PaintData::Type::VectorLineStyles);
+    while (elem != end && elem.key() == S57::PaintData::Type::VectorLineStyles) {
+      auto d = dynamic_cast<S57::LineStylePaintData*>(elem.value());
+      GL::VertexVector segments;
+      d->createTransforms(transforms,
+                          segments,
+                          m_coordBuffer,
+                          m_indexBuffer,
+                          m_staticVertexOffset);
+      lineSegments[d->key()].append(segments);
+      ++elem;
+    }
+    // update vertices & paint data from lineSegments
+    for (LineVertexIterator it = lineSegments.cbegin(); it != lineSegments.cend(); ++it) {
+      const auto off = m_staticVertexOffset + vertices.size() * sizeof(GLfloat);
+      const LineKey& key = it.key();
+      m_paintData[prio].insert(S57::PaintData::Type::SegmentArrays,
+                               new S57::SegmentArrayData(it.value().size() / 2,
+                                                         off,
+                                                         key.color,
+                                                         key.width,
+                                                         as_numeric(key.type)));
+      vertices += it.value();
+    }
+  }
+
   // update vertex buffer
   m_coordBuffer.bind();
   GLsizei dataLen = m_staticVertexOffset + sizeof(GLfloat) * vertices.size();
@@ -543,20 +573,6 @@ void S57Chart::updatePaintData(const WGS84PointVector& cs, quint32 scale) {
   }
 
   m_coordBuffer.write(m_staticVertexOffset, vertices.constData(), dataLen - m_staticVertexOffset);
-
-  // Symbolized line updates to the transform buffer
-  for (int prio = 0; prio < S52::Lookup::PriorityCount; prio++) {
-    const S57::PaintMutIterator end = m_paintData[prio].end();
-    S57::PaintMutIterator elem = m_paintData[prio].find(S57::PaintData::Type::VectorLineStyles);
-    while (elem != end && elem.key() == S57::PaintData::Type::VectorLineStyles) {
-      auto d = dynamic_cast<S57::LineStylePaintData*>(elem.value());
-      d->createTransforms(transforms,
-                          m_coordBuffer,
-                          m_indexBuffer,
-                          m_staticVertexOffset);
-      ++elem;
-    }
-  }
 
   // update transform buffer
   m_transformBuffer.bind();
@@ -717,6 +733,31 @@ void S57Chart::drawLineArrays(const Camera* cam, int prio) {
   }
 }
 
+void S57Chart::drawSegmentArrays(const Camera* cam, int prio) {
+
+  auto prog = GL::SegmentArrayShader::instance();
+  prog->setGlobals(cam, m_modelMatrix);
+  prog->setDepth(prio);
+
+  auto f = QOpenGLContext::currentContext()->extraFunctions();
+
+  f->glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_coordBuffer.bufferId());
+
+  const S57::PaintIterator end = m_paintData[prio].constEnd();
+
+  S57::PaintIterator arr = m_paintData[prio].constFind(S57::PaintData::Type::SegmentArrays);
+
+  while (arr != end && arr.key() == S57::PaintData::Type::SegmentArrays) {
+    auto d = dynamic_cast<const S57::SegmentArrayData*>(arr.value());
+    d->setUniforms();
+    for (const S57::ElementData& e: d->elements()) {
+      d->setStorageOffsets(e.offset);
+      f->glDrawArrays(GL_TRIANGLES, 0, 3 * e.count);
+    }
+    ++arr;
+  }
+}
+
 void S57Chart::drawLineElems(const Camera* cam, int prio) {
 
   auto prog = GL::LineElemShader::instance();
@@ -762,7 +803,6 @@ void S57Chart::drawText(const Camera* cam, int prio) {
     m_textTransformBuffer.bind();
     d->setVertexOffset();
     f->glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, d->count());
-
     ++elem;
   }
 }

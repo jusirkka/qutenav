@@ -36,8 +36,12 @@ public:
     GLsizei count;
   };
 
-  void calculate(VertexVector& transforms, GLfloat period, const QRectF& va,
-                 BufferData& vertices, BufferData& indices);
+  void calculate(VertexVector& transforms,
+                 VertexVector& segments,
+                 GLfloat period,
+                 const QRectF& va,
+                 BufferData& vertices,
+                 BufferData& indices);
 
   ~LineCalculator();
 

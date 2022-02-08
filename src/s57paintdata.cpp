@@ -171,6 +171,30 @@ void S57::LineArrayData::setStorageOffsets(uintptr_t offset) const {
                   static_cast<GLuint>(m_vertexOffset / 2 / sizeof(GLfloat) + offset));
 }
 
+S57::SegmentArrayData::SegmentArrayData(int count,
+                                        GLsizei offset,
+                                        const QColor& c,
+                                        GLfloat width,
+                                        uint pattern)
+  : LineData(Type::LineArrays, {ElementData(count)}, offset, c, width, pattern)
+{}
+
+void S57::SegmentArrayData::setUniforms() const {
+  auto prog = GL::SegmentArrayShader::instance();
+  prog->prog()->setUniformValue(prog->m_locations.base_color, m_color);
+  const float dw = Settings::instance()->displayLineWidthScaling();
+  prog->prog()->setUniformValue(prog->m_locations.lineWidth, m_lineWidth * dw);
+
+  auto f = QOpenGLContext::currentContext()->extraFunctions();
+  f->glUniform1ui(prog->m_locations.pattern, m_pattern);
+}
+
+void S57::SegmentArrayData::setStorageOffsets(uintptr_t offset) const {
+  auto prog = GL::SegmentArrayShader::instance();
+  auto f = QOpenGLContext::currentContext()->extraFunctions();
+  f->glUniform1ui(prog->m_locations.vertexOffset,
+                  static_cast<GLuint>(m_vertexOffset / 2 / sizeof(GLfloat) + offset));
+}
 
 S57::LineLocalData::LineLocalData(const GL::VertexVector& vertices,
                                   const ElementDataVector& elem,
@@ -594,12 +618,13 @@ void S57::LineStylePaintData::merge(const SymbolPaintDataBase* other, qreal scal
     Q_ASSERT(m_lineElements.size() == 1);
   } else {
     auto r = dynamic_cast<const LineStylePaintData*>(other);
-    Q_ASSERT(r->m_lineElements.size() == 1);
+    Q_ASSERT(r && r->m_lineElements.size() == 1);
     m_lineElements.append(r->m_lineElements);
   }
 }
 
 void S57::LineStylePaintData::createTransforms(GL::VertexVector& transforms,
+                                               GL::VertexVector& segments,
                                                const QOpenGLBuffer& coordBuffer,
                                                const QOpenGLBuffer& indexBuffer,
                                                GLsizei maxCoordOffset) {
@@ -622,7 +647,7 @@ void S57::LineStylePaintData::createTransforms(GL::VertexVector& transforms,
       // account adjacency
       is.offset = elem.offset / sizeof(GLuint) + 1;
       is.count = elem.count - 2;
-      lc->calculate(transforms, m_advance, reg.boundingRect(), vs, is);
+      lc->calculate(transforms, segments, m_advance, reg.boundingRect(), vs, is);
     }
   }
 
@@ -633,3 +658,10 @@ void S57::LineStylePaintData::setColor(const QColor& c) const {
   m_helper->setColor(c);
 }
 
+LineKey S57::LineStylePaintData::key() const {
+  QColor c("black");
+  if (!m_elems.isEmpty()) {
+    c = m_elems.first().color;
+  }
+  return LineKey(c, S52::LineType::Solid, S52::LineWidthMM(1));
+}

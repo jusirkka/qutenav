@@ -33,6 +33,7 @@ GL::LineCalculator::LineCalculator()
 GL::LineCalculator::~LineCalculator() {}
 
 void GL::LineCalculator::calculate(VertexVector& transforms,
+                                   VertexVector& segments,
                                    GLfloat period,
                                    const QRectF& va,
                                    BufferData& vertices,
@@ -68,24 +69,20 @@ void GL::LineCalculator::calculate(VertexVector& transforms,
     if (r < 1.e-10) {
       continue;
     }
-    float n = floor(r / period);
-    // const float r0 = period * (n + .5);
-    // if (r > r0 || n == 0) {
-    //   n = n + 1;
-    // }
-    // const float s = r / (period * n);
-    if (n == 0.) continue;
+    auto n = static_cast<int>(floor(r / period));
 
     // qDebug() << "number of symbols" << n;
 
-
     const glm::vec2 u = (p2 - p1) / r;
     const glm::vec2 dir = period * u;
-    // const glm::vec2 dir = s * period * u;
     for (int k = 0; k < n; k++) {
       const glm::vec2 v = p1 + (1.f * k) * dir;
-      // transforms << v.x << v.y << s * u.x << s * u.y;
       transforms << v.x << v.y << u.x << u.y;
+    }
+    if (r - n * period > .01) {// there is leftover
+      const glm::vec2 v = p1 + (1.f * n) * dir;
+      segments << v.x << v.y;
+      segments << p2.x << p2.y;
     }
   }
 

@@ -37,6 +37,7 @@
 #include "dbupdater_interface.h"
 #include <QProcess>
 #include <QTimer>
+#include "platform.h"
 
 ObjectObject::ObjectObject(const QString &n, QObject *parent)
   : QObject(parent)

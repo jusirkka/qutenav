@@ -22,9 +22,9 @@
 #include <QString>
 #include <cmath>
 #include <QVector>
-#include <QOpenGLFunctions>
+#include <QColor>
+#include <QOpenGLFunctions> // for GLfloat etc
 #include <glm/vec2.hpp>
-#include "platform.h"
 #include <QPointF>
 
 class NotImplementedError {
@@ -438,6 +438,44 @@ inline bool operator== (const SymbolKey& k1, const SymbolKey& k2) {
 inline uint qHash(const SymbolKey& key) {
   return qHash(qMakePair(key.index, as_numeric(key.type)));
 }
+
+struct LineKey {
+
+  LineKey(const QColor& c, S52::LineType t, float lw)
+    : color(c)
+    , type(t)
+    , width(lw)
+  {}
+
+  LineKey() = default;
+
+
+  QColor color;
+  S52::LineType type;
+  float width;
+};
+
+inline bool operator== (const LineKey& k1, const LineKey& k2) {
+  if (k1.color != k2.color) return false;
+  if (k1.type != k2.type) return false;
+  return std::abs(k2.width - k1.width) < .001;
+}
+
+inline uint qHash(const LineKey& key) {
+  quint64 x = as_numeric(key.type) & 0xff;
+  x <<= 8; x += key.color.red() & 0xff;
+  x <<= 8; x += key.color.green() & 0xff;
+  x <<= 8; x += key.color.blue() & 0xff;
+  x <<= 8; x += key.color.alpha() & 0xff;
+  const quint16 w = std::round(key.width / .32);
+  x <<= 16; x += w;
+
+  return qHash(x);
+}
+
+using LineVertexHash = QHash<LineKey, GL::VertexVector>;
+using LineVertexMutIterator = LineVertexHash::iterator;
+using LineVertexIterator = LineVertexHash::const_iterator;
 
 struct PatternMMAdvance {
   PatternMMAdvance(qreal x0, qreal y0, qreal x1)

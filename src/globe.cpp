@@ -28,6 +28,7 @@
 #include <QStandardPaths>
 #include "wfreader.h"
 #include "types.h"
+#include "platform.h"
 
 Globe::Globe(QObject *parent)
   : Drawable(parent)

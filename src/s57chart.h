@@ -52,6 +52,7 @@ public:
 
   void drawAreas(const Camera* cam, int prio);
   void drawLineArrays(const Camera* cam, int prio);
+  void drawSegmentArrays(const Camera* cam, int prio);
   void drawLineElems(const Camera* cam, int prio);
   void drawText(const Camera* cam, int prio);
   void drawRasterSymbols(const Camera* cam, int prio);

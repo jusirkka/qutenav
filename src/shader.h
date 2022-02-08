@@ -28,6 +28,7 @@ namespace S57 {
 class TriangleData;
 class LineElemData;
 class LineArrayData;
+class SegmentArrayData;
 class TextElemData;
 class RasterHelper;
 class VectorHelper;
@@ -123,6 +124,31 @@ public:
 
 private:
   LineArrayShader();
+
+  static constexpr uint linePatlen = 18;
+  static constexpr uint linefactor = 1;
+
+  struct _locations {
+    int m_p;
+    int m_model;
+    int windowScale;
+    int lineWidth;
+    int base_color;
+    int pattern;
+    int vertexOffset;
+  } m_locations;
+};
+
+class SegmentArrayShader: public Shader {
+
+  friend class S57::SegmentArrayData;
+
+public:
+  static SegmentArrayShader* instance();
+  void setGlobals(const Camera* cam, const QMatrix4x4& mt) override;
+
+private:
+  SegmentArrayShader();
 
   static constexpr uint linePatlen = 18;
   static constexpr uint linefactor = 1;

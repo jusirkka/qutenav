@@ -59,7 +59,7 @@ QString Converter::display(float v, int prec) const {
   }
   // manipulate b -> b' (int)
   const quint32 m = std::pow(10, prec);
-  const quint32 b1 = std::round(m * b);
+  const quint32 b1 = std::round(m * b); // FIXME: case of b1 == m
   // print b'
   const QString r = ".%1 " + m_symbol;
   return r.arg(b1, prec, 10, QChar('0'));
@@ -128,7 +128,7 @@ public:
   QString display(float v, int) const override {
     v *= .01;
     const int a = static_cast<int>(v);
-    const int b = std::round(100 * (v - a));
+    const int b = std::round(100 * (v - a)); // FIXME: case b == 100
     QString r = ".%1 " + m_symbol;
     if (a > 0) {
       r = QString::number(a) + r;

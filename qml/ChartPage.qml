@@ -270,7 +270,7 @@ ChartPagePL {
     z: 300
     anchors.left: parent.left
     anchors.bottom: distButton.top
-    label: encdis.displayBearing(ruler.c1, ruler.c2, ruler.selection === 2)
+    label: encdis.displayBearing(ruler.c1, ruler.c2, ruler.selection === 1)
   }
 
   EditButton {

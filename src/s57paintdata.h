@@ -35,9 +35,10 @@ public:
     Priority, // For a CS procedure to change priority
     TriangleElements,
     TriangleArrays,
-    LineElements,
-    LineArrays,
-    LineLocal,
+    LineElements, // Indexed linestrings
+    LineArrays, // Plain linestrings
+    SegmentArrays, // disconnected segments
+    LineLocal, // Plain linestrings, paintdata includes the vertices
     TextElements,
     RasterSymbols,
     RasterPatterns,
@@ -169,6 +170,18 @@ public:
                 const QColor& c,
                 GLfloat lw,
                 uint pattern);
+
+  void setUniforms() const override;
+  void setStorageOffsets(uintptr_t offset) const override;
+};
+
+class SegmentArrayData: public LineData {
+public:
+  SegmentArrayData(int count,
+                   GLsizei offset,
+                   const QColor& c,
+                   GLfloat lw,
+                   uint pattern);
 
   void setUniforms() const override;
   void setStorageOffsets(uintptr_t offset) const override;
@@ -452,9 +465,12 @@ public:
   void merge(const SymbolPaintDataBase* other, qreal scale, const KV::Region& va) override;
 
   void createTransforms(GL::VertexVector& transforms,
+                        GL::VertexVector& segments,
                         const QOpenGLBuffer& coordBuffer,
                         const QOpenGLBuffer& indexBuffer,
                         GLsizei maxCoordOffset);
+
+  LineKey key() const;
 
   const ColorElementVector& elements() const {return m_elems;}
   void setColor(const QColor& c) const;

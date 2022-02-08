@@ -23,6 +23,7 @@
 #include <QTextStream>
 #include "logging.h"
 #include <QRegularExpression>
+#include "platform.h"
 
 namespace S52 {
 

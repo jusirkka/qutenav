@@ -30,6 +30,7 @@
 #include <QVector>
 #include "orthocam.h"
 #include "platform.h"
+#include <QOpenGLDebugLogger>
 
 ChartPainter::ChartPainter(QObject* parent)
   : Drawable(parent)
@@ -39,6 +40,7 @@ ChartPainter::ChartPainter(QObject* parent)
   , m_fbo(nullptr)
   , m_coordBuffer(QOpenGLBuffer::VertexBuffer)
   , m_indexBuffer(QOpenGLBuffer::IndexBuffer)
+  , m_logger(nullptr)
 {}
 
 ChartPainter::~ChartPainter() {
@@ -54,6 +56,7 @@ void ChartPainter::initializeGL() {
     m_areaShader = GL::AreaShader::instance();
     m_lineElemShader = GL::LineElemShader::instance();
     m_lineArrayShader = GL::LineArrayShader::instance();
+    m_segmentArrayShader = GL::SegmentArrayShader::instance();
     m_textShader = GL::TextShader::instance();
     m_rasterShader = GL::RasterSymbolShader::instance();
     m_vectorShader = GL::VectorSymbolShader::instance();
@@ -86,6 +89,12 @@ void ChartPainter::initializeGL() {
     m_indexBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
     m_indexBuffer.allocate(indices.constData(), sizeof(GLuint) * indices.size());
 
+    m_logger = new QOpenGLDebugLogger(this);
+    if (!m_logger->initialize()) {
+      qCWarning(COGL) << "OpenGL logging not available";
+    }
+    m_logger->disableMessages(QOpenGLDebugMessage::APISource,
+                              QOpenGLDebugMessage::PerformanceType);
   }
 }
 
@@ -179,6 +188,10 @@ void ChartPainter::updateCharts(const Camera* cam, const QRectF& viewArea) {
     for (S57Chart* chart: m_manager->charts()) {
       chart->drawLineArrays(bufCam, i);
     }
+    m_segmentArrayShader->initializePaint();
+    for (S57Chart* chart: m_manager->charts()) {
+      chart->drawSegmentArrays(bufCam, i);
+    }
     m_textShader->initializePaint();
     for (S57Chart* chart: m_manager->charts()) {
       chart->drawText(bufCam, i);
@@ -189,6 +202,10 @@ void ChartPainter::updateCharts(const Camera* cam, const QRectF& viewArea) {
   for (S57Chart* chart: m_manager->charts()) {
     chart->drawRasterPatterns(bufCam);
     chart->drawVectorPatterns(bufCam);
+  }
+
+  for (const QOpenGLDebugMessage& message: m_logger->loggedMessages()) {
+    qCDebug(COGL) << message;
   }
 
   f->glDisable(GL_BLEND);

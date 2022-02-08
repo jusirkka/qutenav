@@ -26,6 +26,7 @@
 #include <QtSql/QSqlError>
 #include <QStandardPaths>
 #include <QDir>
+#include "platform.h"
 
 QString SQLiteDatabase::databaseName(const QString& bname) {
   QString loc = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);

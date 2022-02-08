@@ -28,6 +28,7 @@
 #include <QFile>
 #include <QStandardPaths>
 #include "logging.h"
+#include "platform.h"
 
 ChartData::ChartData(S57Chart* c, quint32 s, const WGS84PointVector& cs, bool upd)
   : chart(c)

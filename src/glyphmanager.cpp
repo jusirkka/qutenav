@@ -28,6 +28,7 @@
 #include <QFontDatabase>
 #include <QMutex>
 #include <QMutexLocker>
+#include "platform.h"
 
 GlyphBin::GlyphBin(QMutex *mutex)
   : m_mutex(mutex)

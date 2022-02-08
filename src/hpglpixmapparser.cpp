@@ -21,6 +21,7 @@
 #include <QDebug>
 #include "s52presentation.h"
 #include <QPainter>
+#include "platform.h"
 
 HPGL::PixmapParser::PixmapParser(const QString &src, const QString& colors, qint16 angle)
   : Parser(colors)

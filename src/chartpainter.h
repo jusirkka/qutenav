@@ -27,12 +27,13 @@ class S57Chart;
 class GeoProjection;
 class ChartManager;
 class QOpenGLFramebufferObject;
-
+class QOpenGLDebugLogger;
 
 namespace GL {
 class AreaShader;
 class LineElemShader;
 class LineArrayShader;
+class SegmentArrayShader;
 class TextShader;
 class RasterSymbolShader;
 class VectorSymbolShader;
@@ -59,6 +60,7 @@ private:
   GL::AreaShader* m_areaShader;
   GL::LineElemShader* m_lineElemShader;
   GL::LineArrayShader* m_lineArrayShader;
+  GL::SegmentArrayShader* m_segmentArrayShader;
   GL::TextShader* m_textShader;
   GL::RasterSymbolShader* m_rasterShader;
   GL::VectorSymbolShader* m_vectorShader;
@@ -73,5 +75,6 @@ private:
   QOpenGLBuffer m_coordBuffer;
   QOpenGLBuffer m_indexBuffer;
 
+  QOpenGLDebugLogger* m_logger;
 };
 

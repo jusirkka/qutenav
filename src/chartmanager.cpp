@@ -39,6 +39,7 @@
 #include "dbupdater_interface.h"
 #include "gnuplot.h"
 #include "conf_mainwindow.h"
+#include "platform.h"
 
 ChartManager* ChartManager::instance() {
   static ChartManager* m = new ChartManager();

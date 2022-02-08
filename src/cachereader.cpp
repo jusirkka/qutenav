@@ -23,6 +23,7 @@
 #include <QFile>
 #include <QDate>
 #include <QDataStream>
+#include "platform.h"
 
 const GeoProjection* CacheReader::geoprojection() const {
   return m_proj;

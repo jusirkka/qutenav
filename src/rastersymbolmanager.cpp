@@ -27,6 +27,7 @@
 #include "settings.h"
 #include <QPainter>
 #include <QOpenGLExtraFunctions>
+#include "platform.h"
 
 RasterSymbolManager::RasterSymbolManager()
   : QObject()
@@ -209,7 +210,7 @@ void RasterSymbolManager::parseSymbolData(QXmlStreamReader &reader,
   // offset of the upper left corner
   d.offset = QPointF((o.x() - p.x()) / dots_per_mm_x(),
                      (p.y() - o.y()) / dots_per_mm_y());
-  d.elements = S57::ElementData {GL_TRIANGLES, indices.size() * sizeof(GLuint), 6};
+  d.elements = S57::ElementData(GL_TRIANGLES, indices.size() * sizeof(GLuint), 6);
 
 
   const GLuint ioff = vertices.size() / 4;

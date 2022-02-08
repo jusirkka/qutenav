@@ -85,6 +85,18 @@ struct ElementData {
   uintptr_t offset;
   size_t count;
   QRectF bbox;
+
+  // default constructor does not cut anything
+  ElementData(GLenum m, uintptr_t off, size_t c)
+    : mode(m)
+    , offset(off)
+    , count(c)
+    , bbox(QPointF(-1.e15, -1.e15), QPointF(1.e15, 1.e15))
+  {}
+
+  ElementData(size_t c = 0)
+    : ElementData(0, 0, c) {}
+
 };
 
 using ElementDataVector = QVector<ElementData>;

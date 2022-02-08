@@ -1,21 +1,24 @@
 - tides
 - busy spinner while charts are loading
-- symbolized lines: draw simple line in the remaining part of the symbol fill string.
 - draw chart outlines
-- bug: sometimes safety contour line is drawn incorrectly
-- bug: dash/dot length varies in dashed/dotted lines
-- bug: overlapping charts not handled properly
-- bug: make oeserverd calls more reliable (hangs sometimes)
-- bug: loading a route when already tracking does not find correct location in the route
-- bug: some of the sounding texts are off by 0.1m
-- bug: s57 chart fatal error: bbox is empty in some areas/lines/points
-- bug: sfos: current item highlight in ItemLists does not make sense
-- bug: intermittent segfault when zooming rapidly
-- check consistency of attdecode.csv and s57expectedinput.csv
-- correct text frag shader parameters as uniforms
-- fix chartsymbols.xml: typos, remove unsupported classcodes/lookups
 - ObjectInfo rewrite
 - Route/editor: reverse & edit a route
 - Datetime format to Units: standard, localized
 - display total distance when editing a route
 - RulerSelection enum type -> create enumerations.h to hold all custom enums
+- bug: sometimes safety contour line is drawn incorrectly
+- bug: make oeserverd calls more reliable (hangs sometimes)
+- bug: loading a route when already tracking does not find correct location in the route
+- bug: intermittent segfault when zooming rapidly
+- bug in Converter::display
+- bug in NMSConverter::display
+- bug: areas overlap texts (only intel/gpu, sw/desktop & mobile are ok)
+
+
+- check consistency of attdecode.csv and s57expectedinput.csv
+- bug: dash/dot length varies in dashed/dotted lines
+- correct text frag shader parameters as uniforms
+- fix chartsymbols.xml: typos, remove unsupported classcodes/lookups
+- bug: s57 chart fatal error: bbox is empty in some areas/lines/points
+- bug: sfos: current item highlight in ItemLists does not make sense
+- bug: overlapping charts not handled properly
