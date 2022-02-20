@@ -43,14 +43,10 @@ CM93Reader::CM93Reader(const QString &name)
   , m_wgsox(CM93::FindIndex("_wgsox"))
   , m_wgsoy(CM93::FindIndex("_wgsoy"))
   , m_recdat(CM93::FindIndex("RECDAT"))
-  , m_subst{{"ITDARE", S52::FindCIndex("DEPARE")},
+  , m_subst{{"ITDARE", S52::FindCIndex("SBDARE")},
             {"SPOGRD", S52::FindCIndex("DMPGRD")},
-            {"FSHHAV", S52::FindCIndex("FSHFAC")},
-            {"OFSPRD", S52::FindCIndex("CTNARE")},
-            {"$ANNCH", S52::FindCIndex("VALACM")},
-            {"$CYEAR", S52::FindCIndex("RYRMGV")},
-            {"$VARIA", S52::FindCIndex("VALMAG")},
-            {"COLMAR", S52::FindCIndex("COLOUR")},
+            {"FSHHAV", S52::FindCIndex("OBSTRN")},
+            {"DIFFUS", S52::FindCIndex("OBSTRN")},
             {"BRTFAC", S52::FindCIndex("BERTHS")},
             {"DSHAER", S52::FindCIndex("LNDMRK")},
             {"FLGSTF", S52::FindCIndex("LNDMRK")},
@@ -62,15 +58,14 @@ CM93Reader::CM93Reader(const QString &name)
             {"FLASTK", S52::FindCIndex("LNDMRK")},
             {"RADDOM", S52::FindCIndex("LNDMRK")},
             {"WNDMIL", S52::FindCIndex("LNDMRK")},
+            {"TOWERS", S52::FindCIndex("LNDMRK")},
+            {"MONUMT", S52::FindCIndex("LNDMRK")},
             {"HILARE", S52::FindCIndex("SLOGRD")},
             {"DUNARE", S52::FindCIndex("SLOGRD")},
-            {"DYKARE", S52::FindCIndex("SLOGRD")},
-            {"DYKCRW", S52::FindCIndex("SLOGRD")},
             {"PINGOS", S52::FindCIndex("SLOGRD")},
-            {"LITHOU", S52::FindCIndex("BUISGL")},
-            {"NAMFIX", S52::FindCIndex("OFSPLF")},
-            {"PRDINS", S52::FindCIndex("OFSPLF")},
-            {"NAMFLO", S52::FindCIndex("BOYSPP")},
+            {"DYKARE", S52::FindCIndex("DYKCON")},
+            {"DYKCRW", S52::FindCIndex("SLOTOP")},
+            {"PRDINS", S52::FindCIndex("PRDARE")},
             {"NATARE", S52::FindCIndex("ADMARE")},
             {"RMPARE", S52::FindCIndex("SLCONS")},
             {"SLIPWY", S52::FindCIndex("SLCONS")},
@@ -79,7 +74,6 @@ CM93Reader::CM93Reader(const QString &name)
             {"SILBUI", S52::FindCIndex("SILTNK")},
             {"TREPNT", S52::FindCIndex("VEGATN")},
             {"VEGARE", S52::FindCIndex("VEGATN")},
-            {"DIFFUS", S52::FindCIndex("OBSTRN")},
             {"LITMOI", S52::FindCIndex("LIGHTS")},
             {"LNDPLC", S52::FindCIndex("SMCFAC")},
             {"ROADPT", S52::FindCIndex("ROADWY")},
@@ -87,41 +81,64 @@ CM93Reader::CM93Reader(const QString &name)
             {"SLTPAN", S52::FindCIndex("LNDRGN")},
             {"TELPHC", S52::FindCIndex("CONVYR")},
             {"WIRLNE", S52::FindCIndex("DAMCON")},
-            {"_m_sor", S52::FindCIndex("M_COVR")}}
-  , m_subst_attrs{{"DSHAER", {S52::FindCIndex("CATLMK"), QVariantList{QVariant::fromValue(4)}}},
-                  {"FLGSTF", {S52::FindCIndex("CATLMK"), QVariantList{QVariant::fromValue(5)}}},
-                  {"MSTCON", {S52::FindCIndex("CATLMK"), QVariantList{QVariant::fromValue(7)}}},
-                  {"WIMCON", {S52::FindCIndex("CATLMK"), QVariantList{QVariant::fromValue(13)}}},
-                  {"CAIRNS", {S52::FindCIndex("CATLMK"), QVariantList{QVariant::fromValue(1)}}},
-                  {"CEMTRY", {S52::FindCIndex("CATLMK"), QVariantList{QVariant::fromValue(2)}}},
-                  {"CHIMNY", {S52::FindCIndex("CATLMK"), QVariantList{QVariant::fromValue(3)}}},
-                  {"FLASTK", {S52::FindCIndex("CATLMK"), QVariantList{QVariant::fromValue(6)}}},
-                  {"RADDOM", {S52::FindCIndex("CATLMK"), QVariantList{QVariant::fromValue(16)}}},
-                  {"WNDMIL", {S52::FindCIndex("CATLMK"), QVariantList{QVariant::fromValue(18)}}},
-                  {"HILARE", {S52::FindCIndex("CATSLO"), 4}},
-                  {"DUNARE", {S52::FindCIndex("CATSLO"), 3}},
-                  {"DYKARE", {S52::FindCIndex("CATSLO"), 2}},
-                  {"DYKCRW", {S52::FindCIndex("CATSLO"), 2}},
-                  {"PINGOS", {S52::FindCIndex("CATSLO"), 6}},
-                  {"NAMFIX", {S52::FindCIndex("CATOFP"), QVariantList{QVariant::fromValue(10)}}},
-                  {"PRDINS", {S52::FindCIndex("CATOFP"), QVariantList{QVariant::fromValue(2)}}},
-                  {"RMPARE", {S52::FindCIndex("CATSLC"), 12}},
-                  {"SLIPWY", {S52::FindCIndex("CATSLC"), 13}},
-                  {"LNDSTS", {S52::FindCIndex("CATSLC"), 11}},
-                  {"NAMFLO", {S52::FindCIndex("CATSPM"), QVariantList{QVariant::fromValue(15)}}},
-                  {"LITHOU", {S52::FindCIndex("BUISHP"), 5}},
-                  {"NATARE", {S52::FindCIndex("JRSDTN"), 1}},
-                  {"TNKCON", {S52::FindCIndex("CATSIL"), 2}},
-                  {"SILBUI", {S52::FindCIndex("CATSIL"), 1}},
-                  {"TREPNT", {S52::FindCIndex("CATVEG"), QVariantList{QVariant::fromValue(13)}}},
-                  {"DIFFUS", {S52::FindCIndex("CATOBS"), 3}},
-                  {"LITMOI", {S52::FindCIndex("CATLIT"), QVariantList{QVariant::fromValue(16)}}},
-                  {"LNDPLC", {S52::FindCIndex("CATSCF"), QVariantList{QVariant::fromValue(28)}}},
-                  {"RODCRS", {S52::FindCIndex("CATROD"), 7}},
-                  {"SLTPAN", {S52::FindCIndex("CATLND"), QVariantList{QVariant::fromValue(15)}}},
-                  {"TELPHC", {S52::FindCIndex("CATCON"), 1}},
-                  {"WIRLNE", {S52::FindCIndex("CATDAM"), 1}}}
-  , m_proj(GeoProjection::CreateProjection("CM93Mercator"))
+            {"RIVBNK", S52::FindCIndex("rivbnk")},
+            {"CANBNK", S52::FindCIndex("canbnk")},
+            {"BUIREL", S52::FindCIndex("BUISGL")},
+            {"ZEMCNT", S52::FindCIndex("DEPCNT")},
+            {"OFSPRD", S52::FindCIndex("OSPARE")}, // cm93 obj
+            {"LITHOU", S52::FindCIndex("BUISGL")}, // cm93 obj
+            {"NAMFIX", S52::FindCIndex("BCNSPP")}, // cm93 obj
+            {"NAMFLO", S52::FindCIndex("BOYSPP")}, // cm93 obj
+            {"CATPRI", S52::FindCIndex("CATPRA")}, // attr
+            {"CATREB", S52::FindCIndex("FUNCTN")}, // attr
+            {"CATBUI", S52::FindCIndex("FUNCTN")}, // attr
+            {"CATTOW", S52::FindCIndex("FUNCTN")}, // attr
+            {"CATMST", S52::FindCIndex("FUNCTN")}, // attr
+            {"SUPLIT", S52::FindCIndex("STATUS")}, // attr
+            {"$ANNCH", S52::FindCIndex("VALACM")}, // cm93 attr
+            {"$CYEAR", S52::FindCIndex("RYRMGV")}, // cm93 attr
+            {"$VARIA", S52::FindCIndex("VALMAG")}, // cm93 attr
+            {"COLMAR", S52::FindCIndex("COLOUR")}, // cm93 attr
+            {"_m_sor", S52::FindCIndex("M_COVR")}} // cm93 attr
+
+  , m_subst_attrs{{"SPOGRD", {{S52::FindCIndex("CATDPG"), 5}}},
+                  {"FSHHAV", {{S52::FindCIndex("CATOBS"), 5}}},
+                  {"DIFFUS", {{S52::FindCIndex("CATOBS"), 3}}},
+                  {"DSHAER", {{S52::FindCIndex("CATLMK"), QVariantList{4}}}},
+                  {"FLGSTF", {{S52::FindCIndex("CATLMK"), QVariantList{5}}}},
+                  {"MSTCON", {{S52::FindCIndex("CATLMK"), QVariantList{7}}}},
+                  {"WIMCON", {{S52::FindCIndex("CATLMK"), QVariantList{13}}}},
+                  {"CAIRNS", {{S52::FindCIndex("CATLMK"), QVariantList{1}}}},
+                  {"CEMTRY", {{S52::FindCIndex("CATLMK"), QVariantList{2}}}},
+                  {"CHIMNY", {{S52::FindCIndex("CATLMK"), QVariantList{3}}}},
+                  {"FLASTK", {{S52::FindCIndex("CATLMK"), QVariantList{6}}}},
+                  {"RADDOM", {{S52::FindCIndex("CATLMK"), QVariantList{16}}}},
+                  {"WNDMIL", {{S52::FindCIndex("CATLMK"), QVariantList{18}}}},
+                  {"TOWERS", {{S52::FindCIndex("CATLMK"), QVariantList{17}}}},
+                  {"MONUMT", {{S52::FindCIndex("CATLMK"), QVariantList{9}}}},
+                  {"HILARE", {{S52::FindCIndex("CATSLO"), 4}}},
+                  {"DUNARE", {{S52::FindCIndex("CATSLO"), 3}}},
+                  {"PINGOS", {{S52::FindCIndex("CATSLO"), 5}}},
+                  {"NATARE", {{S52::FindCIndex("JRSDTN"), 2}}},
+                  {"RMPARE", {{S52::FindCIndex("CATSLC"), 12}}},
+                  {"SLIPWY", {{S52::FindCIndex("CATSLC"), 13}}},
+                  {"LNDSTS", {{S52::FindCIndex("CATSLC"), 11}}},
+                  {"TNKCON", {{S52::FindCIndex("CATSIL"), 2}}},
+                  {"SILBUI", {{S52::FindCIndex("CATSIL"), 1}}},
+                  {"TREPNT", {{S52::FindCIndex("CATVEG"), QVariantList{13}}}},
+                  {"LITMOI", {{S52::FindCIndex("CATLIT"), QVariantList{16}}}},
+                  {"LNDPLC", {{S52::FindCIndex("CATSCF"), QVariantList{28}}}},
+                  {"RODCRS", {{S52::FindCIndex("CATROD"), 7}}},
+                  {"SLTPAN", {{S52::FindCIndex("CATLND"), QVariantList{15}}}},
+                  {"TELPHC", {{S52::FindCIndex("CATCON"), 1}}},
+                  {"WIRLNE", {{S52::FindCIndex("CATDAM"), 1}}},
+                  {"BUIREL", {{S52::FindCIndex("CONVIS"), 1}}},
+                  {"ZEMCNT", {{S52::FindCIndex("VALDCO"), 0.}}},
+                  {"LITHOU", {{S52::FindCIndex("BUISHP"), 5},
+                              {S52::FindCIndex("FUNCTN"), QVariantList{33}}}}, // cm93 obj
+                  {"NAMFIX", {{S52::FindCIndex("CATSPM"), QVariantList{52}}}}, // cm93 obj
+                  {"NAMFLO", {{S52::FindCIndex("CATSPM"), QVariantList{52}}}}} // cm93 obj
+                  , m_proj(GeoProjection::CreateProjection("CM93Mercator"))
 {}
 
 //    CM93 Decode support table
@@ -197,10 +214,18 @@ public:
   virtual ~Attribute() = default;
 
   virtual void decode(QDataStream& stream) = 0;
-  virtual S57::Attribute attribute(S57::Attribute::Type t, bool* ok) const = 0;
+  virtual S57::Attribute attribute(S57::Attribute::Type t, bool* ok) = 0;
+
+  quint32 attributeCode() const {return m_acode;}
+  quint32 objectCode() const {return m_ocode;}
 
   Attribute(quint8 index, const QString& name, const QString& type)
-    : m_index(index), m_name(name), m_type(type), m_bytes(1)
+    : m_index(index)
+    , m_name(name)
+    , m_type(type)
+    , m_bytes(1)
+    , m_ocode(0)
+    , m_acode(0)
   {}
 
 protected:
@@ -210,6 +235,8 @@ protected:
   QString m_type;
   QVariant m_value;
   quint16 m_bytes;
+  quint32 m_ocode;
+  quint32 m_acode;
 };
 
 class StringAttribute: public Attribute {
@@ -229,7 +256,7 @@ public:
     m_bytes += 1 + bytes.length();
   }
 
-  S57::Attribute attribute(S57::Attribute::Type t, bool* ok) const override {
+  S57::Attribute attribute(S57::Attribute::Type t, bool* ok) override {
     *ok = true;
     if (t == S57::Attribute::Type::String) {
       return S57::Attribute(m_value.toString());
@@ -253,7 +280,8 @@ public:
 class ByteAttribute: public Attribute {
 public:
   explicit ByteAttribute(quint8 index)
-    : Attribute(index, CM93::GetAttributeName(index), "Byte") {}
+    : Attribute(index, CM93::GetAttributeName(index), "Byte")
+  {}
 
   void decode(QDataStream& stream) override {
     auto b = read_and_decode<quint8>(stream);
@@ -261,8 +289,23 @@ public:
     m_bytes += 1;
   }
 
-  S57::Attribute attribute(S57::Attribute::Type t, bool* ok) const override {
+  S57::Attribute attribute(S57::Attribute::Type t, bool* ok) override {
     *ok = true;
+    if (t == S57::Attribute::Type::Integer && m_name == "CATPRI") {
+      int v = -1;
+      switch (m_value.toInt()) {
+      case 1: v = 1; break; // quarry
+      case 2: v = 2; break; // mine
+      case 3: // wellhead
+        v = 2;
+        m_ocode = S52::FindCIndex("OBSTRN");
+        m_acode = S52::FindCIndex("CATOBS");
+        break;
+      case 4: v = 2; break; // production well -> mine FIXME
+      default: *ok = false;
+      }
+      return S57::Attribute(v);
+    }
     if (t == S57::Attribute::Type::Integer) {
       return S57::Attribute(m_value.toInt());
     }
@@ -294,6 +337,79 @@ public:
       for (auto v: values) variants << QVariant::fromValue(v);
       return S57::Attribute(variants);
     }
+    if (t == S57::Attribute::Type::IntegerList && m_name == "CATREB") {
+      QVector<int> values;
+      switch (m_value.toInt()) {
+      case 1: values << 20; break; // church
+      case 2: values << 21; break; // chapel
+      case 4: values << 22; break; // temple
+      case 5: values << 23; break; // pagoda
+      case 6: values << 24; break; // shinto shrine
+      case 7: values << 25; break; // buddhist temple
+      case 8: values << 26; break; // mosque
+      case 9: values << 27; break; // marabout
+      case 3: // cross
+        values << 14;
+        m_ocode = S52::FindCIndex("LNDMRK");
+        m_acode = S52::FindCIndex("CATLMK");
+        break;
+
+      default: *ok = false;
+      }
+      QVariantList variants;
+      for (auto v: values) variants << QVariant::fromValue(v);
+      return S57::Attribute(variants);
+    }
+    if (t == S57::Attribute::Type::IntegerList && m_name == "CATMST") {
+      QVector<int> values;
+      switch (m_value.toInt()) {
+      case 1: values << 31; break; // radio mast / television mast
+      // FIXME case 2: values << 40; break; // mooring mast
+      case 3: values << 32; break; // radar mast
+      case 4: // wind sock
+        values << 8;
+        m_ocode = S52::FindCIndex("LNDMRK");
+        m_acode = S52::FindCIndex("CATLMK");
+        break;
+
+      default: *ok = false;
+      }
+      QVariantList variants;
+      for (auto v: values) variants << QVariant::fromValue(v);
+      return S57::Attribute(variants);
+    }
+    if (t == S57::Attribute::Type::IntegerList && m_name == "CATTOW") {
+      if (m_value.toInt() == 2) { // water tower
+        m_ocode = S52::FindCIndex("SILTNK");
+        m_acode = S52::FindCIndex("CATSIL");
+        return S57::Attribute(4);
+      }
+      QVector<int> values;
+      switch (m_value.toInt()) {
+      case 1: values << 33; break; // light tower
+      case 3: values << 31; break; // radio/television tower
+      case 4: values << 35; break; // cooling tower
+      case 5: values << 32; break; // radar tower
+      case 6: values << 28; break; // lookout tower
+      case 7: values << 36; break; // observation tower
+      default: *ok = false;
+      }
+      QVariantList variants;
+      for (auto v: values) variants << QVariant::fromValue(v);
+      return S57::Attribute(variants);
+    }
+    if (t == S57::Attribute::Type::IntegerList && m_name == "SUPLIT") {
+      QVector<int> values;
+      switch (m_value.toInt()) {
+      case 1: values << 16; break; // watched light
+      case 2: values << 17; break; // unwatched light
+      default: *ok = false;
+      }
+      QVariantList variants;
+      for (auto v: values) variants << QVariant::fromValue(v);
+      return S57::Attribute(variants);
+    }
+
     if (t == S57::Attribute::Type::IntegerList && lists.contains(m_name)) {
       return S57::Attribute(QVariantList {m_value});
     }
@@ -324,11 +440,56 @@ public:
     m_bytes += n_elems + 1;
   }
 
-  S57::Attribute attribute(S57::Attribute::Type t, bool* ok) const override {
+  S57::Attribute attribute(S57::Attribute::Type t, bool* ok) override {
     *ok = true;
+    if (t == S57::Attribute::Type::IntegerList && m_name == "CATBUI") {
+      QVector<int> values;
+      for (const auto& v: m_value.toList()) {
+        switch (v.toInt()) {
+        case 1: values << 1; break; // building without function/service of major interest      ID 5-6; 370.3,5;
+        case 2: values << 2; break; // harbour-master`s office  IF 60;  325.1;
+        case 3: values << 3; break; // custom office    IF 61;  325.2;
+        case 4: values << 4; break; // health office    IF 62.1;        325.3;
+        case 5: values << 5; break; // hospital IF 62.2;        325.3;
+        case 6: values << 6; break; // post office      IF 63;  372.1;
+        case 7: values << 7; break; // hotel
+        case 8: values << 8; break; // railway station  ID 13;  362.2;
+        case 9: values << 9; break; // police station
+        case 10: values << 10; break; // water-police station
+        case 11: values << 11; break; // pilot office   IT 3;   491.4;
+        case 12: values << 12; break; // pilot lookout  IT 2;   491.3;
+        case 13: values << 17; break; // power station
+        case 14: values << 13; break; // bank office
+        case 15: values << 14; break; // headquarters for district control
+        case 16: values << 15; break; // transit shed/warehouse IF 51;  328.1;
+        case 17: values << 16; break; // factory
+        case 18: values << 18; break; // administrative
+        case 19: values << 19; break; // educational facility
+        // FIXME case 20: values << 20; break; // inhabited building/house
+        // FIXME case 21: values << 21; break; // uninhabited building/house
+        case 22: values << 20; break; // church IE 10;  373.2;
+        case 23: values << 21; break; // chapel
+        case 24: values << 22; break; // temple IE 13,16;       373.2;
+        case 25: values << 23; break; // pagoda IE 14;  373.3;
+        case 26: values << 24; break; // shinto-shrine  IE 15;  373.3;
+        case 27: values << 25; break; // buddhist temple        IE 16;  373.3;
+        case 28: values << 26; break; // mosque IE 17;  373.4;
+        case 29: values << 27; break; // marabout       IE 18;  373.5;
+        // FIXME case 30: values << 30; break; // coastguard building    IT 10;  492.1-2;
+        case 31: values << 41; break; // stadium
+
+        default: *ok = false;
+        }
+      }
+      QVariantList variants;
+      for (auto v: values) variants << QVariant::fromValue(v);
+      return S57::Attribute(variants);
+    }
+
     if (t == S57::Attribute::Type::IntegerList) {
       return S57::Attribute(m_value.toList());
     }
+
     *ok = false;
     return S57::Attribute();
   }
@@ -347,7 +508,7 @@ public:
     m_bytes += 2;
   }
 
-  S57::Attribute attribute(S57::Attribute::Type t, bool* ok) const override {
+  S57::Attribute attribute(S57::Attribute::Type t, bool* ok) override {
     *ok = true;
     if (t == S57::Attribute::Type::Real) {
       return S57::Attribute(m_value.toDouble());
@@ -369,7 +530,7 @@ public:
     m_bytes += 4;
   }
 
-  S57::Attribute attribute(S57::Attribute::Type t, bool* ok) const override {
+  S57::Attribute attribute(S57::Attribute::Type t, bool* ok) override {
     *ok = true;
     if (t == S57::Attribute::Type::Real) {
       return S57::Attribute(m_value.toDouble());
@@ -400,7 +561,7 @@ public:
     m_bytes += 4;
   }
 
-  S57::Attribute attribute(S57::Attribute::Type t, bool* ok) const override {
+  S57::Attribute attribute(S57::Attribute::Type t, bool* ok) override {
     *ok = true;
     if (t == S57::Attribute::Type::Integer) {
       return S57::Attribute(m_value.toInt());
@@ -429,7 +590,7 @@ public:
     m_bytes += 4 + bytes.length();
   }
 
-  S57::Attribute attribute(S57::Attribute::Type t, bool* ok) const override {
+  S57::Attribute attribute(S57::Attribute::Type t, bool* ok) override {
     *ok = true;
     if (t == S57::Attribute::Type::String) {
       return S57::Attribute(m_value.toString());
@@ -671,6 +832,9 @@ public:
   void cm93AddAttribute(S57::Object* obj, quint16 acode, const S57::Attribute& a) const {
     obj->m_attributes[acode] = a;
   }
+  void cm93SetFeatureCode(S57::Object* obj, quint32 ocode) const {
+    obj->m_feature_type_code = ocode;
+  }
 };
 
 }
@@ -830,9 +994,11 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
     auto object = new S57::Object(featureId, featureCode);
     objects.append(object);
     if (m_subst_attrs.contains(className)) {
-      helper.cm93AddAttribute(object,
-                              m_subst_attrs[className].first,
-                              m_subst_attrs[className].second);
+      for (const auto& item: m_subst_attrs[className]) {
+        helper.cm93AddAttribute(object,
+                                item.first,
+                                item.second);
+      }
     }
 
     auto geoType = as_enum<CM93::GeomType>(geoHeader & 0x0f, CM93::AllGeomTypes);
@@ -931,7 +1097,7 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
       auto n_elems = read_and_decode<quint8>(stream);
       n_bytes -= 1;
       for (int j = 0; j < n_elems; j++) {
-        auto a = QScopedPointer<const CM93::Attribute>(CM93::Attribute::Decode(stream));
+        auto a = QScopedPointer<CM93::Attribute>(CM93::Attribute::Decode(stream));
         n_bytes -= a->bytesDecoded();
         quint16 acode;
         if (m_subst.contains(a->name())) {
@@ -943,7 +1109,8 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
             qCWarning(CENC) << "Unknown attribute"
                        << S52::GetClassInfo(featureCode)
                        << a->name()
-                       << a->type();
+                       << a->type()
+                       << a->value();
             continue;
           }
         }
@@ -957,7 +1124,13 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
                      << a->value();
           continue;
         }
+        if (a->attributeCode() != 0) {
+          acode = a->attributeCode();
+        }
         helper.cm93AddAttribute(object, acode, attr);
+        if (a->objectCode() != 0) {
+          helper.cm93SetFeatureCode(object, a->objectCode());
+        }
       }
     }
     Q_ASSERT(n_bytes == 0);

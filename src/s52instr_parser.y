@@ -114,7 +114,7 @@ command: TX '(' varstring ',' varint ',' varint ',' varint ',' CHARSPEC ','
     bc.setCode(lookup, S52::Lookup::Code::Fun);
     bc.setRef(lookup, fun->index());
   } else {
-    qCWarning(CS52) << "TX: unknown symbol, called with (variables)" << $11 << $13 << $15 << $17 << $19;
+    qCWarning(CS52) << "TX: argument parsing error";
     ABORT;
   }
 };
@@ -177,7 +177,7 @@ command: TE '(' string ',' string ',' INT ',' INT ',' INT ',' CHARSPEC ','
     bc.setCode(lookup, S52::Lookup::Code::Fun);
     bc.setRef(lookup, fun->index());
   } else {
-    qCWarning(CS52) << "TE: unknown symbols, called with" << $3 << $5 << $7 << $9 << $11 << $13 << $15 << $17 << $19 << $21;
+    qCWarning(CS52) << "TE: argument parsing error";
     ABORT;
   }
 
@@ -245,13 +245,19 @@ command: SY '(' SYMBOL optrotation ')' {
   bool ok = reader->names.contains($3);
   bool lit;
   float rot = $4.toFloat(&lit);
-  if (!lit) ok = ok && reader->names.contains($4);
 
-  if (ok) {
+  bool rok = lit ? true : reader->names.contains($4);
+
+  if (rok) {
     S52::ByteCoder bc;
 
     bc.setCode(lookup, S52::Lookup::Code::Immed);
-    bc.setImmed(lookup, QVariant::fromValue(reader->names[$3]));
+    if (ok) {
+      bc.setImmed(lookup, QVariant::fromValue(reader->names[$3]));
+    } else {
+      qCWarning(CS52PS) << "SY: unknown symbol" << $3;
+      bc.setImmed(lookup, QVariant::fromValue(reader->names["QUESMRK1"]));
+    }
 
     if (lit) {
       bc.setCode(lookup, S52::Lookup::Code::Immed);
@@ -264,7 +270,7 @@ command: SY '(' SYMBOL optrotation ')' {
     bc.setCode(lookup, S52::Lookup::Code::Fun);
     bc.setRef(lookup, fun->index());
   } else {
-    qCWarning(CS52) << "SY: unknown symbol, called with " << $3 << $4;
+    qCWarning(CS52) << "SY: unknown attribute" << $4;
     ABORT;
   }
 };
@@ -303,7 +309,7 @@ command: LS '(' pstyle ',' INT ',' COLOR ')' {
     bc.setCode(lookup, S52::Lookup::Code::Fun);
     bc.setRef(lookup, fun->index());
   } else {
-    qCWarning(CS52) << "LS: unknown symbol, called with " << $3 << $5 << $7;
+    qCWarning(CS52) << "LS: unknown color" << $7;
     ABORT;
   }
 };
@@ -323,18 +329,19 @@ pstyle: DOTTED {
 command: LC '(' SYMBOL ')' {
   auto fun = S52::FindFunction("LC");
   bool ok = reader->names.contains($3);
+
+  S52::ByteCoder bc;
+
+  bc.setCode(lookup, S52::Lookup::Code::Immed);
   if (ok) {
-    S52::ByteCoder bc;
-
-    bc.setCode(lookup, S52::Lookup::Code::Immed);
     bc.setImmed(lookup, QVariant::fromValue(reader->names[$3]));
-
-    bc.setCode(lookup, S52::Lookup::Code::Fun);
-    bc.setRef(lookup, fun->index());
   } else {
-    qCWarning(CS52) << "LC: unknown symbol, called with " << $3;
-    ABORT;
+    qCWarning(CS52PS) << "LC: unknown symbol" << $3;
+    bc.setImmed(lookup, QVariant::fromValue(reader->names["QUESMRK1"]));
   }
+
+  bc.setCode(lookup, S52::Lookup::Code::Fun);
+  bc.setRef(lookup, fun->index());
 };
 
 command: AC '(' COLOR opttransparency ')' {
@@ -352,7 +359,7 @@ command: AC '(' COLOR opttransparency ')' {
     bc.setCode(lookup, S52::Lookup::Code::Fun);
     bc.setRef(lookup, fun->index());
   } else {
-    qCWarning(CS52) << "AC: unknown symbol, called with " << $3 << $4;
+    qCWarning(CS52) << "AC: unknown color" << $3;
     ABORT;
   }
 };
@@ -370,13 +377,19 @@ command: AP '(' SYMBOL optrotation ')' {
   bool ok = reader->names.contains($3);
   bool lit;
   float rot = $4.toFloat(&lit);
-  if (!lit) ok = ok && reader->names.contains($4);
 
-  if (ok) {
+  bool rok = lit ? true : reader->names.contains($4);
+
+  if (rok) {
     S52::ByteCoder bc;
 
     bc.setCode(lookup, S52::Lookup::Code::Immed);
-    bc.setImmed(lookup, QVariant::fromValue(reader->names[$3]));
+    if (ok) {
+      bc.setImmed(lookup, QVariant::fromValue(reader->names[$3]));
+    } else {
+      qCWarning(CS52PS) << "AP: unknown symbol" << $3;
+      bc.setImmed(lookup, QVariant::fromValue(reader->names["QUESMRK1"]));
+    }
 
     if (lit) {
       bc.setCode(lookup, S52::Lookup::Code::Immed);
@@ -389,7 +402,7 @@ command: AP '(' SYMBOL optrotation ')' {
     bc.setCode(lookup, S52::Lookup::Code::Fun);
     bc.setRef(lookup, fun->index());
   } else {
-    qCWarning(CS52) << "AP: unknown symbol, called with " << $3 << $4;
+    qCWarning(CS52) << "AP: unknown attribute" << $4;
     ABORT;
   }
 };
@@ -405,7 +418,7 @@ command: CS '(' OVERLING ')' {
     bc.setCode(lookup, S52::Lookup::Code::Fun);
     bc.setRef(lookup, fun->index());
   } else {
-    qCWarning(CS52) << "CS: unknown symbol, called with " << $3;
+    qCWarning(CS52) << "CS: unknown procedure" << $3;
     ABORT;
   }
 };
@@ -420,7 +433,7 @@ command: CS '(' OVERRIDER ')' {
     bc.setCode(lookup, S52::Lookup::Code::Fun);
     bc.setRef(lookup, fun->index());
   } else {
-    qCWarning(CS52) << "CS: unknown symbol, called with " << $3;
+    qCWarning(CS52) << "CS: unknown procedure" << $3;
     ABORT;
   }
 };
@@ -434,7 +447,7 @@ command: CS '(' SYMBOL ')' {
     bc.setCode(lookup, S52::Lookup::Code::Fun);
     bc.setRef(lookup, fun->index());
   } else {
-    qCWarning(CS52) << "CS: unknown symbol, called with " << $3;
+    qCWarning(CS52) << "CS: unknown procedure" << $3;
     ABORT;
   }
 };

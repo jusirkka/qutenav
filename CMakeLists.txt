@@ -120,7 +120,7 @@ endif ()
 add_custom_target(Doc SOURCES
   TODO
   README.md
-  )
+)
 
 
 set(BISON_MIN_VERSION "3.1")
@@ -142,7 +142,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 include(MyAddTranslation)
 
 my_add_translation(QUTENAV_QMS translations/id_en.ts
-  OPTIONS -idbased)
+  OPTIONS -idbased
+)
 
 
 #
@@ -244,7 +245,7 @@ BISON_TARGET(S52HParser src/s52hpgl_parser.y ${CMAKE_BINARY_DIR}/s52hpgl_parser.
   DEFINES_FILE ${CMAKE_BINARY_DIR}/s52hpgl_parser.h)
 
 
-# automoc generates duplicate mocs for dbus adaptor files in sfos-sdk versions
+# automoc generates duplicate mocs for dbus adaptor files in sfos-sdk - dunno why
 if (PLATFORM STREQUAL silica)
   set_target_properties(qutenav_dbupdater
     PROPERTIES

@@ -3064,3 +3064,19 @@ S57::PaintDataMap S52::CSWrecks02::dangerData(double depth,
   return ps;
 }
 
+S52::CSSymbolInsert01::CSSymbolInsert01(quint32 index)
+  : Function("SYMINS01", index)
+{}
+
+S57::PaintDataMap S52::CSSymbolInsert01::execute(const QVector<QVariant>&,
+                                                 const S57::Object*) {
+  qCWarning(CS57) << "Not implemented";
+  return S57::PaintDataMap();
+}
+
+QStringList S52::CSSymbolInsert01::descriptions(const QVector<QVariant>&,
+                                          const S57::Object*) const {
+  qCWarning(CS57) << "Not implemented";
+  return QStringList();
+}
+

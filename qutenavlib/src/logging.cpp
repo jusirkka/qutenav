@@ -23,6 +23,8 @@
 #include "logging.h"
 
 Q_LOGGING_CATEGORY(CS52, "kv.s52")
+Q_LOGGING_CATEGORY(CS52P, "kv.s52.parser")
+Q_LOGGING_CATEGORY(CS52PS, "kv.s52.parser.symbol")
 Q_LOGGING_CATEGORY(CS57, "kv.s57")
 Q_LOGGING_CATEGORY(CDPY, "kv.dpy")
 Q_LOGGING_CATEGORY(CMGR, "kv.mgr")

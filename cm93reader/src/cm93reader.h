@@ -119,7 +119,7 @@ private:
   const int m_recdat;
 
   const QMap<QString, quint32> m_subst;
-  const QMap<QString, QPair<quint32, S57::Attribute>> m_subst_attrs;
+  const QMap<QString, QVector<QPair<quint32, S57::Attribute>>> m_subst_attrs;
 
   GeoProjection* m_proj;
 

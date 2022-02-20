@@ -532,6 +532,20 @@ private:
   const quint32 m_expsou;
 };
 
+class CSSymbolInsert01: public Function {
+public:
+
+  CSSymbolInsert01(quint32 index);
+
+  S57::PaintDataMap execute(const QVector<QVariant>&, const S57::Object* obj) override;
+  QStringList descriptions(const QVector<QVariant>& vals, const S57::Object* obj) const override;
+
+private:
+
+
+};
+
+
 class Functions {
 
 public:
@@ -566,6 +580,7 @@ public:
     FUN(CSSoundings02);
     FUN(CSTopmarks01);
     FUN(CSWrecks02);
+    FUN(CSSymbolInsert01);
   }
 
 #undef FUN

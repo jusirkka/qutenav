@@ -13,11 +13,9 @@
 - bug in Converter::display
 - bug in NMSConverter::display
 - bug: areas overlap texts (only intel/gpu; sw/desktop & mobile are ok)
+- delete cache if chartsymbols etc have changed
 
-
-- check consistency of attdecode.csv and s57expectedinput.csv
 - correct text frag shader parameters as uniforms
-- fix chartsymbols.xml: typos, remove unsupported classcodes/lookups
 - bug: s57 chart fatal error: bbox is empty in some areas/lines/points
 - bug: sfos: current item highlight in ItemLists does not make sense
 - bug: overlapping charts not handled properly

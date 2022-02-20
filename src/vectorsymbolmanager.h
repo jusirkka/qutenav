@@ -121,7 +121,6 @@ private:
   SymbolData m_invalid;
   QOpenGLBuffer m_coordBuffer;
   QOpenGLBuffer m_indexBuffer;
-  const QStringList m_blacklist;
   // paintIcon interface
   PainterDataMap m_painterData;
   PixmapCache m_pixmapCache;

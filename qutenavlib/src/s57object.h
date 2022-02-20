@@ -323,8 +323,8 @@ private:
   static const int perstaIndex = 119;
   static const int perendIndex = 118;
 
-  const quint32 m_feature_id;
-  const quint32 m_feature_type_code;
+  quint32 m_feature_id;
+  quint32 m_feature_type_code;
   AttributeMap m_attributes;
   Geometry::Base* m_geometry;
   QRectF m_bbox;

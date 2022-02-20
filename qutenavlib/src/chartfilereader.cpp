@@ -205,7 +205,7 @@ void ChartFileReader::triangulate(S57::ElementDataVector &elems,
 
   auto triangles = tri.triangulate();
 
-  S57::ElementData e(GL_TRIANGLES, triangles.size(), indices.size() * sizeof(GLuint));
+  S57::ElementData e(GL_TRIANGLES, indices.size() * sizeof(GLuint), triangles.size());
   elems.append(e);
 
   indices.append(triangles);
