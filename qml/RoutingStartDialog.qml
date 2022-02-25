@@ -24,7 +24,7 @@ import "./platform"
 DialogPL {
   id: dialog
 
-  property var router: undefined
+  property var router
   title: "Route editor"
   acceptText: "Edit current"
 

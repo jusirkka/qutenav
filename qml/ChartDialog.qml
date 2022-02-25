@@ -27,7 +27,7 @@ DialogPL {
   hasOK: true
   pageHeight: parent.height * .7
 
-  property var paths: []
+  property var paths
   property bool fullUpdate: false
 
   onAccepted: {

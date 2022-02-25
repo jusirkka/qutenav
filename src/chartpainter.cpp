@@ -149,7 +149,7 @@ void ChartPainter::updateCharts(const Camera* cam, const QRectF& viewArea) {
   f->glDisable(GL_STENCIL_TEST);
   f->glDisable(GL_CULL_FACE);
   f->glDisable(GL_BLEND);
-  f->glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  f->glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE);
 
   f->glClearColor(.7, .7, .7, 1.);
   f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);

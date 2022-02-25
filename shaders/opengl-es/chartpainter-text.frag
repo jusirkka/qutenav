@@ -8,9 +8,11 @@ uniform vec4 base_color;
 in vec2 tex;
 layout (location = 0) out vec4 color;
 
+const float width = .19;
+const float surf = .75;
+
 void main() {
   float dist = texture(atlas, tex).r;
-  float width = fwidth(dist);
-  float alpha = smoothstep(.7 - width, .7 + width, dist);
+  float alpha = smoothstep(surf - width, surf + width, dist);
   color = vec4(base_color.rgb, alpha);
 }

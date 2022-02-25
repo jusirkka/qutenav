@@ -31,6 +31,7 @@ class QPainter;
 
 namespace S52 {
 
+class Lookup;
 
 class Function {
 
@@ -540,8 +541,17 @@ public:
   S57::PaintDataMap execute(const QVector<QVariant>&, const S57::Object* obj) override;
   QStringList descriptions(const QVector<QVariant>& vals, const S57::Object* obj) const override;
 
+  virtual ~CSSymbolInsert01() {qDeleteAll(m_lookups.values());}
+
 private:
 
+
+  const quint32 m_symins;
+  const quint32 m_clsnam;
+
+  using LookupHash = QHash<QString, Lookup*>;
+
+  LookupHash m_lookups;
 
 };
 

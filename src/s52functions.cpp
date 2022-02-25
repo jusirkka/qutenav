@@ -3066,17 +3066,34 @@ S57::PaintDataMap S52::CSWrecks02::dangerData(double depth,
 
 S52::CSSymbolInsert01::CSSymbolInsert01(quint32 index)
   : Function("SYMINS01", index)
+  , m_symins(S52::FindIndex("SYMINS"))
+  , m_clsnam(S52::FindIndex("CLSNAM"))
 {}
 
 S57::PaintDataMap S52::CSSymbolInsert01::execute(const QVector<QVariant>&,
-                                                 const S57::Object*) {
-  qCWarning(CS57) << "Not implemented";
-  return S57::PaintDataMap();
+                                                 const S57::Object* obj) {
+  if (!obj->attributeValue(m_clsnam).isValid()) {
+    return S57::PaintDataMap();
+  }
+  const auto name = obj->attributeValue(m_clsnam).toString();
+
+  if (!m_lookups.contains(name)) {
+    if (!obj->attributeValue(m_symins).isValid()) {
+      return S57::PaintDataMap();
+    }
+    const auto instr = obj->attributeValue(m_symins).toString();
+    qCDebug(CS52) << name << "-" << instr;
+    // All but instr are dummy values
+    Lookup* lup = new Lookup(S52::Lookup::Type::PaperChart, 0, 0, 0, Lookup::Category::Base, Lookup::AttributeMap(), "", instr);
+    ParseInstruction(lup);
+    m_lookups[name] = lup;
+  }
+  return m_lookups[name]->execute(obj);
 }
 
 QStringList S52::CSSymbolInsert01::descriptions(const QVector<QVariant>&,
                                           const S57::Object*) const {
-  qCWarning(CS57) << "Not implemented";
+  qCWarning(CS52) << "Not implemented";
   return QStringList();
 }
 

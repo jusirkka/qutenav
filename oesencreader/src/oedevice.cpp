@@ -211,7 +211,7 @@ QByteArray OeDevice::CacheId(const QString& path) {
 void OeDevice::Kickoff() {
   int cnt = 10;
   auto serverEP = ::open(serverEPName, O_WRONLY | O_NDELAY);
-  while (serverEP < 0 && cnt > 0) {
+  while ((serverEP < 0) && (cnt > 0)) {
     qCDebug(CENC) << strerror(errno);
     usleep(20000);
     serverEP = ::open(serverEPName, O_WRONLY | O_NDELAY);
@@ -228,7 +228,7 @@ void OeDevice::Kickoff() {
 
   serverEP = ::open(serverEPName, O_WRONLY | O_NDELAY);
   cnt = 20;
-  while (serverEP < 0 && cnt > 0) {
+  while ((serverEP < 0) && (cnt > 0)) {
     qCDebug(CENC) << strerror(errno);
     usleep(10000);
     serverEP = ::open(serverEPName, O_WRONLY | O_NDELAY);

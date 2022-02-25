@@ -56,7 +56,7 @@ PagePL {
     iconName: app.getSystemIcon('archive')
     onClicked: {
       var d2 = app.show(Qt.resolvedUrl("RouteDisplayDialog.qml"),
-                            {router: page.router})
+                        {router: page.router, routeId: -1})
       d2.onAccepted.connect(page.routeLoader);
     }
     enabled: !page.router.edited

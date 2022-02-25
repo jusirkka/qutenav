@@ -14,8 +14,8 @@
 - bug in NMSConverter::display
 - bug: areas overlap texts (only intel/gpu; sw/desktop & mobile are ok)
 - delete cache if chartsymbols etc have changed
+- check all strings and add translation support
+- bug: no color in traffic separation lane symbols
 
-- correct text frag shader parameters as uniforms
 - bug: s57 chart fatal error: bbox is empty in some areas/lines/points
-- bug: sfos: current item highlight in ItemLists does not make sense
 - bug: overlapping charts not handled properly

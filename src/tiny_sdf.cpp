@@ -19,6 +19,7 @@
  */
 #include "tiny_sdf.h"
 #include <cmath>
+#include <QDebug>
 
 TinySDF::TinySDF(const FT_Bitmap& bmap, uint pad)
   : TinySDF(bmap.width,

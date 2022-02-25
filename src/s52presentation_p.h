@@ -75,7 +75,6 @@ private:
   void readLookups(QXmlStreamReader& reader);
   void readSymbolNames(QXmlStreamReader& reader);
 
-  int parseInstruction(S52::Lookup* lup);
 
   quint32 m_nextSymbolIndex;
 
@@ -86,6 +85,7 @@ private slots:
 public:
 
   void init();
+  int parseInstruction(S52::Lookup* lup);
 
   S52::Lookup::Type typeFilter(const S57::Object* obj) const;
 

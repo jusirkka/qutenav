@@ -43,6 +43,7 @@ DialogPL {
 
     delegate: ListItemPL {
       contentHeight: s1.height
+      view: tracks
       menu: ContextMenuPL {
         ContextMenuItemPL {
           visible: model.preference < trackModel.topPreference()
@@ -85,7 +86,7 @@ DialogPL {
         }
         Column {
           id: s1
-          width: dialog.width * .8
+          width: dialog.width - s0.width - 2 * theme.paddingLarge
           spacing: theme.paddingSmall
 
           Item {

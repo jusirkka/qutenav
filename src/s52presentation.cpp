@@ -313,3 +313,8 @@ quint32 S52::FindIndex(const QString &name, bool* ok) {
   return 0;
 }
 
+void S52::ParseInstruction(Lookup* lup, bool* ok) {
+  Private::Presentation* p = Private::Presentation::instance();
+  int err = p->parseInstruction(lup);
+  if (ok != nullptr) *ok = err == 0;
+}

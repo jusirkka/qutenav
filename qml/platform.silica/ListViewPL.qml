@@ -20,10 +20,4 @@
 import QtQuick 2.6
 import Sailfish.Silica 1.0
 
-SilicaListView {
-  highlight: Rectangle {
-    color: "#bcced4"
-  }
-  highlightMoveDuration: 0
-  highlightResizeDuration: 0
-}
+SilicaListView {}

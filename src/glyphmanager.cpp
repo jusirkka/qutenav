@@ -35,7 +35,7 @@ GlyphBin::GlyphBin(QMutex *mutex)
   , m_width(1024)
   , m_height(1024)
   , m_data(new uchar[m_width * m_height]())
-  , m_pad(2)
+  , m_pad(4)
 {
   SkylineNode node;
   node.x = 0;

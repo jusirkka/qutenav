@@ -100,7 +100,6 @@ Rectangle {
     Image {
       id: fig
       visible: !!source
-      width: visible ? 32 : 0
       height: width
     }
 

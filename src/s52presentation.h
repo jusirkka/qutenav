@@ -124,5 +124,6 @@ QString GetSymbolInfo(const SymbolKey& key);
 QString GetAttributeInfo(quint32 index, const S57::Object* obj);
 quint32 FindIndex(const QString& name);
 quint32 FindIndex(const QString& name, bool* ok);
+void ParseInstruction(Lookup* lup, bool* ok = nullptr);
 
 } // namespace S52

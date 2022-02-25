@@ -34,10 +34,17 @@ Item {
   width: parent ? parent.width : 0
 
   property real contentHeight
-  property bool highlighted: false
+  property bool highlighted: mouseArea.containsMouse
   property var menu
+  property var view
 
   signal clicked
+
+  onHighlightedChanged: {
+    if (highlighted) {
+      view.currentIndex = index
+    }
+  }
 
   ItemDelegate {
     id: item
@@ -46,20 +53,17 @@ Item {
     width: parent.width
 
     MouseArea {
+      id: mouseArea
       anchors.fill: parent
       acceptedButtons: Qt.RightButton
       propagateComposedEvents: true
+      hoverEnabled: true
       onClicked: {
         if (!menu || !menu.enabled) return
         menu.x = mouse.x
         menu.y = mouse.y
-        menu.visibleChanged.connect(function (){
-          main.highlighted = !!menu && menu.visible;
-        })
         menu.open();
       }
-      onPressed: main.highlighted = pressed
-      onReleased: main.highlighted = pressed || (!!menu && menu.visible)
     }
 
     onClicked: parent.clicked()

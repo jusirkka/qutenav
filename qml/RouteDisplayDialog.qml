@@ -24,8 +24,8 @@ import "./platform"
 DialogPL {
   id: dialog
 
-  property var router: undefined
-  property int routeId: -1
+  property var router
+  property int routeId
 
   //% "Select route"
   title: qsTrId("qutenav-route-display-title")
@@ -50,6 +50,7 @@ DialogPL {
 
     delegate: ListItemPL {
       contentHeight: s1.height
+      view: routes
       anchors.horizontalCenter: parent.horizontalCenter
       menu: ContextMenuPL {
         ContextMenuItemPL {
@@ -82,7 +83,7 @@ DialogPL {
 
       Column {
         id: s1
-        width: dialog.width * 0.95
+        width: dialog.width - 2 * theme.paddingLarge
         anchors.horizontalCenter: parent.horizontalCenter
         spacing: theme.paddingSmall
         Item {
