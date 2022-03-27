@@ -116,6 +116,7 @@ private:
   static constexpr float marginFactor = 1.08;
   static constexpr float maxScaleRatio = 32;
   static constexpr float maxScale = 25000000;
+  static constexpr float minCoverage = .975;
 
   ChartManager(QObject *parent = nullptr);
   ChartManager(const ChartManager&) = delete;

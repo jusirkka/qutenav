@@ -24,7 +24,8 @@
 #include "s52names.h"
 #include "chartfilereader.h"
 #include "logging.h"
-
+// #include "gnuplot.h"
+#include <QFileInfo>
 
 using Buffer = QVector<char>;
 using HandlerFunc = std::function<bool (const Buffer&)>;
@@ -35,18 +36,8 @@ struct Handler {
   ~Handler() = default;
 };
 
-using Region = S57ChartOutline::Region;
 using VVec = QVector<glm::vec2>;
 
-const uint UseCoverage = 1;
-const uint UseNoCoverage = 2;
-
-static uint checkCoverage(const Region& cov,
-                          const Region& nocov,
-                          const WGS84PointVector& ps,
-                          const GeoProjection* gp);
-
-static WGS84PointVector reduce(const VVec& vs);
 
 GeoProjection* Osenc::configuredProjection(QIODevice *device, const QString &clsName) const {
 
@@ -197,9 +188,9 @@ S57ChartOutline Osenc::readOutline(QIODevice *device, const GeoProjection* gp) c
   QDate pub;
   QDate mod;
   quint32 scale = 0;
-  WGS84PointVector points;
-  Region cov;
-  Region nocov;
+  WGS84PointVector corners;
+  WGS84Polygon cov;
+  WGS84Polygon nocov;
 
   const QMap<SencRecordType, Handler*> handlers {
     {SencRecordType::HEADER_CELL_NAME, new Handler([] (const Buffer& b) {
@@ -245,13 +236,11 @@ S57ChartOutline Osenc::readOutline(QIODevice *device, const GeoProjection* gp) c
         return true;
       })
     },
-    {SencRecordType::CELL_EXTENT_RECORD, new Handler([&points] (const Buffer& b) {
+    {SencRecordType::CELL_EXTENT_RECORD, new Handler([&corners] (const Buffer& b) {
         // qCDebug(CENC) << "cell extent record";
         const OSENC_EXTENT_Record_Payload* p = reinterpret_cast<const OSENC_EXTENT_Record_Payload*>(b.constData());
-        points << WGS84Point::fromLL(p->extent_sw_lon, p->extent_sw_lat);
-        points << WGS84Point::fromLL(p->extent_se_lon, p->extent_se_lat);
-        points << WGS84Point::fromLL(p->extent_ne_lon, p->extent_ne_lat);
-        points << WGS84Point::fromLL(p->extent_nw_lon, p->extent_nw_lat);
+        corners << WGS84Point::fromLL(p->extent_sw_lon, p->extent_sw_lat);
+        corners << WGS84Point::fromLL(p->extent_ne_lon, p->extent_ne_lat);
 
         return true;
       })
@@ -267,7 +256,11 @@ S57ChartOutline Osenc::readOutline(QIODevice *device, const GeoProjection* gp) c
         auto p = reinterpret_cast<const OSENC_POINT_ARRAY_Record_Payload*>(b.constData());
         VVec vs(p->count);
         memcpy(vs.data(), &p->array, p->count * 2 * sizeof(GLfloat));
-        cov.append(reduce(vs));
+        WGS84PointVector ps;
+        for (const glm::vec2& v: vs) {
+          ps << WGS84Point::fromLL(v.y, v.x);
+        }
+        cov.append(ps);
         return true;
       })
     },
@@ -277,7 +270,11 @@ S57ChartOutline Osenc::readOutline(QIODevice *device, const GeoProjection* gp) c
         auto p = reinterpret_cast<const OSENC_POINT_ARRAY_Record_Payload*>(b.constData());
         VVec vs(p->count);
         memcpy(vs.data(), &p->array, p->count * 2 * sizeof(GLfloat));
-        nocov.append(reduce(vs));
+        WGS84PointVector ps;
+        for (const glm::vec2& v: vs) {
+          ps << WGS84Point::fromLL(v.y, v.x);
+        }
+        nocov.append(ps);
         return true;
       })
     },
@@ -322,16 +319,21 @@ S57ChartOutline Osenc::readOutline(QIODevice *device, const GeoProjection* gp) c
 
   }
   qDeleteAll(handlers);
-  if (!pub.isValid() || !mod.isValid() || scale == 0 || points.isEmpty()) {
+  if (!pub.isValid() || !mod.isValid() || scale == 0 || corners.isEmpty()) {
     throw ChartFileError(QString("Invalid osenc header"));
   }
 
-  uint flags = checkCoverage(cov, nocov, points, gp);
-  // points = sw, se, ne, nw
-  return S57ChartOutline(points[0], points[2],
-      (flags & UseCoverage) ? cov : Region(),
-      (flags & UseNoCoverage) ? nocov : Region(),
-      scale, pub, mod);
+  // corners = sw, ne
+  ChartFileReader::checkCoverage(cov, nocov, corners, gp);
+  //  const QString name = QString("./gnuplot/%1-%2-%3")
+  //      .arg(ca).arg(nca).arg(QFileInfo(device->objectName()).baseName());
+  //  auto noop = GeoProjection::CreateProjection("NoopProjection");
+  //  chartcover::tognuplot(cov, nocov, points[0], points[1], gp, name);
+  //  chartcover::tognuplot(cov, nocov, points[0], points[1], noop, "./gnuplot/full", true);
+  //  delete noop;
+
+  // nocov only duplicates complements of coverage regions
+  return S57ChartOutline(corners[0], corners[1], cov, WGS84Polygon(), scale, pub, mod);
 }
 
 
@@ -677,7 +679,7 @@ void Osenc::readChart(GL::VertexVector& vertices,
 
     if (record->record_length <= baseSize) {
       done = true;
-      qCWarning(CENC) << "Record length is too small" << buffer;
+      qCWarning(CENC) << "Record length is too small:" << record->record_length;
       continue;
     }
 
@@ -880,79 +882,4 @@ static void appendTriangleFan(GL::VertexVector& ps, const glm::vec2* vs, quint32
   }
 }
 
-
-
-static WGS84PointVector reduce(const VVec& vs) {
-  const float eps = 1.e-8;
-  WGS84PointVector ps;
-  const int N = vs.size();
-  for (int k = 0; k < N; k++) {
-    const glm::vec2 v = vs[k];
-    const glm::vec2 vm = vs[(k + N - 1) % N];
-    const glm::vec2 vp = vs[(k + 1) % N];
-    if (std::abs(v.x - vm.x) < eps && std::abs(v.x - vp.x) < eps) continue;
-    if (std::abs(v.y - vm.y) < eps && std::abs(v.y - vp.y) < eps) continue;
-    ps << WGS84Point::fromLL(v.y, v.x);
-  }
-  return ps;
-}
-
-using PointVector = QVector<QPointF>;
-using PPolygon = QVector<PointVector>;
-
-static float area(const PointVector& ps) {
-  float sum = 0;
-  const int n = ps.size();
-  for (int k = 0; k < n; k++) {
-    const QPointF p0 = ps[k];
-    const QPointF p1 = ps[(k + 1) % n];
-    sum += p0.x() * p1.y() - p0.y() * p1.x();
-  }
-  return .5 * sum;
-}
-
-static uint checkCoverage(const Region& cov,
-                          const Region& nocov,
-                          const WGS84PointVector& ps,
-                          const GeoProjection* gp) {
-  PPolygon covp;
-  for (const WGS84PointVector& vs: cov) {
-    PointVector ps;
-    for (auto v: vs) {
-      ps << gp->fromWGS84(v);
-    }
-    covp.append(ps);
-  }
-  PPolygon nocovp;
-  for (const WGS84PointVector& vs: nocov) {
-    PointVector ps;
-    for (auto v: vs) {
-      ps << gp->fromWGS84(v);
-    }
-    nocovp.append(ps);
-  }
-  PointVector box;
-  for (auto p: ps) {
-    box << gp->fromWGS84(p);
-  }
-
-  const float A = area(box);
-
-  float totcov = 0;
-  for (const PointVector& ps: covp) {
-    totcov += std::abs(area(ps) / A);
-  }
-
-  float totnocov = 0;
-  for (const PointVector& ps: nocovp) {
-    totnocov += std::abs(area(ps) / A);
-  }
-
-  uint ret = 0;
-  // .5: assuming it's a bug
-  if (!cov.isEmpty() && totcov < .8 && totcov != .5) ret += UseCoverage;
-  if (totnocov > .2) ret += UseNoCoverage;
-
-  return ret;
-}
 

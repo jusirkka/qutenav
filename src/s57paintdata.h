@@ -49,6 +49,7 @@ public:
 
   virtual void setUniforms() const = 0;
   virtual void setVertexOffset() const = 0;
+  virtual void filterElements(const KV::Region&) {/* noop */}
   Type type() const {return m_type;}
 
   virtual ~PaintData() = default;
@@ -99,7 +100,7 @@ public:
   void setVertexOffset() const override;
 
   const ElementDataVector& elements() const {return m_elements;}
-  void filterElements(const KV::Region& viewArea);
+  void filterElements(const KV::Region& viewArea) override;
 
 protected:
 
@@ -130,7 +131,7 @@ public:
 
   virtual void setStorageOffsets(uintptr_t offset) const = 0;
 
-  void filterElements(const KV::Region& viewArea);
+  void filterElements(const KV::Region& viewArea) override;
 
 
 protected:
@@ -498,7 +499,7 @@ private:
 
 
 using PaintDataMap = QMultiMap<PaintData::Type, PaintData*>;
-using PaintIterator = QMultiMap<PaintData::Type, PaintData*>::const_iterator;
-using PaintMutIterator = QMultiMap<PaintData::Type, PaintData*>::iterator;
+using PaintIterator = PaintDataMap::const_iterator;
+using PaintMutIterator = PaintDataMap::iterator;
 
 }

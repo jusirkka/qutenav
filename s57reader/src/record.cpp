@@ -190,8 +190,9 @@ S57::DSPM::DSPM(const QByteArray& bytes): Record("DSPM") {
   soundingFactor = read_value<quint32>(stream);
 
   int len;
-  const QString comment = read_bytes_until(stream, unitTerminator, len);
-  if (!comment.isEmpty()) qCDebug(CENC) << "DSPM: comment" << comment;
+  read_bytes_until(stream, unitTerminator, len);
+  // const QString comment = read_bytes_until(stream, unitTerminator, len);
+  // if (!comment.isEmpty()) qCDebug(CENC) << "DSPM: comment" << comment;
 
   //  for (S57::AttributeMap::const_iterator it = attributes.cbegin();
   //       it != attributes.cend(); ++it) {

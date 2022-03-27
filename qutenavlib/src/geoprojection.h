@@ -90,6 +90,19 @@ private:
 
 };
 
+class NoopProjection: public GeoProjection {
+public:
+  NoopProjection();
+  WGS84Point toWGS84(const QPointF& p) const override;
+  QPointF fromWGS84(const WGS84Point& p) const override;
+  QString className() const {return "NoopProjection";}
+
+
+private:
+
+
+};
+
 
 bool operator!= (const GeoProjection& p1, const GeoProjection& p2);
 bool operator== (const GeoProjection& p1, const GeoProjection& p2);

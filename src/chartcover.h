@@ -23,7 +23,6 @@
 #include <QVector>
 #include "region.h"
 
-using LLPolygon = QVector<WGS84PointVector>;
 
 using PointVector = QVector<QPointF>;
 using Polygon = QVector<PointVector>;
@@ -36,19 +35,23 @@ public:
   ChartCover(const ChartCover&);
   ChartCover();
   ChartCover operator =(const ChartCover&);
-  ChartCover(const LLPolygon& cov, const LLPolygon& nocov,
+  ChartCover(const WGS84Polygon& cov, const WGS84Polygon& nocov,
              const WGS84Point& sw, const WGS84Point& ne,
              const GeoProjection* gp);
 
   KV::Region region(const GeoProjection* gp) const;
+  const WGS84Polygon& coverage() const {return m_cov;}
+  const WGS84Polygon& nocoverage() const {return m_nocov;}
 
 private:
 
   static const int gridWidth = 21;
 
-  KV::Region approximate(const PointVector& poly, const QRectF& box) const;
+  KV::Region approximate(const PointVector& poly, const QRectF& box, bool inner = false) const;
   bool isRectangle(const PointVector& poly) const;
 
   WGS84Point m_ref;
   KV::Region m_cover;
+  const WGS84Polygon m_cov;
+  const WGS84Polygon m_nocov;
 };

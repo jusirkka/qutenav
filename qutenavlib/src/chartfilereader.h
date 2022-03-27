@@ -83,6 +83,13 @@ public:
 
   static int addIndices(const Edge& e, GL::IndexVector& indices);
 
+  static void checkCoverage(WGS84Polygon& cov,
+                            WGS84Polygon& nocov,
+                            WGS84PointVector& ps,
+                            const GeoProjection* gp,
+                            quint8* covp = nullptr, quint8* nocovp = nullptr); // percentages
+
+  static void reduce(QVector<QPointF>& ps);
 
 protected:
 

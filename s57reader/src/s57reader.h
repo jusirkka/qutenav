@@ -47,8 +47,6 @@ public:
 private:
 
   using PointVector = QVector<QPointF>;
-  using PRegion = QVector<PointVector>;
-  using Region = S57ChartOutline::Region;
 
   struct RawEdge {
     RawEdge() = default;
@@ -94,21 +92,14 @@ private:
 
 
 
-  bool checkCoverage(const PRegion& cov,
-                     WGS84Point &sw,
-                     WGS84Point &ne,
-                     const GeoProjection *gp) const;
 
-  void createCoverage(PRegion& cov, PRegion& nocov,
+  void createCoverage(WGS84Polygon& cov, WGS84Polygon& nocov,
                       const RawEdgeRefVector& edges, const RawEdgeMap& edgemap,
-                      const PointMap& connmap, quint32 mulfac,
-                      const GeoProjection* gp) const;
+                      const PointMap& connmap, quint32 mulfac) const;
 
-  PointVector addVertices(const RawEdgeRef& e, const RawEdgeMap& edgemap,
-                          const PointMap& connmap, quint32 mulfac,
-                          const GeoProjection* gp) const;
+  WGS84PointVector addVertices(const RawEdgeRef& e, const RawEdgeMap& edgemap,
+                               const PointMap& connmap, quint32 mulfac) const;
 
-  Region transformCoverage(PRegion pcov, const GeoProjection* gp, WGS84Point* corners) const;
 
   static const inline double eps = 1.e-4;
   using IndexVector = QVector<int>;

@@ -28,6 +28,9 @@ GeoProjection* GeoProjection::CreateProjection(const QString& className) {
   if (className == "CM93Mercator") {
     return new CM93Mercator;
   }
+  if (className == "NoopProjection") {
+    return new NoopProjection;
+  }
   return nullptr;
 }
 
@@ -90,6 +93,19 @@ WGS84Point CM93Mercator::toWGS84(const QPointF &p) const {
   return WGS84Point::fromLLRadians(
         m_ref.radiansLng() + p.x() * m_scaling.width() / zC,
         2.0 * atan(exp((m_y30 + p.y() * m_scaling.height()) / zC)) - M_PI_2);
+}
+
+
+NoopProjection::NoopProjection()
+  : GeoProjection()
+{}
+
+QPointF NoopProjection::fromWGS84(const WGS84Point &p) const {
+  return QPointF(p.lng(), p.lat());
+}
+
+WGS84Point NoopProjection::toWGS84(const QPointF &p) const {
+  return WGS84Point::fromLL(p.x(), p.y());
 }
 
 bool operator!= (const GeoProjection& p1, const GeoProjection& p2) {

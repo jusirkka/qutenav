@@ -199,6 +199,36 @@ S57Chart::S57Chart(quint32 id, const QString& path)
   m_textTransformBuffer.bind();
   // 5K char instances
   m_textTransformBuffer.allocate(5000 * 10 * sizeof(GLfloat));
+
+  auto fillCov = [this] (const WGS84Polygon& scov) {
+    QVector<GL::VertexVector> tcov;
+    for (const auto& pol: scov) {
+      GL::VertexVector vpol;
+      vpol << 0 << 0;
+      for (const auto& p: pol) {
+        const auto q = m_nativeProj->fromWGS84(p);
+        vpol << q.x() << q.y();
+      }
+      const int cnt = pol.size();
+      auto q = m_nativeProj->fromWGS84(pol[cnt - 1]);
+      vpol[0] = q.x();
+      vpol[1] = q.y();
+      q = m_nativeProj->fromWGS84(pol[0]);
+      vpol << q.x() << q.y();
+      q = m_nativeProj->fromWGS84(pol[1]);
+      vpol << q.x() << q.y();
+      tcov.append(vpol);
+    }
+    return tcov;
+  };
+
+  auto outline = reader->readOutline(path, m_nativeProj);
+  m_cov = fillCov(outline.coverage());
+  m_nocov = fillCov(outline.nocoverage());
+
+  m_box = QRectF(m_nativeProj->fromWGS84(outline.extent().sw()),
+                 m_nativeProj->fromWGS84(outline.extent().ne()));
+
 }
 
 void S57Chart::updateLookups() {
@@ -231,6 +261,30 @@ void S57Chart::encode(QDataStream& stream) {
   // header
   const auto ref = m_nativeProj->reference();
   stream << ref.lng() << ref.lat();
+
+  // extent
+  const auto sw = m_nativeProj->toWGS84(m_box.topLeft());
+  stream << sw.lng() << sw.lat();
+  const auto ne = m_nativeProj->toWGS84(m_box.bottomRight());
+  stream << ne.lng() << ne.lat();
+
+  // cov/nocov
+  auto encodeCov = [&stream, this] (QVector<GL::VertexVector> cov) {
+    const int Ncov = cov.size();
+    stream << Ncov;
+    for (const auto& pol: cov) {
+      const int Npol = pol.size() / 2 - 3;
+      stream << Npol;
+      for (int n = 0; n < Npol; n++) {
+        const QPointF q(pol[2 * n + 2], pol[2 * n + 3]);
+        const auto p = m_nativeProj->toWGS84(q);
+        stream << p.lng() << p.lat();
+      }
+    }
+  };
+
+  encodeCov(m_cov);
+  encodeCov(m_nocov);
 
   // coordinates
   stream.setFloatingPointPrecision(QDataStream::SinglePrecision);
@@ -296,6 +350,62 @@ void S57Chart::encode(QDataStream& stream) {
     lup.object->encode(stream, transform);
   }
 
+}
+
+
+static S57::PaintDataMap drawBox(const QRectF& box, const QString& colorName) {
+  S57::ElementData e;
+  e.count = 7;
+  e.offset = 0;
+  e.mode = GL_LINE_STRIP_ADJACENCY_EXT;
+  e.bbox = box;
+
+  S57::ElementDataVector elements;
+  elements.append(e);
+
+
+  // Note: inverted y-axis
+  const QPointF p0 = box.topLeft();
+  const QPointF p1 = box.topRight();
+  const QPointF p2 = box.bottomRight();
+  const QPointF p3 = box.bottomLeft();
+
+  GL::VertexVector vertices;
+  // account adjacency
+  vertices << p3.x() << p3.y();
+  vertices << p0.x() << p0.y();
+  vertices << p1.x() << p1.y();
+  vertices << p2.x() << p2.y();
+  vertices << p3.x() << p3.y();
+  vertices << p0.x() << p0.y();
+  vertices << p1.x() << p1.y();
+
+  auto color = QColor(colorName);
+  auto p = new S57::LineLocalData(vertices, elements, color, S52::LineWidthMM(4),
+                                  as_numeric(S52::LineType::Solid), false, QPointF());
+
+  return S57::PaintDataMap{{p->type(), p}};
+}
+
+static S57::PaintDataMap drawPolygon(const QRectF& box, const GL::VertexVector& vertices,
+                                     const QString& colorName) {
+
+  if (vertices.isEmpty()) return S57::PaintDataMap();
+
+  S57::ElementData e;
+  e.count = vertices.size() / 2;
+  e.offset = 0;
+  e.mode = GL_LINE_STRIP_ADJACENCY_EXT;
+  e.bbox = box;
+
+  S57::ElementDataVector elements;
+  elements.append(e);
+
+  auto color = QColor(colorName);
+  auto p = new S57::LineLocalData(vertices, elements, color, S52::LineWidthMM(6),
+                                  as_numeric(S52::LineType::Solid), false, QPointF());
+
+  return S57::PaintDataMap{{p->type(), p}};
 }
 
 void S57Chart::updatePaintData(const WGS84PointVector& cs, quint32 scale) {
@@ -378,6 +488,18 @@ void S57Chart::updatePaintData(const WGS84PointVector& cs, quint32 scale) {
 
 
   PaintPriorityVector updates(S52::Lookup::PriorityCount);
+
+  //  const auto rects = cover.rects();
+  //  for (const QRectF& rect: rects) {
+  //    updates[9] += drawBox(rect, "green");
+  //  }
+  for (const auto& cov: m_cov) {
+    updates[9] += drawPolygon(m_box, cov, "yellow");
+  }
+  for (const auto& nocov: m_nocov) {
+    updates[9] += drawPolygon(m_box, nocov, "red");
+  }
+
 
   //  int areaCount = 0;
   //  int filteredAreaCount = 0;
@@ -487,37 +609,22 @@ void S57Chart::updatePaintData(const WGS84PointVector& cs, quint32 scale) {
   updatePaintDatamap(rastersymbols, pivots);
   updatePaintDatamap(vectorsymbols, transforms);
 
-  // filter area elements
-  auto filterAreaElements = [this, cover] (S57::PaintData::Type t) {
+  // filter area & line elements
+  auto filterElements = [this, cover] (S57::PaintData::Type t) {
     for (int i = 0; i < S52::Lookup::PriorityCount; i++) {
       S57::PaintMutIterator it = m_paintData[i].find(t);
       const S57::PaintMutIterator end = m_paintData[i].end();
       while (it != end && it.key() == t) {
-        auto a = dynamic_cast<S57::TriangleData*>(it.value());
-        a->filterElements(cover);
+        it.value()->filterElements(cover);
         ++it;
       }
     }
   };
 
-  filterAreaElements(S57::PaintData::Type::TriangleArrays);
-  filterAreaElements(S57::PaintData::Type::TriangleElements);
-
-  // filter line elements
-  auto filterLineElements = [this, cover] (S57::PaintData::Type t) {
-    for (int i = 0; i < S52::Lookup::PriorityCount; i++) {
-      S57::PaintMutIterator it = m_paintData[i].find(t);
-      const S57::PaintMutIterator end = m_paintData[i].end();
-      while (it != end && it.key() == t) {
-        auto a = dynamic_cast<S57::LineData*>(it.value());
-        a->filterElements(cover);
-        ++it;
-      }
-    }
-  };
-
-  filterLineElements(S57::PaintData::Type::LineArrays);
-  filterLineElements(S57::PaintData::Type::LineElements);
+  filterElements(S57::PaintData::Type::TriangleArrays);
+  filterElements(S57::PaintData::Type::TriangleElements);
+  filterElements(S57::PaintData::Type::LineArrays);
+  filterElements(S57::PaintData::Type::LineElements);
 
   // move merged text to paintdatamap
   for (int i = 0; i < S52::Lookup::PriorityCount; i++) {
@@ -558,6 +665,10 @@ void S57Chart::updatePaintData(const WGS84PointVector& cs, quint32 scale) {
       vertices += it.value();
     }
   }
+
+//  for (int prio = 0; prio < S52::Lookup::PriorityCount; prio++) {
+//    qCDebug(CS57) << "Prio" << prio << "paintdata items" << m_paintData[prio].size();
+//  }
 
   // update vertex buffer
   m_coordBuffer.bind();
@@ -602,6 +713,30 @@ void S57Chart::updatePaintData(const WGS84PointVector& cs, quint32 scale) {
 
   m_textTransformBuffer.write(0, textTransforms.constData(), dataLen);
 
+}
+
+void S57Chart::updateCoveragePaintData(const WGS84PointVector& cs, quint32) {
+
+  // clear old paint data
+  for (S57::PaintDataMap& d: m_paintData) {
+    for (S57::PaintMutIterator it = d.begin(); it != d.end(); ++it) {
+      delete it.value();
+    }
+    d.clear();
+  }
+  // TODO
+}
+
+void S57Chart::updateSelectionPaintData(const WGS84PointVector& cs, quint32) {
+
+  // clear old paint data
+  for (S57::PaintDataMap& d: m_paintData) {
+    for (S57::PaintMutIterator it = d.begin(); it != d.end(); ++it) {
+      delete it.value();
+    }
+    d.clear();
+  }
+  // TODO
 }
 
 qreal S57Chart::scaleFactor(const QRectF& va, quint32 scale) const {

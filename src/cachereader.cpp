@@ -100,18 +100,43 @@ S57ChartOutline CacheReader::readOutline(const QString &path, const GeoProjectio
 
   // header
   double lng;
-  stream >> lng;
   double lat;
-  stream >> lat;
-  auto ref = WGS84Point::fromLL(lng , lat);
+  stream >> lng >> lat;
+  const auto ref = WGS84Point::fromLL(lng , lat);
+
+  // extent
+  stream >> lng >> lat;
+  const auto sw = WGS84Point::fromLL(lng , lat);
+  stream >> lng >> lat;
+  const auto ne = WGS84Point::fromLL(lng , lat);
+
+  // cov/nocov
+  auto decodeCov = [&stream, &lng, &lat] (WGS84Polygon& tgt) {
+    int Ncov;
+    stream >> Ncov;
+    for (int nc = 0; nc < Ncov; nc++) {
+      int Npol;
+      stream >> Npol;
+      WGS84PointVector pol;
+      for (int n = 0; n < Npol; n++) {
+        stream >> lng >> lat;
+        pol << WGS84Point::fromLL(lng , lat);
+      }
+      tgt.append(pol);
+    }
+  };
+
+  WGS84Polygon cov;
+  decodeCov(cov);
+  WGS84Polygon nocov;
+  decodeCov(nocov);
 
   file.close();
 
-  // Only reference point needed
-  return S57ChartOutline(WGS84Point(),
-                         WGS84Point(),
-                         S57ChartOutline::Region(),
-                         S57ChartOutline::Region(),
+  return S57ChartOutline(sw,
+                         ne,
+                         cov,
+                         nocov,
                          ref,
                          QSizeF(1., 1.),
                          1,
@@ -148,16 +173,34 @@ void CacheReader::readChart(GL::VertexVector& vertices,
 
   // header
   double dummy;
-  stream >> dummy; // ref
-  stream >> dummy;
+  stream >> dummy >> dummy; // ref
+  // extent
+  stream >> dummy >> dummy;
+  stream >> dummy >> dummy;
+
+  // cov & nocov
+  auto decodeCov = [&stream, &dummy] () {
+    int Ncov;
+    stream >> Ncov;
+    for (int nc = 0; nc < Ncov; nc++) {
+      int Npol;
+      stream >> Npol;
+      for (int n = 0; n < Npol; n++) {
+        stream >> dummy >> dummy;
+      }
+    }
+  };
+  decodeCov();
+  decodeCov();
 
   stream.setFloatingPointPrecision(QDataStream::SinglePrecision);
 
-  // vertices
   int Nc;
+  GLfloat v;
+
+  // vertices
   stream >> Nc;
 
-  GLfloat v;
   for (int n = 0; n < Nc; n++) {
     stream >> v;
     vertices << v;

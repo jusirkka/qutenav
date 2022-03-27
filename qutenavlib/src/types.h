@@ -177,6 +177,7 @@ inline uint qHash(const WGS84Point& a) {
 
 
 using WGS84PointVector = QVector<WGS84Point>;
+using WGS84Polygon = QVector<WGS84PointVector>;
 
 
 class WGS84Bearing {

@@ -85,7 +85,7 @@ private:
   void deleteFrom(const QString& chartName, const IdSet& ids);
   void insert(const QString& path, const S57ChartOutline& ch, quint32 scale_id);
   void update(quint32 id, const S57ChartOutline& ch);
-  void insertCov(quint32 chart_id, quint32 type_id, const S57ChartOutline::Region& r);
+  void insertCov(quint32 chart_id, quint32 type_id, const WGS84Polygon& r);
   void cleanupDB();
 
   ChartDatabase m_db;

@@ -27,14 +27,18 @@
 #include "geoprojection.h"
 
 class S57Chart;
+class ChartCover;
 
 struct ChartData {
 
+  enum class PaintMode: quint8 {Normal, Coverage, Selection};
+
+
   ChartData(S57Chart* c,
-            quint32 s, const WGS84PointVector& cover, bool upd);
+            quint32 s, const WGS84PointVector& cover, PaintMode mode, bool ulup);
 
   ChartData(quint32 i, const QString& pth,
-            quint32 s, const WGS84PointVector& cover);
+            quint32 s, const WGS84PointVector& cover, PaintMode mode);
 
   S57Chart* chart;
   quint32 id;
@@ -42,6 +46,7 @@ struct ChartData {
   quint32 scale;
   WGS84PointVector cover;
   bool updLup;
+  PaintMode mode;
 
   ChartData() = default;
   ChartData(const ChartData&) = default;
@@ -57,8 +62,6 @@ public:
   ChartUpdater(quint32 id): QObject(), m_id(id) {}
 
   quint32 id() const {return m_id;}
-
-
 
 public slots:
 

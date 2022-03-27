@@ -1,21 +1,21 @@
 - tides
 - busy spinner while charts are loading
-- draw chart outlines
 - ObjectInfo rewrite
 - Route/editor: reverse & edit a route
 - Datetime format to Units: standard, localized
 - display total distance when editing a route
 - RulerSelection enum type -> create enumerations.h to hold all custom enums
 - bug: sometimes safety contour line is drawn incorrectly
-- bug: make oeserverd calls more reliable (hangs sometimes)
 - bug: loading a route when already tracking does not find correct location in the route
 - bug: intermittent segfault when zooming rapidly
-- bug in Converter::display
-- bug in NMSConverter::display
-- bug: areas overlap texts (only intel/gpu; sw/desktop & mobile are ok)
 - delete cache if chartsymbols etc have changed
 - check all strings and add translation support
-- bug: no color in traffic separation lane symbols
-
 - bug: s57 chart fatal error: bbox is empty in some areas/lines/points
-- bug: overlapping charts not handled properly
+- better globe mouse controls
+- bug: line flicker in globe mode
+
+- bug: laptop: no color in traffic separation lane symbols
+- bug: sfos: v-ais cardinals not shown
+- clear cache when updating charts database
+- bug: areas overlap texts (only intel/gpu; sw/desktop & mobile are ok)
+- draw chart coverages for smaller scale maps

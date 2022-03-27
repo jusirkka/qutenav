@@ -24,22 +24,31 @@
 #include "region.h"
 #include "geoprojection.h"
 #include <QFile>
-#include "s57paintdata.h"
+#include <QTextStream>
 
 namespace chartcover {
 
 using LLPolygon = QVector<WGS84PointVector>;
 
-inline void tognuplot(const LLPolygon& cov, const LLPolygon& nocov, const KV::Region& reg,
+inline void tognuplot(const LLPolygon& cov, const LLPolygon& nocov,
                       const WGS84Point& sw, const WGS84Point& ne,
-                      const GeoProjection* gp, quint32 id) {
+                      const GeoProjection* gp,
+                      const QString& fname,
+                      bool onefile = false,
+                      const KV::Region& reg = KV::Region()) {
 
-  const QString gpath = QString("cover_%1.gnuplot").arg(id);
+  const QString gpath = QString("%1.gnuplot").arg(fname);
   QFile file(gpath);
-  // file.open(QFile::ReadWrite);
-  file.open(QFile::WriteOnly);
+  if (onefile) {
+    file.open(QFile::ReadWrite);
+  } else {
+    file.open(QFile::WriteOnly);
+  }
   QTextStream stream(&file);
-  // stream.seek(file.size());
+  if (onefile) {
+    stream.seek(file.size());
+  }
+
 
   QPointF p;
   stream << "\n";
@@ -76,9 +85,10 @@ inline void tognuplot(const LLPolygon& cov, const LLPolygon& nocov, const KV::Re
     stream << p.x() << " " << p.y() << " 2\n\n";
   }
 
-  qDebug() << "Number of boxes" << id << reg.rectCount();
+  qDebug() << "Number of boxes" << gpath << reg.rectCount();
+  auto rects = reg.rects();
   QRectF prev;
-  for (const QRectF& r: reg) {
+  for (const QRectF& r: rects) {
 
     qDebug() << r.left() << r.top() << r.width() << r.height() << r.top() - prev.bottom()
              << r.left() - prev.left() << r.right() - prev.right();
@@ -133,7 +143,8 @@ inline void tognuplot(const KV::RegionMap& regions, const QRectF& va, const QStr
     k += 1;
     const KV::Region reg = it.value();
     // qDebug() << "Number of boxes" << it.key() << reg.rectCount();
-    for (const QRectF& r: reg) {
+    auto rects = reg.rects();
+    for (const QRectF& r: rects) {
       plotBox(r, k, s);
     }
   }
@@ -147,9 +158,9 @@ inline void tognuplot(const KV::RegionMap& regions, const QRectF& va, const QStr
 
 namespace paintdata {
 
-inline void tognuplot(const S57::ElementDataVector& elems, const KV::Region& cover) {
+inline void tognuplot(const QVector<QRectF>& boxes, const KV::Region& cover) {
 
-  QString path = QString("elems_%1.gnuplot").arg(elems.size(), 5, 10, QChar('0'));
+  QString path = QString("elems_%1.gnuplot").arg(boxes.size(), 5, 10, QChar('0'));
   QFile file(path);
   // file.open(QFile::ReadWrite);
   file.open(QFile::WriteOnly);
@@ -167,12 +178,13 @@ inline void tognuplot(const S57::ElementDataVector& elems, const KV::Region& cov
     stream << q0.x() << " " << q0.y() << " " << pal << "\n\n";
   };
 
-  for (const QRectF& r: cover) {
+  auto rects = cover.rects();
+  for (const QRectF& r: rects) {
     plotBox(r, 0, 1.);
   }
 
-  for (const S57::ElementData& elem: elems) {
-    plotBox(elem.bbox, 1, 1.);
+  for (const QRectF& r: boxes) {
+    plotBox(r, 1, 1.);
   }
 
   file.close();

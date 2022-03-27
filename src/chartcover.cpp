@@ -21,12 +21,15 @@
 #include "geoprojection.h"
 #include "logging.h"
 #include <QRectF>
+#include <functional>
 
-ChartCover::ChartCover(const LLPolygon& cov, const LLPolygon& nocov,
+ChartCover::ChartCover(const WGS84Polygon& cov, const WGS84Polygon& nocov,
                        const WGS84Point& sw, const WGS84Point& ne,
                        const GeoProjection* proj)
   : m_ref(proj->reference())
-  , m_cover() {
+  , m_cover()
+  , m_cov(cov)
+  , m_nocov(nocov) {
 
   const auto ll = proj->fromWGS84(sw);
   const auto ur = proj->fromWGS84(ne);
@@ -54,7 +57,7 @@ ChartCover::ChartCover(const LLPolygon& cov, const LLPolygon& nocov,
     for (auto v: vs) {
       ps << proj->fromWGS84(v);
     }
-    m_cover -= approximate(ps, bbox);
+    m_cover -= approximate(ps, bbox, true);
   }
 }
 
@@ -76,7 +79,7 @@ static bool inpolygon(const PointVector& ps, qreal x, qreal y) {
   return c;
 }
 
-KV::Region ChartCover::approximate(const PointVector& poly, const QRectF& box) const {
+KV::Region ChartCover::approximate(const PointVector& poly, const QRectF& box, bool inner) const {
 
   const qreal dx = box.width() / (gridWidth - 1);
   const qreal dy = box.height() / (gridWidth - 1);
@@ -93,12 +96,24 @@ KV::Region ChartCover::approximate(const PointVector& poly, const QRectF& box) c
 
   KV::Region reg;
 
+  std::function<bool (int, int)> filter;
+  if (inner) {
+    filter = [grid, this] (int i, int j) {
+      return grid[i * gridWidth + j] && grid[(i + 1) * gridWidth + j] &&
+             grid[i * gridWidth + j + 1] && grid[(i + 1) * gridWidth + j + 1];
+    };
+  } else {
+    filter = [grid, this] (int i, int j) {
+      return grid[i * gridWidth + j] || grid[(i + 1) * gridWidth + j] ||
+             grid[i * gridWidth + j + 1] || grid[(i + 1) * gridWidth + j + 1];
+    };
+  }
+
   for (int i = 0; i < gridWidth - 1; i++) {
     const auto x = box.left() + i * dx;
     for (int j = 0; j < gridWidth - 1; j++) {
       const auto y = box.top() + j * dy;
-      if (grid[i * gridWidth + j] || grid[(i + 1) * gridWidth + j] ||
-          grid[i * gridWidth + j + 1] || grid[(i + 1) * gridWidth + j + 1]) {
+      if (filter(i, j)) {
         reg += QRectF(x, y, dx, dy);
       }
     }

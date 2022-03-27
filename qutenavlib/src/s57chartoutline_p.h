@@ -25,7 +25,6 @@
 #include <QDate>
 #include <QSizeF>
 
-using Region = QVector<WGS84PointVector>;
 
 struct S57ChartOutlinePrivate: public QSharedData {
 
@@ -45,8 +44,8 @@ struct S57ChartOutlinePrivate: public QSharedData {
     , mod(d.mod) {}
 
   Extent extent;
-  Region cov;
-  Region nocov;
+  WGS84Polygon cov;
+  WGS84Polygon nocov;
   WGS84Point center;
   QSizeF scaling;
   quint32 scale;

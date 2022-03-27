@@ -277,8 +277,8 @@ const ChartCover* ChartManager::getCover(quint32 chart_id,
     m_db.exec(r);
     int prev = -1;
     int type_id = -1;
-    LLPolygon cov;
-    LLPolygon nocov;
+    WGS84Polygon cov;
+    WGS84Polygon nocov;
     WGS84PointVector ps;
     while (r.next()) {
       const int cid = r.value(0).toInt();
@@ -376,12 +376,11 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
 
   KV::Region remainingArea(m_viewArea);
   KV::RegionMap regions;
-  KV::RegionMap covers;
 
   const auto totarea = remainingArea.area();
-  qreal noncov = 100;
+  qreal cov = 0.;
 
-  for (quint32 selectedScale: scaleCandidates) {
+  for (quint32 scale: scaleCandidates) {
 
     // select charts
     QSqlQuery r = m_db.prepare("select chart_id, swx, swy, nex, ney, path "
@@ -389,29 +388,36 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
                                "where scale = ? and "
                                "      swx < ? and swy < ? and "
                                "      nex > ? and ney > ?");
-    r.bindValue(0, selectedScale);
+    r.bindValue(0, scale);
     r.bindValue(1, ne0.lng(sw0));
     r.bindValue(2, ne0.lat());
     r.bindValue(3, sw0.lng());
     r.bindValue(4, sw0.lat());
 
     m_db.exec(r);
-    while (r.next() && noncov >= .1) {
+    while (r.next() && cov < minCoverage) {
       quint32 id = r.value(0).toUInt();
+
       auto sw = WGS84Point::fromLL(r.value(1).toDouble(), r.value(2).toDouble());
       auto ne = WGS84Point::fromLL(r.value(3).toDouble(), r.value(4).toDouble());
       auto c = getCover(id, sw, ne, cam->geoprojection());
-      auto reg = c->region(cam->geoprojection()) & remainingArea;
-      if (reg.isValid()) {
-        remainingArea -= reg;
-        noncov = remainingArea.area() / totarea * 100;
-        regions[id] = reg;
-        covers[id] = c->region(cam->geoprojection());
-        qCDebug(CMGR) << "chart" << id << selectedScale << ", covers" << reg.area() / totarea * 100
-                 << ", remaining" << noncov;
-      }
+
+      const auto region = c->region(cam->geoprojection()).intersected(m_viewArea);
+      if (region.isEmpty()) continue;
+
+      auto delta = remainingArea.intersected(region);
+      if (delta.isEmpty()) continue;
+
+      regions[id] = delta;
+
+      remainingArea -= delta;
+      cov = 1 - remainingArea.area() / totarea;
+      qCDebug(CMGR) << "chart" << id << scale
+                    << ", covers" << region.area() / totarea * 100
+                    << ", subtracts" << delta.area() / totarea * 100
+                    << ", remaining" << (1 - cov) * 100;
     }
-    if (noncov < .1) {
+    if (cov >= minCoverage) {
       break;
     }
   }
@@ -420,7 +426,7 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
   // chartmanager::tognuplot(covers, m_viewArea, "covers");
 
   qCDebug(CMGR) << "Number of charts" << regions.size()
-           << ", covered =" << (noncov < 1.);
+                << ", covered =" << (cov >= minCoverage);
 
 
 
@@ -454,9 +460,10 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
   bool noCharts = m_charts.isEmpty() && newCharts.isEmpty();
   // create pending chart update data
   for (S57Chart* c: m_charts) {
-    // Note: inverted y-axis
+    // const ChartData::PaintMode mode = c->id() == selectedId ? ChartData::PaintMode::Normal : ChartData::PaintMode::Coverage;
+    const ChartData::PaintMode mode = ChartData::PaintMode::Normal;
     m_pendingStack.push(ChartData(c, m_scale, regions[c->id()].toWGS84(cam->geoprojection()),
-                        (flags & UpdateLookups) != 0));
+                        mode, (flags & UpdateLookups) != 0));
   }
   // create pending chart creation data
   if (!newCharts.isEmpty()) {
@@ -471,9 +478,11 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
     while (r.next()) {
       const quint32 id = r.value(0).toUInt();
       const auto path = r.value(1).toString();
+      // const ChartData::PaintMode mode = id == selectedId ? ChartData::PaintMode::Normal : ChartData::PaintMode::Coverage;
+      const ChartData::PaintMode mode = ChartData::PaintMode::Normal;
       qCDebug(CMGR) << "New chart" << path;
       m_pendingStack.push(ChartData(id, path, m_scale,
-                                    regions[id].toWGS84(cam->geoprojection())));
+                                    regions[id].toWGS84(cam->geoprojection()), mode));
     }
   }
 
@@ -542,6 +551,8 @@ void ChartManager::manageThreads(S57Chart* chart) {
 }
 
 void ChartManager::requestInfo(const WGS84Point &p) {
+
+  if (m_charts.empty()) return;
 
   QString sql("select chart_id, swx, swy, nex, ney "
               "from m.charts "

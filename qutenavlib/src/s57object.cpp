@@ -24,6 +24,7 @@
 #include "s52names.h"
 #include <QDataStream>
 #include "geomutils.h"
+#include "logging.h"
 
 bool S57::Attribute::matches(const Attribute &constraint) const {
   if (constraint.type() == Type::Any) {
@@ -321,9 +322,10 @@ QSet<int> S57::Object::attributeSetValue(quint32 attr) const {
 bool S57::Object::canPaint(const KV::Region& cover, quint32 scale,
                            const QDate& today, bool coverOnly) const {
 
+
   if (m_bbox.isValid() && !cover.intersects(m_bbox)) {
-    // qDebug() << "no intersect" << m_bbox << S52::GetClassInfo(m_feature_type_code);
-    return false;
+    // qCDebug(CS57) << "no intersect" << m_bbox << S52::GetClassInfo(m_feature_type_code);
+    // return false;
   }
 
   if (coverOnly) return true;

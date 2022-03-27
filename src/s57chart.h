@@ -66,6 +66,8 @@ public:
   const QString& path() {return m_path;}
 
   void updatePaintData(const WGS84PointVector& cover, quint32 scale);
+  void updateCoveragePaintData(const WGS84PointVector& cover, quint32 scale);
+  void updateSelectionPaintData(const WGS84PointVector& cover, quint32 scale);
   void updateLookups();
 
   S57::InfoTypeFull objectInfoFull(const WGS84Point& p, quint32 scale);
@@ -138,6 +140,10 @@ private:
   const QVector<quint32> m_infoSkipList;
   const QVector<quint32> m_navaids;
   const quint32 m_light;
+
+  QVector<GL::VertexVector> m_cov;
+  QVector<GL::VertexVector> m_nocov;
+  QRectF m_box;
 };
 
 

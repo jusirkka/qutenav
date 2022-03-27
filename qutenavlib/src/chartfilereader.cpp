@@ -20,6 +20,7 @@
 #include "chartfilereader.h"
 #include "triangulator.h"
 #include "logging.h"
+#include <QVector3D>
 
 
 ChartFileReader* ChartFileReaderFactory::loadReader(const QStringList& paths) const {
@@ -287,6 +288,149 @@ S57::ElementDataVector ChartFileReader::createLineElements(GL::IndexVector &indi
   }
 
   return elems;
+}
+
+
+using PointVector = QVector<QPointF>;
+using PPolygon = QVector<PointVector>;
+
+static float area(const PointVector& ps) {
+  float sum = 0;
+  const int n = ps.size();
+  for (int k = 0; k < n; k++) {
+    const QPointF p0 = ps[k];
+    const QPointF p1 = ps[(k + 1) % n];
+    sum += p0.x() * p1.y() - p0.y() * p1.x();
+  }
+  return .5 * sum;
+}
+
+static const float eps2 = 1.e-8;
+
+static QPointF get_next(const QPointF& x0, PointVector& ps, bool* found) {
+
+  *found = true;
+
+  while (!ps.isEmpty()) {
+    const auto dx = ps.takeFirst() - x0;
+    if (QPointF::dotProduct(dx, dx) > eps2) {
+      return x0 + dx;
+    }
+  }
+
+  *found = false;
+  return QPointF();
+}
+
+static bool accept(const QPointF& x0, const QPointF& x1, const QPointF& x2) {
+  const QVector3D c = QVector3D::crossProduct(QVector3D(x0 - x1), QVector3D(x2 - x1));
+  return std::abs(c.z()) > eps2;
+}
+
+void ChartFileReader::reduce(PointVector& ps) {
+  PointVector out;
+
+  // const auto np = ps.size();
+
+  auto x0 = ps.takeFirst();
+  ps << x0;
+  out << x0;
+
+  bool found;
+  auto x1 = get_next(x0, ps, &found);
+  if (!found) return;
+
+  while (!ps.isEmpty()) {
+    auto x2 = get_next(x1, ps, &found);
+    if (!found) continue;
+    if (accept(x0, x1, x2)) {
+      x0 = x1;
+      out << x0;
+    }
+    x1 = x2;
+  }
+  ps = out;
+  //  qCDebug(CENC) << "point reduction" << np << "->" << ps.size();
+  //  qCDebug(CENC) << "first" << ps.first();
+  //  qCDebug(CENC) << " last" << ps.last();
+}
+
+void ChartFileReader::checkCoverage(WGS84Polygon& cov,
+                                    WGS84Polygon& nocov,
+                                    WGS84PointVector& cs,
+                                    const GeoProjection* gp,
+                                    quint8* covr, quint8* nocovr) {
+
+  QPointF sw(1.e15, 1.e15);
+  QPointF ne(-1.e15, -1.e15);
+
+  auto fromwgs84 = [gp, &sw, &ne] (const WGS84Polygon& poly, PPolygon& out, bool doit) {
+    for (const WGS84PointVector& vs: poly) {
+      PointVector ps;
+      for (auto v: vs) {
+        ps << gp->fromWGS84(v);
+      }
+      reduce(ps);
+      if (doit) {
+        for (const QPointF& p: ps) {
+          maxbox(sw, ne, p.x(), p.y());
+        }
+      }
+      out.append(ps);
+    }
+  };
+
+  PPolygon covp;
+  fromwgs84(cov, covp, cs.size() < 2);
+
+  PPolygon nocovp;
+  fromwgs84(nocov, nocovp, cs.size() < 2);
+
+  if (cs.size() > 1) {
+    sw = gp->fromWGS84(cs[0]);
+    ne = gp->fromWGS84(cs[1]);
+  } else {
+    cs.clear();
+    cs << gp->toWGS84(sw);
+    cs << gp->toWGS84(ne);
+  }
+
+  const float A = (ne.y() - sw.y()) * (ne.x() - sw.x());
+
+  float totcov = 0;
+  for (const PointVector& ps: covp) {
+    totcov += std::abs(area(ps) / A);
+  }
+
+  float totnocov = 0;
+  for (const PointVector& ps: nocovp) {
+    totnocov += std::abs(area(ps) / A);
+  }
+
+  qCDebug(CENC) << "coverage" << totcov << totnocov;
+
+  auto towgs84 = [gp] (const PPolygon& poly, WGS84Polygon& out, bool doit) {
+    out.clear();
+    if (doit) {
+      for (const PointVector& ps: poly) {
+        WGS84PointVector vs;
+        for (const QPointF& p: ps) {
+          vs << gp->toWGS84(p);
+        }
+        out.append(vs);
+      }
+    }
+  };
+
+  towgs84(covp, cov, true);
+  towgs84(nocovp, nocov, true);
+
+  if (covr != nullptr) {
+    *covr = static_cast<quint8>(std::round(100 * totcov));
+  }
+  if (nocovr != nullptr) {
+    *nocovr = static_cast<quint8>(std::round(100 * totnocov));
+  }
 }
 
 

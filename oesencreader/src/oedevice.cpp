@@ -45,6 +45,8 @@ OeDevice::OeDevice(const QString& path, ReadMode mode)
   , m_clientEP(-1)
 {
 
+  setObjectName(path);
+
   if (m_path.size() > 255) {
     throw ChartFileError(QString("Chart path %1 longer than 255 bytes").arg(m_path));
   }

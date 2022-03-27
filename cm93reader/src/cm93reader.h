@@ -42,7 +42,6 @@ public:
 
   using PointVector = QVector<QPointF>;
   using PRegion = QVector<PointVector>;
-  using Region = S57ChartOutline::Region;
 
   ~CM93Reader();
 
@@ -100,7 +99,7 @@ private:
   PRegion createCoverage(const GL::VertexVector& vertices,
                          const EdgeVector& edges) const;
 
-  Region transformCoverage(PRegion pcov, WGS84Point& sw, WGS84Point& ne,
+  WGS84Polygon transformCoverage(PRegion pcov, WGS84Point& sw, WGS84Point& ne,
                            const GeoProjection* gp) const;
 
   static const inline QMap<QString, quint32> scales = {{"Z", 20000000},

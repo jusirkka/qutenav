@@ -27,6 +27,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include "logging.h"
+#include "gnuplot.h"
 
 const GeoProjection* S57Reader::geoprojection() const {
   return m_proj;
@@ -176,10 +177,11 @@ FieldSource::FieldSource(QFile* file, const QString& path)
   m_stream.skipRawData(2); // "04"
   // read directory
   FieldInfoVector fieldInfo = readDirectory(headerlen, fieldLenFieldlen, fieldPosFieldlen);
+  int len;
+  read_bytes_until(m_stream, unitTerminator, len);  // "0000;&-A ", 0x1f
   // read field control field
   FieldInfo info = fieldInfo.takeFirst();
-  m_stream.skipRawData(10); // "0000;&-A ", 0x1f
-  int numTagPairs = (info.len - 11) / 8;
+  int numTagPairs = (info.len - len - 1) / 8;
   for (int i = 0; i < numTagPairs; i++) {
     m_tags << read_string(m_stream, 4) << read_string(m_stream, 4);
   }
@@ -188,11 +190,7 @@ FieldSource::FieldSource(QFile* file, const QString& path)
   Q_ASSERT(term == fieldTerminator);
   // read data descriptive fields
   for (int i = 0; i < fieldInfo.size(); i++) {
-    m_stream.skipRawData(1); // structureCode
-    auto typeCode = read_integer<quint8>(m_stream, 1);
-    Q_ASSERT(typeCode == 5 || typeCode == 6); // mixed or binary
-    m_stream.skipRawData(7); // "00;&-A "
-    int len;
+    m_stream.skipRawData(9); // field controls
     read_bytes_until(m_stream, unitTerminator, len); // fieldName
     read_bytes_until(m_stream, unitTerminator, len); // arrayDescr
     read_bytes_until(m_stream, fieldTerminator, len); // fmtControls
@@ -209,7 +207,6 @@ struct Handler {
 
 
 
-using Region = S57ChartOutline::Region;
 using RT = S57::Record::Type::palette;
 using Purp = S57::Record::ExPurp::palette;
 using Topo = S57::Record::Topology::palette;
@@ -235,10 +232,15 @@ GeoProjection* S57Reader::configuredProjection(const QString& path) const {
   const QMap<RT, Handler*> handlers {
 
 
-    {RT::DS, new Handler([] (const S57::Record*) {
+    {RT::DS, new Handler([&source] (const S57::Record* rec) {
+        auto dssi = dynamic_cast<const S57::DSSI*>(rec->find("DSSI"));
+        if (dssi != nullptr) {
+          source.setLexicalLevels(dssi->attfLevel.value, dssi->natfLevel.value);
+        }
         return true;
       })
     },
+
 
     {RT::DP, new Handler([&mulfac] (const S57::Record* rec) {
         auto dspm = dynamic_cast<const S57::DSPM*>(rec);
@@ -329,21 +331,27 @@ S57ChartOutline S57Reader::readOutline(const QString& path, const GeoProjection*
 
   const quint32 m_covr = S52::FindCIndex("M_COVR");
   const quint32 catcov = S52::FindCIndex("CATCOV");
-  bool inCov = false;
 
   RawEdgeMap edges;
   PointMap connected;
   CovEdgeRefMap covRefs;
 
+  FieldSource* currentSource = nullptr;
+
   const QMap<RT, Handler*> handlers {
 
-    {RT::DS, new Handler([&pub, &mod] (const S57::Record* rec) {
+
+    {RT::DS, new Handler([&pub, &mod, &currentSource] (const S57::Record* rec) {
         auto dsid = dynamic_cast<const S57::DSID*>(rec);
         if (dsid->issued.isValid()) {
           mod = dsid->issued;
         }
         if (dsid->updated.isValid()) {
           pub = dsid->updated;
+        }
+        auto dssi = dynamic_cast<const S57::DSSI*>(rec->find("DSSI"));
+        if (dssi != nullptr) {
+          currentSource->setLexicalLevels(dssi->attfLevel.value, dssi->natfLevel.value);
         }
         return true;
       })
@@ -427,10 +435,10 @@ S57ChartOutline S57Reader::readOutline(const QString& path, const GeoProjection*
           for (int i = 0; i < vrpc->count; i++) {
             const S57::VRPT::PointerField pf = vrpt->pointers[i];
             if (pf.topind.value == TopInd::Begin) {
-              qCDebug(CENC) << "replacing begin" << edges[vrid->id()].begin << pf.id;
+              // qCDebug(CENC) << "replacing begin" << edges[vrid->id()].begin << pf.id;
               edges[vrid->id()].begin = pf.id;
             } else if (pf.topind.value == TopInd::End) {
-              qCDebug(CENC) << "replacing end" << edges[vrid->id()].end << pf.id;
+              // qCDebug(CENC) << "replacing end" << edges[vrid->id()].end << pf.id;
               edges[vrid->id()].end = pf.id;
             } else {
               qCDebug(CENC) << "unhandled edge topology indicator" << pf.topind.print();
@@ -460,12 +468,11 @@ S57ChartOutline S57Reader::readOutline(const QString& path, const GeoProjection*
       })
     },
 
-    {RT::FE, new Handler([&inCov, &covRefs, m_covr, catcov] (const S57::Record* rec) {
+    {RT::FE, new Handler([&covRefs, m_covr, catcov] (const S57::Record* rec) {
         auto frid = dynamic_cast<const S57::FRID*>(rec);
         if (frid->code != m_covr) {
-          return !inCov;
+          return true;
         }
-        inCov = true;
         if (frid->instruction.value == Instr::Delete) {
           covRefs.remove(frid->id());
           return true;
@@ -474,7 +481,7 @@ S57ChartOutline S57Reader::readOutline(const QString& path, const GeoProjection*
           CovRefs crefs;
           auto attf = dynamic_cast<const S57::ATTF*>(frid->find("ATTF"));
           // coverage / no coverage
-          crefs.cov = attf->attributes[catcov].value().toUInt() == 1;
+          crefs.cov = !(attf->attributes[catcov].value().toUInt() == 2);
           auto fspt = dynamic_cast<const S57::FSPT*>(frid->find("FSPT"));
           for (const S57::FSPT::PointerField& pf: fspt->pointers) {
             RawEdgeRef ref;
@@ -538,10 +545,10 @@ S57ChartOutline S57Reader::readOutline(const QString& path, const GeoProjection*
     }
 
     FieldSource source(&file, updpth);
+    currentSource = &source;
 
 
     bool done = false;
-    inCov = false;
 
     while (!done) {
       S57::Record* rec = source.nextRecord();
@@ -562,27 +569,34 @@ S57ChartOutline S57Reader::readOutline(const QString& path, const GeoProjection*
 
   RawEdgeRefVector cv;
   for (CovEdgeRefIter it = covRefs.cbegin(); it != covRefs.cend(); ++it) {
-    // qCDebug(CENC) << "Coverage" << it.key() << it.value().cov;
+    qCDebug(CENC) << "Coverage" << it.key() << it.value().cov;
     if (it.value().cov) {
       cv.append(it.value().refs);
     }
   }
 
+  WGS84Polygon cov;
+  WGS84Polygon nocov;
 
-  PRegion pcov;
-  PRegion pnocov;
-  createCoverage(pcov, pnocov, cv, edges, connected, mulfac, gp);
-  // qCDebug(CENC) << "nocov areas" << pnocov.size();
-  // qCDebug(CENC) << "cov areas" << pcov.size();
+  createCoverage(cov, nocov, cv, edges, connected, mulfac);
+  qCDebug(CENC) << "cov/nocov regions" << cov.size() << nocov.size();
 
   // qCDebug(CENC) << pub << mod << scale;
 
-  if (!pub.isValid() || !mod.isValid() || scale == 0 || pcov.isEmpty()) {
+  if (!pub.isValid() || !mod.isValid() || scale == 0 || cov.isEmpty()) {
     throw ChartFileError(QString("Invalid S57 header in %1").arg(path));
   }
-  Region nocov = transformCoverage(pnocov, gp, nullptr);
-  WGS84Point corners[2];
-  Region cov = transformCoverage(pcov, gp, corners);
+
+  WGS84PointVector corners;
+  checkCoverage(cov, nocov, corners, gp);
+  //  quint8 ca, nca;
+  //  checkCoverage(cov, nocov, corners, gp, &ca, &nca);
+  //  const QString name = QString("./gnuplot/s57_nocov/%1-%2-%3")
+  //      .arg(ca).arg(nca).arg(info.baseName());
+  //  auto noop = GeoProjection::CreateProjection("NoopProjection");
+  //  chartcover::tognuplot(cov, nocov, corners[0], corners[1], gp, name);
+  //  chartcover::tognuplot(cov, nocov, corners[0], corners[1], noop, "./gnuplot/s57_nocov/full", true);
+  //  delete noop;
 
   return S57ChartOutline(corners[0], corners[1], cov, nocov, scale, pub, mod);
 }
@@ -1060,6 +1074,10 @@ void S57Reader::readChart(GL::VertexVector& vertices,
         helper.s57SetGeometry(obj, new S57::Geometry::Point(p, gp), bbox);
       }
     } else if (geom == Geom::Line || geom == Geom::Area) {
+      if (feature.edgeRefs.isEmpty()) {
+        delete objects.takeLast();
+        continue;
+      }
       EdgeVector shape;
       for (const RawEdgeRef& ref: feature.edgeRefs) {
         Edge e = pedges[ref.id];
@@ -1098,11 +1116,11 @@ void S57Reader::readChart(GL::VertexVector& vertices,
 
 }
 
-void S57Reader::createCoverage(PRegion &cov, PRegion &nocov,
-                               const RawEdgeRefVector &edges,
-                               const RawEdgeMap &edgemap,
-                               const PointMap &connmap,
-                               quint32 mulfac, const GeoProjection *gp) const {
+void S57Reader::createCoverage(WGS84Polygon& cov, WGS84Polygon& nocov,
+                               const RawEdgeRefVector& edges,
+                               const RawEdgeMap& edgemap,
+                               const PointMap& connmap,
+                               quint32 mulfac) const {
 
   auto startPoint = [edges, edgemap] (int i) {
     return edges[i].reversed ? edgemap[edges[i].id].end : edgemap[edges[i].id].begin;
@@ -1113,58 +1131,49 @@ void S57Reader::createCoverage(PRegion &cov, PRegion &nocov,
   };
 
 
+  int loop_count = 0;
   for (int i = 0; i < edges.size();) {
-    PointVector ps;
+    WGS84PointVector ps;
     auto start = startPoint(i);
     auto prevlast = start;
     while (i < edges.size() && prevlast == startPoint(i)) {
-      ps.append(addVertices(edges[i], edgemap, connmap, mulfac, gp));
+      ps.append(addVertices(edges[i], edgemap, connmap, mulfac));
       prevlast = endPoint(i);
       i++;
     }
     Q_ASSERT(prevlast == start);
-    bool inner = edges[i - 1].inner;
-    // qCDebug(CENC) << "Reducing" << cov.size() << "Inner" << inner;
-    PointVector qs;
-    const int N = ps.size();
-    for (int k = 0; k < N; k++) {
-      const QPointF v = ps[k];
-      const QPointF vm = ps[(k + N - 1) % N];
-      const QPointF vp = ps[(k + 1) % N];
-      if (v.x() == vm.x() && v.x() == vp.x()) continue;
-      if (v.y() == vm.y() && v.y() == vp.y()) continue;
-      qs << v;
-      // qCDebug(CENC) << v.x() << v.y();
-    }
 
-    if (inner) {
-      nocov << qs;
+    if (edges[i - 1].inner) {
+      qCDebug(CENC) << "Inner" << loop_count << ": adding to nocov/cov";
+      nocov << ps;
     } else {
-      cov << qs;
+      qCDebug(CENC) << "Outer" << loop_count << ": adding to cov/nocov";
+      cov << ps;
     }
+    loop_count++;
   }
 }
 
-S57Reader::PointVector S57Reader::addVertices(const RawEdgeRef& e,
-                                              const RawEdgeMap& edgemap,
-                                              const PointMap& connmap,
-                                              quint32 mulfac, const GeoProjection* gp) const {
+WGS84PointVector S57Reader::addVertices(const RawEdgeRef& e,
+                                        const RawEdgeMap& edgemap,
+                                        const PointMap& connmap,
+                                        quint32 mulfac) const {
 
-  PointVector ps;
+  WGS84PointVector ps;
 
-  auto getPoint = [edgemap, mulfac, gp] (quint32 id, int i) {
+  auto getPoint = [edgemap, mulfac] (quint32 id, int i) {
     const QPointF ll = edgemap[id].points[i] / mulfac;
-    return gp->fromWGS84(WGS84Point::fromLL(ll.x(), ll.y()));
+    return WGS84Point::fromLL(ll.x(), ll.y());
   };
 
-  auto getBeginPoint = [edgemap, connmap, mulfac, gp] (quint32 id) {
+  auto getBeginPoint = [edgemap, connmap, mulfac] (quint32 id) {
     const QPointF ll = connmap[edgemap[id].begin] / mulfac;
-    return gp->fromWGS84(WGS84Point::fromLL(ll.x(), ll.y()));
+    return WGS84Point::fromLL(ll.x(), ll.y());
   };
 
-  auto getEndPoint = [edgemap, connmap, mulfac, gp] (quint32 id) {
+  auto getEndPoint = [edgemap, connmap, mulfac] (quint32 id) {
     const QPointF ll = connmap[edgemap[id].end] / mulfac;
-    return gp->fromWGS84(WGS84Point::fromLL(ll.x(), ll.y()));
+    return WGS84Point::fromLL(ll.x(), ll.y());
   };
 
   const int count = edgemap[e.id].points.size();
@@ -1183,73 +1192,6 @@ S57Reader::PointVector S57Reader::addVertices(const RawEdgeRef& e,
   return ps;
 }
 
-static float area(const QVector<QPointF>& ps) {
-  float sum = 0;
-  const int n = ps.size();
-  for (int k = 0; k < n; k++) {
-    const QPointF p0 = ps[k];
-    const QPointF p1 = ps[(k + 1) % n];
-    sum += p0.x() * p1.y() - p0.y() * p1.x();
-  }
-  return .5 * sum;
-}
-
-
-bool S57Reader::checkCoverage(const PRegion& cov,
-                              WGS84Point &sw,
-                              WGS84Point &ne,
-                              const GeoProjection *gp) const {
-
-  if (cov.isEmpty()) return false;
-
-  // compute bounding box
-  QPointF ur(-1.e15, -1.e15);
-  QPointF ll(1.e15, 1.e15);
-  for (const PointVector& ps: cov) {
-    for (const QPointF& p: ps) {
-      ur.setX(qMax(ur.x(), p.x()));
-      ur.setY(qMax(ur.y(), p.y()));
-      ll.setX(qMin(ll.x(), p.x()));
-      ll.setY(qMin(ll.y(), p.y()));
-    }
-  }
-
-  const float A = (ur.x() - ll.x()) * (ur.y() - ll.y());
-  float totcov = 0;
-  for (const PointVector& ps: cov) {
-    totcov += std::abs(area(ps) / A);
-  }
-  sw = gp->toWGS84(ll);
-  ne = gp->toWGS84(ur);
-  if (sw == WGS84Point::fromLL(ne.lng(), sw.lat())) {
-    qCDebug(CENC) << ll << ur;
-    qCDebug(CENC) << sw.lng() << sw.lat() << ne.lng() << ne.lat();
-    throw ChartFileError("Too narrow coverage");
-  }
-  if (sw == WGS84Point::fromLL(sw.lng(), ne.lat())) {
-    qCDebug(CENC) << ll << ur;
-    qCDebug(CENC) << sw.lng() << sw.lat() << ne.lng() << ne.lat();
-    throw ChartFileError("Too low coverage");
-  }
-  // qCDebug(CENC) << "totcov" << totcov;
-  return totcov < .8;
-}
-
-Region S57Reader::transformCoverage(PRegion pcov, const GeoProjection *gp, WGS84Point* corners) const {
-
-  if (corners != nullptr && !checkCoverage(pcov, corners[0], corners[1], gp)) {
-    return Region();
-  }
-  Region cov;
-  for (const PointVector& ps: pcov) {
-    WGS84PointVector ws;
-    for (auto p: ps) {
-      ws << gp->toWGS84(p);
-    }
-    cov.append(ws);
-  }
-  return cov;
-}
 
 // https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm
 void S57Reader::reduceRDP(const PointVector& ps, int first, int last, IndexVector& is) const {

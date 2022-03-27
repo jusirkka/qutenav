@@ -73,7 +73,6 @@ static void filterElems(S57::ElementDataVector& elems, const KV::Region& cover) 
   }
 
   if (indices.size() != elems.size()) {
-    // paintdata::tognuplot(elems, cover);
     // qDebug() << "Filtered" << elems.size() << "->" << indices.size();
     S57::ElementDataVector orig = elems;
     elems.clear();

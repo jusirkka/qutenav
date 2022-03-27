@@ -319,16 +319,22 @@ void Updater::cleanupDB() {
 void Updater::deleteFrom(const QString &chartName, const IdSet &ids) {
   if (ids.isEmpty()) return;
 
-  auto sql = QString("delete from %1 where id in (").arg(chartName);
-  sql += QString("?,").repeated(ids.size());
-  sql = sql.replace(sql.length() - 1, 1, ")");
-  QSqlQuery r0 = m_db.prepare(sql);
-  int index = 0;
-  for (auto id: ids) {
-    r0.bindValue(index, QVariant::fromValue(id));
-    index++;
+  int start = 0;
+  int chunk = std::min(10000, ids.size());
+  const auto idList = ids.values();
+
+  while (start < ids.size()) {
+    auto sql = QString("delete from %1 where id in (").arg(chartName);
+    sql += QString("?,").repeated(chunk);
+    sql = sql.replace(sql.length() - 1, 1, ")");
+    QSqlQuery r0 = m_db.prepare(sql);
+    for (int index = 0; index < chunk; index++) {
+      r0.bindValue(index, QVariant::fromValue(idList[start + index]));
+    }
+    m_db.exec(r0);
+    start += chunk;
+    chunk = std::min(10000, ids.size() - start);
   }
-  m_db.exec(r0);
 }
 
 void Updater::insert(const QString &path, const S57ChartOutline &ch, quint32 scale_id) {
@@ -359,10 +365,10 @@ void Updater::insert(const QString &path, const S57ChartOutline &ch, quint32 sca
 }
 
 void Updater::insertCov(quint32 chart_id, quint32 type_id,
-                        const S57ChartOutline::Region &r) {
+                        const WGS84Polygon &ps) {
   // insert into coverage
   QVector<quint32> ids;
-  int cnt = r.size();
+  int cnt = ps.size();
   while (cnt > 0) {
     QSqlQuery r = m_db.prepare("insert into coverage "
                                "(type_id, chart_id) "
@@ -375,7 +381,7 @@ void Updater::insertCov(quint32 chart_id, quint32 type_id,
   }
   // insert into polygons
   for (int k = 0; k < ids.size(); k++) {
-    for (const WGS84Point& p: r[k]) {
+    for (const WGS84Point& p: ps[k]) {
       QSqlQuery r = m_db.prepare("insert into polygons "
                                  "(cov_id, x, y) "
                                  "values(?, ?, ?)");

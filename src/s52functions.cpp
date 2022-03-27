@@ -46,11 +46,13 @@ S57::PaintDataMap S52::AreaColor::execute(const QVector<QVariant>& vals,
   } else {
     p = new S57::TriangleArrayData(geom->triangleElements(), geom->vertexOffset(), color);
   }
-
   return S57::PaintDataMap{{p->type(), p}};
 }
 
-QStringList S52::AreaColor::descriptions(const QVector<QVariant>& vals, const S57::Object* obj) const {
+QStringList S52::AreaColor::descriptions(const QVector<QVariant>&, const S57::Object* obj) const {
+  if (obj->geometry()->type() == S57::Geometry::Type::Area) {
+    qCDebug(CS57) << " --- NAME ---" << obj->name();
+  }
   return QStringList {GetClassDescription(obj->classCode())};
 }
 
@@ -2298,6 +2300,7 @@ S52::CSRestrEntry01::CSRestrEntry01(quint32 index)
 
 S57::PaintDataMap S52::CSRestrEntry01::execute(const QVector<QVariant>&,
                                             const S57::Object* obj) {
+
   if (!obj->attributeValue(m_restrn).isValid()) return S57::PaintDataMap();
 
   QSet<int> s = obj->attributeSetValue(m_restrn);

@@ -623,8 +623,6 @@ Attribute* Attribute::Decode(QDataStream &stream) {
 
 }
 
-using Region = S57ChartOutline::Region;
-
 
 GeoProjection* CM93Reader::configuredProjection(const QString& path) const {
 
@@ -812,10 +810,10 @@ S57ChartOutline CM93Reader::readOutline(const QString& path, const GeoProjection
   auto gpsc = QScopedPointer<GeoProjection>(GeoProjection::CreateProjection(gp->className()));
   gpsc->setReference(gp->reference());
 
-  const Region cov = transformCoverage(pcov, sw, ne, gpsc.data());
+  const WGS84Polygon cov = transformCoverage(pcov, sw, ne, gpsc.data());
   return S57ChartOutline(sw, ne,
                          cov,
-                         Region(),
+                         WGS84Polygon(),
                          gp->reference(), gp->scaling(), scale, pub, pub);
 }
 
@@ -1197,19 +1195,12 @@ static float area(const PointVector& ps) {
   return .5 * sum;
 }
 
-static bool checkCoverage(const PRegion& cov,
-                          WGS84Point &sw,
-                          WGS84Point &ne,
-                          const GeoProjection *gp) {
+static bool cm93CheckCoverage(const PRegion& cov,
+                              WGS84Point &sw,
+                              WGS84Point &ne,
+                              const GeoProjection *gp) {
 
   if (cov.isEmpty()) return false;
-  //  PointVector box;
-  //  box << gp->fromWGS84(sw);
-  //  box << gp->fromWGS84(WGS84Point::fromLL(ne.lng(), sw.lat()));
-  //  box << gp->fromWGS84(ne);
-  //  box << gp->fromWGS84(WGS84Point::fromLL(sw.lng(), ne.lat()));
-
-  // const float A = area(box);
 
   // compute bounding box
   QPointF ur(-1.e15, -1.e15);
@@ -1240,16 +1231,15 @@ static bool checkCoverage(const PRegion& cov,
     qCDebug(CENC) << sw.lng() << sw.lat() << ne.lng() << ne.lat();
     throw ChartFileError("Too low coverage");
   }
-  return totcov < .8;
-  // return true;
+  return true;
 }
 
-Region CM93Reader::transformCoverage(PRegion pcov, WGS84Point &sw, WGS84Point &ne,
-                                     const GeoProjection *gp) const {
-  if (!checkCoverage(pcov, sw, ne, gp)) {
-    return Region();
+WGS84Polygon CM93Reader::transformCoverage(PRegion pcov, WGS84Point &sw, WGS84Point &ne,
+                                           const GeoProjection *gp) const {
+  if (!cm93CheckCoverage(pcov, sw, ne, gp)) {
+    return WGS84Polygon();
   }
-  Region cov;
+  WGS84Polygon cov;
   for (const PointVector& ps: pcov) {
     WGS84PointVector ws;
     for (auto p: ps) {
@@ -1268,6 +1258,7 @@ PRegion CM93Reader::createCoverage(const GL::VertexVector &vertices,
     auto start = getEndPoint(EP::First, edges[i], vertices);
     auto prevlast = start;
     while (i < edges.size() && prevlast == getEndPoint(EP::First, edges[i], vertices)) {
+      // if (edges[i].inner) qCDebug(CENC) << "Inner";
       ps.append(addVertices(edges[i], vertices));
       prevlast = getEndPoint(EP::Last, edges[i], vertices);
       i++;
@@ -1278,18 +1269,8 @@ PRegion CM93Reader::createCoverage(const GL::VertexVector &vertices,
       ps << getEndPoint(EP::Last, edges[i - 1], vertices);
     }
 
-    PointVector qs;
-    const int N = ps.size();
-    for (int k = 0; k < N; k++) {
-      const QPointF v = ps[k];
-      const QPointF vm = ps[(k + N - 1) % N];
-      const QPointF vp = ps[(k + 1) % N];
-      if (v.x() == vm.x() && v.x() == vp.x()) continue;
-      if (v.y() == vm.y() && v.y() == vp.y()) continue;
-      qs << v;
-    }
-
-    cov << qs;
+    ChartFileReader::reduce(ps);
+    cov << ps;
   }
 
   return cov;

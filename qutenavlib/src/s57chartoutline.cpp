@@ -30,8 +30,8 @@ S57ChartOutline::S57ChartOutline(S57ChartOutlinePrivate *d)
 
 S57ChartOutline::S57ChartOutline(const WGS84Point& sw,
                                  const WGS84Point& ne,
-                                 const Region& cov,
-                                 const Region& nocov,
+                                 const WGS84Polygon& cov,
+                                 const WGS84Polygon& nocov,
                                  quint32 scale,
                                  const QDate& pub,
                                  const QDate& mod)
@@ -51,8 +51,8 @@ S57ChartOutline::S57ChartOutline(const WGS84Point& sw,
 
 S57ChartOutline::S57ChartOutline(const WGS84Point& sw,
                                  const WGS84Point& ne,
-                                 const Region& cov,
-                                 const Region& nocov,
+                                 const WGS84Polygon& cov,
+                                 const WGS84Polygon& nocov,
                                  const WGS84Point& ref,
                                  const QSizeF& scaling,
                                  quint32 scale,
@@ -87,11 +87,11 @@ const Extent& S57ChartOutline::extent() const {
   return d->extent;
 }
 
-const Region& S57ChartOutline::coverage() const {
+const WGS84Polygon& S57ChartOutline::coverage() const {
   return d->cov;
 }
 
-const Region& S57ChartOutline::nocoverage() const {
+const WGS84Polygon& S57ChartOutline::nocoverage() const {
   return d->nocov;
 }
 

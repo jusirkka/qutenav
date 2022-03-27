@@ -29,24 +29,28 @@
 #include <QStandardPaths>
 #include "logging.h"
 #include "platform.h"
+#include "chartcover.h"
 
-ChartData::ChartData(S57Chart* c, quint32 s, const WGS84PointVector& cs, bool upd)
+ChartData::ChartData(S57Chart* c,
+                     quint32 s, const WGS84PointVector& cs, PaintMode m, bool upd)
   : chart(c)
   , id(0)
   , path()
   , scale(s)
   , cover(cs)
   , updLup(upd)
+  , mode(m)
 {}
 
 ChartData::ChartData(quint32 i, const QString& pth,
-                     quint32 s, const WGS84PointVector& cs)
+                     quint32 s, const WGS84PointVector& cs, PaintMode m)
   : chart(nullptr)
   , id(i)
   , path(pth)
   , scale(s)
   , cover(cs)
   , updLup(false)
+  , mode(m)
 {}
 
 
@@ -55,7 +59,17 @@ void ChartUpdater::createChart(const ChartData& d) {
   try {
     auto chart = new S57Chart(d.id, d.path);
     // qCDebug(CMGR) << "ChartUpdater::createChart";
-    chart->updatePaintData(d.cover, d.scale);
+    switch (d.mode) {
+    case ChartData::PaintMode::Normal:
+      chart->updatePaintData(d.cover, d.scale);
+      break;
+    case ChartData::PaintMode::Coverage:
+      chart->updateCoveragePaintData(d.cover, d.scale);
+      break;
+    case ChartData::PaintMode::Selection:
+      chart->updateSelectionPaintData(d.cover, d.scale);
+      break;
+    }
     emit done(chart);
   } catch (ChartFileError& e) {
     qWarning() << "Chart creation failed:" << e.msg();
@@ -67,7 +81,17 @@ void ChartUpdater::updateChart(const ChartData& d) {
   if (d.updLup) {
     d.chart->updateLookups();
   }
-  d.chart->updatePaintData(d.cover, d.scale);
+  switch (d.mode) {
+  case ChartData::PaintMode::Normal:
+    d.chart->updatePaintData(d.cover, d.scale);
+    break;
+  case ChartData::PaintMode::Coverage:
+    d.chart->updateCoveragePaintData(d.cover, d.scale);
+    break;
+  case ChartData::PaintMode::Selection:
+    d.chart->updateSelectionPaintData(d.cover, d.scale);
+    break;
+  }
   emit done(d.chart);
 }
 
