@@ -55,9 +55,12 @@ GL::Shader::~Shader() {
 
 
 void GL::Shader::initializePaint() {
+  auto f = QOpenGLContext::currentContext()->extraFunctions();
+  GLint pid;
+  f->glGetIntegerv(GL_CURRENT_PROGRAM, &pid);
+  if (pid == static_cast<GLint>(m_program->programId())) return; // already bound
   m_program->bind();
   m_program->enableAttributeArray(0);
-  auto f = QOpenGLContext::currentContext()->extraFunctions();
   f->glVertexAttribDivisor(0, 0);
 }
 
@@ -191,11 +194,14 @@ GL::TextShader::TextShader()
 }
 
 void GL::TextShader::initializePaint() {
+  auto f = QOpenGLContext::currentContext()->extraFunctions();
+  GLint pid;
+  f->glGetIntegerv(GL_CURRENT_PROGRAM, &pid);
+  if (pid == static_cast<GLint>(m_program->programId())) return; // already bound
   m_program->bind();
   m_program->enableAttributeArray(0);
   m_program->enableAttributeArray(1);
   m_program->enableAttributeArray(2);
-  auto f = QOpenGLContext::currentContext()->extraFunctions();
   f->glVertexAttribDivisor(0, 1);
   f->glVertexAttribDivisor(1, 1);
   f->glVertexAttribDivisor(2, 1);
@@ -233,11 +239,14 @@ GL::RasterSymbolShader::RasterSymbolShader()
 }
 
 void GL::RasterSymbolShader::initializePaint() {
+  auto f = QOpenGLContext::currentContext()->extraFunctions();
+  GLint pid;
+  f->glGetIntegerv(GL_CURRENT_PROGRAM, &pid);
+  if (pid == static_cast<GLint>(m_program->programId())) return; // already bound
   m_program->bind();
   m_program->enableAttributeArray(0);
   m_program->enableAttributeArray(1);
   m_program->enableAttributeArray(2);
-  auto f = QOpenGLContext::currentContext()->extraFunctions();
   f->glVertexAttribDivisor(0, 0);
   f->glVertexAttribDivisor(1, 0);
   f->glVertexAttribDivisor(2, 1);
@@ -271,10 +280,13 @@ GL::VectorSymbolShader::VectorSymbolShader()
 }
 
 void GL::VectorSymbolShader::initializePaint() {
+  auto f = QOpenGLContext::currentContext()->extraFunctions();
+  GLint pid;
+  f->glGetIntegerv(GL_CURRENT_PROGRAM, &pid);
+  if (pid == static_cast<GLint>(m_program->programId())) return; // already bound
   m_program->bind();
   m_program->enableAttributeArray(0);
   m_program->enableAttributeArray(1);
-  auto f = QOpenGLContext::currentContext()->extraFunctions();
   f->glVertexAttribDivisor(0, 0);
   f->glVertexAttribDivisor(1, 1);
 }
@@ -351,10 +363,13 @@ GL::TextureShader::TextureShader()
 }
 
 void GL::TextureShader::initializePaint() {
+  auto f = QOpenGLContext::currentContext()->extraFunctions();
+  GLint pid;
+  f->glGetIntegerv(GL_CURRENT_PROGRAM, &pid);
+  if (pid == static_cast<GLint>(m_program->programId())) return; // already bound
   m_program->bind();
   m_program->enableAttributeArray(0);
   m_program->enableAttributeArray(1);
-  auto f = QOpenGLContext::currentContext()->extraFunctions();
   f->glVertexAttribDivisor(0, 0);
   f->glVertexAttribDivisor(1, 0);
 }

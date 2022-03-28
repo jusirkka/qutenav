@@ -88,11 +88,20 @@ void S57::TriangleData::filterElements(const KV::Region& cover) {
 
 S57::TriangleArrayData::TriangleArrayData(const ElementDataVector& elem, GLsizei offset, const QColor& c)
   : TriangleData(Type::TriangleArrays, elem, offset, c)
-{}
+{
+  if (c.alpha() < 255) {
+    m_type = Type::LucentTriangleArrays;
+  }
+}
 
 S57::TriangleElemData::TriangleElemData(const ElementDataVector& elem, GLsizei offset, const QColor& c)
   : TriangleData(Type::TriangleElements, elem, offset, c)
-{}
+{
+  if (c.alpha() < 255) {
+    m_type = Type::LucentTriangleElements;
+  }
+}
+
 
 S57::LineData::LineData(Type t,
                         const ElementDataVector& elems,
@@ -124,7 +133,11 @@ S57::LineElemData::LineElemData(const ElementDataVector& elem,
                                 GLfloat width,
                                 uint pattern)
   : LineData(Type::LineElements, elem, offset, c, width, pattern)
-{}
+{
+  if (pattern != as_numeric(S52::LineType::Solid)) {
+    m_type = Type::LucentLineElements;
+  }
+}
 
 void S57::LineElemData::setUniforms() const {
   auto prog = GL::LineElemShader::instance();
@@ -151,7 +164,11 @@ S57::LineArrayData::LineArrayData(const ElementDataVector& elem,
                                   GLfloat width,
                                   uint pattern)
   : LineData(Type::LineArrays, elem, offset, c, width, pattern)
-{}
+{
+  if (pattern != as_numeric(S52::LineType::Solid)) {
+    m_type = Type::LucentLineArrays;
+  }
+}
 
 void S57::LineArrayData::setUniforms() const {
   auto prog = GL::LineArrayShader::instance();
@@ -346,7 +363,7 @@ S57::SymbolPaintDataBase::SymbolPaintDataBase(Type t,
                                               const QPointF& offset,
                                               SymbolHelper* helper)
   : PaintData(t)
-  , m_type(s)
+  , m_symbolType(s)
   , m_index(index)
   , m_offset(offset)
   , m_helper(helper)
@@ -413,6 +430,9 @@ S57::VectorSymbolPaintData::VectorSymbolPaintData(quint32 index,
     d.color = colors[i];
     d.element = elems[i];
     m_elems.append(d);
+    if (d.color.alpha() < 255) {
+      m_type = Type::LucentVectorSymbols;
+    }
   }
 }
 

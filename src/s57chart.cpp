@@ -586,6 +586,7 @@ void S57Chart::updatePaintData(const WGS84PointVector& cs, quint32 scale) {
     parseLocals(S57::PaintData::Type::RasterSymbols, pd, prio, mergeRasterSymbols);
     parseLocals(S57::PaintData::Type::RasterPatterns, pd, prio, mergeRasterSymbols);
     parseLocals(S57::PaintData::Type::VectorSymbols, pd, prio, mergeVectorSymbols);
+    parseLocals(S57::PaintData::Type::LucentVectorSymbols, pd, prio, mergeVectorSymbols);
     parseLocals(S57::PaintData::Type::VectorPatterns, pd, prio, mergeVectorSymbols);
     parseLocals(S57::PaintData::Type::VectorLineStyles, pd, prio, mergeVectorSymbols);
     // merge text
@@ -622,9 +623,13 @@ void S57Chart::updatePaintData(const WGS84PointVector& cs, quint32 scale) {
   };
 
   filterElements(S57::PaintData::Type::TriangleArrays);
+  filterElements(S57::PaintData::Type::LucentTriangleArrays);
   filterElements(S57::PaintData::Type::TriangleElements);
+  filterElements(S57::PaintData::Type::LucentTriangleElements);
   filterElements(S57::PaintData::Type::LineArrays);
+  filterElements(S57::PaintData::Type::LucentLineArrays);
   filterElements(S57::PaintData::Type::LineElements);
+  filterElements(S57::PaintData::Type::LucentLineElements);
 
   // move merged text to paintdatamap
   for (int i = 0; i < S52::Lookup::PriorityCount; i++) {
@@ -800,23 +805,33 @@ void S57Chart::findUnderling(S57::Object *overling,
   }
 }
 
-void S57Chart::drawAreas(const Camera* cam, int prio) {
+void S57Chart::drawAreas(const Camera* cam, int prio, bool blend) {
+
+  const S57::PaintIterator end = m_paintData[prio].constEnd();
+
+  const S57::PaintData::Type arrType = blend ? S57::PaintData::Type::LucentTriangleArrays :
+                                               S57::PaintData::Type::TriangleArrays;
+  const S57::PaintData::Type elemType = blend ? S57::PaintData::Type::LucentTriangleElements :
+                                                S57::PaintData::Type::TriangleElements;
+
+  S57::PaintIterator arr = m_paintData[prio].constFind(arrType);
+  S57::PaintIterator elem = m_paintData[prio].constFind(elemType);
+
+  if (arr == end && elem == end) return;
+
+  auto prog = GL::AreaShader::instance();
+  prog->initializePaint();
 
   m_coordBuffer.bind();
   m_indexBuffer.bind();
-
-  auto prog = GL::AreaShader::instance();
 
   prog->setGlobals(cam, m_modelMatrix);
   prog->setDepth(prio);
 
   auto f = QOpenGLContext::currentContext()->extraFunctions();
 
-  const S57::PaintIterator end = m_paintData[prio].constEnd();
 
-  S57::PaintIterator arr = m_paintData[prio].constFind(S57::PaintData::Type::TriangleArrays);
-
-  while (arr != end && arr.key() == S57::PaintData::Type::TriangleArrays) {
+  while (arr != end && arr.key() == arrType) {
     auto d = dynamic_cast<const S57::TriangleArrayData*>(arr.value());
     d->setUniforms();
     d->setVertexOffset();
@@ -826,9 +841,8 @@ void S57Chart::drawAreas(const Camera* cam, int prio) {
     ++arr;
   }
 
-  S57::PaintIterator elem = m_paintData[prio].constFind(S57::PaintData::Type::TriangleElements);
 
-  while (elem != end && elem.key() == S57::PaintData::Type::TriangleElements) {
+  while (elem != end && elem.key() == elemType) {
     auto d = dynamic_cast<const S57::TriangleElemData*>(elem.value());
     d->setUniforms();
     d->setVertexOffset();
@@ -843,21 +857,27 @@ void S57Chart::drawAreas(const Camera* cam, int prio) {
 }
 
 
-void S57Chart::drawLineArrays(const Camera* cam, int prio) {
+void S57Chart::drawLineArrays(const Camera* cam, int prio, bool blend) {
+
+  const S57::PaintIterator end = m_paintData[prio].constEnd();
+
+  const S57::PaintData::Type arrType = blend ? S57::PaintData::Type::LucentLineArrays :
+                                               S57::PaintData::Type::LineArrays;
+
+  S57::PaintIterator arr = m_paintData[prio].constFind(arrType);
+
+  if (arr == end) return;
 
   auto prog = GL::LineArrayShader::instance();
+  prog->initializePaint();
+
   prog->setGlobals(cam, m_modelMatrix);
   prog->setDepth(prio);
 
   auto f = QOpenGLContext::currentContext()->extraFunctions();
-
   f->glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_coordBuffer.bufferId());
 
-  const S57::PaintIterator end = m_paintData[prio].constEnd();
-
-  S57::PaintIterator arr = m_paintData[prio].constFind(S57::PaintData::Type::LineArrays);
-
-  while (arr != end && arr.key() == S57::PaintData::Type::LineArrays) {
+  while (arr != end && arr.key() == arrType) {
     auto d = dynamic_cast<const S57::LineArrayData*>(arr.value());
     d->setUniforms();
     for (const S57::ElementData& e: d->elements()) {
@@ -870,17 +890,21 @@ void S57Chart::drawLineArrays(const Camera* cam, int prio) {
 
 void S57Chart::drawSegmentArrays(const Camera* cam, int prio) {
 
+  const S57::PaintIterator end = m_paintData[prio].constEnd();
+
+  S57::PaintIterator arr = m_paintData[prio].constFind(S57::PaintData::Type::SegmentArrays);
+
+  if (arr == end) return;
+
   auto prog = GL::SegmentArrayShader::instance();
+  prog->initializePaint();
+
   prog->setGlobals(cam, m_modelMatrix);
   prog->setDepth(prio);
 
   auto f = QOpenGLContext::currentContext()->extraFunctions();
 
   f->glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_coordBuffer.bufferId());
-
-  const S57::PaintIterator end = m_paintData[prio].constEnd();
-
-  S57::PaintIterator arr = m_paintData[prio].constFind(S57::PaintData::Type::SegmentArrays);
 
   while (arr != end && arr.key() == S57::PaintData::Type::SegmentArrays) {
     auto d = dynamic_cast<const S57::SegmentArrayData*>(arr.value());
@@ -893,9 +917,20 @@ void S57Chart::drawSegmentArrays(const Camera* cam, int prio) {
   }
 }
 
-void S57Chart::drawLineElems(const Camera* cam, int prio) {
+void S57Chart::drawLineElems(const Camera* cam, int prio, bool blend) {
+
+  const S57::PaintIterator end = m_paintData[prio].constEnd();
+
+  const S57::PaintData::Type elemType = blend ? S57::PaintData::Type::LucentLineElements :
+                                                S57::PaintData::Type::LineElements;
+
+  S57::PaintIterator elem = m_paintData[prio].constFind(elemType);
+
+  if (elem == end) return;
 
   auto prog = GL::LineElemShader::instance();
+  prog->initializePaint();
+
   prog->setGlobals(cam, m_modelMatrix);
   prog->setDepth(prio);
 
@@ -904,10 +939,7 @@ void S57Chart::drawLineElems(const Camera* cam, int prio) {
   f->glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_coordBuffer.bufferId());
   f->glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_indexBuffer.bufferId());
 
-  const S57::PaintIterator end = m_paintData[prio].constEnd();
-  S57::PaintIterator elem = m_paintData[prio].constFind(S57::PaintData::Type::LineElements);
-
-  while (elem != end && elem.key() == S57::PaintData::Type::LineElements) {
+  while (elem != end && elem.key() == elemType) {
     auto d = dynamic_cast<const S57::LineElemData*>(elem.value());
     d->setUniforms();
     for (const S57::ElementData& e: d->elements()) {
@@ -920,17 +952,21 @@ void S57Chart::drawLineElems(const Camera* cam, int prio) {
 
 void S57Chart::drawText(const Camera* cam, int prio) {
 
-  TextManager::instance()->bind();
+  const S57::PaintIterator end = m_paintData[prio].constEnd();
+
+  S57::PaintIterator elem = m_paintData[prio].constFind(S57::PaintData::Type::TextElements);
+
+  if (elem == end) return;
 
   auto prog = GL::TextShader::instance();
+  prog->initializePaint();
+
+  TextManager::instance()->bind();
 
   prog->setGlobals(cam, m_modelMatrix);
   prog->setDepth(prio);
 
   auto f = QOpenGLContext::currentContext()->extraFunctions();
-
-  const S57::PaintIterator end = m_paintData[prio].constEnd();
-  S57::PaintIterator elem = m_paintData[prio].constFind(S57::PaintData::Type::TextElements);
 
   while (elem != end && elem.key() == S57::PaintData::Type::TextElements) {
     auto d = dynamic_cast<const S57::TextElemData*>(elem.value());
@@ -944,17 +980,21 @@ void S57Chart::drawText(const Camera* cam, int prio) {
 
 void S57Chart::drawRasterSymbols(const Camera* cam, int prio) {
 
-  RasterSymbolManager::instance()->bind();
+  const S57::PaintIterator end = m_paintData[prio].constEnd();
+
+  S57::PaintIterator elem = m_paintData[prio].constFind(S57::PaintData::Type::RasterSymbols);
+
+  if (elem == end) return;
 
   auto prog = GL::RasterSymbolShader::instance();
+  prog->initializePaint();
+
+  RasterSymbolManager::instance()->bind();
 
   prog->setGlobals(cam, m_modelMatrix);
   prog->setDepth(prio);
 
   auto f = QOpenGLContext::currentContext()->extraFunctions();
-
-  const S57::PaintIterator end = m_paintData[prio].constEnd();
-  S57::PaintIterator elem = m_paintData[prio].constFind(S57::PaintData::Type::RasterSymbols);
 
   while (elem != end && elem.key() == S57::PaintData::Type::RasterSymbols) {
     auto d = dynamic_cast<const S57::RasterSymbolPaintData*>(elem.value());
@@ -972,21 +1012,32 @@ void S57Chart::drawRasterSymbols(const Camera* cam, int prio) {
 }
 
 
-void S57Chart::drawVectorSymbols(const Camera* cam, int prio) {
+void S57Chart::drawVectorSymbols(const Camera* cam, int prio, bool blend) {
 
-  VectorSymbolManager::instance()->bind();
+  const S57::PaintIterator end = m_paintData[prio].constEnd();
+
+  const S57::PaintData::Type elemType = blend ? S57::PaintData::Type::LucentVectorSymbols :
+                                                S57::PaintData::Type::VectorSymbols;
+
+  S57::PaintIterator elem = m_paintData[prio].constFind(elemType);
+
+  if (blend && elem == end) return;
+
+  S57::PaintIterator lelem = m_paintData[prio].constFind(S57::PaintData::Type::VectorLineStyles);
+
+  if (!blend && elem == end && lelem == end) return;
 
   auto prog = GL::VectorSymbolShader::instance();
+  prog->initializePaint();
+
+  VectorSymbolManager::instance()->bind();
 
   prog->setGlobals(cam, m_modelMatrix);
   prog->setDepth(prio);
 
   auto f = QOpenGLContext::currentContext()->extraFunctions();
 
-  const S57::PaintIterator end = m_paintData[prio].constEnd();
-
-  S57::PaintIterator elem = m_paintData[prio].constFind(S57::PaintData::Type::VectorSymbols);
-  while (elem != end && elem.key() == S57::PaintData::Type::VectorSymbols) {
+  while (elem != end && elem.key() == elemType) {
     auto d = dynamic_cast<const S57::VectorSymbolPaintData*>(elem.value());
     d->setUniforms();
     m_transformBuffer.bind();
@@ -1002,9 +1053,10 @@ void S57Chart::drawVectorSymbols(const Camera* cam, int prio) {
     ++elem;
   }
 
-  elem = m_paintData[prio].constFind(S57::PaintData::Type::VectorLineStyles);
-  while (elem != end && elem.key() == S57::PaintData::Type::VectorLineStyles) {
-    auto d = dynamic_cast<const S57::LineStylePaintData*>(elem.value());
+  if (blend) return;
+
+  while (lelem != end && lelem.key() == S57::PaintData::Type::VectorLineStyles) {
+    auto d = dynamic_cast<const S57::LineStylePaintData*>(lelem.value());
     d->setUniforms();
     m_transformBuffer.bind();
     d->setVertexOffset();
@@ -1016,7 +1068,7 @@ void S57Chart::drawVectorSymbols(const Camera* cam, int prio) {
                                  reinterpret_cast<const void*>(e.element.offset),
                                  d->count());
     }
-    ++elem;
+    ++lelem;
   }
 }
 

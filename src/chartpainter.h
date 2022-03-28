@@ -57,13 +57,6 @@ private:
   Camera* createBufferCamera(const Camera* cam, const QSizeF& vp) const;
 
   ChartManager* m_manager;
-  GL::AreaShader* m_areaShader;
-  GL::LineElemShader* m_lineElemShader;
-  GL::LineArrayShader* m_lineArrayShader;
-  GL::SegmentArrayShader* m_segmentArrayShader;
-  GL::TextShader* m_textShader;
-  GL::RasterSymbolShader* m_rasterShader;
-  GL::VectorSymbolShader* m_vectorShader;
   GL::TextureShader* m_textureShader;
 
   bool m_initialized;

@@ -53,13 +53,6 @@ void ChartPainter::initializeGL() {
 
     m_initialized = true;
 
-    m_areaShader = GL::AreaShader::instance();
-    m_lineElemShader = GL::LineElemShader::instance();
-    m_lineArrayShader = GL::LineArrayShader::instance();
-    m_segmentArrayShader = GL::SegmentArrayShader::instance();
-    m_textShader = GL::TextShader::instance();
-    m_rasterShader = GL::RasterSymbolShader::instance();
-    m_vectorShader = GL::VectorSymbolShader::instance();
     m_textureShader = GL::TextureShader::instance();
 
     const QVector<GLuint> indices {0, 1, 2, 0, 2, 3};
@@ -160,15 +153,23 @@ void ChartPainter::updateCharts(const Camera* cam, const QRectF& viewArea) {
     chart->updateModelTransform(bufCam);
   }
 
+
   // draw opaque objects nearest (highest priority) first
   for (int i = S52::Lookup::PriorityCount - 1; i >= 0; i--) {
-    m_vectorShader->initializePaint();
-    for (S57Chart* chart: m_manager->charts()) {
-      chart->drawVectorSymbols(bufCam, i);
-    }
-    m_areaShader->initializePaint();
     for (S57Chart* chart: m_manager->charts()) {
       chart->drawAreas(bufCam, i);
+    }
+    for (S57Chart* chart: m_manager->charts()) {
+      chart->drawLineElems(bufCam, i);
+    }
+    for (S57Chart* chart: m_manager->charts()) {
+      chart->drawLineArrays(bufCam, i);
+    }
+    for (S57Chart* chart: m_manager->charts()) {
+      chart->drawSegmentArrays(bufCam, i);
+    }
+    for (S57Chart* chart: m_manager->charts()) {
+      chart->drawVectorSymbols(bufCam, i);
     }
   }
 
@@ -176,23 +177,21 @@ void ChartPainter::updateCharts(const Camera* cam, const QRectF& viewArea) {
 
   // draw translucent objects farthest first
   for (int i = 0; i < S52::Lookup::PriorityCount; i++) {
-    m_rasterShader->initializePaint();
+    for (S57Chart* chart: m_manager->charts()) {
+      chart->drawAreas(bufCam, i, true);
+    }
     for (S57Chart* chart: m_manager->charts()) {
       chart->drawRasterSymbols(bufCam, i);
     }
-    m_lineElemShader->initializePaint();
     for (S57Chart* chart: m_manager->charts()) {
-      chart->drawLineElems(bufCam, i);
+      chart->drawLineElems(bufCam, i, true);
     }
-    m_lineArrayShader->initializePaint();
     for (S57Chart* chart: m_manager->charts()) {
-      chart->drawLineArrays(bufCam, i);
+      chart->drawLineArrays(bufCam, i, true);
     }
-    m_segmentArrayShader->initializePaint();
     for (S57Chart* chart: m_manager->charts()) {
-      chart->drawSegmentArrays(bufCam, i);
+      chart->drawVectorSymbols(bufCam, i, true);
     }
-    m_textShader->initializePaint();
     for (S57Chart* chart: m_manager->charts()) {
       chart->drawText(bufCam, i);
     }

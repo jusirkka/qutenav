@@ -35,14 +35,19 @@ public:
     Priority, // For a CS procedure to change priority
     TriangleElements,
     TriangleArrays,
+    LucentTriangleElements,
+    LucentTriangleArrays,
     LineElements, // Indexed linestrings
+    LucentLineElements,
     LineArrays, // Plain linestrings
+    LucentLineArrays,
     SegmentArrays, // disconnected segments
     LineLocal, // Plain linestrings, paintdata includes the vertices
     TextElements,
     RasterSymbols,
     RasterPatterns,
     VectorSymbols,
+    LucentVectorSymbols,
     VectorPatterns,
     VectorLineStyles,
   };
@@ -281,7 +286,7 @@ public:
   void setVertexOffset() const override;
 
   virtual void merge(const SymbolPaintDataBase* other, qreal scale, const KV::Region& va) = 0;
-  SymbolKey key() const {return SymbolKey(m_index, m_type);}
+  SymbolKey key() const {return SymbolKey(m_index, m_symbolType);}
   void getPivots(GL::VertexVector& pivots);
   GLsizei count() const {return m_instanceCount;}
 
@@ -295,7 +300,7 @@ protected:
                       const QPointF& offset,
                       SymbolHelper* helper);
 
-  S52::SymbolType m_type;
+  S52::SymbolType m_symbolType;
   quint32 m_index;
 
   QPointF m_offset;
