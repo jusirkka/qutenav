@@ -14,7 +14,6 @@
 - better globe mouse controls
 - bug: line flicker in globe mode
 
-- bug: sfos: v-ais cardinals not shown
 - clear cache when updating charts database
-- bug: areas overlap texts (only intel/gpu; sw/desktop & mobile are ok)
 - draw chart coverages for smaller scale maps
+- bug: areas overlap texts (only intel/gpu; sw/desktop & mobile are ok)

@@ -271,7 +271,7 @@ void GL::VectorSymbolShader::setGlobals(const Camera *cam, const QMatrix4x4 &mt)
 
 GL::VectorSymbolShader::VectorSymbolShader()
   : Shader({{QOpenGLShader::Vertex, ":chartpainter-vectorsymbol.vert"},
-            {QOpenGLShader::Fragment, ":chartpainter.frag"}}, .03)
+            {QOpenGLShader::Fragment, ":chartpainter.frag"}}, .035)
 {
   m_locations.m_p = m_program->uniformLocation("m_p");
   m_locations.m_model = m_program->uniformLocation("m_model");

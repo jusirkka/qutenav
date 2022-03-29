@@ -50,9 +50,6 @@ S57::PaintDataMap S52::AreaColor::execute(const QVector<QVariant>& vals,
 }
 
 QStringList S52::AreaColor::descriptions(const QVector<QVariant>&, const S57::Object* obj) const {
-  if (obj->geometry()->type() == S57::Geometry::Type::Area) {
-    qCDebug(CS57) << " --- NAME ---" << obj->name();
-  }
   return QStringList {GetClassDescription(obj->classCode())};
 }
 
@@ -318,6 +315,7 @@ S57::PaintDataMap S52::PointSymbol::execute(const QVector<QVariant>& vals,
 }
 
 QStringList S52::PointSymbol::descriptions(const QVector<QVariant>& vals, const S57::Object* obj) const {
+  qCDebug(CS57) << " --- NAME ---" << obj->name() << obj->geometry()->centerLL().print();
   QStringList ds;
   if (obj->attributeValue(m_catlam).isValid()) {
     ds << S52::GetAttributeValueDescription(m_catlam, obj->attributeValue(m_catlam));
@@ -3079,6 +3077,8 @@ S57::PaintDataMap S52::CSSymbolInsert01::execute(const QVector<QVariant>&,
     return S57::PaintDataMap();
   }
   const auto name = obj->attributeValue(m_clsnam).toString();
+
+  qCDebug(CS52) << name << obj->geometry()->centerLL().print();
 
   if (!m_lookups.contains(name)) {
     if (!obj->attributeValue(m_symins).isValid()) {

@@ -353,39 +353,39 @@ void S57Chart::encode(QDataStream& stream) {
 }
 
 
-static S57::PaintDataMap drawBox(const QRectF& box, const QString& colorName) {
-  S57::ElementData e;
-  e.count = 7;
-  e.offset = 0;
-  e.mode = GL_LINE_STRIP_ADJACENCY_EXT;
-  e.bbox = box;
+//static S57::PaintDataMap drawBox(const QRectF& box, const QString& colorName) {
+//  S57::ElementData e;
+//  e.count = 7;
+//  e.offset = 0;
+//  e.mode = GL_LINE_STRIP_ADJACENCY_EXT;
+//  e.bbox = box;
 
-  S57::ElementDataVector elements;
-  elements.append(e);
+//  S57::ElementDataVector elements;
+//  elements.append(e);
 
 
-  // Note: inverted y-axis
-  const QPointF p0 = box.topLeft();
-  const QPointF p1 = box.topRight();
-  const QPointF p2 = box.bottomRight();
-  const QPointF p3 = box.bottomLeft();
+//  // Note: inverted y-axis
+//  const QPointF p0 = box.topLeft();
+//  const QPointF p1 = box.topRight();
+//  const QPointF p2 = box.bottomRight();
+//  const QPointF p3 = box.bottomLeft();
 
-  GL::VertexVector vertices;
-  // account adjacency
-  vertices << p3.x() << p3.y();
-  vertices << p0.x() << p0.y();
-  vertices << p1.x() << p1.y();
-  vertices << p2.x() << p2.y();
-  vertices << p3.x() << p3.y();
-  vertices << p0.x() << p0.y();
-  vertices << p1.x() << p1.y();
+//  GL::VertexVector vertices;
+//  // account adjacency
+//  vertices << p3.x() << p3.y();
+//  vertices << p0.x() << p0.y();
+//  vertices << p1.x() << p1.y();
+//  vertices << p2.x() << p2.y();
+//  vertices << p3.x() << p3.y();
+//  vertices << p0.x() << p0.y();
+//  vertices << p1.x() << p1.y();
 
-  auto color = QColor(colorName);
-  auto p = new S57::LineLocalData(vertices, elements, color, S52::LineWidthMM(4),
-                                  as_numeric(S52::LineType::Solid), false, QPointF());
+//  auto color = QColor(colorName);
+//  auto p = new S57::LineLocalData(vertices, elements, color, S52::LineWidthMM(4),
+//                                  as_numeric(S52::LineType::Solid), false, QPointF());
 
-  return S57::PaintDataMap{{p->type(), p}};
-}
+//  return S57::PaintDataMap{{p->type(), p}};
+//}
 
 static S57::PaintDataMap drawPolygon(const QRectF& box, const GL::VertexVector& vertices,
                                      const QString& colorName) {
@@ -504,7 +504,6 @@ void S57Chart::updatePaintData(const WGS84PointVector& cs, quint32 scale) {
   //  int areaCount = 0;
   //  int filteredAreaCount = 0;
   for (ObjectLookup& d: m_lookups) {
-
     //    if (d.object->geometry()->type() == S57::Geometry::Type::Area && !S52::IsMetaClass(d.object->classCode())) {
     //      areaCount += 1;
     //    }
@@ -568,7 +567,6 @@ void S57Chart::updatePaintData(const WGS84PointVector& cs, quint32 scale) {
     //    if (d.object->geometry()->type() == S57::Geometry::Type::Area) {
     //      filteredAreaCount += 1;
     //    }
-
 
     updates[prio] += pd;
   }

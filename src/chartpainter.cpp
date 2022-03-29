@@ -139,6 +139,7 @@ void ChartPainter::updateCharts(const Camera* cam, const QRectF& viewArea) {
   auto f = QOpenGLContext::currentContext()->extraFunctions();
 
   f->glEnable(GL_DEPTH_TEST);
+  f->glDepthFunc(GL_LEQUAL);
   f->glDisable(GL_STENCIL_TEST);
   f->glDisable(GL_CULL_FACE);
   f->glDisable(GL_BLEND);
@@ -178,10 +179,13 @@ void ChartPainter::updateCharts(const Camera* cam, const QRectF& viewArea) {
   // draw translucent objects farthest first
   for (int i = 0; i < S52::Lookup::PriorityCount; i++) {
     for (S57Chart* chart: m_manager->charts()) {
-      chart->drawAreas(bufCam, i, true);
+      chart->drawText(bufCam, i);
     }
     for (S57Chart* chart: m_manager->charts()) {
       chart->drawRasterSymbols(bufCam, i);
+    }
+    for (S57Chart* chart: m_manager->charts()) {
+      chart->drawVectorSymbols(bufCam, i, true);
     }
     for (S57Chart* chart: m_manager->charts()) {
       chart->drawLineElems(bufCam, i, true);
@@ -190,10 +194,7 @@ void ChartPainter::updateCharts(const Camera* cam, const QRectF& viewArea) {
       chart->drawLineArrays(bufCam, i, true);
     }
     for (S57Chart* chart: m_manager->charts()) {
-      chart->drawVectorSymbols(bufCam, i, true);
-    }
-    for (S57Chart* chart: m_manager->charts()) {
-      chart->drawText(bufCam, i);
+      chart->drawAreas(bufCam, i, true);
     }
   }
 

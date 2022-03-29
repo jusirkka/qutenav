@@ -112,7 +112,7 @@ private:
   using IDMap = QMap<quint32, quint32>;
   using ScaleVector = QVector<quint32>;
 
-  static constexpr float viewportFactor = 1.9;
+  static constexpr float viewportFactor = 1.65;
   static constexpr float marginFactor = 1.08;
   static constexpr float maxScaleRatio = 32;
   static constexpr float maxScale = 25000000;
