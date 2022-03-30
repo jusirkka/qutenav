@@ -59,7 +59,7 @@ public slots:
 
 signals:
 
-  void ready();
+  void ready(bool clearCache);
   void status(const QString& msg);
 
 };

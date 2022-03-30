@@ -8,12 +8,13 @@
 - bug: sometimes safety contour line is drawn incorrectly
 - bug: loading a route when already tracking does not find correct location in the route
 - bug: intermittent segfault when zooming rapidly
-- delete cache if chartsymbols etc have changed
 - check all strings and add translation support
-- bug: s57 chart fatal error: bbox is empty in some areas/lines/points
 - better globe mouse controls
 - bug: line flicker in globe mode
+- ensure non-empty bbox in case of horizontal/vertical lines
+- better algorithm for covering polygon with rectangles
+- display less details in larger chart scales
+- bug: sfos: segfault when navigating to some charts
 
-- clear cache when updating charts database
-- draw chart coverages for smaller scale maps
+- draw chart coverages of smaller scale maps
 - bug: areas overlap texts (only intel/gpu; sw/desktop & mobile are ok)

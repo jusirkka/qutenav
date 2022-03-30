@@ -22,4 +22,4 @@
 class QTranslator;
 
 extern void loadTranslation(QTranslator& translator);
-extern void checkCache();
+extern void checkCache(bool clearCache);

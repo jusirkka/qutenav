@@ -91,7 +91,7 @@ private slots:
 
   void manageThreads(S57Chart* chart);
   void manageInfoResponse(const S57::InfoType& info, quint32 tid);
-  void updateChartSets();
+  void updateChartSets(bool clearCache);
 
 private:
 

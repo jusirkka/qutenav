@@ -89,8 +89,6 @@ int main(int argc, char *argv[]) {
   loadTranslation(tr);
   app->installTranslator(&tr);
 
-  checkCache();
-
   // remove stutter
   app->setOrganizationName("");
   app->setOrganizationDomain("");

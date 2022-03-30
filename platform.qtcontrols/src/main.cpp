@@ -81,8 +81,6 @@ int main(int argc, char *argv[]) {
   loadTranslation(tr);
   app->installTranslator(&tr);
 
-  checkCache();
-
   S52::InitPresentation();
 
   TrackDatabase::createTables();

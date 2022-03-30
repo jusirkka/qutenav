@@ -55,10 +55,13 @@ void loadTranslation(QTranslator& translator) {
   }
 }
 
-void checkCache() {
+void checkCache(bool clearCache) {
   const auto base = QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation);
   const auto path = QString("%1/%2").arg(base).arg(baseAppName());
-  const quint32 mx = Settings::instance()->cacheSize() * 1000000; // megabytes -> bytes
+  quint32 mx = Settings::instance()->cacheSize() * 1000000; // megabytes -> bytes
+  if (clearCache) {
+    mx = 0;
+  }
 
   QDir cacheDir(path);
   if (!cacheDir.exists()) return;
@@ -70,11 +73,11 @@ void checkCache() {
       // qDebug() << info.fileName() << info.lastModified() << sz;
     } else {
       if (cacheDir.remove(info.fileName())) {
-        qInfo() << "removed" << info.filePath()
+        qCInfo(CDPY) << "removed" << info.filePath()
                 << ", size" << info.size()
                 << ", last used" << info.lastModified().toString();
       } else {
-        qWarning() << "Cannot remove" << info.filePath();
+        qCWarning(CDPY) << "Cannot remove" << info.filePath();
       }
     }
   }

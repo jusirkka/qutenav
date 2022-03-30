@@ -40,6 +40,7 @@
 #include "gnuplot.h"
 #include "conf_mainwindow.h"
 #include "platform.h"
+#include "utils.h"
 
 ChartManager* ChartManager::instance() {
   static ChartManager* m = new ChartManager();
@@ -61,14 +62,15 @@ ChartManager::ChartManager(QObject *parent)
   m_readers.append(new CacheReader);
 
   // create readers & chartsets
-  updateChartSets();
+  updateChartSets(false);
 
   connect(m_updater, &UpdaterInterface::ready, this, &ChartManager::updateChartSets);
 }
 
-void ChartManager::updateChartSets() {
+void ChartManager::updateChartSets(bool clearCache) {
 
-  qCDebug(CMGR) << "updateChartSets";
+  qCDebug(CMGR) << "Checking cache";
+  checkCache(clearCache);
 
   auto prevSets = m_chartSets.keys();
 
@@ -406,7 +408,7 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
       if (region.isEmpty()) continue;
 
       auto delta = remainingArea.intersected(region);
-      if (delta.isEmpty()) continue;
+      if (delta.area() / totarea < 1.e-3) continue;
 
       regions[id] = delta;
 

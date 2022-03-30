@@ -11,7 +11,9 @@
         <method name="ping">
           <arg name="pong" direction="out" type="s"/>
         </method>
-        <signal name="ready"/>
+        <signal name="ready">
+          <arg name="clearCache" type="b"/>
+        </signal>
         <signal name="status">
           <arg name="message" type="s"/>
         </signal>

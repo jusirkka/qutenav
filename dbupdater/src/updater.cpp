@@ -31,6 +31,7 @@
 Updater::Updater(QObject* parent)
   : QObject(parent)
   , m_db("updater")
+  , m_clearCache(false)
 {
   loadPlugins();
 }
@@ -45,17 +46,21 @@ Updater::~Updater() {
 }
 
 void Updater::fullSync(const QStringList& paths) {
+  m_clearCache = false;
   ChartInfoMap current;
   manageCharts(paths, &current);
   updateCharts(current);
   emit status("Full sync ready");
-  emit ready();
+  qDebug() << "emit ready, clearCache =" << m_clearCache;
+  emit ready(m_clearCache);
 }
 
 void Updater::sync(const QStringList& paths) {
+  m_clearCache = false;
   manageCharts(paths, nullptr);
   emit status("Sync ready");
-  emit ready();
+  qDebug() << "emit ready, clearCache =" << m_clearCache;
+  emit ready(m_clearCache);
 }
 
 void Updater::manageCharts(const QStringList& dirs, ChartInfoMap* charts) {
@@ -247,6 +252,8 @@ void Updater::deleteCharts(const IdSet& c_ids) {
 
   if (c_ids.isEmpty()) return;
 
+  m_clearCache = true;
+
   QString sql = "select p.id, v.id from "
                 "polygons p join "
                 "coverage v on p.cov_id = v.id "
@@ -394,6 +401,9 @@ void Updater::insertCov(quint32 chart_id, quint32 type_id,
 }
 
 void Updater::update(quint32 id, const S57ChartOutline &ch) {
+
+  m_clearCache = true;
+
   // update charts
   QSqlQuery t = m_db.prepare("update charts set "
                              "swx=?, swy=?, nex=?, ney=?, "
