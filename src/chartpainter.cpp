@@ -151,6 +151,7 @@ void ChartPainter::updateCharts(const Camera* cam, const QRectF& viewArea) {
   f->glViewport(0, 0, bufSize.width(), bufSize.height());
 
   for (S57Chart* chart: m_manager->charts()) {
+    chart->lock();
     chart->updateModelTransform(bufCam);
   }
 
@@ -202,6 +203,7 @@ void ChartPainter::updateCharts(const Camera* cam, const QRectF& viewArea) {
   for (S57Chart* chart: m_manager->charts()) {
     chart->drawRasterPatterns(bufCam);
     chart->drawVectorPatterns(bufCam);
+    chart->unlock();
   }
 
   for (const QOpenGLDebugMessage& message: m_logger->loggedMessages()) {

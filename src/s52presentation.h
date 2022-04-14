@@ -65,6 +65,7 @@ public:
     , m_comment(comment)
     , m_source(source)
     , m_needUnderling(false)
+    , m_canOverride(false)
   {}
 
   Type type() const {return m_type;}

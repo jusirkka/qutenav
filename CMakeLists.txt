@@ -172,6 +172,7 @@ target_sources(qutenav
     src/chartpainter.cpp
     src/chartupdater.cpp
     src/dbupdater_interface.cpp
+    src/decompose.cpp
     src/detailmode.cpp
     src/drawable.cpp
     src/globe.cpp

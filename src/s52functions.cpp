@@ -3078,7 +3078,7 @@ S57::PaintDataMap S52::CSSymbolInsert01::execute(const QVector<QVariant>&,
   }
   const auto name = obj->attributeValue(m_clsnam).toString();
 
-  qCDebug(CS52) << name << obj->geometry()->centerLL().print();
+  // qCDebug(CS52) << name << obj->geometry()->centerLL().print();
 
   if (!m_lookups.contains(name)) {
     if (!obj->attributeValue(m_symins).isValid()) {

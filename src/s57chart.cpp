@@ -93,6 +93,7 @@ S57Chart::S57Chart(quint32 id, const QString& path)
               S52::FindIndex("bcnwtw"),
               })
     , m_light(S52::FindIndex("LIGHTS"))
+  , m_mutex()
 {
 
   ChartFileReader* reader = nullptr;
@@ -200,34 +201,34 @@ S57Chart::S57Chart(quint32 id, const QString& path)
   // 5K char instances
   m_textTransformBuffer.allocate(5000 * 10 * sizeof(GLfloat));
 
-  auto fillCov = [this] (const WGS84Polygon& scov) {
-    QVector<GL::VertexVector> tcov;
-    for (const auto& pol: scov) {
-      GL::VertexVector vpol;
-      vpol << 0 << 0;
-      for (const auto& p: pol) {
-        const auto q = m_nativeProj->fromWGS84(p);
-        vpol << q.x() << q.y();
-      }
-      const int cnt = pol.size();
-      auto q = m_nativeProj->fromWGS84(pol[cnt - 1]);
-      vpol[0] = q.x();
-      vpol[1] = q.y();
-      q = m_nativeProj->fromWGS84(pol[0]);
-      vpol << q.x() << q.y();
-      q = m_nativeProj->fromWGS84(pol[1]);
-      vpol << q.x() << q.y();
-      tcov.append(vpol);
-    }
-    return tcov;
-  };
+  //  auto fillCov = [this] (const WGS84Polygon& scov) {
+  //    QVector<GL::VertexVector> tcov;
+  //    for (const auto& pol: scov) {
+  //      GL::VertexVector vpol;
+  //      vpol << 0 << 0;
+  //      for (const auto& p: pol) {
+  //        const auto q = m_nativeProj->fromWGS84(p);
+  //        vpol << q.x() << q.y();
+  //      }
+  //      const int cnt = pol.size();
+  //      auto q = m_nativeProj->fromWGS84(pol[cnt - 1]);
+  //      vpol[0] = q.x();
+  //      vpol[1] = q.y();
+  //      q = m_nativeProj->fromWGS84(pol[0]);
+  //      vpol << q.x() << q.y();
+  //      q = m_nativeProj->fromWGS84(pol[1]);
+  //      vpol << q.x() << q.y();
+  //      tcov.append(vpol);
+  //    }
+  //    return tcov;
+  //  };
 
-  auto outline = reader->readOutline(path, m_nativeProj);
-  m_cov = fillCov(outline.coverage());
-  m_nocov = fillCov(outline.nocoverage());
+  //  auto outline = reader->readOutline(path, m_nativeProj);
+  //  m_cov = fillCov(outline.coverage());
+  //  m_nocov = fillCov(outline.nocoverage());
 
-  m_box = QRectF(m_nativeProj->fromWGS84(outline.extent().sw()),
-                 m_nativeProj->fromWGS84(outline.extent().ne()));
+  //  m_box = QRectF(m_nativeProj->fromWGS84(outline.extent().sw()),
+  //                 m_nativeProj->fromWGS84(outline.extent().ne()));
 
 }
 
@@ -263,28 +264,28 @@ void S57Chart::encode(QDataStream& stream) {
   stream << ref.lng() << ref.lat();
 
   // extent
-  const auto sw = m_nativeProj->toWGS84(m_box.topLeft());
-  stream << sw.lng() << sw.lat();
-  const auto ne = m_nativeProj->toWGS84(m_box.bottomRight());
-  stream << ne.lng() << ne.lat();
+  //  const auto sw = m_nativeProj->toWGS84(m_box.topLeft());
+  //  stream << sw.lng() << sw.lat();
+  //  const auto ne = m_nativeProj->toWGS84(m_box.bottomRight());
+  //  stream << ne.lng() << ne.lat();
 
   // cov/nocov
-  auto encodeCov = [&stream, this] (QVector<GL::VertexVector> cov) {
-    const int Ncov = cov.size();
-    stream << Ncov;
-    for (const auto& pol: cov) {
-      const int Npol = pol.size() / 2 - 3;
-      stream << Npol;
-      for (int n = 0; n < Npol; n++) {
-        const QPointF q(pol[2 * n + 2], pol[2 * n + 3]);
-        const auto p = m_nativeProj->toWGS84(q);
-        stream << p.lng() << p.lat();
-      }
-    }
-  };
+  //  auto encodeCov = [&stream, this] (QVector<GL::VertexVector> cov) {
+  //    const int Ncov = cov.size();
+  //    stream << Ncov;
+  //    for (const auto& pol: cov) {
+  //      const int Npol = pol.size() / 2 - 3;
+  //      stream << Npol;
+  //      for (int n = 0; n < Npol; n++) {
+  //        const QPointF q(pol[2 * n + 2], pol[2 * n + 3]);
+  //        const auto p = m_nativeProj->toWGS84(q);
+  //        stream << p.lng() << p.lat();
+  //      }
+  //    }
+  //  };
 
-  encodeCov(m_cov);
-  encodeCov(m_nocov);
+  //  encodeCov(m_cov);
+  //  encodeCov(m_nocov);
 
   // coordinates
   stream.setFloatingPointPrecision(QDataStream::SinglePrecision);
@@ -387,28 +388,29 @@ void S57Chart::encode(QDataStream& stream) {
 //  return S57::PaintDataMap{{p->type(), p}};
 //}
 
-static S57::PaintDataMap drawPolygon(const QRectF& box, const GL::VertexVector& vertices,
-                                     const QString& colorName) {
+//static S57::PaintDataMap drawPolygon(const QRectF& box, const GL::VertexVector& vertices,
+//                                     const QColor& c) {
 
-  if (vertices.isEmpty()) return S57::PaintDataMap();
+//  if (vertices.isEmpty()) return S57::PaintDataMap();
 
-  S57::ElementData e;
-  e.count = vertices.size() / 2;
-  e.offset = 0;
-  e.mode = GL_LINE_STRIP_ADJACENCY_EXT;
-  e.bbox = box;
+//  S57::ElementData e;
+//  e.count = vertices.size() / 2;
+//  e.offset = 0;
+//  e.mode = GL_LINE_STRIP_ADJACENCY_EXT;
+//  e.bbox = box;
 
-  S57::ElementDataVector elements;
-  elements.append(e);
+//  S57::ElementDataVector elements;
+//  elements.append(e);
 
-  auto color = QColor(colorName);
-  auto p = new S57::LineLocalData(vertices, elements, color, S52::LineWidthMM(6),
-                                  as_numeric(S52::LineType::Solid), false, QPointF());
+//  auto p = new S57::LineLocalData(vertices, elements, c, S52::LineWidthMM(6),
+//                                  as_numeric(S52::LineType::Solid), false, QPointF());
 
-  return S57::PaintDataMap{{p->type(), p}};
-}
+//  return S57::PaintDataMap{{p->type(), p}};
+//}
 
 void S57Chart::updatePaintData(const WGS84PointVector& cs, quint32 scale) {
+
+  m_mutex.lock();
 
   // clear old paint data
   for (S57::PaintDataMap& d: m_paintData) {
@@ -489,16 +491,16 @@ void S57Chart::updatePaintData(const WGS84PointVector& cs, quint32 scale) {
 
   PaintPriorityVector updates(S52::Lookup::PriorityCount);
 
-  //  const auto rects = cover.rects();
-  //  for (const QRectF& rect: rects) {
-  //    updates[9] += drawBox(rect, "green");
-  //  }
-  for (const auto& cov: m_cov) {
-    updates[9] += drawPolygon(m_box, cov, "yellow");
-  }
-  for (const auto& nocov: m_nocov) {
-    updates[9] += drawPolygon(m_box, nocov, "red");
-  }
+  //    const auto rects = cover.rects();
+  //    for (const QRectF& rect: rects) {
+  //      updates[9] += drawBox(rect, "green");
+  //    }
+  //    for (const auto& cov: m_cov) {
+  //      updates[9] += drawPolygon(m_box, cov, QColor("yellow"));
+  //    }
+  //    for (const auto& nocov: m_nocov) {
+  //      updates[9] += drawPolygon(m_box, nocov, QColor("red"));
+  //    }
 
 
   //  int areaCount = 0;
@@ -716,9 +718,10 @@ void S57Chart::updatePaintData(const WGS84PointVector& cs, quint32 scale) {
 
   m_textTransformBuffer.write(0, textTransforms.constData(), dataLen);
 
+  m_mutex.unlock();
 }
 
-void S57Chart::updateCoveragePaintData(const WGS84PointVector& cs, quint32) {
+void S57Chart::updateCoveragePaintData(const WGS84PointVector&, quint32) {
 
   // clear old paint data
   for (S57::PaintDataMap& d: m_paintData) {
@@ -727,7 +730,42 @@ void S57Chart::updateCoveragePaintData(const WGS84PointVector& cs, quint32) {
     }
     d.clear();
   }
-  // TODO
+
+  auto c = QColor("yellow");
+  c.setAlpha(63);
+
+  GL::VertexVector vertices;
+
+  //  for (const auto& cov: m_cov) {
+  //    auto pd = drawPolygon(m_box, cov, c);
+
+  //    S57::PaintMutIterator it = pd.find(S57::PaintData::Type::LineLocal);
+  //    while (it != pd.end() && it.key() == S57::PaintData::Type::LineLocal) {
+  //      auto p = dynamic_cast<S57::Globalizer*>(it.value());
+  //      const auto off = m_staticVertexOffset + vertices.size() * sizeof(GLfloat);
+  //      auto pn = p->globalize(off, 0);
+  //      vertices += p->vertices(0);
+  //      delete p;
+  //      m_paintData[9].insert(pn->type(), pn);
+  //      it = pd.erase(it);
+  //    }
+  //  }
+
+  // update vertex buffer
+  m_coordBuffer.bind();
+  GLsizei dataLen = m_staticVertexOffset + sizeof(GLfloat) * vertices.size();
+  if (dataLen > m_coordBuffer.size()) {
+    auto staticData = new uchar[m_staticVertexOffset];
+    auto coords = m_coordBuffer.map(QOpenGLBuffer::ReadOnly);
+    memcpy(staticData, coords, m_staticVertexOffset);
+    m_coordBuffer.unmap();
+    m_coordBuffer.allocate(dataLen);
+    m_coordBuffer.write(0, staticData, m_staticVertexOffset);
+    delete [] staticData;
+  }
+
+  m_coordBuffer.write(m_staticVertexOffset, vertices.constData(), dataLen - m_staticVertexOffset);
+
 }
 
 void S57Chart::updateSelectionPaintData(const WGS84PointVector& cs, quint32) {

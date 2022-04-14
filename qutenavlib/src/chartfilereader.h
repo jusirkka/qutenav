@@ -87,9 +87,13 @@ public:
                             WGS84Polygon& nocov,
                             WGS84PointVector& ps,
                             const GeoProjection* gp,
+                            quint32 scale,
                             quint8* covp = nullptr, quint8* nocovp = nullptr); // percentages
 
-  static void reduce(QVector<QPointF>& ps);
+  using PointVector = QVector<QPointF>;
+
+  static void reduce(PointVector& ps);
+  static void reduceRDP(PointVector& ps, qreal eps);
 
 protected:
 

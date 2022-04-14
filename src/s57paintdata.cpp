@@ -134,7 +134,7 @@ S57::LineElemData::LineElemData(const ElementDataVector& elem,
                                 uint pattern)
   : LineData(Type::LineElements, elem, offset, c, width, pattern)
 {
-  if (pattern != as_numeric(S52::LineType::Solid)) {
+  if (pattern != as_numeric(S52::LineType::Solid) || c.alpha() < 255) {
     m_type = Type::LucentLineElements;
   }
 }
@@ -165,7 +165,7 @@ S57::LineArrayData::LineArrayData(const ElementDataVector& elem,
                                   uint pattern)
   : LineData(Type::LineArrays, elem, offset, c, width, pattern)
 {
-  if (pattern != as_numeric(S52::LineType::Solid)) {
+  if (pattern != as_numeric(S52::LineType::Solid) || c.alpha() < 255) {
     m_type = Type::LucentLineArrays;
   }
 }

@@ -22,10 +22,11 @@
 #include "logging.h"
 #include <QRectF>
 #include <functional>
+#include "decompose.h"
 
 ChartCover::ChartCover(const WGS84Polygon& cov, const WGS84Polygon& nocov,
                        const WGS84Point& sw, const WGS84Point& ne,
-                       const GeoProjection* proj)
+                       const GeoProjection* proj, quint32 scale)
   : m_ref(proj->reference())
   , m_cover()
   , m_cov(cov)
@@ -33,12 +34,13 @@ ChartCover::ChartCover(const WGS84Polygon& cov, const WGS84Polygon& nocov,
 
   const auto ll = proj->fromWGS84(sw);
   const auto ur = proj->fromWGS84(ne);
-  QRectF box(ll, ur);
 
-  // offset bbox to account boundary not being part of polygon in inpolygon
-  QRectF bbox(ll + QPointF(1., 1.), ur  - QPointF(1., 1.));
+  const WGS84Point nw = WGS84Point::fromLL(sw.lng(), ne.lat());
+  // 1 cm coarseness at nominal scale
+  qreal prec = 0.01 * scale * (ur.y() - ll.y()) / (nw - sw).meters();
 
   if (cov.isEmpty()) {
+    const QRectF box(ll, ur);
     qCDebug(CMGR) << "KV::Region" << box;
     m_cover = KV::Region(box);
   } else {
@@ -47,17 +49,16 @@ ChartCover::ChartCover(const WGS84Polygon& cov, const WGS84Polygon& nocov,
       for (auto v: vs) {
         ps << proj->fromWGS84(v);
       }
-      m_cover += approximate(ps, bbox);
+      m_cover += approximate(ps, prec);
     }
   }
-
 
   for (const WGS84PointVector& vs: nocov) {
     PointVector ps;
     for (auto v: vs) {
       ps << proj->fromWGS84(v);
     }
-    m_cover -= approximate(ps, bbox, true);
+    m_cover -= approximate(ps, prec, true);
   }
 }
 
@@ -66,73 +67,13 @@ KV::Region ChartCover::region(const GeoProjection *gp) const {
 }
 
 
-// https://wrf.ecse.rpi.edu//Research/Short_Notes/pnpoly.html
-static bool inpolygon(const PointVector& ps, qreal x, qreal y) {
-  bool c = false;
-  const int n = ps.size();
-  for (int i = 0, j = n - 1; i < n; j = i++) {
-    if (((ps[i].y() > y) != (ps[j].y() > y)) &&
-        (x < (ps[j].x() - ps[i].x()) * (y - ps[i].y()) / (ps[j].y() - ps[i].y()) + ps[i].x())) {
-      c = !c;
-    }
+KV::Region ChartCover::approximate(const PointVector& poly, qreal prec, bool inner) const {
+  KV::Region out;
+  KV::Decomposer d(poly, prec, !inner);
+  while (!d.done()) {
+    out += d.nextRect();
   }
-  return c;
-}
-
-KV::Region ChartCover::approximate(const PointVector& poly, const QRectF& box, bool inner) const {
-
-  const qreal dx = box.width() / (gridWidth - 1);
-  const qreal dy = box.height() / (gridWidth - 1);
-
-  QVector<bool> grid(gridWidth * gridWidth);
-
-  for (int i = 0; i < gridWidth; i++) {
-    const auto x = box.left() + i * dx;
-    for (int j = 0; j < gridWidth; j++) {
-      const auto y = box.top() + j * dy;
-      grid[i * gridWidth + j] = inpolygon(poly, x, y);
-    }
-  }
-
-  KV::Region reg;
-
-  std::function<bool (int, int)> filter;
-  if (inner) {
-    filter = [grid, this] (int i, int j) {
-      return grid[i * gridWidth + j] && grid[(i + 1) * gridWidth + j] &&
-             grid[i * gridWidth + j + 1] && grid[(i + 1) * gridWidth + j + 1];
-    };
-  } else {
-    filter = [grid, this] (int i, int j) {
-      return grid[i * gridWidth + j] || grid[(i + 1) * gridWidth + j] ||
-             grid[i * gridWidth + j + 1] || grid[(i + 1) * gridWidth + j + 1];
-    };
-  }
-
-  for (int i = 0; i < gridWidth - 1; i++) {
-    const auto x = box.left() + i * dx;
-    for (int j = 0; j < gridWidth - 1; j++) {
-      const auto y = box.top() + j * dy;
-      if (filter(i, j)) {
-        reg += QRectF(x, y, dx, dy);
-      }
-    }
-  }
-
-  return reg;
+  return out;
 }
 
 
-// Note: not 100% reliable, but good enough (should test x/y is constant alternatingly)
-bool ChartCover::isRectangle(const PointVector& poly) const {
-  if (poly.size() != 4) return false;
-
-  const qreal eps = 1.e-10;
-  for (int k = 0; k < 4; k++) {
-    const auto p1 = poly[k];
-    const auto p2 = poly[(k + 1) % 4];
-    if (std::abs(p2.x() - p1.x()) > eps && std::abs(p2.y() - p1.y()) > eps) return false;
-  }
-
-  return true;
-}

@@ -291,7 +291,7 @@ S57::ElementDataVector ChartFileReader::createLineElements(GL::IndexVector &indi
 }
 
 
-using PointVector = QVector<QPointF>;
+using PointVector = ChartFileReader::PointVector;
 using PPolygon = QVector<PointVector>;
 
 static float area(const PointVector& ps) {
@@ -305,7 +305,8 @@ static float area(const PointVector& ps) {
   return .5 * sum;
 }
 
-static const float eps2 = 1.e-8;
+static const float eps2 = 1.e-6;
+static const float eps = 1.e-3;
 
 static QPointF get_next(const QPointF& x0, PointVector& ps, bool* found) {
 
@@ -323,8 +324,11 @@ static QPointF get_next(const QPointF& x0, PointVector& ps, bool* found) {
 }
 
 static bool accept(const QPointF& x0, const QPointF& x1, const QPointF& x2) {
-  const QVector3D c = QVector3D::crossProduct(QVector3D(x0 - x1), QVector3D(x2 - x1));
-  return std::abs(c.z()) > eps2;
+  const auto p0 = QVector3D(x0 - x1).normalized();
+  const auto p1 = QVector3D(x2 - x1).normalized();
+
+  const auto c = QVector3D::crossProduct(p0, p1);
+  return std::abs(c.z()) > eps;
 }
 
 void ChartFileReader::reduce(PointVector& ps) {
@@ -359,43 +363,60 @@ void ChartFileReader::checkCoverage(WGS84Polygon& cov,
                                     WGS84Polygon& nocov,
                                     WGS84PointVector& cs,
                                     const GeoProjection* gp,
+                                    quint32 scale,
                                     quint8* covr, quint8* nocovr) {
 
-  QPointF sw(1.e15, 1.e15);
-  QPointF ne(-1.e15, -1.e15);
+  QPointF ll(1.e15, 1.e15);
+  QPointF ur(-1.e15, -1.e15);
 
-  auto fromwgs84 = [gp, &sw, &ne] (const WGS84Polygon& poly, PPolygon& out, bool doit) {
+  if (cs.size() > 1) {
+    ll = gp->fromWGS84(cs[0]);
+    ur = gp->fromWGS84(cs[1]);
+  }
+
+  auto fromwgs84 = [gp, &ll, &ur, cs, scale] (const WGS84Polygon& poly, PPolygon& out) {
     for (const WGS84PointVector& vs: poly) {
       PointVector ps;
-      for (auto v: vs) {
-        ps << gp->fromWGS84(v);
-      }
-      reduce(ps);
-      if (doit) {
-        for (const QPointF& p: ps) {
-          maxbox(sw, ne, p.x(), p.y());
+      if (cs.size() < 2) {
+        for (auto v: vs) {
+          const QPointF p = gp->fromWGS84(v);
+          maxbox(ll, ur, p.x(), p.y());
+          ps << p;
+        }
+      } else {
+        for (auto v: vs) {
+          ps << gp->fromWGS84(v);
         }
       }
+      WGS84Point sw;
+      WGS84Point nw;
+      if (cs.size() < 2) {
+        sw = gp->toWGS84(ll);
+        nw = gp->toWGS84(QPointF(ll.x(), ur.y()));
+      } else {
+        sw = cs[0];
+        nw = WGS84Point::fromLL(cs[0].lng(), cs[1].lat());
+      }
+      // 5 mm coarseness at nominal scale
+      auto eps = 0.005 * scale * (ur.y() - ll.y()) / (nw - sw).meters();
+      reduceRDP(ps, eps);
       out.append(ps);
     }
   };
 
   PPolygon covp;
-  fromwgs84(cov, covp, cs.size() < 2);
+  fromwgs84(cov, covp);
 
   PPolygon nocovp;
-  fromwgs84(nocov, nocovp, cs.size() < 2);
+  fromwgs84(nocov, nocovp);
 
-  if (cs.size() > 1) {
-    sw = gp->fromWGS84(cs[0]);
-    ne = gp->fromWGS84(cs[1]);
-  } else {
+  if (cs.size() < 2) {
     cs.clear();
-    cs << gp->toWGS84(sw);
-    cs << gp->toWGS84(ne);
+    cs << gp->toWGS84(ll);
+    cs << gp->toWGS84(ur);
   }
 
-  const float A = (ne.y() - sw.y()) * (ne.x() - sw.x());
+  const float A = (ur.y() - ll.y()) * (ur.x() - ll.x());
 
   float totcov = 0;
   for (const PointVector& ps: covp) {
@@ -430,6 +451,71 @@ void ChartFileReader::checkCoverage(WGS84Polygon& cov,
   }
   if (nocovr != nullptr) {
     *nocovr = static_cast<quint8>(std::round(100 * totnocov));
+  }
+}
+
+using IndexVector = QVector<int>;
+
+// https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm
+static void rdpReduce(const PointVector& ps, int first, int last, IndexVector& is, qreal eps2) {
+  static const qreal z2 = 1.e-8;
+  // Find the point with the maximum distance
+  double d2max = 0;
+  int index = 0;
+
+  const QPointF p = ps[last] - ps[first];
+
+  const auto p2 = QPointF::dotProduct(p, p);
+
+  if (p2 < z2) {
+    // closed loop
+    for (int i = first + 1; i < last; ++i) {
+      const QPointF q = ps[i] - ps[first];
+      const auto q2 = QPointF::dotProduct(q, q);
+      if (q2 > d2max) {
+        index = i;
+        d2max = q2;
+      }
+    }
+  } else {
+    for (int i = first + 1; i < last; ++i) {
+      const QPointF q = ps[i] - ps[first];
+
+      const auto qp = QPointF::dotProduct(q, p);
+      const auto q2 = QPointF::dotProduct(q, q);
+
+      const auto d2 = q2 - qp * qp / p2;
+      if (d2 > d2max) {
+        index = i;
+        d2max = d2;
+      }
+    }
+  }
+
+  // If max distance is greater than epsilon, recursively simplify
+  if (d2max > eps2) {
+    is << index;
+    rdpReduce(ps, first, index, is, eps2);
+    rdpReduce(ps, index, last, is, eps2);
+  }
+}
+
+void ChartFileReader::reduceRDP(PointVector& ps, qreal eps) {
+  if (ps.size() < 3) return;
+  IndexVector indices;
+  // qCDebug(CENC) << "RDP coarseness" << eps;
+  rdpReduce(ps, 0, ps.size() - 1, indices, eps * eps);
+  if (indices.size() < ps.size() - 2) {
+    // qCDebug(CENC) << "RDP reduction" << ps.size() << "->" << indices.size() + 2;
+    PointVector out;
+    std::sort(indices.begin(), indices.end());
+    out << ps.first();
+    for (int i: indices) {
+      out << ps[i];
+    }
+    out << ps.last();
+
+    ps = out;
   }
 }
 

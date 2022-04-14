@@ -588,7 +588,7 @@ S57ChartOutline S57Reader::readOutline(const QString& path, const GeoProjection*
   }
 
   WGS84PointVector corners;
-  checkCoverage(cov, nocov, corners, gp);
+  checkCoverage(cov, nocov, corners, gp, scale);
   //  quint8 ca, nca;
   //  checkCoverage(cov, nocov, corners, gp, &ca, &nca);
   //  const QString name = QString("./gnuplot/s57_nocov/%1-%2-%3")
@@ -1017,28 +1017,14 @@ void S57Reader::readChart(GL::VertexVector& vertices,
     e.end = pconn[r.end];
     e.first = vertices.size() / 2;
     PointVector ps;
-    ps << QPointF(vertices[2 * e.begin], vertices[2 * e.begin + 1]);
     for (const QPointF& q: r.points) {
       const QPointF ll = q / mulfac;
       ps.append(gp->fromWGS84(WGS84Point::fromLL(ll.x(), ll.y())));
     }
-    ps << QPointF(vertices[2 * e.end], vertices[2 * e.end + 1]);
-    IndexVector reduced;
-    reduceRDP(ps, 0, ps.size() - 1, reduced);
-    if (reduced.size() < ps.size() - 2) {
-      // qCDebug(CENC) << "RDP reduction" << ps.size() - 2 << " -> " << reduced.size();
-      std::sort(reduced.begin(), reduced.end());
-      for (auto i: reduced) {
-        auto const p = ps[i];
-        vertices << p.x() << p.y();
-      }
-      e.count = reduced.size();
-    } else {
-      for (int i = 1; i < ps.size() - 1; ++i) {
-        auto const p = ps[i];
-        vertices << p.x() << p.y();
-      }
-      e.count = ps.size() - 2;
+    reduceRDP(ps, eps);
+    e.count = ps.size();
+    for (const QPointF& p: ps) {
+      vertices << p.x() << p.y();
     }
     pedges[it.key()] = e;
   }
@@ -1191,52 +1177,6 @@ WGS84PointVector S57Reader::addVertices(const RawEdgeRef& e,
   }
   return ps;
 }
-
-
-// https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm
-void S57Reader::reduceRDP(const PointVector& ps, int first, int last, IndexVector& is) const {
-  // Find the point with the maximum distance
-  double d2max = 0;
-  int index = 0;
-
-  const QPointF p = ps[last] - ps[first];
-
-  auto p2 = QPointF::dotProduct(p, p);
-
-  if (p2 < eps) {
-    // closed loop
-    for (int i = first + 1; i < last; ++i) {
-      const QPointF q = ps[i] - ps[first];
-      const auto q2 = QPointF::dotProduct(q, q);
-      if (q2 > d2max) {
-        index = i;
-        d2max = q2;
-      }
-    }
-  } else {
-    for (int i = first + 1; i < last; ++i) {
-      const QPointF q = ps[i] - ps[first];
-
-      const auto qp = QPointF::dotProduct(q, p);
-      const auto q2 = QPointF::dotProduct(q, q);
-
-      const auto d2 = q2 - qp * qp / p2;
-      if (d2 > d2max) {
-        index = i;
-        d2max = d2;
-      }
-    }
-  }
-
-  // If max distance is greater than epsilon, recursively simplify
-  if (d2max > eps) {
-    is << index;
-    reduceRDP(ps, first, index, is);
-    reduceRDP(ps, index, last, is);
-  }
-
-}
-
 
 
 QString S57ReaderFactory::name() const {

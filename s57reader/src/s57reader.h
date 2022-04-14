@@ -101,9 +101,7 @@ private:
                                const PointMap& connmap, quint32 mulfac) const;
 
 
-  static const inline double eps = 1.e-4;
-  using IndexVector = QVector<int>;
-  void reduceRDP(const PointVector& ps, int first, int last, IndexVector& is) const;
+  static const inline double eps = 1.e-2;
 
   S57Reader(const QString& name);
 

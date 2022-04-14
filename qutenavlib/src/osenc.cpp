@@ -324,7 +324,7 @@ S57ChartOutline Osenc::readOutline(QIODevice *device, const GeoProjection* gp) c
   }
 
   // corners = sw, ne
-  ChartFileReader::checkCoverage(cov, nocov, corners, gp);
+  ChartFileReader::checkCoverage(cov, nocov, corners, gp, scale);
   //  const QString name = QString("./gnuplot/%1-%2-%3")
   //      .arg(ca).arg(nca).arg(QFileInfo(device->objectName()).baseName());
   //  auto noop = GeoProjection::CreateProjection("NoopProjection");

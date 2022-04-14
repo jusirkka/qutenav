@@ -105,7 +105,8 @@ private:
   const ChartCover* getCover(quint32 chart_id,
                              const WGS84Point& sw,
                              const WGS84Point& ne,
-                             const GeoProjection* p);
+                             const GeoProjection* p,
+                             quint32 scale);
 
 
   using IDVector = QVector<quint32>;

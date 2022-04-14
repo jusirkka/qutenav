@@ -25,7 +25,7 @@
 #include "s52presentation.h"
 #include <QOpenGLBuffer>
 #include <QMatrix4x4>
-
+#include <QMutex>
 
 
 class GeoProjection;
@@ -74,6 +74,10 @@ public:
   S57::InfoType objectInfo(const WGS84Point& p, quint32 scale);
 
   void paintIcon(QPainter& painter, quint32 objectIndex) const;
+
+  // mutex inteface
+  void lock() {m_mutex.lock();}
+  void unlock() {m_mutex.unlock();}
 
 
   ~S57Chart();
@@ -141,9 +145,11 @@ private:
   const QVector<quint32> m_navaids;
   const quint32 m_light;
 
-  QVector<GL::VertexVector> m_cov;
-  QVector<GL::VertexVector> m_nocov;
-  QRectF m_box;
+  QMutex m_mutex;
+
+  // QVector<GL::VertexVector> m_cov;
+  // QVector<GL::VertexVector> m_nocov;
+  // QRectF m_box;
 };
 
 

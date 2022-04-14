@@ -258,6 +258,7 @@ void Tracker::display() {
 }
 
 QSGNode *Tracker::updatePaintNode(QSGNode* oldNode, UpdatePaintNodeData*) {
+
   QSGGeometryNode *node = nullptr;
   QSGGeometry *geometry = nullptr;
 

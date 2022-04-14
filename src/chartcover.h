@@ -25,7 +25,6 @@
 
 
 using PointVector = QVector<QPointF>;
-using Polygon = QVector<PointVector>;
 
 class GeoProjection;
 
@@ -37,7 +36,7 @@ public:
   ChartCover operator =(const ChartCover&);
   ChartCover(const WGS84Polygon& cov, const WGS84Polygon& nocov,
              const WGS84Point& sw, const WGS84Point& ne,
-             const GeoProjection* gp);
+             const GeoProjection* gp, quint32 scale);
 
   KV::Region region(const GeoProjection* gp) const;
   const WGS84Polygon& coverage() const {return m_cov;}
@@ -45,10 +44,7 @@ public:
 
 private:
 
-  static const int gridWidth = 21;
-
-  KV::Region approximate(const PointVector& poly, const QRectF& box, bool inner = false) const;
-  bool isRectangle(const PointVector& poly) const;
+  KV::Region approximate(const PointVector& poly, qreal prec, bool inner = false) const;
 
   WGS84Point m_ref;
   KV::Region m_cover;
