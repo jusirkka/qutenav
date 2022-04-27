@@ -305,59 +305,6 @@ static float area(const PointVector& ps) {
   return .5 * sum;
 }
 
-static const float eps2 = 1.e-6;
-static const float eps = 1.e-3;
-
-static QPointF get_next(const QPointF& x0, PointVector& ps, bool* found) {
-
-  *found = true;
-
-  while (!ps.isEmpty()) {
-    const auto dx = ps.takeFirst() - x0;
-    if (QPointF::dotProduct(dx, dx) > eps2) {
-      return x0 + dx;
-    }
-  }
-
-  *found = false;
-  return QPointF();
-}
-
-static bool accept(const QPointF& x0, const QPointF& x1, const QPointF& x2) {
-  const auto p0 = QVector3D(x0 - x1).normalized();
-  const auto p1 = QVector3D(x2 - x1).normalized();
-
-  const auto c = QVector3D::crossProduct(p0, p1);
-  return std::abs(c.z()) > eps;
-}
-
-void ChartFileReader::reduce(PointVector& ps) {
-  PointVector out;
-
-  // const auto np = ps.size();
-
-  auto x0 = ps.takeFirst();
-  ps << x0;
-  out << x0;
-
-  bool found;
-  auto x1 = get_next(x0, ps, &found);
-  if (!found) return;
-
-  while (!ps.isEmpty()) {
-    auto x2 = get_next(x1, ps, &found);
-    if (!found) continue;
-    if (accept(x0, x1, x2)) {
-      x0 = x1;
-      out << x0;
-    }
-    x1 = x2;
-  }
-  ps = out;
-  //  qCDebug(CENC) << "point reduction" << np << "->" << ps.size();
-  //  qCDebug(CENC) << "first" << ps.first();
-  //  qCDebug(CENC) << " last" << ps.last();
-}
 
 void ChartFileReader::checkCoverage(WGS84Polygon& cov,
                                     WGS84Polygon& nocov,

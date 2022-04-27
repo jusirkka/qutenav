@@ -36,28 +36,23 @@ void GL::LineCalculator::calculate(VertexVector& transforms,
                                    VertexVector& segments,
                                    GLfloat period,
                                    const QRectF& va,
-                                   BufferData& vertices,
-                                   BufferData& indices) {
+                                   const VertexVector& vertices,
+                                   const IndexVector& indices,
+                                   const OffsetData& offs) {
   if (period < 1.e-10) {
     qWarning() << "GL::LineCalculator: Period is too small" << period;
     return;
   }
    // qDebug() << "period" << period;
 
-  vertices.buffer.bind();
-  auto vertexBufferIn = reinterpret_cast<const glm::vec2*>(
-        vertices.buffer.mapRange(0, vertices.count * sizeof(glm::vec2),
-                                 QOpenGLBuffer::RangeRead));
+  auto vertexBufferIn = reinterpret_cast<const glm::vec2*>(vertices.constData());
 
-  indices.buffer.bind();
-  auto indexBufferIn = reinterpret_cast<const GLuint*>(
-        indices.buffer.mapRange(0, indices.count * sizeof(GLuint),
-                                 QOpenGLBuffer::RangeRead));
+  auto indexBufferIn = indices.constData();
 
-  const int numOutIndices = indices.count - 1;
+  const int numOutIndices = offs.count - 1;
   for (int index = 0; index < numOutIndices; index++) {
-    const uint v1 = vertices.offset + indexBufferIn[indices.offset + index];
-    const uint v2 = vertices.offset + indexBufferIn[indices.offset + index + 1];
+    const uint v1 = offs.vertexOffset + indexBufferIn[offs.indexOffset + index];
+    const uint v2 = offs.vertexOffset + indexBufferIn[offs.indexOffset + index + 1];
     const glm::vec2 p1 = vertexBufferIn[v1];
     const glm::vec2 p2 = vertexBufferIn[v2];
 
@@ -85,9 +80,6 @@ void GL::LineCalculator::calculate(VertexVector& transforms,
       segments << p2.x << p2.y;
     }
   }
-
-  vertices.buffer.unmap();
-  indices.buffer.unmap();
 }
 
 

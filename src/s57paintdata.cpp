@@ -644,29 +644,24 @@ void S57::LineStylePaintData::merge(const SymbolPaintDataBase* other, qreal scal
 
 void S57::LineStylePaintData::createTransforms(GL::VertexVector& transforms,
                                                GL::VertexVector& segments,
-                                               const QOpenGLBuffer& coordBuffer,
-                                               const QOpenGLBuffer& indexBuffer,
-                                               GLsizei maxCoordOffset) {
+                                               const GL::VertexVector& vertices,
+                                               const GL::IndexVector& indices) {
   m_pivotOffset = transforms.size() * sizeof(GLfloat);
 
   auto lc = GL::LineCalculator::instance();
-  using BufferData = GL::LineCalculator::BufferData;
-  BufferData vs;
-  vs.buffer = coordBuffer;
-  BufferData is;
-  is.buffer = indexBuffer;
+  using OffsetData = GL::LineCalculator::OffsetData;
   for (LineData& d: m_lineElements) {
 
     auto reg = m_cover.intersected(d.bbox);
     if (reg.isEmpty()) continue;
 
-    vs.offset = d.vertexOffset / sizeof(GLfloat) / 2;
-    vs.count = (maxCoordOffset - d.vertexOffset) / sizeof(GLfloat) / 2;
+    OffsetData off;
+    off.vertexOffset = d.vertexOffset / sizeof(GLfloat) / 2;
     for (S57::ElementData elem: d.elements) {
       // account adjacency
-      is.offset = elem.offset / sizeof(GLuint) + 1;
-      is.count = elem.count - 2;
-      lc->calculate(transforms, segments, m_advance, reg.boundingRect(), vs, is);
+      off.indexOffset = elem.offset / sizeof(GLuint) + 1;
+      off.count = elem.count - 2;
+      lc->calculate(transforms, segments, m_advance, reg.boundingRect(), vertices, indices, off);
     }
   }
 

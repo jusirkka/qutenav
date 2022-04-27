@@ -68,6 +68,7 @@ public:
 
   static VectorSymbolManager* instance();
   void createSymbols();
+  void init();
 
   SymbolData symbolData(quint32 index, S52::SymbolType type) const;
   bool paintIcon(QPainter& painter, quint32 index, S52::SymbolType type, qint16 angle);

@@ -12,5 +12,4 @@
 - draw largest scale coverages instead of rectangles in globe mode
 - bug: loading a route when already tracking does not find correct location in the route
 - bug: line flicker in globe mode
-
-- bug: texture render related artifacts (only intel/gpu; sw/desktop & mobile are ok)
+- VAO sanity

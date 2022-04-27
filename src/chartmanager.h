@@ -29,6 +29,7 @@
 #include "chartcover.h"
 #include <QCache>
 #include "chartupdater.h"
+#include "chartproxy.h"
 
 class Camera;
 class S57Chart;
@@ -38,10 +39,7 @@ class ChartFileReader;
 class ChartFileReaderFactory;
 class UpdaterInterface;
 class QPainter;
-
-namespace GL {
-class Thread;
-}
+class QThread;
 
 
 
@@ -55,7 +53,6 @@ public:
   using ChartReaderVector = QVector<ChartFileReader*>;
 
   static ChartManager* instance();
-  void createThreads(QOpenGLContext* ctx);
 
   QStringList chartSets() const;
   void setChartSet(const QString& charts, const GeoProjection* vproj, bool force = false);
@@ -67,6 +64,12 @@ public:
   const GL::VertexVector& outlines() const {return m_outlines;}
   const ChartReaderVector& readers() const {return m_readers;}
 
+  GL::ChartProxyQueue& createProxyQueue() {return m_createProxyQueue;}
+  GL::ChartProxyQueue& updateProxyQueue() {return m_updateProxyQueue;}
+  GL::ChartProxyQueue& destroyProxyQueue() {return m_destroyProxyQueue;}
+
+  void createThreads();
+
   // flags for updateCharts
   static const quint32 Force = 1;
   static const quint32 UpdateLookups = 2;
@@ -77,10 +80,11 @@ public:
 signals:
 
   void idle();
-  void active();
+  void active(const QRectF& viewArea);
   void chartsUpdated(const QRectF& viewArea);
   void infoResponse(const QString& objectId, const QString& info);
   void chartSetsUpdated();
+  void proxyChanged();
 
 public slots:
 
@@ -98,7 +102,7 @@ private:
   using ChartDataStack = QStack<ChartData>;
   using IDStack = QStack<quint32>;
   using UpdaterVector = QVector<ChartUpdater*>;
-  using ThreadVector = QVector<GL::Thread*>;
+  using ThreadVector = QVector<QThread*>;
 
   void createOutline(const WGS84Point& sw, const WGS84Point& ne);
   void loadPlugins();
@@ -144,9 +148,13 @@ private:
   using InfoTypeVector = QVector<S57::InfoType>;
   QMap<quint32, InfoTypeVector> m_info;
 
-  GL::Thread* m_cacheThread;
+  QThread* m_cacheThread;
   ChartUpdater* m_cacheWorker;
   ChartVector m_cacheQueue;
+
+  GL::ChartProxyQueue m_createProxyQueue;
+  GL::ChartProxyQueue m_updateProxyQueue;
+  GL::ChartProxyQueue m_destroyProxyQueue;
 
 
   using ChartsetNameMap = QMap<QString, int>;

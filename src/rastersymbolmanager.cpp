@@ -36,9 +36,13 @@ RasterSymbolManager::RasterSymbolManager()
   , m_indexBuffer(QOpenGLBuffer::IndexBuffer)
   , m_symbolTexture(nullptr)
   , m_symbolAtlas()
+  , m_size(QImage(S52::GetRasterFileName()).size())
   , m_pixmapCache(100 * sizeof(QPixmap))
 {}
 
+void RasterSymbolManager::init() {
+  qCDebug(CDPY) << "init (noop)";
+}
 
 RasterSymbolManager* RasterSymbolManager::instance() {
   static RasterSymbolManager* m = new RasterSymbolManager();
@@ -66,6 +70,8 @@ void RasterSymbolManager::changeSymbolAtlas() {
   auto rname = S52::GetRasterFileName();
   if (rname == m_symbolAtlas) return;
   m_symbolAtlas = rname;
+  QImage img(m_symbolAtlas);
+  m_size = img.size();
   if (m_symbolTexture != nullptr) {
     // bare delete without destroying underlying resources first leads to a segfault in
     // sfos/qt5.6. A bug?
@@ -75,14 +81,14 @@ void RasterSymbolManager::changeSymbolAtlas() {
     delete m_symbolTexture;
   }
   qCDebug(CDPY) << "new texture";
-  m_symbolTexture = new QOpenGLTexture(QImage(m_symbolAtlas), QOpenGLTexture::DontGenerateMipMaps);
+  m_symbolTexture = new QOpenGLTexture(img, QOpenGLTexture::DontGenerateMipMaps);
   m_symbolTexture->setWrapMode(QOpenGLTexture::ClampToEdge);
   m_symbolTexture->setMinMagFilters(QOpenGLTexture::Linear, QOpenGLTexture::Linear);
 }
 
 void RasterSymbolManager::createSymbols() {
 
-  changeSymbolAtlas();
+  if (m_coordBuffer.isCreated()) return;
 
   QFile file(S52::FindPath("chartsymbols.xml"));
   file.open(QFile::ReadOnly);
@@ -179,8 +185,8 @@ void RasterSymbolManager::parseSymbolData(QXmlStreamReader &reader,
   QPoint o;
 
   QPointF t0;
-  const qreal W = m_symbolTexture->width();
-  const qreal H = m_symbolTexture->height();
+  const qreal W = m_size.width();
+  const qreal H = m_size.height();
 
   while (reader.readNextStartElement()) {
     if (reader.name() == "distance") {

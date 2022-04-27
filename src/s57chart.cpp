@@ -37,7 +37,6 @@
 #include "geomutils.h"
 #include "logging.h"
 
-
 //
 // S57Chart
 //
@@ -66,11 +65,6 @@ S57Chart::S57Chart(quint32 id, const QString& path)
   , m_paintData(S52::Lookup::PriorityCount)
   , m_id(id)
   , m_path(path)
-  , m_coordBuffer(QOpenGLBuffer::VertexBuffer)
-  , m_indexBuffer(QOpenGLBuffer::IndexBuffer)
-  , m_pivotBuffer(QOpenGLBuffer::VertexBuffer)
-  , m_transformBuffer(QOpenGLBuffer::VertexBuffer)
-  , m_textTransformBuffer(QOpenGLBuffer::VertexBuffer)
   , m_infoSkipList {S52::FindCIndex("MAGVAR"),
                     S52::FindCIndex("ADMARE"),
                     S52::FindCIndex("CTNARE")}
@@ -94,6 +88,7 @@ S57Chart::S57Chart(quint32 id, const QString& path)
               })
     , m_light(S52::FindIndex("LIGHTS"))
   , m_mutex()
+  , m_proxy(nullptr)
 {
 
   ChartFileReader* reader = nullptr;
@@ -166,70 +161,7 @@ S57Chart::S57Chart(quint32 id, const QString& path)
     findUnderling(overling, underlings, vertices, indices);
   }
 
-  // fill in the buffers
-  if (!m_coordBuffer.create()) qFatal("No can do");
-  m_coordBuffer.setUsagePattern(QOpenGLBuffer::DynamicDraw);
-  m_coordBuffer.bind();
-  m_staticVertexOffset = vertices.size() * sizeof(GLfloat);
-  // add 10% extra space for vertices added later
-  m_coordBuffer.allocate(m_staticVertexOffset + m_staticVertexOffset / 10);
-  m_coordBuffer.write(0, vertices.constData(), m_staticVertexOffset);
-
-  m_indexBuffer.create();
-  m_indexBuffer.setUsagePattern(QOpenGLBuffer::DynamicDraw);
-  m_indexBuffer.bind();
-  m_staticElemOffset = indices.size() * sizeof(GLuint);
-  // add 10% extra space for elements added later
-  m_indexBuffer.allocate(m_staticElemOffset + m_staticElemOffset / 10);
-  m_indexBuffer.write(0, indices.constData(), m_staticElemOffset);
-
-  m_pivotBuffer.create();
-  m_pivotBuffer.setUsagePattern(QOpenGLBuffer::DynamicDraw);
-  m_pivotBuffer.bind();
-  // 5K raster symbol/pattern instances
-  m_pivotBuffer.allocate(5000 * 2 * sizeof(GLfloat));
-
-  m_transformBuffer.create();
-  m_transformBuffer.setUsagePattern(QOpenGLBuffer::DynamicDraw);
-  m_transformBuffer.bind();
-  // 3K vector symbol/pattern instances
-  m_transformBuffer.allocate(3000 * 4 * sizeof(GLfloat));
-
-  m_textTransformBuffer.create();
-  m_textTransformBuffer.setUsagePattern(QOpenGLBuffer::DynamicDraw);
-  m_textTransformBuffer.bind();
-  // 5K char instances
-  m_textTransformBuffer.allocate(5000 * 10 * sizeof(GLfloat));
-
-  //  auto fillCov = [this] (const WGS84Polygon& scov) {
-  //    QVector<GL::VertexVector> tcov;
-  //    for (const auto& pol: scov) {
-  //      GL::VertexVector vpol;
-  //      vpol << 0 << 0;
-  //      for (const auto& p: pol) {
-  //        const auto q = m_nativeProj->fromWGS84(p);
-  //        vpol << q.x() << q.y();
-  //      }
-  //      const int cnt = pol.size();
-  //      auto q = m_nativeProj->fromWGS84(pol[cnt - 1]);
-  //      vpol[0] = q.x();
-  //      vpol[1] = q.y();
-  //      q = m_nativeProj->fromWGS84(pol[0]);
-  //      vpol << q.x() << q.y();
-  //      q = m_nativeProj->fromWGS84(pol[1]);
-  //      vpol << q.x() << q.y();
-  //      tcov.append(vpol);
-  //    }
-  //    return tcov;
-  //  };
-
-  //  auto outline = reader->readOutline(path, m_nativeProj);
-  //  m_cov = fillCov(outline.coverage());
-  //  m_nocov = fillCov(outline.nocoverage());
-
-  //  m_box = QRectF(m_nativeProj->fromWGS84(outline.extent().sw()),
-  //                 m_nativeProj->fromWGS84(outline.extent().ne()));
-
+  m_proxy = new GL::ChartProxy(vertices, indices);
 }
 
 void S57Chart::updateLookups() {
@@ -242,20 +174,6 @@ void S57Chart::updateLookups() {
   m_lookups = lookups;
 }
 
-
-S57Chart::~S57Chart() {
-  for (ObjectLookup& d: m_lookups) {
-    delete d.object;
-  }
-  for (S57::PaintDataMap& d: m_paintData) {
-    for (S57::PaintMutIterator it = d.begin(); it != d.end(); ++it) {
-      delete it.value();
-    }
-  }
-  delete m_nativeProj;
-}
-
-
 void S57Chart::encode(QDataStream& stream) {
   stream.setFloatingPointPrecision(QDataStream::DoublePrecision);
 
@@ -263,35 +181,10 @@ void S57Chart::encode(QDataStream& stream) {
   const auto ref = m_nativeProj->reference();
   stream << ref.lng() << ref.lat();
 
-  // extent
-  //  const auto sw = m_nativeProj->toWGS84(m_box.topLeft());
-  //  stream << sw.lng() << sw.lat();
-  //  const auto ne = m_nativeProj->toWGS84(m_box.bottomRight());
-  //  stream << ne.lng() << ne.lat();
-
-  // cov/nocov
-  //  auto encodeCov = [&stream, this] (QVector<GL::VertexVector> cov) {
-  //    const int Ncov = cov.size();
-  //    stream << Ncov;
-  //    for (const auto& pol: cov) {
-  //      const int Npol = pol.size() / 2 - 3;
-  //      stream << Npol;
-  //      for (int n = 0; n < Npol; n++) {
-  //        const QPointF q(pol[2 * n + 2], pol[2 * n + 3]);
-  //        const auto p = m_nativeProj->toWGS84(q);
-  //        stream << p.lng() << p.lat();
-  //      }
-  //    }
-  //  };
-
-  //  encodeCov(m_cov);
-  //  encodeCov(m_nocov);
-
   // coordinates
   stream.setFloatingPointPrecision(QDataStream::SinglePrecision);
 
   using GForm = std::function<glm::vec2 (const glm::vec2&)>;
-
   GForm gform;
   // TODO: only mercator transforms supported for now
   if (geoProjection()->className() == "CM93Mercator") {
@@ -305,9 +198,8 @@ void S57Chart::encode(QDataStream& stream) {
   }
 
   // vertices
-  m_coordBuffer.bind();
-  auto vertices = reinterpret_cast<const glm::vec2*>(m_coordBuffer.mapRange(0, m_staticVertexOffset, QOpenGLBuffer::RangeRead));
-  const int Nc = m_staticVertexOffset / sizeof(GLfloat) / 2;
+  auto vertices = reinterpret_cast<const glm::vec2*>(m_proxy->m_staticVertices.constData());
+  const int Nc = m_proxy->m_staticVertices.size() / 2;
 
   stream << Nc;
 
@@ -315,21 +207,15 @@ void S57Chart::encode(QDataStream& stream) {
     const glm::vec2 v = gform(vertices[n]);
     stream << v.x << v.y;
   }
-  m_coordBuffer.unmap();
-  m_coordBuffer.release();
 
   // indices
-  m_indexBuffer.bind();
-  auto indices = reinterpret_cast<const GLuint*>(m_indexBuffer.mapRange(0, m_staticElemOffset, QOpenGLBuffer::RangeRead));
-  const int Ni = m_staticElemOffset / sizeof(GLuint);
-
+  auto indices = reinterpret_cast<const GLuint*>(m_proxy->m_staticIndices.constData());
+  const int Ni = m_proxy->m_staticIndices.size();
   stream << Ni;
 
   for (int n = 0; n < Ni; n++) {
     stream << indices[n];
   }
-  m_indexBuffer.unmap();
-  m_indexBuffer.release();
 
   // objects
   S57::Transform transform;
@@ -353,64 +239,25 @@ void S57Chart::encode(QDataStream& stream) {
 
 }
 
+S57Chart::~S57Chart() {
 
-//static S57::PaintDataMap drawBox(const QRectF& box, const QString& colorName) {
-//  S57::ElementData e;
-//  e.count = 7;
-//  e.offset = 0;
-//  e.mode = GL_LINE_STRIP_ADJACENCY_EXT;
-//  e.bbox = box;
+  emit destroyProxy(m_proxy);
 
-//  S57::ElementDataVector elements;
-//  elements.append(e);
+  for (ObjectLookup& d: m_lookups) {
+    delete d.object;
+  }
 
-
-//  // Note: inverted y-axis
-//  const QPointF p0 = box.topLeft();
-//  const QPointF p1 = box.topRight();
-//  const QPointF p2 = box.bottomRight();
-//  const QPointF p3 = box.bottomLeft();
-
-//  GL::VertexVector vertices;
-//  // account adjacency
-//  vertices << p3.x() << p3.y();
-//  vertices << p0.x() << p0.y();
-//  vertices << p1.x() << p1.y();
-//  vertices << p2.x() << p2.y();
-//  vertices << p3.x() << p3.y();
-//  vertices << p0.x() << p0.y();
-//  vertices << p1.x() << p1.y();
-
-//  auto color = QColor(colorName);
-//  auto p = new S57::LineLocalData(vertices, elements, color, S52::LineWidthMM(4),
-//                                  as_numeric(S52::LineType::Solid), false, QPointF());
-
-//  return S57::PaintDataMap{{p->type(), p}};
-//}
-
-//static S57::PaintDataMap drawPolygon(const QRectF& box, const GL::VertexVector& vertices,
-//                                     const QColor& c) {
-
-//  if (vertices.isEmpty()) return S57::PaintDataMap();
-
-//  S57::ElementData e;
-//  e.count = vertices.size() / 2;
-//  e.offset = 0;
-//  e.mode = GL_LINE_STRIP_ADJACENCY_EXT;
-//  e.bbox = box;
-
-//  S57::ElementDataVector elements;
-//  elements.append(e);
-
-//  auto p = new S57::LineLocalData(vertices, elements, c, S52::LineWidthMM(6),
-//                                  as_numeric(S52::LineType::Solid), false, QPointF());
-
-//  return S57::PaintDataMap{{p->type(), p}};
-//}
+  for (S57::PaintDataMap& d: m_paintData) {
+    for (S57::PaintMutIterator it = d.begin(); it != d.end(); ++it) {
+      delete it.value();
+    }
+  }
+  delete m_nativeProj;
+}
 
 void S57Chart::updatePaintData(const WGS84PointVector& cs, quint32 scale) {
 
-  m_mutex.lock();
+  lock();
 
   // clear old paint data
   for (S57::PaintDataMap& d: m_paintData) {
@@ -449,7 +296,7 @@ void S57Chart::updatePaintData(const WGS84PointVector& cs, quint32 scale) {
 
   auto handleLine = [this, sf, &vertices] (const S57::PaintMutIterator& it, int prio) {
     auto p = dynamic_cast<S57::Globalizer*>(it.value());
-    const auto off = m_staticVertexOffset + vertices.size() * sizeof(GLfloat);
+    const auto off = vertices.size() * sizeof(GLfloat);
     auto pn = p->globalize(off, sf);
     vertices += p->vertices(sf);
     delete p;
@@ -491,24 +338,7 @@ void S57Chart::updatePaintData(const WGS84PointVector& cs, quint32 scale) {
 
   PaintPriorityVector updates(S52::Lookup::PriorityCount);
 
-  //    const auto rects = cover.rects();
-  //    for (const QRectF& rect: rects) {
-  //      updates[9] += drawBox(rect, "green");
-  //    }
-  //    for (const auto& cov: m_cov) {
-  //      updates[9] += drawPolygon(m_box, cov, QColor("yellow"));
-  //    }
-  //    for (const auto& nocov: m_nocov) {
-  //      updates[9] += drawPolygon(m_box, nocov, QColor("red"));
-  //    }
-
-
-  //  int areaCount = 0;
-  //  int filteredAreaCount = 0;
   for (ObjectLookup& d: m_lookups) {
-    //    if (d.object->geometry()->type() == S57::Geometry::Type::Area && !S52::IsMetaClass(d.object->classCode())) {
-    //      areaCount += 1;
-    //    }
 
     // check bbox & scale
     if (!d.object->canPaint(cover, scale, today, d.lookup->canOverride())) continue;
@@ -566,16 +396,8 @@ void S57Chart::updatePaintData(const WGS84PointVector& cs, quint32 scale) {
       pd.erase(pr);
     }
 
-    //    if (d.object->geometry()->type() == S57::Geometry::Type::Area) {
-    //      filteredAreaCount += 1;
-    //    }
-
     updates[prio] += pd;
   }
-
-  //  qCDebug(CS57) << "Chart" << id() << ": Area objects =" << areaCount
-  //           << "to be painted" << filteredAreaCount;
-
 
   for (int prio = 0; prio < S52::Lookup::PriorityCount; prio++) {
     auto pd = updates[prio];
@@ -651,15 +473,14 @@ void S57Chart::updatePaintData(const WGS84PointVector& cs, quint32 scale) {
       GL::VertexVector segments;
       d->createTransforms(transforms,
                           segments,
-                          m_coordBuffer,
-                          m_indexBuffer,
-                          m_staticVertexOffset);
+                          m_proxy->m_staticVertices,
+                          m_proxy->m_staticIndices);
       lineSegments[d->key()].append(segments);
       ++elem;
     }
     // update vertices & paint data from lineSegments
     for (LineVertexIterator it = lineSegments.cbegin(); it != lineSegments.cend(); ++it) {
-      const auto off = m_staticVertexOffset + vertices.size() * sizeof(GLfloat);
+      const auto off = vertices.size() * sizeof(GLfloat);
       const LineKey& key = it.key();
       m_paintData[prio].insert(S57::PaintData::Type::SegmentArrays,
                                new S57::SegmentArrayData(it.value().size() / 2,
@@ -671,114 +492,14 @@ void S57Chart::updatePaintData(const WGS84PointVector& cs, quint32 scale) {
     }
   }
 
-//  for (int prio = 0; prio < S52::Lookup::PriorityCount; prio++) {
-//    qCDebug(CS57) << "Prio" << prio << "paintdata items" << m_paintData[prio].size();
-//  }
+  m_proxy->m_dynamicVertices = vertices;
+  m_proxy->m_pivots = pivots;
+  m_proxy->m_transforms = transforms;
+  m_proxy->m_textTransforms = textTransforms;
 
-  // update vertex buffer
-  m_coordBuffer.bind();
-  GLsizei dataLen = m_staticVertexOffset + sizeof(GLfloat) * vertices.size();
-  if (dataLen > m_coordBuffer.size()) {
-    auto staticData = new uchar[m_staticVertexOffset];
-    auto coords = m_coordBuffer.map(QOpenGLBuffer::ReadOnly);
-    memcpy(staticData, coords, m_staticVertexOffset);
-    m_coordBuffer.unmap();
-    m_coordBuffer.allocate(dataLen);
-    m_coordBuffer.write(0, staticData, m_staticVertexOffset);
-    delete [] staticData;
-  }
-
-  m_coordBuffer.write(m_staticVertexOffset, vertices.constData(), dataLen - m_staticVertexOffset);
-
-  // update transform buffer
-  m_transformBuffer.bind();
-  dataLen = sizeof(GLfloat) * transforms.size();
-  if (dataLen > m_transformBuffer.size()) {
-    m_transformBuffer.allocate(dataLen);
-  }
-
-  m_transformBuffer.write(0, transforms.constData(), dataLen);
-
-  // update pivot buffer
-  m_pivotBuffer.bind();
-  dataLen = sizeof(GLfloat) * pivots.size();
-  if (dataLen > m_pivotBuffer.size()) {
-    m_pivotBuffer.allocate(dataLen);
-  }
-
-  m_pivotBuffer.write(0, pivots.constData(), dataLen);
-
-
-  // update text transform buffer
-  m_textTransformBuffer.bind();
-  dataLen = sizeof(GLfloat) * textTransforms.size();
-  if (dataLen > m_textTransformBuffer.size()) {
-    m_textTransformBuffer.allocate(dataLen);
-  }
-
-  m_textTransformBuffer.write(0, textTransforms.constData(), dataLen);
-
-  m_mutex.unlock();
+  unlock();
 }
 
-void S57Chart::updateCoveragePaintData(const WGS84PointVector&, quint32) {
-
-  // clear old paint data
-  for (S57::PaintDataMap& d: m_paintData) {
-    for (S57::PaintMutIterator it = d.begin(); it != d.end(); ++it) {
-      delete it.value();
-    }
-    d.clear();
-  }
-
-  auto c = QColor("yellow");
-  c.setAlpha(63);
-
-  GL::VertexVector vertices;
-
-  //  for (const auto& cov: m_cov) {
-  //    auto pd = drawPolygon(m_box, cov, c);
-
-  //    S57::PaintMutIterator it = pd.find(S57::PaintData::Type::LineLocal);
-  //    while (it != pd.end() && it.key() == S57::PaintData::Type::LineLocal) {
-  //      auto p = dynamic_cast<S57::Globalizer*>(it.value());
-  //      const auto off = m_staticVertexOffset + vertices.size() * sizeof(GLfloat);
-  //      auto pn = p->globalize(off, 0);
-  //      vertices += p->vertices(0);
-  //      delete p;
-  //      m_paintData[9].insert(pn->type(), pn);
-  //      it = pd.erase(it);
-  //    }
-  //  }
-
-  // update vertex buffer
-  m_coordBuffer.bind();
-  GLsizei dataLen = m_staticVertexOffset + sizeof(GLfloat) * vertices.size();
-  if (dataLen > m_coordBuffer.size()) {
-    auto staticData = new uchar[m_staticVertexOffset];
-    auto coords = m_coordBuffer.map(QOpenGLBuffer::ReadOnly);
-    memcpy(staticData, coords, m_staticVertexOffset);
-    m_coordBuffer.unmap();
-    m_coordBuffer.allocate(dataLen);
-    m_coordBuffer.write(0, staticData, m_staticVertexOffset);
-    delete [] staticData;
-  }
-
-  m_coordBuffer.write(m_staticVertexOffset, vertices.constData(), dataLen - m_staticVertexOffset);
-
-}
-
-void S57Chart::updateSelectionPaintData(const WGS84PointVector& cs, quint32) {
-
-  // clear old paint data
-  for (S57::PaintDataMap& d: m_paintData) {
-    for (S57::PaintMutIterator it = d.begin(); it != d.end(); ++it) {
-      delete it.value();
-    }
-    d.clear();
-  }
-  // TODO
-}
 
 qreal S57Chart::scaleFactor(const QRectF& va, quint32 scale) const {
 
@@ -858,8 +579,8 @@ void S57Chart::drawAreas(const Camera* cam, int prio, bool blend) {
   auto prog = GL::AreaShader::instance();
   prog->initializePaint();
 
-  m_coordBuffer.bind();
-  m_indexBuffer.bind();
+  m_proxy->m_staticCoordBuffer.bind();
+  m_proxy->m_staticIndexBuffer.bind();
 
   prog->setGlobals(cam, m_modelMatrix);
   prog->setDepth(prio);
@@ -911,7 +632,7 @@ void S57Chart::drawLineArrays(const Camera* cam, int prio, bool blend) {
   prog->setDepth(prio);
 
   auto f = QOpenGLContext::currentContext()->extraFunctions();
-  f->glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_coordBuffer.bufferId());
+  f->glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_proxy->m_dynamicCoordBuffer.bufferId());
 
   while (arr != end && arr.key() == arrType) {
     auto d = dynamic_cast<const S57::LineArrayData*>(arr.value());
@@ -940,7 +661,7 @@ void S57Chart::drawSegmentArrays(const Camera* cam, int prio) {
 
   auto f = QOpenGLContext::currentContext()->extraFunctions();
 
-  f->glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_coordBuffer.bufferId());
+  f->glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_proxy->m_dynamicCoordBuffer.bufferId());
 
   while (arr != end && arr.key() == S57::PaintData::Type::SegmentArrays) {
     auto d = dynamic_cast<const S57::SegmentArrayData*>(arr.value());
@@ -972,8 +693,8 @@ void S57Chart::drawLineElems(const Camera* cam, int prio, bool blend) {
 
   auto f = QOpenGLContext::currentContext()->extraFunctions();
 
-  f->glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_coordBuffer.bufferId());
-  f->glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_indexBuffer.bufferId());
+  f->glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_proxy->m_staticCoordBuffer.bufferId());
+  f->glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_proxy->m_staticIndexBuffer.bufferId());
 
   while (elem != end && elem.key() == elemType) {
     auto d = dynamic_cast<const S57::LineElemData*>(elem.value());
@@ -1007,7 +728,7 @@ void S57Chart::drawText(const Camera* cam, int prio) {
   while (elem != end && elem.key() == S57::PaintData::Type::TextElements) {
     auto d = dynamic_cast<const S57::TextElemData*>(elem.value());
     d->setUniforms();
-    m_textTransformBuffer.bind();
+    m_proxy->m_textTransformBuffer.bind();
     d->setVertexOffset();
     f->glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, d->count());
     ++elem;
@@ -1035,7 +756,7 @@ void S57Chart::drawRasterSymbols(const Camera* cam, int prio) {
   while (elem != end && elem.key() == S57::PaintData::Type::RasterSymbols) {
     auto d = dynamic_cast<const S57::RasterSymbolPaintData*>(elem.value());
     d->setUniforms();
-    m_pivotBuffer.bind();
+    m_proxy->m_pivotBuffer.bind();
     d->setVertexOffset();
     auto e = d->element();
     f->glDrawElementsInstanced(e.mode,
@@ -1076,7 +797,7 @@ void S57Chart::drawVectorSymbols(const Camera* cam, int prio, bool blend) {
   while (elem != end && elem.key() == elemType) {
     auto d = dynamic_cast<const S57::VectorSymbolPaintData*>(elem.value());
     d->setUniforms();
-    m_transformBuffer.bind();
+    m_proxy->m_transformBuffer.bind();
     d->setVertexOffset();
     for (const S57::ColorElementData& e: d->elements()) {
       d->setColor(e.color);
@@ -1094,7 +815,7 @@ void S57Chart::drawVectorSymbols(const Camera* cam, int prio, bool blend) {
   while (lelem != end && lelem.key() == S57::PaintData::Type::VectorLineStyles) {
     auto d = dynamic_cast<const S57::LineStylePaintData*>(lelem.value());
     d->setUniforms();
-    m_transformBuffer.bind();
+    m_proxy->m_transformBuffer.bind();
     d->setVertexOffset();
     for (const S57::ColorElementData& e: d->elements()) {
       d->setColor(e.color);
@@ -1123,8 +844,8 @@ void S57Chart::drawRasterPatterns(const Camera *cam) {
     while (elem != end && elem.key() == t) {
 
       // stencil pattern areas
-      m_coordBuffer.bind();
-      m_indexBuffer.bind();
+      m_proxy->m_staticCoordBuffer.bind();
+      m_proxy->m_staticIndexBuffer.bind();
       GL::Shader* prog = GL::AreaShader::instance();
       prog->initializePaint();
       prog->setDepth(prio);
@@ -1162,7 +883,7 @@ void S57Chart::drawRasterPatterns(const Camera *cam) {
       prog->setGlobals(cam, m_modelMatrix);
 
       d->setUniforms();
-      m_pivotBuffer.bind();
+      m_proxy->m_pivotBuffer.bind();
       d->setVertexOffset();
 
       auto e = d->element();
@@ -1198,8 +919,8 @@ void S57Chart::drawVectorPatterns(const Camera *cam) {
     while (elem != end && elem.key() == t) {
 
       // stencil pattern areas
-      m_coordBuffer.bind();
-      m_indexBuffer.bind();
+      m_proxy->m_staticCoordBuffer.bind();
+      m_proxy->m_staticIndexBuffer.bind();
       GL::Shader* prog = GL::AreaShader::instance();
       prog->initializePaint();
       prog->setDepth(prio);
@@ -1237,7 +958,7 @@ void S57Chart::drawVectorPatterns(const Camera *cam) {
       prog->setGlobals(cam, m_modelMatrix);
 
       d->setUniforms();
-      m_transformBuffer.bind();
+      m_proxy->m_transformBuffer.bind();
       d->setVertexOffset();
 
       for (const S57::ColorElementData& e: d->elements()) {
@@ -1269,11 +990,8 @@ S57::InfoTypeFull S57Chart::objectInfoFull(const WGS84Point& p, quint32 scale) {
   QSet<quint32> handled;
   const quint32 c_lights = S52::FindIndex("LIGHTS");
 
-  m_coordBuffer.bind();
-  auto vertices = reinterpret_cast<const glm::vec2*>(m_coordBuffer.mapRange(0, m_staticVertexOffset, QOpenGLBuffer::RangeRead));
-
-  m_indexBuffer.bind();
-  auto indices = reinterpret_cast<const GLuint*>(m_indexBuffer.mapRange(0, m_staticElemOffset, QOpenGLBuffer::RangeRead));
+  auto vertices = reinterpret_cast<const glm::vec2*>(m_proxy->m_staticVertices.constData());
+  auto indices = reinterpret_cast<const GLuint*>(m_proxy->m_staticIndices.constData());
 
   struct WrappedDesc {
     int geom;
@@ -1331,12 +1049,6 @@ S57::InfoTypeFull S57Chart::objectInfoFull(const WGS84Point& p, quint32 scale) {
     }
   }
 
-  m_coordBuffer.unmap();
-  m_coordBuffer.release();
-
-  m_indexBuffer.unmap();
-  m_indexBuffer.release();
-
   std::sort(wrapper.begin(), wrapper.end(), [] (const WrappedDesc& w1, const WrappedDesc& w2) {
     if (w1.geom != w2.geom) {
       return w1.geom > w2.geom;
@@ -1359,11 +1071,9 @@ S57::InfoType S57Chart::objectInfo(const WGS84Point& wp, quint32 scale) {
   // Resolution in pixels mapped to meters
   const float res = 0.001 / dots_per_mm_y() * KV::PeepHoleSize * scale;
   const QRectF box(q - .5 * QPointF(res, res), QSizeF(res, res));
-  m_coordBuffer.bind();
-  auto vertices = reinterpret_cast<const glm::vec2*>(m_coordBuffer.mapRange(0, m_staticVertexOffset, QOpenGLBuffer::RangeRead));
 
-  m_indexBuffer.bind();
-  auto indices = reinterpret_cast<const GLuint*>(m_indexBuffer.mapRange(0, m_staticElemOffset, QOpenGLBuffer::RangeRead));
+  auto vertices = reinterpret_cast<const glm::vec2*>(m_proxy->m_staticVertices.constData());
+  auto indices = reinterpret_cast<const GLuint*>(m_proxy->m_staticIndices.constData());
 
 
   const QMap<S57::Geometry::Type, int> tmap {{S57::Geometry::Type::Point, 4},
@@ -1450,12 +1160,6 @@ S57::InfoType S57Chart::objectInfo(const WGS84Point& wp, quint32 scale) {
     }
   }
 
-  m_coordBuffer.unmap();
-  m_coordBuffer.release();
-
-  m_indexBuffer.unmap();
-  m_indexBuffer.release();
-
   S57::InfoType ret;
   ret.objectId = info.objectId;
   ret.priority = info.priority;
@@ -1469,4 +1173,12 @@ void S57Chart::paintIcon(QPainter& painter, quint32 objectIndex) const {
   p.lookup->paintIcon(painter, p.object);
 }
 
+void S57Chart::lock() {
+  // qCDebug(CS57) << "locking";
+  m_mutex.lock();
+}
 
+void S57Chart::unlock() {
+  // qCDebug(CS57) << "unlocking";
+  m_mutex.unlock();
+}

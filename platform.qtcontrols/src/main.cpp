@@ -64,7 +64,6 @@ int main(int argc, char *argv[]) {
   format.setStencilBufferSize(8);
   QSurfaceFormat::setDefaultFormat(format);
 
-  QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
   QScopedPointer<QGuiApplication> app(new QGuiApplication(argc,argv));
   // remove stutter
   app->setOrganizationName("");
@@ -72,6 +71,7 @@ int main(int argc, char *argv[]) {
 
   qRegisterMetaType<TextKey>();
   qRegisterMetaType<GL::GlyphData>();
+  qRegisterMetaType<GL::ChartProxy*>();
   qRegisterMetaType<S57Chart*>();
   qRegisterMetaType<WGS84Point>();
   qRegisterMetaType<S57::InfoType>();

@@ -97,7 +97,7 @@ private:
   PointVector addVertices(const Edge& e, const GL::VertexVector& vertices) const;
 
   PRegion createCoverage(const GL::VertexVector& vertices,
-                         const EdgeVector& edges) const;
+                         const EdgeVector& edges, qreal eps) const;
 
   WGS84Polygon transformCoverage(PRegion pcov, WGS84Point& sw, WGS84Point& ne,
                            const GeoProjection* gp) const;
@@ -116,6 +116,7 @@ private:
   const int m_wgsox;
   const int m_wgsoy;
   const int m_recdat;
+  const int m_cscale;
 
   const QMap<QString, quint32> m_subst;
   const QMap<QString, QVector<QPair<quint32, S57::Attribute>>> m_subst_attrs;

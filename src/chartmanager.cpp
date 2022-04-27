@@ -21,6 +21,7 @@
 #include <QFile>
 #include <QDir>
 #include <QTextStream>
+#include <QThread>
 #include "logging.h"
 #include "s57chart.h"
 #include <QStandardPaths>
@@ -28,7 +29,6 @@
 #include <QDirIterator>
 #include "camera.h"
 #include <QOpenGLContext>
-#include "glthread.h"
 #include "chartfilereader.h"
 #include <QDate>
 #include <QScopedPointer>
@@ -50,7 +50,6 @@ ChartManager* ChartManager::instance() {
 ChartManager::ChartManager(QObject *parent)
   : QObject(parent)
   , m_db()
-  , m_workers({nullptr}) // temporary, to be replaced in createThreads
   , m_transactionCounter(0)
   , m_reader(nullptr)
   , m_updater(new UpdaterInterface(this))
@@ -58,7 +57,6 @@ ChartManager::ChartManager(QObject *parent)
 {
 
   loadPlugins();
-
   m_readers.append(new CacheReader);
 
   // create readers & chartsets
@@ -214,28 +212,27 @@ void ChartManager::createOutline(const WGS84Point& sw, const WGS84Point& ne) {
   m_outlines.append(ne.lat());
 }
 
-void ChartManager::createThreads(QOpenGLContext* ctx) {
+void ChartManager::createThreads() {
   const int numThreads = qMax(1, QThread::idealThreadCount() - 1);
   qCDebug(CMGR) << "number of chart updaters =" << numThreads;
-  m_workers.clear(); // remove the temporary setting in ctor
   for (int i = 0; i < numThreads; ++i) {
     qCDebug(CMGR) << "creating thread" << i;
-    auto thread = new GL::Thread(ctx);
+    auto thread = new QThread;
     qCDebug(CMGR) << "creating worker" << i;
     auto worker = new ChartUpdater(m_workers.size());
     m_idleStack.push(worker->id());
-    qCDebug(CMGR) << "moving worker to thread" << i;
-    worker->moveToThread(thread);
     connect(thread, &QThread::finished, worker, &QObject::deleteLater);
     connect(worker, &ChartUpdater::done, this, &ChartManager::manageThreads);
     connect(worker, &ChartUpdater::infoResponse, this, &ChartManager::manageInfoResponse);
+    qCDebug(CMGR) << "moving worker to thread" << i;
+    worker->moveToThread(thread);
     qCDebug(CMGR) << "starting thread" << i;
     thread->start();
     m_threads.append(thread);
     m_workers.append(worker);
   }
 
-  m_cacheThread = new GL::Thread(ctx);
+  m_cacheThread = new QThread;
   m_cacheWorker = new ChartUpdater(m_workers.size());
   m_cacheWorker->moveToThread(m_cacheThread);
   connect(m_cacheThread, &QThread::finished, m_cacheWorker, &QObject::deleteLater);
@@ -244,7 +241,7 @@ void ChartManager::createThreads(QOpenGLContext* ctx) {
 }
 
 ChartManager::~ChartManager() {
-  for (GL::Thread* thread: m_threads) {
+  for (QThread* thread: m_threads) {
     thread->quit();
     thread->wait();
   }
@@ -314,6 +311,8 @@ const ChartCover* ChartManager::getCover(quint32 chart_id,
 }
 
 void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
+
+  // qCDebug(CMGR) << "updateCharts" << m_idleStack.size() << "/" << m_workers.size();
 
   if (m_idleStack.size() != m_workers.size()) return;
 
@@ -458,12 +457,11 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
   }
   m_charts = charts;
 
-  bool noCharts = m_charts.isEmpty() && newCharts.isEmpty();
+  const bool noCharts = m_charts.isEmpty() && newCharts.isEmpty();
   // create pending chart update data
   for (S57Chart* c: m_charts) {
-    const auto mode = ChartData::PaintMode::Normal;
     m_pendingStack.push(ChartData(c, m_scale, regions[c->id()].toWGS84(cam->geoprojection()),
-                        mode, (flags & UpdateLookups) != 0));
+                        (flags & UpdateLookups) != 0));
   }
   // create pending chart creation data
   if (!newCharts.isEmpty()) {
@@ -479,9 +477,8 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
       const quint32 id = r.value(0).toUInt();
       const auto path = r.value(1).toString();
       qCDebug(CMGR) << "New chart" << path;
-      const auto mode = ChartData::PaintMode::Normal;
       m_pendingStack.push(ChartData(id, path, m_scale,
-                                    regions[id].toWGS84(cam->geoprojection()), mode));
+                                    regions[id].toWGS84(cam->geoprojection())));
     }
   }
 
@@ -507,14 +504,20 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
 
 
 void ChartManager::manageThreads(S57Chart* chart) {
-  // qCDebug(CMGR) << "chartmanager: manageThreads";
 
   if (chart != nullptr) {
     auto chartId = chart->id();
     if (!m_chartIds.contains(chartId)) {
       m_chartIds[chartId] = m_charts.size();
       m_charts.append(chart);
+      m_createProxyQueue.append(chart->proxy());
+      connect(chart, &S57Chart::destroyProxy, this, [this] (GL::ChartProxy* proxy) {
+        m_destroyProxyQueue.append(proxy);
+        emit proxyChanged();
+      });
     }
+    m_updateProxyQueue.append(chart->proxy());
+    emit proxyChanged();
   }
 
   auto dest = qobject_cast<ChartUpdater*>(sender());
@@ -538,10 +541,11 @@ void ChartManager::manageThreads(S57Chart* chart) {
   }
 
 
+  // qCDebug(CMGR) << "chartmanager" << m_idleStack.size() << "/" << m_workers.size();
   if (m_idleStack.size() == m_workers.size()) {
     if (!m_hadCharts) {
-      qCDebug(CMGR) << "chartmanager: manageThreads: active";
-      emit active();
+      // qCDebug(CMGR) << "chartmanager: manageThreads: active";
+      emit active(m_viewArea);
     } else {
       // qCDebug(CMGR) << "chartmanager: manageThreads: charts updated";
       emit chartsUpdated(m_viewArea);

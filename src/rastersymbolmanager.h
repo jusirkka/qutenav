@@ -43,6 +43,7 @@ public:
 
   static RasterSymbolManager* instance();
   void createSymbols();
+  void init();
 
   SymbolData symbolData(quint32 index, S52::SymbolType type) const;
   bool paintIcon(QPainter& painter, quint32 index, S52::SymbolType type);
@@ -94,8 +95,8 @@ private:
   QOpenGLBuffer m_indexBuffer;
   QOpenGLTexture* m_symbolTexture;
   QString m_symbolAtlas;
+  QSize m_size;
   // paintIcon interface
   PainterDataMap m_painterData;
   PixmapCache m_pixmapCache;
-
 };

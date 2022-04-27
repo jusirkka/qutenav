@@ -92,7 +92,6 @@ public:
 
   using PointVector = QVector<QPointF>;
 
-  static void reduce(PointVector& ps);
   static void reduceRDP(PointVector& ps, qreal eps);
 
 protected:

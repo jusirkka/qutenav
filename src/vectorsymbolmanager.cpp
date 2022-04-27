@@ -34,6 +34,9 @@ VectorSymbolManager::VectorSymbolManager()
   , m_pixmapCache(100 * sizeof(QPixmap))
 {}
 
+void VectorSymbolManager::init() {
+  qCDebug(CDPY) << "init (noop)";
+}
 
 VectorSymbolManager* VectorSymbolManager::instance() {
   static VectorSymbolManager* m = new VectorSymbolManager();
@@ -56,6 +59,8 @@ void VectorSymbolManager::bind() {
 
 
 void VectorSymbolManager::createSymbols() {
+
+  if (m_coordBuffer.isCreated()) return;
 
   QFile file(S52::FindPath("chartsymbols.xml"));
   file.open(QFile::ReadOnly);
@@ -161,7 +166,7 @@ void VectorSymbolManager::parseSymbols(QXmlStreamReader& reader,
     const SymbolKey key(S52::FindIndex(symbolName), t);
     if (m_symbolMap.contains(key) && s != m_symbolMap[key]) {
       qCWarning(CSYM) << "multiple vector symbol/line-style/pattern definitions for"
-                 << symbolName << ", skipping earlier";
+                      << symbolName << ", skipping earlier";
     }
     m_symbolMap.insert(key, s);
     m_painterData.insert(key, PainterData(src, cmap, d.center));

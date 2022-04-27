@@ -23,9 +23,9 @@
 #include <QObject>
 #include "s57object.h"
 #include "s52presentation.h"
-#include <QOpenGLBuffer>
 #include <QMatrix4x4>
 #include <QMutex>
+#include "chartproxy.h"
 
 
 class GeoProjection;
@@ -66,8 +66,6 @@ public:
   const QString& path() {return m_path;}
 
   void updatePaintData(const WGS84PointVector& cover, quint32 scale);
-  void updateCoveragePaintData(const WGS84PointVector& cover, quint32 scale);
-  void updateSelectionPaintData(const WGS84PointVector& cover, quint32 scale);
   void updateLookups();
 
   S57::InfoTypeFull objectInfoFull(const WGS84Point& p, quint32 scale);
@@ -76,13 +74,17 @@ public:
   void paintIcon(QPainter& painter, quint32 objectIndex) const;
 
   // mutex inteface
-  void lock() {m_mutex.lock();}
-  void unlock() {m_mutex.unlock();}
+  void lock();
+  void unlock();
+
+  GL::ChartProxy* proxy() {return m_proxy;}
 
 
   ~S57Chart();
 
 signals:
+
+  void destroyProxy(GL::ChartProxy* proxy);
 
 public slots:
 
@@ -131,13 +133,6 @@ private:
   PaintPriorityVector m_paintData;
   quint32 m_id;
   QString m_path;
-  QOpenGLBuffer m_coordBuffer;
-  QOpenGLBuffer m_indexBuffer;
-  QOpenGLBuffer m_pivotBuffer;
-  QOpenGLBuffer m_transformBuffer;
-  QOpenGLBuffer m_textTransformBuffer;
-  GLsizei m_staticVertexOffset;
-  GLsizei m_staticElemOffset;
 
   QMatrix4x4 m_modelMatrix;
 
@@ -147,9 +142,7 @@ private:
 
   QMutex m_mutex;
 
-  // QVector<GL::VertexVector> m_cov;
-  // QVector<GL::VertexVector> m_nocov;
-  // QRectF m_box;
+  GL::ChartProxy* m_proxy;
 };
 
 

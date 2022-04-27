@@ -28,8 +28,6 @@
 
 class DetailMode;
 class Camera;
-class QOpenGLContext;
-class QOffscreenSurface;
 class UpdaterInterface;
 
 class AttributeObject: public QObject {
@@ -162,12 +160,13 @@ public:
   static const quint32 LeavingChartMode = 4;
   static const quint32 ChartSetChanged = 8;
   static const quint32 ColorTableChanged = 16;
+  static const quint32 GlyphAtlasChanged = 32;
+  static const quint32 ProxyChanged = 64;
 
 
 private slots:
 
   void handleWindowChanged(QQuickWindow *win);
-  void initializeGL(QOpenGLContext* ctx);
   void initializeSG();
   void finalizeSG();
   void resize(int l = 0); // dummy argument
@@ -205,10 +204,6 @@ private:
   qreal m_scaleBarLength;
   QString m_scaleBarText;
   QPointF m_lastPos;
-
-  QOpenGLContext* m_context;
-  QOffscreenSurface* m_surface;
-  QOpenGLVertexArrayObject m_vao;
 
   QObjectList m_info;
 

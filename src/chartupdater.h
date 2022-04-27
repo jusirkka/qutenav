@@ -31,14 +31,11 @@ class ChartCover;
 
 struct ChartData {
 
-  enum class PaintMode: quint8 {Normal, Coverage, Selection};
-
-
   ChartData(S57Chart* c,
-            quint32 s, const WGS84PointVector& cover, PaintMode mode, bool ulup);
+            quint32 s, const WGS84PointVector& cover, bool ulup);
 
   ChartData(quint32 i, const QString& pth,
-            quint32 s, const WGS84PointVector& cover, PaintMode mode);
+            quint32 s, const WGS84PointVector& cover);
 
   S57Chart* chart;
   quint32 id;
@@ -46,7 +43,6 @@ struct ChartData {
   quint32 scale;
   WGS84PointVector cover;
   bool updLup;
-  PaintMode mode;
 
   ChartData() = default;
   ChartData(const ChartData&) = default;

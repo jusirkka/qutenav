@@ -22,7 +22,7 @@
 #include <QMutexLocker>
 #include <QOpenGLTexture>
 #include <QTimer>
-#include <QDebug>
+#include "logging.h"
 #include "settings.h"
 
 TextManager::TextManager()
@@ -38,8 +38,12 @@ TextManager::TextManager()
   connect(m_worker, &TextShaper::done, this, &TextManager::handleShape);
   m_thread->start();
 
-  m_shapeTimer->setInterval(300);
+  m_shapeTimer->setInterval(200);
   connect(m_shapeTimer, &QTimer::timeout, this, &TextManager::requestUpdate);
+}
+
+void TextManager::init() {
+  qCDebug(CTXT) << "init (noop)";
 }
 
 TextManager::~TextManager() {
@@ -80,28 +84,29 @@ int TextManager::atlasHeight() const {
 
 void TextManager::handleShape(const TextKey& key,
                               GL::Mesh* mesh,
-                              bool newGlyphs) {
+                              bool ng) {
 
-  { // scope for QMutexLocker
-    auto atlas = m_worker->atlas();
-    QMutexLocker lock(&m_mutex);
-    if (newGlyphs) {
-
-      // update texture buffer
-      m_glyphTexture->bind();
-
-      if (m_glyphTexture->width() != atlas.width || m_glyphTexture->height() != atlas.height) {
-        createTexture(atlas.width, atlas.height);
-      }
-
-      m_glyphTexture->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt8, atlas.data);
-    }
-  }
+  if (ng) emit newGlyphs();
 
   m_shapeData[m_tickets[key]] = mesh->vertices;
   delete mesh;
 
   m_shapeTimer->start();
+}
+
+
+void TextManager::updateTextureData() {
+  auto atlas = m_worker->atlas();
+  QMutexLocker lock(&m_mutex);
+
+  if (!m_glyphTexture->isCreated() ||
+      m_glyphTexture->width() != atlas.width || m_glyphTexture->height() != atlas.height) {
+    createTexture(atlas.width, atlas.height);
+  }
+
+  // update texture buffer
+  m_glyphTexture->bind();
+  m_glyphTexture->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt8, atlas.data);
 }
 
 int TextManager::ticket(const QString& txt, TXT::Weight weight,

@@ -19,11 +19,7 @@
  */
 #include "chartdisplay.h"
 
-#include <QtGui/QOpenGLContext>
 #include "chartmanager.h"
-#include "textmanager.h"
-#include "rastersymbolmanager.h"
-#include "vectorsymbolmanager.h"
 #include "chartrenderer.h"
 #include "conf_mainwindow.h"
 #include "conf_marinerparams.h"
@@ -32,12 +28,15 @@
 #include <QQuickWindow>
 #include <QOffscreenSurface>
 #include "settings.h"
+#include "textmanager.h"
 #include "units.h"
 #include "logging.h"
 #include "dbupdater_interface.h"
 #include <QProcess>
 #include <QTimer>
 #include "platform.h"
+#include "rastersymbolmanager.h"
+#include "vectorsymbolmanager.h"
 
 ObjectObject::ObjectObject(const QString &n, QObject *parent)
   : QObject(parent)
@@ -62,6 +61,12 @@ ChartDisplay::ChartDisplay()
   setMirrorVertically(true);
   connect(this, &QQuickItem::windowChanged, this, &ChartDisplay::handleWindowChanged);
   connect(m_updater, &UpdaterInterface::status, this, &ChartDisplay::chartDBStatus);
+
+  // Ensure that manager instances run in the main thread by calling them here
+  ChartManager::instance()->createThreads();
+  RasterSymbolManager::instance()->init();
+  VectorSymbolManager::instance()->init();
+  TextManager::instance()->init();
 }
 
 
@@ -71,11 +76,10 @@ void ChartDisplay::handleWindowChanged(QQuickWindow *win) {
   qCDebug(CDPY) << "window changed" << win->size();
   resize();
 
-  connect(win, &QQuickWindow::openglContextCreated, this, &ChartDisplay::initializeGL, Qt::DirectConnection);
-  connect(win, &QQuickWindow::sceneGraphInitialized, this, &ChartDisplay::initializeSG, Qt::DirectConnection);
+  connect(win, &QQuickWindow::sceneGraphInitialized, this, &ChartDisplay::initializeSG);
   connect(win, &QQuickWindow::sceneGraphInvalidated, this, &ChartDisplay::finalizeSG, Qt::DirectConnection);
-  connect(win, &QQuickWindow::heightChanged, this, &ChartDisplay::resize, Qt::DirectConnection);
-  connect(win, &QQuickWindow::widthChanged, this, &ChartDisplay::resize, Qt::DirectConnection);
+  connect(win, &QQuickWindow::heightChanged, this, &ChartDisplay::resize);
+  connect(win, &QQuickWindow::widthChanged, this, &ChartDisplay::resize);
   connect(win, &QQuickWindow::contentOrientationChanged, this, &ChartDisplay::orient);
 }
 
@@ -104,6 +108,7 @@ void ChartDisplay::finalizeSG() {
 }
 
 void ChartDisplay::initializeSG() {
+
   qCDebug(CDPY) << "initialize SG";
 
   auto chartMgr = ChartManager::instance();
@@ -116,26 +121,48 @@ void ChartDisplay::initializeSG() {
   connect(chartMgr, &ChartManager::chartSetsUpdated, this, &ChartDisplay::updateChartSet);
 
   connect(chartMgr, &ChartManager::idle, this, [this] () {
+    // qCDebug(CDPY) << "leaving chart mode";
     m_flags |= LeavingChartMode;
     update();
   });
-  connect(chartMgr, &ChartManager::active, this, [this] () {
-    m_flags |= EnteringChartMode;
+
+  connect(chartMgr, &ChartManager::active, this, [this] (const QRectF& viewArea) {
+    // qCDebug(CDPY) << "active";
+    m_flags |= EnteringChartMode | ChartsUpdated;
+    m_viewArea = viewArea;
     update();
   });
+
   connect(chartMgr, &ChartManager::chartsUpdated, this, [this] (const QRectF& viewArea) {
+    // qCDebug(CDPY) << "charts updated";
     m_flags |= ChartsUpdated;
     m_viewArea = viewArea;
     update();
   });
 
+  connect(chartMgr, &ChartManager::proxyChanged, this, [this] () {
+    // qCDebug(CDPY) << "proxy changed";
+    m_flags |= ProxyChanged;
+    update();
+  });
+
+  if (chartMgr->outlines().isEmpty()) {
+    chartMgr->setChartSet(defaultChartSet(), m_camera->geoprojection());
+  }
+
   auto textMgr = TextManager::instance();
 
   connect(textMgr, &TextManager::newStrings, this, [this] () {
-    qCDebug(CDPY) << "new strings";
+    // qCDebug(CDPY) << "new strings";
     emit updateViewport(m_camera, ChartManager::Force);
+  });
+
+  connect(textMgr, &TextManager::newGlyphs, this, [this] () {
+    // qCDebug(CDPY) << "new glyphs";
+    m_flags |= GlyphAtlasChanged;
     update();
   });
+
 
   auto settings = Settings::instance();
 
@@ -144,29 +171,24 @@ void ChartDisplay::initializeSG() {
     computeScaleBar();
     emit scaleBarLengthChanged(m_scaleBarLength);
     emit updateViewport(m_camera, ChartManager::Force);
-    update();
   });
 
   connect(settings, &Settings::lookupUpdateNeeded, this, [this] () {
     qCDebug(CDPY) << "lookup update needed";
     emit updateViewport(m_camera, ChartManager::UpdateLookups);
-    update();
   });
 
   connect(Settings::instance(), &Settings::colorTableChanged, this, [this] () {
     qCDebug(CDPY) << "colortable changed";
-    m_flags |= ColorTableChanged;
+    m_flags |= ColorTableChanged | ChartsUpdated;
     update();
   });
-
 
   emit updateViewport(m_camera, ChartManager::Force);
 }
 
 ChartDisplay::~ChartDisplay() {
   delete m_camera;
-  delete m_surface;
-  delete m_context;
   qDeleteAll(m_info);
   // This can be done only when exiting
   delete ChartManager::instance();
@@ -224,40 +246,6 @@ bool ChartDisplay::consume(quint32 flag) {
   return ret;
 }
 
-
-void ChartDisplay::initializeGL(QOpenGLContext* ctx) {
-  if (m_initialized) return;
-
-  m_context = new QOpenGLContext;
-  m_context->setFormat(QSurfaceFormat::defaultFormat());
-  qCDebug(CDPY) << "share context" << ctx->shareContext();
-  m_context->setShareContext(ctx);
-  m_context->setScreen(ctx->screen());
-  m_context->create();
-
-  m_surface = new QOffscreenSurface;
-  m_surface->setFormat(m_context->format());
-  m_surface->create();
-
-  m_context->makeCurrent(m_surface);
-
-  m_vao.create();
-  m_vao.bind();
-
-
-  ChartManager::instance()->createThreads(m_context);
-  TextManager::instance()->createTexture(512, 512);
-  RasterSymbolManager::instance()->createSymbols();
-  VectorSymbolManager::instance()->createSymbols();
-
-  if (ChartManager::instance()->outlines().isEmpty()) {
-    ChartManager::instance()->setChartSet(defaultChartSet(),
-                                          m_camera->geoprojection());
-  }
-
-  m_initialized = true;
-  emit updateViewport(m_camera);
-}
 
 void ChartDisplay::resize(int) {
 

@@ -30,9 +30,9 @@ public:
 
   static LineCalculator* instance();
 
-  struct BufferData {
-    QOpenGLBuffer buffer;
-    GLsizei offset;
+  struct OffsetData {
+    GLsizei vertexOffset;
+    GLsizei indexOffset;
     GLsizei count;
   };
 
@@ -40,8 +40,9 @@ public:
                  VertexVector& segments,
                  GLfloat period,
                  const QRectF& va,
-                 BufferData& vertices,
-                 BufferData& indices);
+                 const VertexVector& vertices,
+                 const IndexVector& indices,
+                 const OffsetData& offsets);
 
   ~LineCalculator();
 

@@ -25,7 +25,11 @@
 #include <QOpenGLFramebufferObjectFormat>
 #include "logging.h"
 #include <QOpenGLDebugLogger>
+#include "textmanager.h"
+#include "chartmanager.h"
 #include "rastersymbolmanager.h"
+#include "vectorsymbolmanager.h"
+
 
 ChartRenderer::ChartRenderer(QQuickWindow *window)
   : QQuickFramebufferObject::Renderer()
@@ -41,6 +45,12 @@ void ChartRenderer::initializeGL() {
 
   m_vao.bind();
 
+  RasterSymbolManager::instance()->createSymbols();
+  VectorSymbolManager::instance()->createSymbols();
+
+  RasterSymbolManager::instance()->changeSymbolAtlas();
+  TextManager::instance()->updateTextureData();
+
   for (Drawable* drawable: m_mode->drawables()) {
     drawable->initializeGL();
   }
@@ -49,9 +59,7 @@ void ChartRenderer::initializeGL() {
     m_logger = new QOpenGLDebugLogger;
     m_logger->initialize();
   }
-  // I suspect Desktop/Mesa has a bug in textures / context sharing:
-  // If initialized in Chartdisplay, raster symbols are not shown
-  RasterSymbolManager::instance()->changeSymbolAtlas();
+
 }
 
 
@@ -119,14 +127,14 @@ void ChartRenderer::synchronize(QQuickFramebufferObject *parent) {
 
   m_mode->camera()->update(item->camera());
 
-  if (item->consume(ChartDisplay::ChartsUpdated)) {
-    for (Drawable* d: m_mode->drawables()) {
-      d->updateCharts(m_mode->camera(), item->viewArea());
-    }
+  if (item->consume(ChartDisplay::ChartSetChanged)) {
+    qCDebug(CDPY) << "initializeGL";
+    initializeGL();
   }
 
   if (item->consume(ChartDisplay::EnteringChartMode)) {
     if (initializeChartMode()) {
+      qCDebug(CDPY) << "EnteringChartMode";
       item->setCamera(m_mode->cloneCamera());
     }
   }
@@ -134,18 +142,44 @@ void ChartRenderer::synchronize(QQuickFramebufferObject *parent) {
   if (item->consume(ChartDisplay::LeavingChartMode)) {
     item->checkChartSet();
     if (finalizeChartMode()) {
+      qCDebug(CDPY) << "LeavingChartMode";
       item->setCamera(m_mode->cloneCamera());
     }
   }
 
-  if (item->consume(ChartDisplay::ChartSetChanged)) {
-    initializeGL();
+  if (item->consume(ChartDisplay::ProxyChanged)) {
+    auto proxies = ChartManager::instance()->createProxyQueue().consume();
+    for (GL::ChartProxy* p: proxies) {
+      // qCDebug(CDPY) << "create" << p;
+      p->create();
+    }
+    proxies = ChartManager::instance()->updateProxyQueue().consume();
+    for (GL::ChartProxy* p: proxies) {
+      // qCDebug(CDPY) << "update" << p;
+      p->update();
+    }
+    proxies = ChartManager::instance()->destroyProxyQueue().consume();
+    for (GL::ChartProxy* p: proxies) {
+      // qCDebug(CDPY) << "delete" << p;
+      delete p;
+    }
   }
 
   if (item->consume(ChartDisplay::ColorTableChanged)) {
-    // I suspect Desktop/Mesa has a bug in textures / context sharing:
-    // If initialized in Chartdisplay, raster symbols are not shown
+    qCDebug(CDPY) << "ColorTableChanged";
     RasterSymbolManager::instance()->changeSymbolAtlas();
+  }
+
+  if (item->consume(ChartDisplay::GlyphAtlasChanged)) {
+    // qCDebug(CDPY) << "GlyphAtlasChanged";
+    TextManager::instance()->updateTextureData();
+  }
+
+  if (item->consume(ChartDisplay::ChartsUpdated)) {
+    // qCDebug(CDPY) << "ChartsUpdated";
+    for (Drawable* d: m_mode->drawables()) {
+      d->updateCharts(m_mode->camera(), item->viewArea());
+    }
   }
 
   m_window->resetOpenGLState();
@@ -153,6 +187,5 @@ void ChartRenderer::synchronize(QQuickFramebufferObject *parent) {
   for (const QOpenGLDebugMessage& message: m_logger->loggedMessages()) {
     qCDebug(CDPY) << message;
   }
-
 }
 

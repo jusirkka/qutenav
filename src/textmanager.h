@@ -155,6 +155,8 @@ public:
 
   static TextManager* instance();
 
+  void init();
+
   int ticket(const QString& txt,
              TXT::Weight weight,
              TXT::HJust hjust,
@@ -164,6 +166,7 @@ public:
              qint8 offsetY);
 
   void createTexture(int w, int h);
+  void updateTextureData();
 
   int atlasWidth() const;
   int atlasHeight() const;
@@ -178,6 +181,7 @@ public:
 signals:
 
   void newStrings();
+  void newGlyphs();
 
 private slots:
 

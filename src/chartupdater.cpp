@@ -22,35 +22,33 @@
 
 #include "chartupdater.h"
 #include "s57chart.h"
+#include "logging.h"
+#include "platform.h"
+#include "chartcover.h"
 #include "cachereader.h"
 #include <QFileInfo>
 #include <QDir>
 #include <QFile>
 #include <QStandardPaths>
-#include "logging.h"
-#include "platform.h"
-#include "chartcover.h"
 
 ChartData::ChartData(S57Chart* c,
-                     quint32 s, const WGS84PointVector& cs, PaintMode m, bool upd)
+                     quint32 s, const WGS84PointVector& cs, bool upd)
   : chart(c)
   , id(0)
   , path()
   , scale(s)
   , cover(cs)
   , updLup(upd)
-  , mode(m)
 {}
 
 ChartData::ChartData(quint32 i, const QString& pth,
-                     quint32 s, const WGS84PointVector& cs, PaintMode m)
+                     quint32 s, const WGS84PointVector& cs)
   : chart(nullptr)
   , id(i)
   , path(pth)
   , scale(s)
   , cover(cs)
   , updLup(false)
-  , mode(m)
 {}
 
 
@@ -58,18 +56,7 @@ ChartData::ChartData(quint32 i, const QString& pth,
 void ChartUpdater::createChart(const ChartData& d) {
   try {
     auto chart = new S57Chart(d.id, d.path);
-    // qCDebug(CMGR) << "ChartUpdater::createChart";
-    switch (d.mode) {
-    case ChartData::PaintMode::Normal:
-      chart->updatePaintData(d.cover, d.scale);
-      break;
-    case ChartData::PaintMode::Coverage:
-      chart->updateCoveragePaintData(d.cover, d.scale);
-      break;
-    case ChartData::PaintMode::Selection:
-      chart->updateSelectionPaintData(d.cover, d.scale);
-      break;
-    }
+    chart->updatePaintData(d.cover, d.scale);
     emit done(chart);
   } catch (ChartFileError& e) {
     qWarning() << "Chart creation failed:" << e.msg();
@@ -81,19 +68,16 @@ void ChartUpdater::updateChart(const ChartData& d) {
   if (d.updLup) {
     d.chart->updateLookups();
   }
-  switch (d.mode) {
-  case ChartData::PaintMode::Normal:
-    d.chart->updatePaintData(d.cover, d.scale);
-    break;
-  case ChartData::PaintMode::Coverage:
-    d.chart->updateCoveragePaintData(d.cover, d.scale);
-    break;
-  case ChartData::PaintMode::Selection:
-    d.chart->updateSelectionPaintData(d.cover, d.scale);
-    break;
-  }
+  d.chart->updatePaintData(d.cover, d.scale);
   emit done(d.chart);
 }
+
+void ChartUpdater::requestInfo(S57Chart *chart, const WGS84Point &p,
+                               quint32 scale, quint32 tid) {
+  auto info = chart->objectInfo(p, scale);
+  emit infoResponse(info, tid);
+}
+
 
 void ChartUpdater::cacheChart(S57Chart *chart) {
   auto scoped = QScopedPointer<S57Chart>(chart);
@@ -121,11 +105,4 @@ void ChartUpdater::cacheChart(S57Chart *chart) {
     stream.writeRawData(id.constData(), 8);
     file.close();
   }
-}
-
-void ChartUpdater::requestInfo(S57Chart *chart, const WGS84Point &p,
-                               quint32 scale, quint32 tid) {
-  auto info = chart->objectInfo(p, scale);
-  qCDebug(CMGR) << "ChartUpdater::requestInfo";
-  emit infoResponse(info, tid);
 }

@@ -170,13 +170,13 @@ target_sources(qutenav
     src/chartmanager.cpp
     src/chartmode.cpp
     src/chartpainter.cpp
+    src/chartproxy.cpp
     src/chartupdater.cpp
     src/dbupdater_interface.cpp
     src/decompose.cpp
     src/detailmode.cpp
     src/drawable.cpp
     src/globe.cpp
-    src/glthread.cpp
     src/glyphmanager.cpp
     src/hpglparser.cpp
     src/hpglopenglparser.cpp

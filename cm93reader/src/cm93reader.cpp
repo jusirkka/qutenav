@@ -43,6 +43,7 @@ CM93Reader::CM93Reader(const QString &name)
   , m_wgsox(CM93::FindIndex("_wgsox"))
   , m_wgsoy(CM93::FindIndex("_wgsoy"))
   , m_recdat(CM93::FindIndex("RECDAT"))
+  , m_cscale(CM93::FindIndex("CSCALE"))
   , m_subst{{"ITDARE", S52::FindCIndex("SBDARE")},
             {"SPOGRD", S52::FindCIndex("DMPGRD")},
             {"FSHHAV", S52::FindCIndex("OBSTRN")},
@@ -705,6 +706,12 @@ S57ChartOutline CM93Reader::readOutline(const QString& path, const GeoProjection
   WGS84Point ne = WGS84Point::fromLL(lng_max, lat_max);
   // qCDebug(CENC) << "ne" << ne.print();
 
+  // compute scale factor used in coverage computations
+  auto nw = WGS84Point::fromLL(lng_min, lat_max);
+  auto ul = gp->fromWGS84(nw);
+  auto ll = gp->fromWGS84(sw);
+  auto sf = 0.0001 * (ul.y() - ll.y()) / (nw - sw).meters();
+
   stream.skipRawData(32); // emin, nmin, emax, nmax
 
   // vector record table: n_vec_records * 2 + n_vec_record_points  * 4 =
@@ -745,26 +752,24 @@ S57ChartOutline CM93Reader::readOutline(const QString& path, const GeoProjection
   PRegion pcov;
   QDate pub;
 
-  bool in_sor = false;
   for (int featureId = 0; featureId < n_feat_records; featureId++) {
     auto classCode = read_and_decode<quint8>(stream);
     // qCDebug(CENC) << "[class]" << CM93::GetClassInfo(classCode) << featureId << "/" << n_feat_records;
     auto objCode = read_and_decode<quint8>(stream);
     auto n_bytes = read_and_decode<quint16>(stream);
     if (classCode != m_m_sor) {
-      if (in_sor) break;
       // qCDebug(CENC) << "skipping" << n_bytes - 4 << "bytes";
       stream.skipRawData(n_bytes - 4);
       continue;
     }
-    in_sor = true;
     auto geoType = as_enum<CM93::GeomType>(objCode & 0x0f, CM93::AllGeomTypes);
     const quint8 flags = (objCode & 0xf0) >> 4;
+
+    EdgeVector edges;
 
     auto n_records = read_and_decode<quint16>(stream);
     if (geoType == CM93::GeomType::Area ||
         geoType == CM93::GeomType::Line) {
-      EdgeVector edges;
       for (int i = 0; i < n_records; i++) {
         auto edgeHeader = read_and_decode<quint16>(stream);
         auto index = edgeHeader & IndexMask;
@@ -776,7 +781,6 @@ S57ChartOutline CM93Reader::readOutline(const QString& path, const GeoProjection
         e.border = edgeflags & BorderBit;
         edges.append(e);
       }
-      pcov.append(createCoverage(vertices, edges));
     }
 
     if (flags & RelatedBit1) {
@@ -797,6 +801,10 @@ S57ChartOutline CM93Reader::readOutline(const QString& path, const GeoProjection
         if (a->index() == m_recdat) {
           pub = QDate::fromString(a->value().toString(), "yyyyMMdd");
           // qCDebug(CENC) << "pub" << pub;
+        } else if (a->index() == m_cscale) {
+          // qCDebug(CENC) << a->name() << a->value().toInt() << scale;
+          pcov.append(createCoverage(vertices, edges, sf * a->value().toInt()));
+          edges.clear();
         }
       }
     }
@@ -1251,7 +1259,8 @@ WGS84Polygon CM93Reader::transformCoverage(PRegion pcov, WGS84Point &sw, WGS84Po
 }
 
 PRegion CM93Reader::createCoverage(const GL::VertexVector &vertices,
-                                   const EdgeVector &edges) const {
+                                   const EdgeVector &edges, qreal eps) const {
+  // qCDebug(CENC) << "RDP coarseness" << eps;
   PRegion cov;
   for (int i = 0; i < edges.size();) {
     PointVector ps;
@@ -1268,9 +1277,19 @@ PRegion CM93Reader::createCoverage(const GL::VertexVector &vertices,
       // add prevlast
       ps << getEndPoint(EP::Last, edges[i - 1], vertices);
     }
-
-    ChartFileReader::reduce(ps);
-    cov << ps;
+    auto qs = ps;
+    if (qs.size() > 5) {
+      ChartFileReader::reduceRDP(qs, eps);
+      for (int cnt = 0; qs.size() < 3 && cnt < 20; ++cnt) {
+        qCWarning(CENC) << "Too much RDP reduction" << ps.size() << "->" << qs.size();
+        eps /= 2;
+        qs = ps;
+        ChartFileReader::reduceRDP(qs, eps);
+      }
+    }
+    if (qs.size() > 2) {
+      cov << qs;
+    }
   }
 
   return cov;

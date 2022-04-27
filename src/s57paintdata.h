@@ -20,7 +20,6 @@
 #pragma once
 
 #include <QMultiMap>
-#include <QOpenGLBuffer>
 #include <QColor>
 #include "s57object.h"
 #include "region.h"
@@ -472,9 +471,8 @@ public:
 
   void createTransforms(GL::VertexVector& transforms,
                         GL::VertexVector& segments,
-                        const QOpenGLBuffer& coordBuffer,
-                        const QOpenGLBuffer& indexBuffer,
-                        GLsizei maxCoordOffset);
+                        const GL::VertexVector& vertices,
+                        const GL::IndexVector& indices);
 
   LineKey key() const;
 
