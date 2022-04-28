@@ -41,14 +41,12 @@
 #include "s57imageprovider.h"
 #include "units.h"
 #include "utils.h"
+#include "chartproxy.h"
 
 Q_IMPORT_PLUGIN(CM93ReaderFactory)
 Q_IMPORT_PLUGIN(S57ReaderFactory)
 Q_IMPORT_PLUGIN(OsencReaderFactory)
 Q_IMPORT_PLUGIN(OesencReaderFactory)
-
-QOpenGLContext *qt_gl_global_share_context();
-void qt_gl_set_global_share_context(QOpenGLContext *context);
 
 int main(int argc, char *argv[]) {
 
@@ -70,20 +68,8 @@ int main(int argc, char *argv[]) {
   format.setStencilBufferSize(8);
   QSurfaceFormat::setDefaultFormat(format);
 
-  QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
   // Set up QML engine.
   QScopedPointer<QGuiApplication> app(SailfishApp::application(argc, argv));
-
-  // HACK: workaround for SailfishApp::application returning cached app which
-  // was created (presumably) before setting AA_ShareOpenGLContexts. As a result,
-  // neither global context is created nor any contexts are shared.
-  if (qt_gl_global_share_context() == nullptr) {
-    qDebug() << "HACK: Creating global opengl context";
-    QOpenGLContext *ctx = new QOpenGLContext;
-    ctx->setFormat(QSurfaceFormat::defaultFormat());
-    ctx->create();
-    qt_gl_set_global_share_context(ctx);
-  }
 
   QTranslator tr;
   loadTranslation(tr);
@@ -95,6 +81,7 @@ int main(int argc, char *argv[]) {
 
   qRegisterMetaType<TextKey>();
   qRegisterMetaType<GL::GlyphData>();
+  qRegisterMetaType<GL::ChartProxy*>();
   qRegisterMetaType<S57Chart*>();
   qRegisterMetaType<WGS84Point>();
   qRegisterMetaType<S57::InfoType>();

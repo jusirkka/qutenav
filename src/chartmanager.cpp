@@ -213,7 +213,8 @@ void ChartManager::createOutline(const WGS84Point& sw, const WGS84Point& ne) {
 }
 
 void ChartManager::createThreads() {
-  const int numThreads = qMax(1, QThread::idealThreadCount() - 1);
+  // hardcoded for now: gives bullshit values in sfos/Qt-5.6.3
+  const int numThreads = 3; // qMax(1, QThread::idealThreadCount() - 1);
   qCDebug(CMGR) << "number of chart updaters =" << numThreads;
   for (int i = 0; i < numThreads; ++i) {
     qCDebug(CMGR) << "creating thread" << i;

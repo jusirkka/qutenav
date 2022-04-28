@@ -6,4 +6,6 @@ X-Nemo-Application-Type=silica-qt5
 Icon=harbour-qutenav
 Exec=harbour-qutenav
 Name=QuteNav
-Terminal=true
+[X-Sailjail]
+Sandboxing=Disabled
+

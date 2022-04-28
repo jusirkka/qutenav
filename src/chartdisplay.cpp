@@ -64,6 +64,7 @@ ChartDisplay::ChartDisplay()
 
   // Ensure that manager instances run in the main thread by calling them here
   ChartManager::instance()->createThreads();
+  ChartManager::instance()->setChartSet(defaultChartSet(), m_camera->geoprojection());
   RasterSymbolManager::instance()->init();
   VectorSymbolManager::instance()->init();
   TextManager::instance()->init();

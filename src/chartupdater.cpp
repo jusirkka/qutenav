@@ -59,7 +59,7 @@ void ChartUpdater::createChart(const ChartData& d) {
     chart->updatePaintData(d.cover, d.scale);
     emit done(chart);
   } catch (ChartFileError& e) {
-    qWarning() << "Chart creation failed:" << e.msg();
+    qCWarning(CMGR) << "Chart creation failed:" << e.msg();
     emit done(nullptr);
   }
 }
