@@ -52,7 +52,7 @@ signals:
 
 private:
 
-  static const int statusFrequency = 100;
+  static const int statusFrequency = 50;
 
   using IdSet = QSet<quint32>;
 

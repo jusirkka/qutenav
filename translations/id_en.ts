@@ -294,7 +294,7 @@
         <translation>Km/h</translation>
     </message>
     <message id="qtnav-symbol-km">
-        <location filename="../src/units.cpp" line="+90"/>
+        <location filename="../src/units.cpp" line="+95"/>
         <source>km</source>
         <oldsource> km</oldsource>
         <translation>km</translation>
@@ -319,7 +319,7 @@
         <translation>m</translation>
     </message>
     <message id="qtnav-symbol-yd">
-        <location line="+26"/>
+        <location line="+19"/>
         <source>yd</source>
         <oldsource> yd</oldsource>
         <translation>yd</translation>
@@ -392,8 +392,8 @@
         <translation>Top</translation>
     </message>
     <message id="qutenav-context-menu-top">
-        <location line="+25"/>
-        <location filename="../qml/TrackDisplayDialog.qml" line="+19"/>
+        <location line="+26"/>
+        <location filename="../qml/TrackDisplayDialog.qml" line="+20"/>
         <source>Move to top</source>
         <translation>Move to top</translation>
     </message>
@@ -581,6 +581,267 @@
         <location line="+2"/>
         <source>MB</source>
         <translation>MB</translation>
+    </message>
+    <message id="qutenav-dialog-chart-folders">
+        <location filename="../qml/ChartDialog.qml" line="+27"/>
+        <source>Chart folders</source>
+        <translation>Chart folders</translation>
+    </message>
+    <message id="qutenav-dialog-add">
+        <location line="+60"/>
+        <source>Add</source>
+        <translation>Add</translation>
+    </message>
+    <message id="qutenav-dialog-remove">
+        <location line="+16"/>
+        <source>Remove</source>
+        <translation>Remove</translation>
+    </message>
+    <message id="qutenav-dialog-full-update">
+        <location line="+13"/>
+        <source>Full update</source>
+        <translation>Full update</translation>
+    </message>
+    <message id="qutenav-dialog-full-update-description">
+        <location line="+2"/>
+        <source>Check also previously added chart folders for changes</source>
+        <translation>Check also previously added chart folders for changes</translation>
+    </message>
+    <message id="qutenav-chart-folder-select">
+        <location filename="../qml/ChartFolderSelector.qml" line="+26"/>
+        <source>Select chart folder</source>
+        <translation>Select chart folder</translation>
+    </message>
+    <message id="qutenav-page-preferences">
+        <location filename="../qml/MenuPage.qml" line="+39"/>
+        <source>Preferences</source>
+        <translation>Preferences</translation>
+    </message>
+    <message id="qutenav-page-tracks">
+        <location line="+7"/>
+        <source>Tracks</source>
+        <translation>Tracks</translation>
+    </message>
+    <message id="qutenav-page-routes">
+        <location line="+12"/>
+        <source>Routes</source>
+        <translation>Routes</translation>
+    </message>
+    <message id="qutenav-page-chart-folders">
+        <location line="+12"/>
+        <source>Chart folders</source>
+        <translation>Chart folders</translation>
+    </message>
+    <message id="qutenav-page-chart-chartsets">
+        <location line="+12"/>
+        <source>Chartsets</source>
+        <translation>Chartsets</translation>
+    </message>
+    <message id="qutenav-page-chart-chartsets-description">
+        <location line="+2"/>
+        <source>Select the type of charts to display.</source>
+        <translation>Select the type of charts to display.</translation>
+    </message>
+    <message id="qutenav-dialog-accept">
+        <location filename="../qml/platform.qtcontrols/DialogPL.qml" line="+26"/>
+        <location filename="../qml/platform.silica/DialogPL.qml" line="+29"/>
+        <source>Accept</source>
+        <translation>Accept</translation>
+    </message>
+    <message id="qutenav-dialog-cancel">
+        <location filename="../qml/platform.silica/DialogPL.qml" line="+21"/>
+        <source>Cancel</source>
+        <translation>Cancel</translation>
+    </message>
+    <message id="qutenav-dialog-route-result-save-show">
+        <location filename="../qml/RoutingResultDialog.qml" line="+32"/>
+        <location line="+20"/>
+        <source>Save and Show</source>
+        <translation>Save and Show</translation>
+    </message>
+    <message id="qutenav-dialog-route-result-save-close">
+        <location line="+9"/>
+        <source>Save and Close</source>
+        <translation>Save and Close</translation>
+    </message>
+    <message id="qutenav-dialog-route-result-close">
+        <location line="+12"/>
+        <source>Close without saving</source>
+        <translation>Close without saving</translation>
+    </message>
+    <message id="qutenav-dialog-route-editor">
+        <location filename="../qml/RoutingStartDialog.qml" line="+30"/>
+        <source>Route editor</source>
+        <translation>Route editor</translation>
+    </message>
+    <message id="qutenav-dialog-edit-current">
+        <location line="+2"/>
+        <location line="+14"/>
+        <source>Edit current</source>
+        <translation>Edit current</translation>
+    </message>
+    <message id="qutenav-dialog-create-new-route">
+        <location line="+9"/>
+        <source>Create new route</source>
+        <translation>Create new route</translation>
+    </message>
+    <message id="qutenav-dialog-create-close-current">
+        <location line="+10"/>
+        <source>Close current</source>
+        <translation>Close current</translation>
+    </message>
+    <message id="qutenav-dialog-track-result-title">
+        <location filename="../qml/TrackResultDialog.qml" line="+37"/>
+        <source>Stop tracking</source>
+        <translation>Stop tracking</translation>
+    </message>
+    <message id="qutenav-dialog-track-result-save">
+        <location line="+2"/>
+        <location line="+15"/>
+        <source>Save</source>
+        <translation>Save</translation>
+    </message>
+    <message id="qutenav-dialog-track-result-pause">
+        <location line="+9"/>
+        <source>Pause</source>
+        <translation>Pause</translation>
+    </message>
+    <message id="qutenav-dialog-track-result-delete">
+        <location line="+11"/>
+        <source>Delete</source>
+        <translation>Delete</translation>
+    </message>
+    <message id="qtnav-txt-10">
+        <location filename="../src/settings.h" line="+486"/>
+        <source>Important text</source>
+        <translation>Important text</translation>
+    </message>
+    <message id="qtnav-txt-11">
+        <location line="+2"/>
+        <source>Vertical clearances etc.</source>
+        <translation>Vertical clearances etc.</translation>
+    </message>
+    <message id="qtnav-txt-11-desc">
+        <location line="+27"/>
+        <source>Vertical clearance of bridges, overhead cable, pipe or conveyor, bearing of navline, recommended route, deep water route centreline, name and communications channel of radio calling-in point.</source>
+        <translation>Vertical clearance of bridges, overhead cable, pipe or conveyor, bearing of navline, recommended route, deep water route centreline, name and communications channel of radio calling-in point.</translation>
+    </message>
+    <message id="qtnav-txt-12">
+        <location line="-25"/>
+        <source>Soundings</source>
+        <translation>Soundings</translation>
+    </message>
+    <message id="qtnav-txt-20">
+        <location line="+2"/>
+        <source>Other Text</source>
+        <translation>Other Text</translation>
+    </message>
+    <message id="qtnav-txt-21">
+        <location line="+2"/>
+        <source>Position names</source>
+        <translation>Position names</translation>
+    </message>
+    <message id="qtnav-txt-21-desc">
+        <location line="+23"/>
+        <source>Names for position reporting: name or number of buoys, beacons, daymarks, light vessel, light float, offshore platform.</source>
+        <translation>Names for position reporting: name or number of buoys, beacons, daymarks, light vessel, light float, offshore platform.</translation>
+    </message>
+    <message id="qtnav-txt-23">
+        <location line="-21"/>
+        <source>Light descriptions</source>
+        <translation>Light descriptions</translation>
+    </message>
+    <message id="qtnav-txt-24">
+        <location line="+2"/>
+        <source>Notes</source>
+        <translation>Notes</translation>
+    </message>
+    <message id="qtnav-txt-24-desc">
+        <location line="+21"/>
+        <source>Note on chart data or nautical publication.</source>
+        <translation>Note on chart data or nautical publication.</translation>
+    </message>
+    <message id="qtnav-txt-25">
+        <location line="-19"/>
+        <source>Nature of seabed</source>
+        <translation>Nature of seabed</translation>
+    </message>
+    <message id="qtnav-txt-26">
+        <location line="+2"/>
+        <source>Geographic names</source>
+        <translation>Geographic names</translation>
+    </message>
+    <message id="qtnav-txt-27">
+        <location line="+2"/>
+        <source>Other values</source>
+        <translation>Other values</translation>
+    </message>
+    <message id="qtnav-txt-27-desc">
+        <location line="+17"/>
+        <source>Value of magnetic variation or swept depth.</source>
+        <translation>Value of magnetic variation or swept depth.</translation>
+    </message>
+    <message id="qtnav-txt-28">
+        <location line="-15"/>
+        <source>Other heights</source>
+        <translation>Other heights</translation>
+    </message>
+    <message id="qtnav-txt-28-desc">
+        <location line="+17"/>
+        <source>Height of islet or land feature</source>
+        <translation>Height of islet or land feature</translation>
+    </message>
+    <message id="qtnav-txt-29">
+        <location line="-15"/>
+        <source>Berth numbers</source>
+        <translation>Berth numbers</translation>
+    </message>
+    <message id="qtnav-txt-31">
+        <location line="+2"/>
+        <source>National language text</source>
+        <translation>National language text</translation>
+    </message>
+    <message id="qutenav-status-full-sync-ready">
+        <location filename="../src/chartdisplay.h" line="+195"/>
+        <source>Full sync ready</source>
+        <translation>Full sync ready</translation>
+    </message>
+    <message id="qutenav-status-sync-ready">
+        <location line="+2"/>
+        <source>Sync ready</source>
+        <translation>Sync ready</translation>
+    </message>
+    <message id="qutenav-status-insert-1" numerus="yes">
+        <location line="+2"/>
+        <source>Inserted %n</source>
+        <translation>
+            <numerusform>Inserted %n</numerusform>
+            <numerusform>Inserted %n</numerusform>
+        </translation>
+    </message>
+    <message id="qutenav-status-insert-2" numerus="yes">
+        <location line="+2"/>
+        <source>/%n charts</source>
+        <translation>
+            <numerusform>/%n charts</numerusform>
+            <numerusform>/%n charts</numerusform>
+        </translation>
+    </message>
+    <message id="qutenav-status-update-1" numerus="yes">
+        <location line="+2"/>
+        <source>Updated %n</source>
+        <translation>
+            <numerusform>Updated %n</numerusform>
+            <numerusform>Updated %n</numerusform>
+        </translation>
+    </message>
+    <message id="qutenav-status-update-2" numerus="yes">
+        <location line="+2"/>
+        <source>/%n charts</source>
+        <translation>
+            <numerusform>/%n charts</numerusform>
+            <numerusform>/%n charts</numerusform>
+        </translation>
     </message>
 </context>
 </TS>

@@ -25,7 +25,8 @@ Dialog {
   id: dialog
 
   property string title
-  property string acceptText: "Accept"
+  //% "Accept"
+  property string acceptText: qsTrId("qutenav-dialog-accept")
   property int pageHeight // dummy
   property int pageWidth // dummy
   property bool hasOK: false // dummy
@@ -45,7 +46,8 @@ Dialog {
       id: header
       title: dialog.title
       acceptText: dialog.acceptText
-      cancelText: "Cancel"
+      //% "Cancel"
+      cancelText: qsTrId("qutenav-dialog-cancel")
     }
 
     Item {

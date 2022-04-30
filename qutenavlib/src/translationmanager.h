@@ -1,8 +1,8 @@
 /* -*- coding: utf-8-unix -*-
  *
- * File: ApplicationWindowPL.qml
+ * File: translationmanager.h
  *
- * Copyright (C) 2021 Jukka Sirkka
+ * Copyright (C) 2022 Jukka Sirkka
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,11 +17,25 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import QtQuick 2.6
+#pragma once
 
-import "./platform"
+#include <QString>
 
-FolderPickerPL {
-  //% "Select chart folder"
-  title: qsTrId("qutenav-chart-folder-select")
-}
+class QTranslator;
+
+class TranslationManager {
+public:
+
+  static TranslationManager* instance();
+
+  void loadTranslation(QTranslator& translator);
+  const QString& locale() const {return m_locale;}
+
+private:
+
+  TranslationManager();
+
+  static const inline char* defaultLocale = "en";
+
+  QString m_locale;
+};

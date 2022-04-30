@@ -60,7 +60,7 @@ ChartDisplay::ChartDisplay()
 {
   setMirrorVertically(true);
   connect(this, &QQuickItem::windowChanged, this, &ChartDisplay::handleWindowChanged);
-  connect(m_updater, &UpdaterInterface::status, this, &ChartDisplay::chartDBStatus);
+  connect(m_updater, &UpdaterInterface::status, this, &ChartDisplay::handleUpdaterStatus);
 
   // Ensure that manager instances run in the main thread by calling them here
   ChartManager::instance()->createThreads();
@@ -579,4 +579,34 @@ void ChartDisplay::requestChartDBUpdate() {
 
 void ChartDisplay::requestChartDBFullUpdate() {
   m_updater->fullSync(Conf::MainWindow::ChartFolders());
+}
+
+void ChartDisplay::handleUpdaterStatus(const QString& msg) {
+  auto parts = msg.split(":");
+  QString statusString;
+  bool ok = true;
+  if (parts[0] == "Ready") {
+    if (parts[1] == "FullSync") {
+      statusString = qtTrId(status_full_sync_ready);
+    } else if (parts[1] == "Sync") {
+      statusString = qtTrId(status_sync_ready);
+    } else {
+      qCWarning(CDPY) << "received unknown status from DBUpdater" << msg;
+      ok = false;
+    }
+  } else if (parts[0] == "Insert") {
+    auto n = parts[1].toInt();
+    auto m = parts[2].toInt();
+    statusString = qtTrId(status_insert_1, n) + qtTrId(status_insert_2, m);
+  } else if (parts[0] == "Update") {
+    auto n = parts[1].toInt();
+    auto m = parts[2].toInt();
+    statusString = qtTrId(status_update_1, n) + qtTrId(status_update_2, m);
+  } else {
+    qCWarning(CDPY) << "received unknown status from DBUpdater" << msg;
+    ok = false;
+  }
+  if (ok) {
+    emit chartDBStatus(statusString);
+  }
 }

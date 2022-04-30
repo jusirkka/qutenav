@@ -24,6 +24,7 @@
 #include "conf_mainwindow.h"
 #include "conf_units.h"
 #include "logging.h"
+#include <QMap>
 
 class TextGroup: public QObject {
   Q_OBJECT
@@ -480,5 +481,46 @@ private:
   static inline const float dpmm0 = 6.2;
   static inline const float delta_dpmm1 = 9.7;
 
+  static inline const QMap<int, const char*> texts = {
+    //% "Important text"
+    {10, QT_TRID_NOOP("qtnav-txt-10")},
+    //% "Vertical clearances etc."
+    {11, QT_TRID_NOOP("qtnav-txt-11")},
+    //% "Soundings"
+    {12, QT_TRID_NOOP("qtnav-txt-12")},
+    //% "Other Text"
+    {20, QT_TRID_NOOP("qtnav-txt-20")},
+    //% "Position names"
+    {21, QT_TRID_NOOP("qtnav-txt-21")},
+    //% "Light descriptions"
+    {23, QT_TRID_NOOP("qtnav-txt-23")},
+    //% "Notes"
+    {24, QT_TRID_NOOP("qtnav-txt-24")},
+    //% "Nature of seabed"
+    {25, QT_TRID_NOOP("qtnav-txt-25")},
+    //% "Geographic names"
+    {26, QT_TRID_NOOP("qtnav-txt-26")},
+    //% "Other values"
+    {27, QT_TRID_NOOP("qtnav-txt-27")},
+    //% "Other heights"
+    {28, QT_TRID_NOOP("qtnav-txt-28")},
+    //% "Berth numbers"
+    {29, QT_TRID_NOOP("qtnav-txt-29")},
+    //% "National language text"
+    {29, QT_TRID_NOOP("qtnav-txt-31")},
+  };
+
+  static inline const QMap<int, const char*> descriptions = {
+    //% "Vertical clearance of bridges, overhead cable, pipe or conveyor, bearing of navline, recommended route, deep water route centreline, name and communications channel of radio calling-in point."
+    {11, QT_TRID_NOOP("qtnav-txt-11-desc")},
+    //% "Names for position reporting: name or number of buoys, beacons, daymarks, light vessel, light float, offshore platform."
+    {21, QT_TRID_NOOP("qtnav-txt-21-desc")},
+    //% "Note on chart data or nautical publication."
+    {24, QT_TRID_NOOP("qtnav-txt-24-desc")},
+    //% "Value of magnetic variation or swept depth."
+    {27, QT_TRID_NOOP("qtnav-txt-27-desc")},
+    //% "Height of islet or land feature"
+    {28, QT_TRID_NOOP("qtnav-txt-28-desc")},
+  };
 };
 

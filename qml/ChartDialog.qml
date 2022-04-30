@@ -23,7 +23,8 @@ import "./platform"
 
 DialogPL {
   id: dialog
-  title: "Chart folders"
+  //% "Chart folders"
+  title: qsTrId("qutenav-dialog-chart-folders")
   hasOK: true
   pageHeight: parent.height * .7
 
@@ -82,7 +83,8 @@ DialogPL {
 
     ButtonPL {
       id: addButton
-      text: "Add"
+      //% "Add"
+      text: qsTrId("qutenav-dialog-add")
       width: delButton.width
       onClicked: {
         var picker = app.showAsDialog(Qt.resolvedUrl("ChartFolderSelector.qml"))
@@ -97,7 +99,8 @@ DialogPL {
 
     ButtonPL {
       id: delButton
-      text: "Remove"
+      //% "Remove"
+      text: qsTrId("qutenav-dialog-remove")
       enabled: pathsView.currentIndex >= 0
       onClicked: {
         dialog.paths.splice(pathsView.currentIndex, 1)
@@ -109,8 +112,10 @@ DialogPL {
   }
 
   TextSwitchPL {
-    text: "Full update"
-    description: "Check also previously added chart folders for changes"
+    //% "Full update"
+    text: qsTrId("qutenav-dialog-full-update")
+    //% "Check also previously added chart folders for changes"
+    description: qsTrId("qutenav-dialog-full-update-description")
     anchors {
       top: buttons.bottom
       left: parent.left

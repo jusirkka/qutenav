@@ -15,6 +15,7 @@ target_sources(QuteNavLib
     src/s57chartoutline.cpp
     src/s57object.cpp
     src/sqlitedatabase.cpp
+    src/translationmanager.cpp
     src/types.cpp
 )
 

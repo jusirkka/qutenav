@@ -176,6 +176,7 @@ private slots:
   void updateChartSet();
   void requestChartDBUpdate();
   void requestChartDBFullUpdate();
+  void handleUpdaterStatus(const QString& msg);
 
 signals:
 
@@ -189,6 +190,19 @@ signals:
   void chartDBStatus(const QString& msg);
 
 private:
+
+  //% "Full sync ready"
+  static const inline char* status_full_sync_ready = QT_TRID_NOOP("qutenav-status-full-sync-ready");
+  //% "Sync ready"
+  static const inline char* status_sync_ready = QT_TRID_NOOP("qutenav-status-sync-ready");
+  //% "Inserted %n"
+  static const inline char* status_insert_1 = QT_TRID_NOOP("qutenav-status-insert-1");
+  //% "/%n charts"
+  static const inline char* status_insert_2 = QT_TRID_NOOP("qutenav-status-insert-2");
+  //% "Updated %n"
+  static const inline char* status_update_1 = QT_TRID_NOOP("qutenav-status-update-1");
+  //% "/%n charts"
+  static const inline char* status_update_2 = QT_TRID_NOOP("qutenav-status-update-2");
 
   QString defaultChartSet() const;
   void computeScaleBar();

@@ -25,8 +25,11 @@ DialogPL {
   id: dialog
 
   property var router
-  title: "Route editor"
-  acceptText: "Edit current"
+
+  //% "Route editor"
+  title: qsTrId("qutenav-dialog-route-editor")
+  //% "Edit current"
+  acceptText: qsTrId("qutenav-dialog-edit-current")
 
   Column {
     spacing: theme.paddingMedium
@@ -39,7 +42,8 @@ DialogPL {
     width: parent.width
 
     IconListItemPL {
-      label: "Edit current"
+      //% "Edit current"
+      label: qsTrId("qutenav-dialog-edit-current")
       iconName: app.getSystemIcon('edit')
       onClicked: {
         dialog.accept();
@@ -47,7 +51,8 @@ DialogPL {
     }
 
     IconListItemPL {
-      label: "Create new route"
+      //% "Create new route"
+      label: qsTrId("qutenav-dialog-create-new-route")
       iconName: app.getSystemIcon('new')
       onClicked: {
         dialog.router.clear();
@@ -56,7 +61,8 @@ DialogPL {
     }
 
     IconListItemPL {
-      label: "Close current"
+      //% "Close current"
+      label: qsTrId("qutenav-dialog-create-close-current")
       iconName: app.getSystemIcon('clear')
       onClicked: {
         dialog.router.clear();

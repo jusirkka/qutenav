@@ -24,6 +24,7 @@
 #include "logging.h"
 #include <QRegularExpression>
 #include "platform.h"
+#include "translationmanager.h"
 
 namespace S52 {
 
@@ -102,7 +103,8 @@ void S52::Names::init() {
 
 
 void S52::Names::readObjectClasses() {
-  QFile file(S52::FindPath("s57objectclasses.csv"));
+  const auto locale = TranslationManager::instance()->locale();
+  QFile file(S52::FindPath(QString("s57objectclasses_%1.csv").arg(locale)));
   file.open(QFile::ReadOnly);
   QTextStream s(&file);
 
@@ -151,7 +153,8 @@ void S52::Names::readAttributes() {
     {"F", S57::AttributeType::Real},
   };
 
-  QFile afile(S52::FindPath("s57attributes.csv"));
+  const auto locale = TranslationManager::instance()->locale();
+  QFile afile(S52::FindPath(QString("s57attributes_%1.csv").arg(locale)));
   afile.open(QFile::ReadOnly);
   QTextStream s1(&afile);
 
@@ -176,7 +179,7 @@ void S52::Names::readAttributes() {
 
   static const QRegularExpression re("^(\\d+),(\\d+),\"(.*)\"$");
 
-  QFile dfile(S52::FindPath("s57expectedinput.csv"));
+  QFile dfile(S52::FindPath(QString("s57expectedinput_%1.csv").arg(locale)));
   dfile.open(QFile::ReadOnly);
   QTextStream s2(&dfile);
 

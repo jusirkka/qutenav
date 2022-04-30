@@ -50,7 +50,7 @@ void Updater::fullSync(const QStringList& paths) {
   ChartInfoMap current;
   manageCharts(paths, &current);
   updateCharts(current);
-  emit status("Full sync ready");
+  emit status("Ready:FullSync");
   qDebug() << "emit ready, clearCache =" << m_clearCache;
   emit ready(m_clearCache);
 }
@@ -58,7 +58,7 @@ void Updater::fullSync(const QStringList& paths) {
 void Updater::sync(const QStringList& paths) {
   m_clearCache = false;
   manageCharts(paths, nullptr);
-  emit status("Sync ready");
+  emit status("Ready:Sync");
   qDebug() << "emit ready, clearCache =" << m_clearCache;
   emit ready(m_clearCache);
 }
@@ -127,7 +127,7 @@ void Updater::updateCharts(const ChartInfoMap& charts) {
           ch.modified().toJulianDay() == s.value(1).toInt())) {
         count += 1;
         if (count % statusFrequency == 0) {
-          emit status(QString("Checked %1/%2 charts").arg(count).arg(charts.size()));
+          emit status(QString("Update:%1:%2").arg(count).arg(charts.size()));
         }
         continue;
       }
@@ -139,11 +139,11 @@ void Updater::updateCharts(const ChartInfoMap& charts) {
     }
     count += 1;
     if (count % statusFrequency == 0) {
-      emit status(QString("Checked %1/%2 charts").arg(count).arg(charts.size()));
+      emit status(QString("Update:%1:%2").arg(count).arg(charts.size()));
     }
   }
   if (charts.size() % statusFrequency != 0) {
-    emit status(QString("Checked %1/%1 charts").arg(charts.size()));
+    emit status(QString("Update:%1:%1").arg(charts.size()));
   }
 }
 
@@ -236,7 +236,7 @@ void Updater::insertCharts(const PathHash& paths) {
     }
     count += 1;
     if (count % statusFrequency == 0) {
-      emit status(QString("Inserted %1/%2 charts").arg(count).arg(paths.size()));
+      emit status(QString("Insert:%1:%2").arg(count).arg(paths.size()));
     }
 
   }
@@ -244,7 +244,7 @@ void Updater::insertCharts(const PathHash& paths) {
     qWarning() << "DB commit failed!";
   }
   if (paths.size() % statusFrequency != 0) {
-    emit status(QString("Inserted %1/%1 charts").arg(paths.size()));
+    emit status(QString("Insert:%1:%1").arg(paths.size()));
   }
 }
 

@@ -40,8 +40,7 @@
 #include "chartdatabase.h"
 #include "s57imageprovider.h"
 #include "units.h"
-#include "utils.h"
-#include "chartproxy.h"
+#include "translationmanager.h"
 
 Q_IMPORT_PLUGIN(CM93ReaderFactory)
 Q_IMPORT_PLUGIN(S57ReaderFactory)
@@ -72,7 +71,7 @@ int main(int argc, char *argv[]) {
   QScopedPointer<QGuiApplication> app(SailfishApp::application(argc, argv));
 
   QTranslator tr;
-  loadTranslation(tr);
+  TranslationManager::instance()->loadTranslation(tr);
   app->installTranslator(&tr);
 
   // remove stutter

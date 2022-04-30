@@ -37,7 +37,7 @@
 #include "routedatabase.h"
 #include "chartdatabase.h"
 #include "s57imageprovider.h"
-#include "utils.h"
+#include "translationmanager.h"
 
 Q_IMPORT_PLUGIN(CM93ReaderFactory)
 Q_IMPORT_PLUGIN(S57ReaderFactory)
@@ -78,7 +78,7 @@ int main(int argc, char *argv[]) {
   qRegisterMetaType<ChartData>();
 
   QTranslator tr;
-  loadTranslation(tr);
+  TranslationManager::instance()->loadTranslation(tr);
   app->installTranslator(&tr);
 
   S52::InitPresentation();
@@ -86,7 +86,6 @@ int main(int argc, char *argv[]) {
   TrackDatabase::createTables();
   RouteDatabase::createTables();
   ChartDatabase::createTables();
-
 
   // Set up QML engine.
   QQmlApplicationEngine engine;

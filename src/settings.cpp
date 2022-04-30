@@ -20,6 +20,7 @@
 #include "settings.h"
 #include <QDebug>
 #include "platform.h"
+#include <QMapIterator>
 
 bool TextGroup::enabled() const {
   return Conf::MarinerParams::TextGrouping().contains(m_group);
@@ -47,25 +48,13 @@ Settings* Settings::instance() {
 Settings::Settings(QObject *parent)
   : QObject(parent)
 {
-  m_textGroups << new TextGroup(10, true, "Important text");
-  m_textGroups << new TextGroup(11, true, "Vertical clearances etc.",
-                                "Vertical clearance of bridges, overhead cable, pipe or conveyor, "
-                                "bearing of navline, recommended route, deep water route centreline, "
-                                "name and communications channel of radio calling-in point.");
-  m_textGroups << new TextGroup(12, true, "Soundings");
-  m_textGroups << new TextGroup(20, true, "Other text");
-  m_textGroups << new TextGroup(21, true, "Position names",
-                                "Names for position reporting: "
-                                "name or number of buoys, beacons, daymarks, "
-                                "light vessel, light float, offshore platform.");
-  m_textGroups << new TextGroup(23, true, "Light descriptions");
-  m_textGroups << new TextGroup(24, true, "Notes", "Note on chart data or nautical publication.");
-  m_textGroups << new TextGroup(25, true, "Nature of seabed");
-  m_textGroups << new TextGroup(26, true, "Geographic names");
-  m_textGroups << new TextGroup(27, true, "Other values", "Value of magnetic variation or swept depth.");
-  m_textGroups << new TextGroup(28, true, "Other heights", "Height of islet or land feature");
-  m_textGroups << new TextGroup(29, true, "Berth numbers");
-  m_textGroups << new TextGroup(31, true, "National language text");
+  for (auto it = texts.cbegin(); it != texts.cend(); ++it) {
+    if (descriptions.contains(it.key())) {
+      m_textGroups << new TextGroup(it.key(), true, qtTrId(it.value()), qtTrId(descriptions[it.key()]));
+    } else {
+      m_textGroups << new TextGroup(it.key(), true, qtTrId(it.value()));
+    }
+  }
 
   for (auto obj: m_textGroups) {
     auto group = qobject_cast<TextGroup*>(obj);

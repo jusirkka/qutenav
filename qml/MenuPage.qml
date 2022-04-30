@@ -35,13 +35,15 @@ PagePL {
   pageHeight: parent.height
 
   IconListItemPL {
-    label: "Preferences"
+    //% "Preferences"
+    label: qsTrId("qutenav-page-preferences")
     iconName: app.getSystemIcon('preferences')
     onClicked: app.show(Qt.resolvedUrl("PreferencesPage.qml"))
   }
 
   IconListItemPL {
-    label: "Tracks" + (enabled ? "" : "*")
+    //% "Tracks"
+    label: qsTrId("qutenav-page-tracks") + (enabled ? "" : "*")
     iconName: app.getSystemIcon('archive')
     onClicked: {
       var d1 = app.show(Qt.resolvedUrl("TrackDisplayDialog.qml"))
@@ -52,7 +54,8 @@ PagePL {
   }
 
   IconListItemPL {
-    label: "Routes" + (enabled ? "" : "*")
+    //% "Routes"
+    label: qsTrId("qutenav-page-routes") + (enabled ? "" : "*")
     iconName: app.getSystemIcon('archive')
     onClicked: {
       var d2 = app.show(Qt.resolvedUrl("RouteDisplayDialog.qml"),
@@ -63,7 +66,8 @@ PagePL {
   }
 
   IconListItemPL {
-    label: "Chart folders"
+    //% "Chart folders"
+    label: qsTrId("qutenav-page-chart-folders")
     iconName: app.getSystemIcon('documents')
     onClicked: {
       app.show(Qt.resolvedUrl("ChartDialog.qml"), {
@@ -74,8 +78,10 @@ PagePL {
 
   ComboBoxPL {
     id: setBox
-    label: "Chartsets"
-    description: "Select the type of charts to display."
+    //% "Chartsets"
+    label: qsTrId("qutenav-page-chart-chartsets")
+    //% "Select the type of charts to display."
+    description: qsTrId("qutenav-page-chart-chartsets-description")
     Component.onCompleted: {
       model = encdis.chartSets;
     }

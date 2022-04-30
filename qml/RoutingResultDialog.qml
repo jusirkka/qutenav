@@ -28,7 +28,8 @@ DialogPL {
   property bool saveNeeded: true
 
   title: router.name()
-  acceptText: textTricks("Save & Show")
+  //% "Save and Show"
+  acceptText: qsTrId("qutenav-dialog-route-result-save-show")
 
   onAccepted: {
     if (saveNeeded) {
@@ -47,7 +48,8 @@ DialogPL {
     width: parent.width
 
     IconListItemPL {
-      label: dialog.textTricks("Save & Show")
+      //% "Save and Show"
+      label: qsTrId("qutenav-dialog-route-result-save-show")
       iconName: app.getSystemIcon('save')
       onClicked: {
         dialog.accept();
@@ -55,7 +57,8 @@ DialogPL {
     }
 
     IconListItemPL {
-      label: dialog.textTricks("Save & Close")
+      //% "Save and Close"
+      label: qsTrId("qutenav-dialog-route-result-save-close")
       iconName: app.getSystemIcon('save')
       onClicked: {
         dialog.router.save();
@@ -66,7 +69,8 @@ DialogPL {
     }
 
     IconListItemPL {
-      label: "Close without saving"
+      //% "Close without saving"
+      label: qsTrId("qutenav-dialog-route-result-close")
       iconName: app.getSystemIcon('clear')
       onClicked: {
         dialog.router.clear();

@@ -33,8 +33,10 @@ DialogPL {
     }
   }
 
-  title: "Stop tracking"
-  acceptText: "Save"
+  //% "Stop tracking"
+  title: qsTrId("qutenav-dialog-track-result-title")
+  //% "Save"
+  acceptText: qsTrId("qutenav-dialog-track-result-save")
 
   Column {
     spacing: theme.paddingMedium
@@ -48,7 +50,8 @@ DialogPL {
 
 
     IconListItemPL {
-      label: "Save"
+      //% "Save"
+      label: qsTrId("qutenav-dialog-track-result-save")
       iconName: app.getSystemIcon('save')
       onClicked: {
         dialog.accept();
@@ -56,7 +59,8 @@ DialogPL {
     }
 
     IconListItemPL {
-      label: "Pause"
+      //% "Pause"
+      label: qsTrId("qutenav-dialog-track-result-pause")
       iconName: app.getSystemIcon('pause')
       onClicked: {
         dialog.tracker.pause();
@@ -66,7 +70,8 @@ DialogPL {
     }
 
     IconListItemPL {
-      label: "Delete"
+      //% "Delete"
+      label: qsTrId("qutenav-dialog-track-result-delete")
       iconName: app.getSystemIcon('clear')
       onClicked: {
         dialog.tracker.remove();

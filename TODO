@@ -1,15 +1,17 @@
 - tides
 - busy spinner while charts are loading
 - ObjectInfo rewrite
+- better globe mouse controls
+- ensure non-empty bbox in case of horizontal/vertical lines
+- VAO sanity
+- display less details in larger chart scales
+- bug: loading a route when already tracking does not find correct location in the route
+- draw largest scale coverages instead of rectangles in globe mode
+- bug: line flicker in globe mode
+- bug: overlapping areas: offset larger scale dephs & sort by scale when drawing
 - Route/editor: reverse & edit a route
 - Datetime format to Units: standard, localized
 - display total distance when editing a route
 - RulerSelection enum type -> create enumerations.h to hold all custom enums
-- check all strings and add translation support
-- better globe mouse controls
-- ensure non-empty bbox in case of horizontal/vertical lines
-- display less details in larger chart scales
-- draw largest scale coverages instead of rectangles in globe mode
-- bug: loading a route when already tracking does not find correct location in the route
-- bug: line flicker in globe mode
-- VAO sanity
+
+- smaller scale map indicator

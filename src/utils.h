@@ -19,7 +19,4 @@
  */
 #pragma once
 
-class QTranslator;
-
-extern void loadTranslation(QTranslator& translator);
 extern void checkCache(bool clearCache);
