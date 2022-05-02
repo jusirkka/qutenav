@@ -29,7 +29,6 @@
 #include "s52instr_scanner.h"
 #include "s52names.h"
 #include "settings.h"
-#include "translationmanager.h"
 
 void s52instr_error(Private::LocationType* loc,
                     Private::Presentation*,
@@ -105,8 +104,7 @@ S52::Lookup::Type Private::Presentation::typeFilter(const S57::Object *obj) cons
 
 
 void Private::Presentation::readObjectClasses() {
-  const auto locale = TranslationManager::instance()->locale();
-  QFile file(S52::FindPath(QString("s57objectclasses_%1.csv").arg(locale)));
+  QFile file(S52::FindPath("s57objectclasses.csv"));
   file.open(QFile::ReadOnly);
   QTextStream s(&file);
 
@@ -144,8 +142,7 @@ void Private::Presentation::readObjectClasses() {
 
 void Private::Presentation::readAttributes() {
 
-  const auto locale = TranslationManager::instance()->locale();
-  QFile afile(S52::FindPath(QString("s57attributes_%1.csv").arg(locale)));
+  QFile afile(S52::FindPath("s57attributes.csv"));
   afile.open(QFile::ReadOnly);
   QTextStream s1(&afile);
 

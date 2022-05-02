@@ -24,7 +24,6 @@
 #include "logging.h"
 #include <QRegularExpression>
 #include "platform.h"
-#include "translationmanager.h"
 
 namespace S52 {
 
@@ -47,40 +46,36 @@ public:
 
   using IdentifierHash = QHash<QString, quint32>;
 
-  struct ClassDescription {
-    ClassDescription(const QString& c, const QString& d, bool meta)
+  struct ClassInfo {
+    ClassInfo(const QString& c, bool meta)
       : code(c)
-      , description(d)
       , isMeta(meta) {}
 
-    ClassDescription() = default;
+    ClassInfo() = default;
 
     QString code;
-    QString description;
     bool isMeta;
   };
 
-  using ClassHash = QHash<quint32, ClassDescription>;
+  using ClassHash = QHash<quint32, ClassInfo>;
 
   IdentifierHash names;
   ClassHash classes;
 
-  using DescriptionMap = QMap<quint32, QString>;
+  using EnumIndexVector = QVector<quint32>;
 
-  struct AttributeDescription {
-    AttributeDescription(const QString& c, S57::AttributeType t, const QString& d)
+  struct AttributeInfo {
+    AttributeInfo(const QString& c, S57::AttributeType t)
       : code(c)
-      , type(t)
-      , description(d) {}
+      , type(t) {}
 
-    AttributeDescription() = default;
+    AttributeInfo() = default;
 
     QString code;
     S57::AttributeType type;
-    QString description;
-    DescriptionMap enumDescriptions;
+    EnumIndexVector enums;
   };
-  using AttributeMap = QMap<quint32, AttributeDescription>;
+  using AttributeMap = QMap<quint32, AttributeInfo>;
 
   AttributeMap attributes;
 };
@@ -103,8 +98,7 @@ void S52::Names::init() {
 
 
 void S52::Names::readObjectClasses() {
-  const auto locale = TranslationManager::instance()->locale();
-  QFile file(S52::FindPath(QString("s57objectclasses_%1.csv").arg(locale)));
+  QFile file(S52::FindPath("s57objectclasses.csv"));
   file.open(QFile::ReadOnly);
   QTextStream s(&file);
 
@@ -120,7 +114,6 @@ void S52::Names::readObjectClasses() {
       description += ",";
       description += parts[i];
     }
-    description.replace("\"", "");
     const QString className = parts[i + 1];
     if (names.contains(className)) {
       qCWarning(CS52) << className << "already parsed";
@@ -129,7 +122,7 @@ void S52::Names::readObjectClasses() {
     bool meta = parts[parts.length() - 2] == "M";
 
     names[className] = classCode;
-    classes[classCode] = ClassDescription(className, description, meta);
+    classes[classCode] = ClassInfo(className, meta);
 
   }
 
@@ -137,7 +130,7 @@ void S52::Names::readObjectClasses() {
   const quint32 unknownCode = 666666;
   const QString unknownClass("######");
   names[unknownClass] = unknownCode;
-  classes[unknownCode] = ClassDescription(unknownClass, "Unknown object class", false);
+  classes[unknownCode] = ClassInfo(unknownClass, false);
 
   file.close();
 }
@@ -153,8 +146,7 @@ void S52::Names::readAttributes() {
     {"F", S57::AttributeType::Real},
   };
 
-  const auto locale = TranslationManager::instance()->locale();
-  QFile afile(S52::FindPath(QString("s57attributes_%1.csv").arg(locale)));
+  QFile afile(S52::FindPath("s57attributes.csv"));
   afile.open(QFile::ReadOnly);
   QTextStream s1(&afile);
 
@@ -164,7 +156,6 @@ void S52::Names::readAttributes() {
     bool ok;
     const quint32 id = parts[0].toUInt(&ok);
     if (!ok) continue;
-    const QString description = parts[1];
     const QString attributeName = parts[2];
     if (names.contains(attributeName)) {
       qCWarning(CS52) << attributeName << "already parsed";
@@ -173,13 +164,13 @@ void S52::Names::readAttributes() {
     const S57::AttributeType t = typeLookup[parts[3]];
 
     names[attributeName] = id;
-    attributes[id] = AttributeDescription(attributeName, t, description);
+    attributes[id] = AttributeInfo(attributeName, t);
   }
   afile.close();
 
   static const QRegularExpression re("^(\\d+),(\\d+),\"(.*)\"$");
 
-  QFile dfile(S52::FindPath(QString("s57expectedinput_%1.csv").arg(locale)));
+  QFile dfile(S52::FindPath("s57expectedinput.csv"));
   dfile.open(QFile::ReadOnly);
   QTextStream s2(&dfile);
 
@@ -193,14 +184,12 @@ void S52::Names::readAttributes() {
     }
     const quint32 aid = match.captured(1).toUInt();
     const quint32 eid = match.captured(2).toUInt();
-    const QString desc = match.captured(3);
 
     if (!attributes.contains(aid)) {
       qCWarning(CS52) << "Attribute" << aid << "not found";
       continue;
     }
-    DescriptionMap* target = &attributes[aid].enumDescriptions;
-    (*target)[eid] = desc;
+    attributes[aid].enums.append(eid);
   }
 
   dfile.close();
@@ -241,15 +230,19 @@ QString S52::FindPath(const QString& s) {
 QString S52::GetClassDescription(quint32 code) {
   auto p = Names::instance();
   if (!p->classes.contains(code)) return QString();
-  auto cl = p->classes[code];
-  return cl.description;
+  const QString id = "qutenav-" + p->classes[code].code;
+  return qtTrId(id.toUtf8());
 }
 
 QString S52::GetClassInfo(quint32 code) {
   auto p = Names::instance();
   if (!p->classes.contains(code)) return QString();
+
   auto cl = p->classes[code];
-  return cl.code + ": " + cl.description;
+
+  const QString id = "qutenav-" + cl.code;
+
+  return cl.code + ": " + qtTrId(id.toUtf8());
 }
 
 S57::AttributeType S52::GetAttributeType(quint32 index) {
@@ -267,7 +260,10 @@ QString S52::GetAttributeName(quint32 index) {
 QString S52::GetAttributeDescription(quint32 index) {
   auto p = Names::instance();
   if (!p->attributes.contains(index)) return QString();
-  return p->attributes[index].description;
+
+  const QString id = "qutenav-" + p->attributes[index].code;
+
+  return qtTrId(id.toUtf8());
 }
 
 QString S52::GetAttributeValueDescription(quint32 index, const QVariant& v) {
@@ -314,8 +310,11 @@ QString S52::GetAttributeValueDescription(quint32 index, const QVariant& v) {
 QString S52::GetAttributeEnumDescription(quint32 aid, quint32 eid) {
   auto p = Names::instance();
   if (!p->attributes.contains(aid)) return QString();
-  if (!p->attributes[aid].enumDescriptions.contains(eid)) return QString();
-  return p->attributes[aid].enumDescriptions[eid];
+  if (!p->attributes[aid].enums.contains(eid)) return QString();
+
+  const QString id = QString("qutenav-%1-%2").arg(p->attributes[aid].code).arg(eid);
+
+  return qtTrId(id.toUtf8());
 }
 
 

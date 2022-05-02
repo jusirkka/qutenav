@@ -143,7 +143,9 @@ include(MyAddTranslation)
 
 # -- Update:
 # lupdate -locations relative -target-language en_US . -ts translations/id_en.ts
-# --
+# -- and/or
+# ./s57totr translations/id_en.ts
+
 my_add_translation(QUTENAV_QMS translations/id_en.ts
   OPTIONS -idbased
 )
@@ -387,9 +389,9 @@ install(FILES data/sphere.obj
         DESTINATION ${CMAKE_INSTALL_DATADIR}/qutenav/globe)
 
 # s57 data files
-install(FILES data/s57objectclasses_en.csv
-              data/s57attributes_en.csv
-              data/s57expectedinput_en.csv
+install(FILES data/s57objectclasses.csv
+              data/s57attributes.csv
+              data/s57expectedinput.csv
               data/chartsymbols.xml
               data/rastersymbols-dark.png
               data/rastersymbols-day.png
