@@ -97,9 +97,9 @@ install:
 	cp data/posz.jpg $(DATADIR)/globe
 	@echo "Installing S57 data files..."
 	mkdir -p $(DATADIR)/s57data
-	cp data/s57attributes_*.csv $(DATADIR)/s57data
-	cp data/s57objectclasses_*.csv $(DATADIR)/s57data
-	cp data/s57expectedinput_*.csv $(DATADIR)/s57data
+	cp data/s57attributes.csv $(DATADIR)/s57data
+	cp data/s57objectclasses.csv $(DATADIR)/s57data
+	cp data/s57expectedinput.csv $(DATADIR)/s57data
 	cp data/chartsymbols.xml $(DATADIR)/s57data
 	cp data/rastersymbols-dark.png $(DATADIR)/s57data
 	cp data/rastersymbols-day.png $(DATADIR)/s57data
