@@ -8,10 +8,14 @@
 - bug: loading a route when already tracking does not find correct location in the route
 - draw largest scale coverages instead of rectangles in globe mode
 - bug: line flicker in globe mode
-- bug: overlapping areas: offset larger scale dephs & sort by scale when drawing
+- bug: overlapping areas: offset larger scale depths & sort by scale when drawing
 - Route/editor: reverse & edit a route
 - Datetime format to Units: standard, localized
 - display total distance when editing a route
 - RulerSelection enum type -> create enumerations.h to hold all custom enums
 
-- smaller scale map indicator
+
+- GSHHS background map reader
+- fix sanitize errors
+- quick settings - button
+

@@ -99,5 +99,20 @@ PagePL {
       }
     }
   }
+
+  TextSwitchPL {
+    id: outline
+    //% "Outline charts"
+    text: qsTrId("qtnav-outline-charts")
+    //% "Outline available larger scale charts on top of current set of charts."
+    description: qsTrId("qtnav-outline-charts-description")
+    Component.onCompleted: {
+      outline.checked = settings.indicateScales;
+    }
+    onCheckedChanged: {
+      settings.indicateScales = checked;
+    }
+  }
+
 }
 

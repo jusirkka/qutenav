@@ -144,7 +144,7 @@ include(MyAddTranslation)
 # -- Update:
 # lupdate -locations relative -target-language en_US . -ts translations/id_en.ts
 # -- and/or
-# ./s57totr translations/id_en.ts
+# ./s57totr.py translations/id_en.ts
 
 my_add_translation(QUTENAV_QMS translations/id_en.ts
   OPTIONS -idbased
@@ -172,6 +172,7 @@ target_sources(qutenav
     src/camera.cpp
     src/cachereader.cpp
     src/chartcover.cpp
+    src/chartindicator.cpp
     src/chartmanager.cpp
     src/chartmode.cpp
     src/chartpainter.cpp
@@ -211,6 +212,7 @@ target_sources(qutenav
     src/chartrenderer.cpp
     src/configgroup.cpp
     src/conf_detailmode.cpp
+    src/conf_quick.cpp
     src/conf_mainwindow.cpp
     src/conf_marinerparams.cpp
     src/conf_units.cpp

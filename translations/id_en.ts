@@ -525,7 +525,7 @@
       <translation>N/A</translation>
     </message>
     <message id="qutenav-edit-remove-selected">
-      <location filename="../qml/ChartPage.qml" line="+283" />
+      <location filename="../qml/ChartPage.qml" line="+289" />
       <source>Remove selected</source>
       <translation>Remove selected</translation>
     </message>
@@ -640,6 +640,16 @@
       <source>Select the type of charts to display.</source>
       <translation>Select the type of charts to display.</translation>
     </message>
+    <message id="qtnav-outline-charts">
+      <location line="+22" />
+      <source>Outline charts</source>
+      <translation>Outline charts</translation>
+    </message>
+    <message id="qtnav-outline-charts-description">
+      <location line="+2" />
+      <source>Outline available larger scale charts on top of current set of charts.</source>
+      <translation>Outline available larger scale charts on top of current set of charts.</translation>
+    </message>
     <message id="qutenav-dialog-accept">
       <location filename="../qml/platform.qtcontrols/DialogPL.qml" line="+26" />
       <location filename="../qml/platform.silica/DialogPL.qml" line="+29" />
@@ -710,7 +720,7 @@
       <translation>Delete</translation>
     </message>
     <message id="qtnav-txt-10">
-      <location filename="../src/settings.h" line="+486" />
+      <location filename="../src/settings.h" line="+502" />
       <source>Important text</source>
       <translation>Important text</translation>
     </message>

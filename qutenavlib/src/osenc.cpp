@@ -236,12 +236,8 @@ S57ChartOutline Osenc::readOutline(QIODevice *device, const GeoProjection* gp) c
         return true;
       })
     },
-    {SencRecordType::CELL_EXTENT_RECORD, new Handler([&corners] (const Buffer& b) {
+    {SencRecordType::CELL_EXTENT_RECORD, new Handler([] (const Buffer& b) {
         // qCDebug(CENC) << "cell extent record";
-        const OSENC_EXTENT_Record_Payload* p = reinterpret_cast<const OSENC_EXTENT_Record_Payload*>(b.constData());
-        corners << WGS84Point::fromLL(p->extent_sw_lon, p->extent_sw_lat);
-        corners << WGS84Point::fromLL(p->extent_ne_lon, p->extent_ne_lat);
-
         return true;
       })
     },
@@ -319,7 +315,7 @@ S57ChartOutline Osenc::readOutline(QIODevice *device, const GeoProjection* gp) c
 
   }
   qDeleteAll(handlers);
-  if (!pub.isValid() || !mod.isValid() || scale == 0 || corners.isEmpty()) {
+  if (!pub.isValid() || !mod.isValid() || scale == 0) {
     throw ChartFileError(QString("Invalid osenc header"));
   }
 

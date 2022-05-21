@@ -316,36 +316,22 @@ void ChartFileReader::checkCoverage(WGS84Polygon& cov,
   QPointF ll(1.e15, 1.e15);
   QPointF ur(-1.e15, -1.e15);
 
-  if (cs.size() > 1) {
-    ll = gp->fromWGS84(cs[0]);
-    ur = gp->fromWGS84(cs[1]);
-  }
-
-  auto fromwgs84 = [gp, &ll, &ur, cs, scale] (const WGS84Polygon& poly, PPolygon& out) {
+  auto fromwgs84 = [gp, &ll, &ur, scale] (const WGS84Polygon& poly, PPolygon& out) {
     for (const WGS84PointVector& vs: poly) {
       PointVector ps;
-      if (cs.size() < 2) {
-        for (auto v: vs) {
-          const QPointF p = gp->fromWGS84(v);
-          maxbox(ll, ur, p.x(), p.y());
-          ps << p;
-        }
-      } else {
-        for (auto v: vs) {
-          ps << gp->fromWGS84(v);
-        }
+      for (auto v: vs) {
+        const QPointF p = gp->fromWGS84(v);
+        maxbox(ll, ur, p.x(), p.y());
+        ps << p;
       }
-      WGS84Point sw;
-      WGS84Point nw;
-      if (cs.size() < 2) {
-        sw = gp->toWGS84(ll);
-        nw = gp->toWGS84(QPointF(ll.x(), ur.y()));
-      } else {
-        sw = cs[0];
-        nw = WGS84Point::fromLL(cs[0].lng(), cs[1].lat());
-      }
+      const WGS84Point sw = gp->toWGS84(ll);
+      const WGS84Point nw = gp->toWGS84(QPointF(ll.x(), ur.y()));
       // 5 mm coarseness at nominal scale
       auto eps = 0.005 * scale * (ur.y() - ll.y()) / (nw - sw).meters();
+      if (ps.last() != ps.first()) {
+        qCDebug(CENC) << "Closing polygon";
+        ps << ps.first();
+      }
       reduceRDP(ps, eps);
       out.append(ps);
     }
@@ -357,11 +343,9 @@ void ChartFileReader::checkCoverage(WGS84Polygon& cov,
   PPolygon nocovp;
   fromwgs84(nocov, nocovp);
 
-  if (cs.size() < 2) {
-    cs.clear();
-    cs << gp->toWGS84(ll);
-    cs << gp->toWGS84(ur);
-  }
+  cs.clear();
+  cs << gp->toWGS84(ll);
+  cs << gp->toWGS84(ur);
 
   const float A = (ur.y() - ll.y()) * (ur.x() - ll.x());
 
@@ -401,41 +385,39 @@ void ChartFileReader::checkCoverage(WGS84Polygon& cov,
   }
 }
 
+static qreal squaredPointSegmentDistance(const QPointF& pt, const QPointF& seg) {
+  static const qreal z2 = 1.e-16;
+
+  const auto p2 = QPointF::dotProduct(seg, seg);
+  const auto q2 = QPointF::dotProduct(pt, pt);
+
+  // distance to a point
+  if (p2 < z2) return q2;
+
+  const qreal t = QPointF::dotProduct(pt, seg) / p2;
+
+  if (t < 0.) return q2;
+  if (t < 1.) return q2 - p2 * t * t;
+  return q2 + p2 * (1. - 2. * t);
+}
+
 using IndexVector = QVector<int>;
 
 // https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm
 static void rdpReduce(const PointVector& ps, int first, int last, IndexVector& is, qreal eps2) {
-  static const qreal z2 = 1.e-8;
   // Find the point with the maximum distance
   double d2max = 0;
   int index = 0;
 
   const QPointF p = ps[last] - ps[first];
 
-  const auto p2 = QPointF::dotProduct(p, p);
+  for (int i = first + 1; i < last; ++i) {
+    const QPointF q = ps[i] - ps[first];
 
-  if (p2 < z2) {
-    // closed loop
-    for (int i = first + 1; i < last; ++i) {
-      const QPointF q = ps[i] - ps[first];
-      const auto q2 = QPointF::dotProduct(q, q);
-      if (q2 > d2max) {
-        index = i;
-        d2max = q2;
-      }
-    }
-  } else {
-    for (int i = first + 1; i < last; ++i) {
-      const QPointF q = ps[i] - ps[first];
-
-      const auto qp = QPointF::dotProduct(q, p);
-      const auto q2 = QPointF::dotProduct(q, q);
-
-      const auto d2 = q2 - qp * qp / p2;
-      if (d2 > d2max) {
-        index = i;
-        d2max = d2;
-      }
+    const auto d2 = squaredPointSegmentDistance(q, p);
+    if (d2 > d2max) {
+      index = i;
+      d2max = d2;
     }
   }
 

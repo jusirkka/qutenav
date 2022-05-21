@@ -53,6 +53,8 @@ Item {
         positionChangeHandler = noop
       }
     }
+    console.log("p1 pos", c1)
+    console.log("p2 pos", c2)
   }
 
   function selection2(down) {
@@ -68,6 +70,8 @@ Item {
         positionChangeHandler = noop
       }
     }
+    console.log("p1 pos", c1)
+    console.log("p2 pos", c2)
   }
 
   onMeasuringChanged: {

@@ -39,6 +39,7 @@
 #include "dbupdater_interface.h"
 #include "gnuplot.h"
 #include "conf_mainwindow.h"
+#include "conf_quick.h"
 #include "platform.h"
 #include "utils.h"
 
@@ -53,7 +54,8 @@ ChartManager::ChartManager(QObject *parent)
   , m_transactionCounter(0)
   , m_reader(nullptr)
   , m_updater(new UpdaterInterface(this))
-  , m_coverCache(100 * sizeof(ChartCover))
+  , m_coverCache(1000 * sizeof(ChartCover))
+  , m_nextScale(0)
 {
 
   loadPlugins();
@@ -346,6 +348,7 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
   // sort available scales
   m_scale = cam->scale();
   ScaleVector scaleCandidates;
+  ScaleVector smallScales;
   if (!m_scales.isEmpty() && m_scale * maxScaleRatio <= m_scales.first()) {
     scaleCandidates << m_scales.first();
   } else if (m_scale < maxScale) {
@@ -363,7 +366,6 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
       }
     }
     // move small scales to end of candidate list in reversed order
-    ScaleVector smallScales;
     while (index > 0) {
       smallScales.prepend(scaleCandidates.takeFirst());
       index--;
@@ -371,7 +373,7 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
     scaleCandidates.append(smallScales);
   }
 
-  // qCDebug(CMGR) << "target" << m_scale << ", candidates" << scaleCandidates;
+  qCDebug(CMGR) << "target" << m_scale << ", candidates" << scaleCandidates;
 
   const WGS84Point sw0 = cam->geoprojection()->toWGS84(m_viewArea.topLeft()); // inverted y-axis
   const WGS84Point ne0 = cam->geoprojection()->toWGS84(m_viewArea.bottomRight()); // inverted y-axis
@@ -405,6 +407,7 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
       auto ne = WGS84Point::fromLL(r.value(3).toDouble(), r.value(4).toDouble());
       auto c = getCover(id, sw, ne, cam->geoprojection(), scale);
 
+      qCDebug(CMGR) << "Candidate" << id << scale;
       const auto region = c->region(cam->geoprojection()).intersected(m_viewArea);
       if (region.isEmpty()) continue;
 
@@ -415,10 +418,9 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
 
       remainingArea -= delta;
       cov = 1 - remainingArea.area() / totarea;
-      //      qCDebug(CMGR) << "chart" << id << scale
-      //                    << ", covers" << region.area() / totarea * 100
-      //                    << ", subtracts" << delta.area() / totarea * 100
-      //                    << ", remaining" << (1 - cov) * 100;
+      qCDebug(CMGR) << "covers" << region.area() / totarea * 100
+                    << ", subtracts" << delta.area() / totarea * 100
+                    << ", remaining" << (1 - cov) * 100;
     }
     if (cov >= minCoverage) break;
   }
@@ -429,7 +431,8 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
   //  qCDebug(CMGR) << "Number of charts" << regions.size()
   //                << ", covered =" << (cov >= minCoverage);
 
-
+  // Signal indicators of small scale charts
+  handleSmallScales(smallScales, sw0, ne0, cam->geoprojection());
 
   IDVector newCharts;
   for (auto id: regions.keys()) {
@@ -554,6 +557,64 @@ void ChartManager::manageThreads(S57Chart* chart) {
   }
 }
 
+void ChartManager::handleSmallScales(const ScaleVector& scales,
+                                     const WGS84Point& sw0,
+                                     const WGS84Point& ne0,
+                                     const GeoProjection* proj) {
+
+  WGS84Polygon indicators;
+  m_nextScale = 0;
+
+  if (!Conf::Quick::IndicateScales()) {
+    emit chartIndicatorsChanged(indicators);
+    return;
+  }
+
+  qCDebug(CMGR) << sw0.print(WGS84Point::Units::DegMin, 2)
+                << ne0.print(WGS84Point::Units::DegMin, 2);
+
+  for (quint32 scale: scales) {
+
+    // select charts
+    QSqlQuery r = m_db.prepare("select chart_id, swx, swy, nex, ney "
+                               "from m.charts "
+                               "where scale = ? and "
+                               "      swx < ? and swy < ? and "
+                               "      nex > ? and ney > ?");
+    r.bindValue(0, scale);
+    r.bindValue(1, ne0.lng(sw0));
+    r.bindValue(2, ne0.lat());
+    r.bindValue(3, sw0.lng());
+    r.bindValue(4, sw0.lat());
+
+    m_db.exec(r);
+    while (r.next()) {
+      const quint32 id = r.value(0).toUInt();
+
+      const auto sw = WGS84Point::fromLL(r.value(1).toDouble(), r.value(2).toDouble());
+      const auto ne = WGS84Point::fromLL(r.value(3).toDouble(), r.value(4).toDouble());
+
+      auto c = getCover(id, sw, ne, proj, scale);
+
+      const auto region = c->region(proj).intersected(m_viewArea);
+      if (region.isEmpty()) {
+        qCDebug(CMGR) << id << scale << ": region is empty";
+        continue;
+      }
+
+      if (m_nextScale == 0) {
+        m_nextScale = scale;
+      }
+
+      indicators.append(c->coverage());
+      qCDebug(CMGR) << sw.print(WGS84Point::Units::DegMin, 2)
+                    << ne.print(WGS84Point::Units::DegMin, 2)
+                    << "inside" << id << scale;
+    }
+  }
+  emit chartIndicatorsChanged(indicators);
+}
+
 void ChartManager::requestInfo(const WGS84Point &p) {
 
   if (m_charts.empty()) return;
@@ -613,7 +674,7 @@ void ChartManager::manageInfoResponse(const S57::InfoType& info, quint32 tid) {
       }
     }
     if (resp != nullptr) {
-      qCDebug(CMGR) << "ChartManager::manageInfoResponse" << resp->objectId << resp->info;
+      // qCDebug(CMGR) << "ChartManager::manageInfoResponse" << resp->objectId << resp->info;
       emit infoResponse(resp->objectId, resp->info);
     }
     m_info.remove(tid);

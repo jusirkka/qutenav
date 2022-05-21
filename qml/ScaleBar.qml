@@ -30,7 +30,9 @@ Item {
   implicitWidth: base.width
 
   property real scaleWidth: 0
-  property string text: ""
+  property string distanceText: ""
+  property string scaleText: ""
+  property string scaleText2: ""
 
   Rectangle {
     id: base
@@ -40,6 +42,7 @@ Item {
   }
 
   Rectangle {
+    id: lbar
     anchors.bottom: base.top
     anchors.left: base.left
     color: "black"
@@ -48,6 +51,7 @@ Item {
   }
 
   Rectangle {
+    id: rbar
     anchors.bottom: base.top
     anchors.right: base.right
     color: "black"
@@ -58,12 +62,40 @@ Item {
   Text {
     anchors.bottom: base.top
     anchors.bottomMargin: Math.floor(theme.pixelRatio * 4)
-    anchors.horizontalCenter: base.horizontalCenter
+    anchors.rightMargin: theme.paddingSmall
+    anchors.right: rbar.left
     color: "black"
     font.bold: true
     font.family: "sans-serif"
     font.pixelSize: Math.round(theme.pixelRatio * 18)
-    horizontalAlignment: Text.AlignHCenter
-    text: scaleBar.text
+    horizontalAlignment: Text.AlignHRight
+    text: scaleBar.distanceText
+  }
+
+  Text {
+    anchors.bottom: base.top
+    anchors.bottomMargin: Math.floor(theme.pixelRatio * 4)
+    anchors.leftMargin: theme.paddingSmall
+    anchors.left: lbar.right
+    color: "black"
+    font.bold: true
+    font.family: "sans-serif"
+    font.pixelSize: Math.round(theme.pixelRatio * 18)
+    horizontalAlignment: Text.AlignHLeft
+    text: scaleBar.scaleText
+  }
+
+  Text {
+    anchors.top: base.bottom
+    anchors.topMargin: Math.floor(theme.pixelRatio * 4)
+    anchors.leftMargin: theme.paddingSmall
+    anchors.left: lbar.right
+    color: "green"
+    font.bold: true
+    font.family: "sans-serif"
+    font.pixelSize: Math.round(theme.pixelRatio * 18)
+    horizontalAlignment: Text.AlignHLeft
+    text: scaleBar.scaleText2
+    visible: text.length > 0
   }
 }

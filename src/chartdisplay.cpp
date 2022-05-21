@@ -24,6 +24,7 @@
 #include "conf_mainwindow.h"
 #include "conf_marinerparams.h"
 #include "conf_units.h"
+#include "conf_quick.h"
 #include "detailmode.h"
 #include <QQuickWindow>
 #include <QOffscreenSurface>
@@ -56,6 +57,7 @@ ChartDisplay::ChartDisplay()
   , m_flags(0)
   , m_orientation(Qt::PortraitOrientation)
   , m_scaleBarLength(100)
+  , m_scaleBarText {"", "", ""}
   , m_updater(new UpdaterInterface(this))
 {
   setMirrorVertically(true);
@@ -106,6 +108,7 @@ void ChartDisplay::finalizeSG() {
   Conf::MainWindow::self()->save();
   Conf::MarinerParams::self()->save();
   Conf::Units::self()->save();
+  Conf::Quick::self()->save();
 }
 
 void ChartDisplay::initializeSG() {
@@ -169,9 +172,8 @@ void ChartDisplay::initializeSG() {
 
   connect(settings, &Settings::settingsChanged, this, [this] () {
     qCDebug(CDPY) << "settings changed";
-    computeScaleBar();
-    emit scaleBarLengthChanged(m_scaleBarLength);
     emit updateViewport(m_camera, ChartManager::Force);
+    computeScaleBar();
   });
 
   connect(settings, &Settings::lookupUpdateNeeded, this, [this] () {
@@ -290,7 +292,6 @@ void ChartDisplay::orient(Qt::ScreenOrientation orientation) {
 
   emit updateViewport(m_camera, ChartManager::Force);
   computeScaleBar();
-  emit scaleBarLengthChanged(m_scaleBarLength);
 }
 
 
@@ -306,7 +307,6 @@ void ChartDisplay::zoomIn() {
     m_camera->setScale(scale);
     emit updateViewport(m_camera);
     computeScaleBar();
-    emit scaleBarLengthChanged(m_scaleBarLength);
     update();
   }
 }
@@ -321,7 +321,6 @@ void ChartDisplay::zoomOut() {
     m_camera->setScale(scale);
     emit updateViewport(m_camera);
     computeScaleBar();
-    emit scaleBarLengthChanged(m_scaleBarLength);
     update();
   }
 }
@@ -457,7 +456,6 @@ void ChartDisplay::setCamera(Camera *cam) {
   m_camera = cam;
   emit updateViewport(m_camera, ChartManager::Force);
   computeScaleBar();
-  emit scaleBarLengthChanged(m_scaleBarLength);
 }
 
 void ChartDisplay::checkChartSet() const {
@@ -491,11 +489,23 @@ void ChartDisplay::computeScaleBar() {
   if (ds.size() > 1 && ds[ds.size() - 2] >= 5) {
     x += 5 * exp10(ds.size() - 2);
   }
-  m_scaleBarLength = dots_per_mm_x() * conv->toSI(x) / m_camera->scale() * 1000;
-  m_scaleBarText = conv->display(x);
+  const quint32 sc = m_camera->scale();
+  m_scaleBarLength = dots_per_mm_x() * conv->toSI(x) / sc * 1000;
+  m_scaleBarText[0] = conv->display(x);
+  m_scaleBarText[1] = QString("1:%1").arg(static_cast<quint32>(1000 * std::round(sc / 1000.)));
+  m_scaleBarText[2] = "";
+  if (Conf::Quick::IndicateScales() && ChartManager::instance()->nextScale() > 0) {
+    m_scaleBarText[2] = QString("1:%1").arg(ChartManager::instance()->nextScale());
+  }
   // qCDebug(CDPY) << "scalebar:" << m_scaleBarText;
+  emit scaleBarLengthChanged(m_scaleBarLength);
+  emit scaleBarTextChanged();
 }
 
+QString ChartDisplay::scaleBarText(int index) const {
+  if ((index < 0) || (index > 2)) return "";
+  return m_scaleBarText[index];
+}
 
 QString ChartDisplay::displayBearing(const QGeoCoordinate& q1, const QGeoCoordinate& q2, bool swap) const {
   if (!q1.isValid() || !q2.isValid()) return "";

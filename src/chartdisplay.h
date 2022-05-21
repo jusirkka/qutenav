@@ -115,6 +115,7 @@ public:
   Q_INVOKABLE QPointF advance(const QGeoCoordinate& q, qreal distance, qreal heading) const;
   Q_INVOKABLE void updateChartDB(bool fullUpdate);
   Q_INVOKABLE QString displayBearing(const QGeoCoordinate& q1, const QGeoCoordinate& q2, bool swap) const;
+  Q_INVOKABLE QString scaleBarText(int index) const;
 
   Q_PROPERTY(QStringList chartSets
              READ chartSets
@@ -129,9 +130,6 @@ public:
              READ scaleBarLength
              NOTIFY scaleBarLengthChanged)
 
-  Q_PROPERTY(QString scaleBarText
-             READ scaleBarText)
-
   using PointVector = QVector<QPointF>;
   void syncPositions(const WGS84PointVector& positions, PointVector& vertices) const;
   void syncPositions(const KV::EventString& events, PointVector& vertices) const;
@@ -139,7 +137,6 @@ public:
   QStringList chartSets() const;
   QString chartSet() const;
   qreal scaleBarLength() const {return m_scaleBarLength;}
-  QString scaleBarText() const {return m_scaleBarText;}
 
   void setChartSet(const QString& s);
 
@@ -188,6 +185,7 @@ signals:
   void infoQueryFullReady(const QList<QObject*>& info);
   void infoRequest(const WGS84Point& p);
   void chartDBStatus(const QString& msg);
+  void scaleBarTextChanged();
 
 private:
 
@@ -216,7 +214,7 @@ private:
   QSize m_orientedSize;
   Qt::ScreenOrientation m_orientation;
   qreal m_scaleBarLength;
-  QString m_scaleBarText;
+  QStringList m_scaleBarText;
   QPointF m_lastPos;
 
   QObjectList m_info;

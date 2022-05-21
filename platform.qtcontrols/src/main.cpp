@@ -34,6 +34,7 @@
 #include "trackmodel.h"
 #include "router.h"
 #include "routemodel.h"
+#include "chartindicator.h"
 #include "routedatabase.h"
 #include "chartdatabase.h"
 #include "s57imageprovider.h"
@@ -55,6 +56,7 @@ int main(int argc, char *argv[]) {
   qmlRegisterType<Router>("org.qutenav", 1, 0, "Router");
   qmlRegisterType<TrackModel>("org.qutenav", 1, 0, "TrackModel");
   qmlRegisterType<RouteModel>("org.qutenav", 1, 0, "RouteModel");
+  qmlRegisterType<ChartIndicator>("org.qutenav", 1, 0, "ChartIndicator");
 
   QSurfaceFormat format;
   format.setVersion(4, 6);

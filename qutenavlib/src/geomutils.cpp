@@ -126,14 +126,14 @@ void thickerLines(const QVector<QPointF> &points, bool closed, qreal lw,
   const float HW = .5 * lw;
 
   GLuint offset = vertices.size() / 2;
-  const int n = closed ? points.size() - 2 : points.size() - 1;
+  const int n = points.size() - 1;
   for (int i = 0; i < n; i++) {
 
-    const glm::vec2 p0 = GL::Vec2(i == 0 ? (closed ? points[n] : 2 * points[0] - points[1]) :
+    const glm::vec2 p0 = GL::Vec2(i == 0 ? (closed ? points[n - 1] : 2 * points[0] - points[1]) :
         points[i - 1]);
     const glm::vec2 p1 = GL::Vec2(points[i]);
     const glm::vec2 p2 = GL::Vec2(points[i + 1]);
-    const glm::vec2 p3 = GL::Vec2(i == n - 1 ? (closed ? points[0] : points[n - 1] -  2 * points[n]) :
+    const glm::vec2 p3 = GL::Vec2(i == n - 1 ? (closed ? points[1] : points[n - 1] -  2 * points[n]) :
         points[i + 2]);
 
     // determine the direction of each of the 3 segments (previous, current, next)

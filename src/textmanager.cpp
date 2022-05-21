@@ -88,8 +88,12 @@ void TextManager::handleShape(const TextKey& key,
 
   if (ng) emit newGlyphs();
 
-  m_shapeData[m_tickets[key]] = mesh->vertices;
-  delete mesh;
+  { // scope for mutex locker
+    QMutexLocker lock(&m_mutex);
+
+    m_shapeData[m_tickets[key]] = mesh->vertices;
+    delete mesh;
+  }
 
   m_shapeTimer->start();
 }
@@ -115,19 +119,21 @@ int TextManager::ticket(const QString& txt, TXT::Weight weight,
 
   const TextKey key(txt, weight, hjust, vjust, bodySize, offsetX, offsetY);
 
-  if (m_tickets.contains(key)) return m_tickets[key];
+  int index = 0;
+  { // scope for mutex locker
+    QMutexLocker lock(&m_mutex);
 
-  QMutexLocker lock(&m_mutex);
+    if (m_tickets.contains(key)) return m_tickets[key];
 
-  const int ret = m_shapeData.size();
-  // reserve space for shapedata
-  m_tickets[key] = ret;
-  m_shapeData << GL::VertexVector();
-
+    index = m_shapeData.size();
+    // reserve space for shapedata
+    m_tickets[key] = index;
+    m_shapeData << GL::VertexVector();
+  }
   QMetaObject::invokeMethod(m_worker, "shape",
                             Q_ARG(const TextKey&, key));
 
-  return ret;
+  return index;
 }
 
 void TextManager::requestUpdate() {

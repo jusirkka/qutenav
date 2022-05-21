@@ -1277,6 +1277,10 @@ PRegion CM93Reader::createCoverage(const GL::VertexVector &vertices,
       // add prevlast
       ps << getEndPoint(EP::Last, edges[i - 1], vertices);
     }
+    if (ps.last() != ps.first()) {
+      // qCDebug(CENC) << "Closing polygon";
+      ps << ps.first();
+    }
     auto qs = ps;
     if (qs.size() > 5) {
       ChartFileReader::reduceRDP(qs, eps);

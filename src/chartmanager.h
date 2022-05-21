@@ -63,6 +63,7 @@ public:
   const ChartVector& charts() const {return m_charts;}
   const GL::VertexVector& outlines() const {return m_outlines;}
   const ChartReaderVector& readers() const {return m_readers;}
+  quint32 nextScale() const {return m_nextScale;}
 
   GL::ChartProxyQueue& createProxyQueue() {return m_createProxyQueue;}
   GL::ChartProxyQueue& updateProxyQueue() {return m_updateProxyQueue;}
@@ -85,6 +86,7 @@ signals:
   void infoResponse(const QString& objectId, const QString& info);
   void chartSetsUpdated();
   void proxyChanged();
+  void chartIndicatorsChanged(const WGS84Polygon& indicators);
 
 public slots:
 
@@ -100,9 +102,13 @@ private slots:
 private:
 
   using ChartDataStack = QStack<ChartData>;
-  using IDStack = QStack<quint32>;
   using UpdaterVector = QVector<ChartUpdater*>;
   using ThreadVector = QVector<QThread*>;
+  using IDStack = QStack<quint32>;
+  using IDList = QList<quint32>;
+  using IDVector = QVector<quint32>;
+  using IDMap = QMap<quint32, quint32>;
+  using ScaleVector = QVector<quint32>;
 
   void createOutline(const WGS84Point& sw, const WGS84Point& ne);
   void loadPlugins();
@@ -111,11 +117,11 @@ private:
                              const WGS84Point& ne,
                              const GeoProjection* p,
                              quint32 scale);
+  void handleSmallScales(const ScaleVector& scales,
+                         const WGS84Point& sw,
+                         const WGS84Point& ne,
+                         const GeoProjection* proj);
 
-
-  using IDVector = QVector<quint32>;
-  using IDMap = QMap<quint32, quint32>;
-  using ScaleVector = QVector<quint32>;
 
   static constexpr float viewportFactor = 1.65;
   static constexpr float marginFactor = 1.08;
@@ -173,6 +179,7 @@ private:
   CoverCache m_coverCache;
 
   bool m_hadCharts;
+  quint32 m_nextScale;
 
 };
 

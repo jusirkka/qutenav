@@ -52,6 +52,10 @@ bool Region::isEmpty() const {
   return d->region.isEmpty();
 }
 
+bool Region::contains(const QRectF &r) const {
+  return d->region.contains(ToRect(r));
+}
+
 bool Region::intersects(const QRectF& rect) const {
   return d->region.intersects(ToRect(rect));
 }

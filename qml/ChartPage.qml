@@ -81,6 +81,7 @@ ChartPagePL {
     }
     tracker.sync()
     router.sync()
+    ci.sync()
     if (distButton.measuring) {
       ruler.sync()
     }
@@ -199,6 +200,11 @@ ChartPagePL {
       visible: !page.infoMode && !empty && !zoom.zooming
     }
 
+    ChartIndicator {
+      id: ci
+      z: 200
+      visible: !page.infoMode && !zoom.zooming
+    }
   }
 
   Boat {
@@ -315,7 +321,14 @@ ChartPagePL {
     z: 300
     visible: !page.infoMode
     scaleWidth: encdis.scaleBarLength
-    onScaleWidthChanged: scaleBar.text = encdis.scaleBarText
+    Connections {
+      target: encdis
+      onScaleBarTextChanged: function() {
+        scaleBar.distanceText = encdis.scaleBarText(0)
+        scaleBar.scaleText = encdis.scaleBarText(1)
+        scaleBar.scaleText2 = encdis.scaleBarText(2)
+      }
+    }
   }
 
   Bubble {

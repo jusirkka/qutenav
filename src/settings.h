@@ -23,6 +23,7 @@
 #include "conf_marinerparams.h"
 #include "conf_mainwindow.h"
 #include "conf_units.h"
+#include "conf_quick.h"
 #include "logging.h"
 #include <QMap>
 
@@ -445,6 +446,21 @@ public:
       Conf::Units::setBoatSpeed(static_cast<Conf::Units::EnumBoatSpeed::type>(v));
       // Note: order is important
       emit unitsChanged();
+      emit settingsChanged();
+    }
+  }
+
+  Q_PROPERTY(bool indicateScales
+             READ indicateScales
+             WRITE setIndicateScales)
+
+  bool indicateScales() const {
+    return Conf::Quick::IndicateScales();
+  }
+
+  void setIndicateScales(bool v) {
+    if (v != indicateScales()) {
+      Conf::Quick::setIndicateScales(v);
       emit settingsChanged();
     }
   }
