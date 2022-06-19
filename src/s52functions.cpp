@@ -3095,8 +3095,73 @@ S57::PaintDataMap S52::CSSymbolInsert01::execute(const QVector<QVariant>&,
 }
 
 QStringList S52::CSSymbolInsert01::descriptions(const QVector<QVariant>&,
-                                          const S57::Object*) const {
+                                                const S57::Object*) const {
   qCWarning(CS52) << "Not implemented";
   return QStringList();
 }
+
+
+S52::CSGSHHSMapper::CSGSHHSMapper(quint32 index)
+  : Function("GSHHSC01", index)
+  , m_clsdef(S52::FindIndex("CLSDEF"))
+  , m_depvs(S52::FindIndex("DEPVS"))
+  , m_landa(S52::FindIndex("LANDA"))
+  , m_chblk(S52::FindIndex("CHBLK"))
+{}
+
+S57::PaintDataMap S52::CSGSHHSMapper::execute(const QVector<QVariant>&,
+                                              const S57::Object* obj) {
+  if (!obj->attributeValue(m_clsdef).isValid()) {
+    return S57::PaintDataMap();
+  }
+
+  bool ok;
+  const auto prio = obj->attributeValue(m_clsdef).toString().toInt(&ok);
+  if (!ok || (prio < 0) || (prio > 4)) {
+    return S57::PaintDataMap();
+  }
+
+  S57::PaintDataMap ps;
+
+  S57::PaintData* p = new S57::PriorityData(prio);
+  ps.insert(p->type(), p);
+
+  quint32 colorIndex;
+
+  if (prio == 0 || prio == 2 || prio == 4) { // sea, lake, pond
+    colorIndex = m_depvs;
+  } else { // land, isle
+    colorIndex = m_landa;
+  }
+
+  auto geom = dynamic_cast<const S57::Geometry::Area*>(obj->geometry());
+  Q_ASSERT(geom != nullptr);
+
+  if (geom->indexed()) {
+    p = new S57::TriangleElemData(geom->triangleElements(), geom->vertexOffset(),
+                                  S52::GetColor(colorIndex));
+  } else {
+    p = new S57::TriangleArrayData(geom->triangleElements(), geom->vertexOffset(),
+                                   S52::GetColor(colorIndex));
+  }
+  ps.insert(p->type(), p);
+
+  if (prio == 0) return ps;
+
+  // land, lake, isle, pond: draw black/solid/lw=1 border
+  if (!geom->lineElements().isEmpty()) {
+    p = new S57::LineElemData(geom->lineElements(), 0, S52::GetColor(m_chblk),
+                              S52::LineWidthMM(1), as_numeric(S52::LineType::Solid));
+    ps.insert(p->type(), p);
+  }
+
+  return ps;
+}
+
+QStringList S52::CSGSHHSMapper::descriptions(const QVector<QVariant>&,
+                                             const S57::Object*) const {
+  qCWarning(CS52) << "Not implemented";
+  return QStringList();
+}
+
 

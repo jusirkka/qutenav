@@ -320,6 +320,7 @@ add_subdirectory(osencreader)
 add_subdirectory(oesencreader)
 add_subdirectory(cm93reader)
 add_subdirectory(s57reader)
+add_subdirectory(gshhsreader)
 add_subdirectory(platform.${PLATFORM})
 add_subdirectory(geos)
 add_subdirectory(qutenavlib)
@@ -334,6 +335,7 @@ target_link_libraries(qutenav
     Oesencreader
     Cm93reader
     S57reader
+    GSHHSreader
     Geos
     QuteNavLib
     GeographicLib

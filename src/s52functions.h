@@ -555,6 +555,25 @@ private:
 
 };
 
+// Nonstandard GSSHS chart mapper
+class CSGSHHSMapper: public Function {
+public:
+
+  CSGSHHSMapper(quint32 index);
+
+  S57::PaintDataMap execute(const QVector<QVariant>&, const S57::Object* obj) override;
+  QStringList descriptions(const QVector<QVariant>& vals, const S57::Object* obj) const override;
+
+  virtual ~CSGSHHSMapper() = default;
+
+private:
+
+  const quint32 m_clsdef;
+  const quint32 m_depvs;
+  const quint32 m_landa;
+  const quint32 m_chblk;
+
+};
 
 class Functions {
 
@@ -591,6 +610,7 @@ public:
     FUN(CSTopmarks01);
     FUN(CSWrecks02);
     FUN(CSSymbolInsert01);
+    FUN(CSGSHHSMapper);
   }
 
 #undef FUN

@@ -61,6 +61,14 @@ ChartManager::ChartManager(QObject *parent)
   loadPlugins();
   m_readers.append(new CacheReader);
 
+  // append background chart generator
+  if (m_factories.contains("gshhs")) {
+    auto reader = m_factories["gshhs"]->loadReader(QStringList {"gshhg"});
+    if (reader != nullptr) {
+      m_readers.append(reader);
+    }
+  }
+
   // create readers & chartsets
   updateChartSets(false);
 
@@ -425,19 +433,22 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
     if (cov >= minCoverage) break;
   }
 
-  // chartmanager::tognuplot(regions, m_viewArea, "regions");
-  // chartmanager::tognuplot(covers, m_viewArea, "covers");
-
-  //  qCDebug(CMGR) << "Number of charts" << regions.size()
-  //                << ", covered =" << (cov >= minCoverage);
+  if (cov < minCoverage && !regions.isEmpty()) {
+    createBackground(regions, cam->geoprojection(), remainingArea);
+  }
 
   // Signal indicators of small scale charts
   handleSmallScales(smallScales, sw0, ne0, cam->geoprojection());
 
   IDVector newCharts;
+  IDVector bgCharts;
   for (auto id: regions.keys()) {
     if (!m_chartIds.contains(id)) {
-      newCharts.append(id);
+      if (ChartFileReader::isBGIndex(id)) {
+        bgCharts.append(id);
+      } else {
+        newCharts.append(id);
+      }
     } else {
       m_chartIds.remove(id);
     }
@@ -484,6 +495,11 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
       m_pendingStack.push(ChartData(id, path, m_scale,
                                     regions[id].toWGS84(cam->geoprojection())));
     }
+  }
+  // create pending bg chart creation data
+  for (const auto id: bgCharts) {
+    m_pendingStack.push(ChartData(id, QString("gshhs://production/%1").arg(id), m_scale,
+                                  regions[id].toWGS84(cam->geoprojection())));
   }
 
   while (!m_pendingStack.isEmpty() && !m_idleStack.isEmpty()) {
@@ -613,6 +629,49 @@ void ChartManager::handleSmallScales(const ScaleVector& scales,
     }
   }
   emit chartIndicatorsChanged(indicators);
+}
+
+void ChartManager::createBackground(KV::RegionMap& regions,
+                                    const GeoProjection* gp,
+                                    const KV::Region& c) const {
+  const auto r = c.boundingRect();
+  const auto sw = gp->toWGS84(r.topLeft());
+  const auto ne = gp->toWGS84(r.bottomRight());
+
+  const auto levels = ChartFileReader::bgLevels();
+
+  quint32 level = 0;
+  for (const auto lvl: levels) {
+    level = lvl;
+    const auto nbg = ChartFileReader::numBGIndices(sw, ne, lvl);
+    if (nbg < bgChartLimit) break;
+  }
+
+  const auto bgIndices = ChartFileReader::bgIndices(sw, ne, level);
+
+  KV::Region remainingArea = c;
+
+  const auto totarea = remainingArea.area();
+  qreal cov = 0.;
+
+  const qreal d = .1 * level;
+  for (auto it = bgIndices.cbegin(); it != bgIndices.cend(); ++it) {
+    const QRectF box(gp->fromWGS84(WGS84Point::fromLL(it.value().lng() - d, it.value().lat() - d)),
+                     gp->fromWGS84(WGS84Point::fromLL(it.value().lng() + d, it.value().lat() + d)));
+
+    auto delta = remainingArea.intersected(box);
+    if (delta.area() / totarea < 1.e-3) continue;
+
+    regions[it.key()] = delta;
+
+    remainingArea -= delta;
+    cov = 1 - remainingArea.area() / totarea;
+    qCDebug(CMGR) << "covers" << box.width() * box.height() / totarea * 100
+                  << ", subtracts" << delta.area() / totarea * 100
+                  << ", remaining" << (1 - cov) * 100;
+
+    if (cov >= minCoverage) break;
+  }
 }
 
 void ChartManager::requestInfo(const WGS84Point &p) {

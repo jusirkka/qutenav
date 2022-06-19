@@ -44,6 +44,7 @@ Q_IMPORT_PLUGIN(CM93ReaderFactory)
 Q_IMPORT_PLUGIN(S57ReaderFactory)
 Q_IMPORT_PLUGIN(OsencReaderFactory)
 Q_IMPORT_PLUGIN(OesencReaderFactory)
+Q_IMPORT_PLUGIN(GSHHSReaderFactory)
 
 int main(int argc, char *argv[]) {
 

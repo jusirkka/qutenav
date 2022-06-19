@@ -33,6 +33,71 @@ ChartFileReader* ChartFileReaderFactory::loadReader(const QStringList& paths) co
   }
 }
 
+
+bool ChartFileReader::isBGIndex(quint32 index) {
+  return (index & Index_Mask) != 0;
+}
+
+
+quint32 ChartFileReader::numBGIndices(const WGS84Point& sw, const WGS84Point& ne, quint32 lvl) {
+  auto ix1 = static_cast<qint32>(std::floor((10. * sw.lng() + x0) / 2 / lvl));
+  ix1 = std::min(static_cast<qint32>(x0 / lvl - 1), std::max(0, ix1));
+
+  auto iy1 = static_cast<qint32>(std::floor((10 * sw.lat() + y0) / 2 / lvl));
+  iy1 = std::min(static_cast<qint32>(y0 / lvl - 1), std::max(0, iy1));
+
+  auto ix2 = static_cast<qint32>(std::floor((10. * ne.lng() + x0) / 2 / lvl));
+  ix2 = std::min(static_cast<qint32>(x0 / lvl - 1), std::max(0, ix2));
+
+  auto iy2 = static_cast<qint32>(std::floor((10 * ne.lat() + y0) / 2 / lvl));
+  iy2 = std::min(static_cast<qint32>(y0 / lvl - 1), std::max(0, iy2));
+
+  Q_ASSERT(ix2 >= ix1 && iy2 >= iy1);
+
+  return (ix2 - ix1 + 1) * (iy2 - iy1 + 1);
+
+}
+
+ChartFileReader::LevelVector ChartFileReader::bgLevels() {
+  LevelVector levels {3, 10, 30};
+  return levels;
+}
+
+ChartFileReader::BGIndexMap ChartFileReader::bgIndices(const WGS84Point& sw, const WGS84Point& ne, quint32 D) {
+  auto ix1 = static_cast<qint32>(std::floor((10. * sw.lng() + x0) / 2 / D));
+  ix1 = std::min(static_cast<qint32>(x0 / D - 1), std::max(0, ix1));
+
+  auto iy1 = static_cast<qint32>(std::floor((10 * sw.lat() + y0) / 2 / D));
+  iy1 = std::min(static_cast<qint32>(y0 / D - 1), std::max(0, iy1));
+
+  auto ix2 = static_cast<qint32>(std::floor((10. * ne.lng() + x0) / 2 / D));
+  ix2 = std::min(static_cast<qint32>(x0 / D - 1), std::max(0, ix2));
+
+  auto iy2 = static_cast<qint32>(std::floor((10 * ne.lat() + y0) / 2 / D));
+  iy2 = std::min(static_cast<qint32>(y0 / D - 1), std::max(0, iy2));
+
+
+  BGIndexMap indices;
+
+  for (qint32 ix = ix1; ix <= ix2; ++ix) {
+    for (qint32 iy = iy1; iy <= iy2; ++iy) {
+
+      quint32 bits = iy * x0 / D + ix;
+      bits <<= 2;
+
+      const quint32 levelBits = D == 3 ? 1 : D == 10 ? 2 : 3;
+
+      const qint32 xc = D * (2 * ix + 1) - x0;
+      const qint32 yc = D * (2 * iy + 1) - y0;
+
+      indices[Index_Mask | bits | levelBits] = WGS84Point::fromLL(.1 * xc, .1 * yc);
+    }
+  }
+
+  return indices;
+}
+
+
 static void maxbox(QPointF& ll, QPointF& ur, qreal x, qreal y) {
   ll.setX(qMin(ll.x(), x));
   ll.setY(qMin(ll.y(), y));

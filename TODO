@@ -4,7 +4,10 @@
 - better globe mouse controls
 - ensure non-empty bbox in case of horizontal/vertical lines
 - VAO sanity
-- display less details in larger chart scales
+- firejail compatibility
+- quick settings
+- speedup dbupdater by adding threads
+- display less details in smaller chart scales
 - bug: loading a route when already tracking does not find correct location in the route
 - draw largest scale coverages instead of rectangles in globe mode
 - bug: line flicker in globe mode
@@ -13,9 +16,4 @@
 - Datetime format to Units: standard, localized
 - display total distance when editing a route
 - RulerSelection enum type -> create enumerations.h to hold all custom enums
-
-
-- GSHHS background map reader
-- fix sanitize errors
-- quick settings - button
 

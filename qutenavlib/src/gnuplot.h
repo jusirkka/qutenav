@@ -192,3 +192,48 @@ inline void tognuplot(const QVector<QRectF>& boxes, const KV::Region& cover) {
 }
 
 } // namespace paintdata
+
+namespace shape {
+
+using PointVector = QVector<QPointF>;
+using PolygonVector = QVector<PointVector>;
+
+inline void tognuplot(const PolygonVector& pps, quint32 index, bool onefile) {
+
+  QString gpath;
+  if (onefile) {
+    gpath = QString("shape.gnuplot");
+  } else {
+    gpath = QString("shape_rec_%1.gnuplot").arg(index);
+  }
+
+  QFile file(gpath);
+  if (onefile) {
+    file.open(QFile::ReadWrite);
+  } else {
+    file.open(QFile::WriteOnly);
+  }
+
+  QTextStream stream(&file);
+  if (onefile) {
+    stream.seek(file.size());
+  }
+
+  stream << "\n";
+
+  quint8 color = 0;
+  for (const PointVector& ps: pps) {
+    for (const QPointF& p: ps) {
+      stream << qSetRealNumberPrecision(20) << p.x() << " " << p.y() << " " << color << "\n";
+    }
+    stream << qSetRealNumberPrecision(20) << ps.first().x() << " " << ps.first().y() << " " << color << "\n";
+    stream << "\n";
+    color += 1;
+  }
+
+  stream << "\n";
+
+}
+
+} // namespace shape
+

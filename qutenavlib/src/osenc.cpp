@@ -38,6 +38,13 @@ struct Handler {
 
 using VVec = QVector<glm::vec2>;
 
+template <typename T> T read_and_advance(const char **ptr) {
+  T v;
+  memcpy(&v, *ptr, sizeof(T));
+  *ptr += sizeof(T);
+  return v;
+}
+
 
 GeoProjection* Osenc::configuredProjection(QIODevice *device, const QString &clsName) const {
 
@@ -381,9 +388,9 @@ public:
 
 }
 
-static void appendTriangles(GL::VertexVector& ps, const glm::vec2* vs, quint32 nv);
-static void appendTriangleStrip(GL::VertexVector& ps, const glm::vec2* vs, quint32 nv);
-static void appendTriangleFan(GL::VertexVector& ps, const glm::vec2* vs, quint32 nv);
+static void appendTriangles(GL::VertexVector& ps, const VVec& verts);
+static void appendTriangleStrip(GL::VertexVector& ps, const VVec& verts);
+static void appendTriangleFan(GL::VertexVector& ps, const VVec& verts);
 
 void Osenc::readChart(GL::VertexVector& vertices,
                             GL::IndexVector& indices,
@@ -500,7 +507,7 @@ void Osenc::readChart(GL::VertexVector& vertices,
         // qCDebug(CENC) << "feature geometry/area record";
         auto p = reinterpret_cast<const OSENC_AreaGeometry_Record_Payload*>(b.constData());
 
-        const uint8_t* ptr = &p->edge_data;
+        const char* ptr = &p->edge_data;
 
         // skip contour counts
         ptr += p->contour_count * sizeof(int);
@@ -511,8 +518,7 @@ void Osenc::readChart(GL::VertexVector& vertices,
           for (uint i = 0; i < p->triprim_count; i++) {
             ts[i].mode = static_cast<GLenum>(*ptr);
             ptr++;
-            auto nvert = *reinterpret_cast<const uint32_t*>(ptr);
-            ptr += sizeof(uint32_t);
+            const auto nvert = read_and_advance<uint32_t>(&ptr);
             ptr += 4 * sizeof(double); // skip bbox
             ts[i].vertices.resize(nvert * 2);
             memcpy(ts[i].vertices.data(), ptr, nvert * 2 * sizeof(float));
@@ -526,19 +532,20 @@ void Osenc::readChart(GL::VertexVector& vertices,
             }
             GLenum mode = static_cast<GLenum>(*ptr);
             ptr++;
-            auto nvert = *reinterpret_cast<const uint32_t*>(ptr);
-            ptr += sizeof(uint32_t);
+            const auto nvert = read_and_advance<uint32_t>(&ptr);
             ptr += 4 * sizeof(double); // skip bbox
+            VVec verts(nvert);
+            memcpy(verts.data(), ptr, nvert * sizeof(glm::vec2));
+            ptr += nvert * sizeof(glm::vec2);
             if (mode == GL_TRIANGLES) {
-              appendTriangles(ts.last().vertices, reinterpret_cast<const glm::vec2*>(ptr), nvert);
+              appendTriangles(ts.last().vertices, verts);
             } else if (mode == GL_TRIANGLE_STRIP) {
-              appendTriangleStrip(ts.last().vertices, reinterpret_cast<const glm::vec2*>(ptr), nvert);
+              appendTriangleStrip(ts.last().vertices, verts);
             } else if (mode == GL_TRIANGLE_FAN) {
-              appendTriangleFan(ts.last().vertices, reinterpret_cast<const glm::vec2*>(ptr), nvert);
+              appendTriangleFan(ts.last().vertices, verts);
             } else {
               Q_ASSERT_X(false, "feature geometry/area record", "Unknown primitive");
             }
-            ptr += nvert * 2 * sizeof(float);
           }
 
         }
@@ -586,15 +593,11 @@ void Osenc::readChart(GL::VertexVector& vertices,
         const char* ptr = b.constData();
 
         // edge count
-        auto cnt = *reinterpret_cast<const quint32*>(ptr);
-        ptr += sizeof(quint32);
+        const auto cnt = read_and_advance<quint32>(&ptr);
 
         for (uint i = 0; i < cnt; i++) {
-          auto index = *reinterpret_cast<const quint32*>(ptr);
-          ptr += sizeof(quint32);
-
-          auto pcnt = *reinterpret_cast<const quint32*>(ptr);
-          ptr += sizeof(quint32);
+          const auto index = read_and_advance<quint32>(&ptr);
+          const auto pcnt = read_and_advance<quint32>(&ptr);
 
           QVector<float> points(2 * pcnt);
           memcpy(points.data(), ptr, 2 * pcnt * sizeof(float));
@@ -615,18 +618,13 @@ void Osenc::readChart(GL::VertexVector& vertices,
         const char* ptr = b.constData();
 
         // node count
-        auto cnt = *reinterpret_cast<const quint32*>(ptr);
-
-        ptr += sizeof(quint32);
+        const auto cnt = read_and_advance<quint32>(&ptr);
 
         for (uint i = 0; i < cnt; i++) {
-          auto index = *reinterpret_cast<const quint32*>(ptr);
-          ptr += sizeof(quint32);
+          const auto index = read_and_advance<quint32>(&ptr);
 
-          auto x = *reinterpret_cast<const float*>(ptr);
-          ptr += sizeof(float);
-          auto y = *reinterpret_cast<const float*>(ptr);
-          ptr += sizeof(float);
+          const auto x = read_and_advance<float>(&ptr);
+          const auto y = read_and_advance<float>(&ptr);
 
           connected[index] = vertices.size() / 2;
           vertices.append(x);
@@ -854,15 +852,16 @@ QPointF Osenc::computeAreaCenterAndBboxes(S57::ElementDataVector &elems,
 }
 
 
-static void appendTriangles(GL::VertexVector& ps, const glm::vec2* vs, quint32 nv) {
-  for (uint i = 0; i < nv; ++i) {
-    ps << vs[i].x << vs[i].y;
+static void appendTriangles(GL::VertexVector& ps, const VVec& vs) {
+  for (const auto& v: vs) {
+    ps << v.x << v.y;
   }
 }
 
-static void appendTriangleStrip(GL::VertexVector& ps, const glm::vec2* vs, quint32 nv) {
+static void appendTriangleStrip(GL::VertexVector& ps, const VVec& vs) {
   bool reverseWinding = false;
-  for (uint i = 0; i < nv - 2; ++i) {
+  const auto nv = vs.size();
+  for (int i = 0; i < nv - 2; ++i) {
     if (reverseWinding) {
       ps << vs[i].x << vs[i].y << vs[i + 1].x << vs[i + 1].y << vs[i + 2].x << vs[i + 2].y;
     } else {
@@ -872,8 +871,9 @@ static void appendTriangleStrip(GL::VertexVector& ps, const glm::vec2* vs, quint
   }
 }
 
-static void appendTriangleFan(GL::VertexVector& ps, const glm::vec2* vs, quint32 nv) {
-  for (uint i = 0; i < nv - 2; ++i) {
+static void appendTriangleFan(GL::VertexVector& ps, const VVec& vs) {
+  const auto nv = vs.size();
+  for (int i = 0; i < nv - 2; ++i) {
     ps << vs[0].x << vs[0].y << vs[i + 1].x << vs[i + 1].y << vs[i + 2].x << vs[i + 2].y;
   }
 }

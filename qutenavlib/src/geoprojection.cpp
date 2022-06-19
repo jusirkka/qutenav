@@ -45,12 +45,10 @@ void SimpleMercator::setReference(const WGS84Point &w) {
 }
 
 QPointF SimpleMercator::fromWGS84(const WGS84Point &p) const {
-  const Angle dlng = Angle::fromDegrees(p.lng() - m_ref.lng());
-
   const double s = sin(p.radiansLat());
   const double y3 = .5 * log((1 + s) / (1 - s)) * z0;
 
-  return QPointF(dlng.radians * z0, y3 - m_y30);
+  return QPointF((p.radiansLng() - m_ref.radiansLng()) * z0, y3 - m_y30);
 }
 
 WGS84Point SimpleMercator::toWGS84(const QPointF &p) const {
@@ -79,13 +77,11 @@ void CM93Mercator::setReference(const QPointF& p) {
   m_y30 = .5 * log((1 + s) / (1 - s)) * zC;
 }
 
-QPointF CM93Mercator::fromWGS84(const WGS84Point &p) const {
-  const Angle dlng = Angle::fromDegrees(p.lng() - m_ref.lng());
-
+QPointF CM93Mercator::fromWGS84(const WGS84Point& p) const {
   const double s = sin(p.radiansLat());
   const double y3 = .5 * log((1 + s) / (1 - s)) * zC;
 
-  return QPointF(dlng.radians * zC / m_scaling.width(),
+  return QPointF((p.radiansLng() - m_ref.radiansLng()) * zC / m_scaling.width(),
                  (y3 - m_y30) / m_scaling.height());
 }
 

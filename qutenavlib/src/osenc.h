@@ -182,7 +182,7 @@ struct OSENC_MultipointGeometry_Record_Payload {
   double extent_w_lon;
   double extent_e_lon;
   uint32_t point_count;
-  uint8_t point_data;
+  char point_data;
 };
 
 struct OSENC_LineGeometry_Record_Payload {
@@ -191,7 +191,7 @@ struct OSENC_LineGeometry_Record_Payload {
   double extent_w_lon;
   double extent_e_lon;
   uint32_t edgeVector_count;
-  uint8_t edge_data;
+  char edge_data;
 };
 
 struct OSENC_AreaGeometry_Record_Payload {
@@ -202,7 +202,7 @@ struct OSENC_AreaGeometry_Record_Payload {
   uint32_t contour_count;
   uint32_t triprim_count;
   uint32_t edgeVector_count;
-  uint8_t edge_data;
+  char edge_data;
 };
 
 #pragma pack(pop)

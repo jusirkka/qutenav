@@ -97,7 +97,7 @@ S57Chart::S57Chart(quint32 id, const QString& path)
     try {
       m_nativeProj = candidate->configuredProjection(path);
     } catch (ChartFileError& e) {
-      qCDebug(CS57) << e.msg();
+      qCDebug(CS57) << candidate->name() << e.msg();
       continue;
     }
     reader = candidate;

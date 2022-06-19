@@ -122,12 +122,15 @@ private:
                          const WGS84Point& ne,
                          const GeoProjection* proj);
 
+  void createBackground(KV::RegionMap& regions, const GeoProjection* gp, const KV::Region& remaining) const;
 
-  static constexpr float viewportFactor = 1.65;
-  static constexpr float marginFactor = 1.08;
-  static constexpr float maxScaleRatio = 32;
-  static constexpr float maxScale = 25000000;
-  static constexpr float minCoverage = .975;
+
+  static const inline float viewportFactor = 1.65;
+  static const inline float marginFactor = 1.08;
+  static const inline float maxScaleRatio = 32;
+  static const inline float maxScale = 25000000;
+  static const inline float minCoverage = .975;
+  static const inline quint32 bgChartLimit = 15;
 
   ChartManager(QObject *parent = nullptr);
   ChartManager(const ChartManager&) = delete;

@@ -44,6 +44,14 @@ public:
 
   virtual ~ChartFileReader() = default;
 
+  using LevelVector = QVector<quint32>;
+  using BGIndexMap = QMap<quint32, WGS84Point>;
+
+  static bool isBGIndex(quint32 index);
+  static quint32 numBGIndices(const WGS84Point& sw, const WGS84Point& ne, quint32 lvl);
+  static LevelVector bgLevels();
+  static BGIndexMap bgIndices(const WGS84Point& sw, const WGS84Point& ne, quint32 lvl);
+
   static QRectF computeBBox(S57::ElementDataVector &elems,
                             const GL::VertexVector& vertices,
                             const GL::IndexVector& indices);
@@ -67,6 +75,14 @@ public:
     Edge() = default;
     Edge(const Edge& other) = default;
     Edge& operator =(const Edge& other) = default;
+    Edge(quint32 b, quint32 e, quint32 f, quint32 c, bool r = false, bool i = false)
+      : begin(b)
+      , end(e)
+      , first(f)
+      , count(c)
+      , reversed(r)
+      , inner(i) {}
+
     quint32 begin;
     quint32 end;
     quint32 first;
@@ -96,12 +112,17 @@ public:
 
 protected:
 
+
   ChartFileReader(const QString& name)
     : m_name(name) {}
 
 
 
   QString m_name;
+
+  static const inline quint32 x0 = 1800;
+  static const inline quint32 y0 = 900;
+  static const inline quint32 Index_Mask = 0x80000000;
 
 };
 
