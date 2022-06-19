@@ -1736,8 +1736,33 @@
       <source>Stacked on/stacked under</source>
       <translation>Stacked on/stacked under</translation>
     </message>
+    <message id="qutenav-$AREAS">
+      <location line="+1" />
+      <source>Cartographic area</source>
+      <translation>Cartographic area</translation>
+    </message>
+    <message id="qutenav-$LINES">
+      <location line="+1" />
+      <source>Cartographic line</source>
+      <translation>Cartographic line</translation>
+    </message>
+    <message id="qutenav-$CSYMB">
+      <location line="+1" />
+      <source>Cartographic symbol</source>
+      <translation>Cartographic symbol</translation>
+    </message>
+    <message id="qutenav-$COMPS">
+      <location line="+1" />
+      <source>Compass</source>
+      <translation>Compass</translation>
+    </message>
+    <message id="qutenav-$TEXTS">
+      <location line="+1" />
+      <source>Text</source>
+      <translation>Text</translation>
+    </message>
     <message id="qutenav-_texto">
-      <location line="+7" />
+      <location line="+2" />
       <source>Text</source>
       <translation>Text</translation>
     </message>

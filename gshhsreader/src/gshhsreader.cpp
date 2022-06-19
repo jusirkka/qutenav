@@ -25,6 +25,7 @@
 #include <QStandardPaths>
 #include "shapereader.h"
 #include "s52names.h"
+#include <QDate>
 
 WGS84Point GSHHSReader::index2Coord(quint32 index) {
   const quint32 D = index2Level(index);

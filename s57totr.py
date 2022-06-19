@@ -12,7 +12,7 @@ def is_default(fn):
 def parseObjectClasses(default_tr):
   ofn = './data/s57objectclasses.csv'
 
-  r = re.compile(r'\d+,"([^"]+)",(\w{6}),.*')
+  r = re.compile(r'\d+,"([^"]+)",(.{6}),.*')
 
   f = open(ofn)
   lc = 0
@@ -22,6 +22,7 @@ def parseObjectClasses(default_tr):
     lc += 1
     m = r.match(line)
     if not m:
+      # print('No match, skipping "{}"'.format(line))
       continue
 
     item = et.Element('message')
@@ -63,6 +64,7 @@ def parseAttributes(default_tr):
     lc += 1
     m = r.match(line)
     if not m:
+      # print('No match, skipping "{}"'.format(line))
       continue
     attrs[m.group(1)] = {'id': 'qutenav-{}'.format(m.group(3)),
                          'line': lc,
@@ -78,6 +80,7 @@ def parseAttributes(default_tr):
     lc += 1
     m = r.match(line)
     if not m:
+      # print('No match, skipping "{}"'.format(line))
       continue
     item = {'id': m.group(2), 'line': lc, 'tr': m.group(3)}
     attrs[m.group(1)]['enums'].append(item)

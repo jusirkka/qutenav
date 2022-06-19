@@ -92,6 +92,7 @@ private:
       : type(t)
       , s(u)
       , index(i) {}
+    XP() = default;
   };
 
   using XPVector = QVector<XP>;
