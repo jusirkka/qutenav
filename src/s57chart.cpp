@@ -60,10 +60,11 @@ public:
 
 }
 
-S57Chart::S57Chart(quint32 id, const QString& path)
+S57Chart::S57Chart(quint32 id, int prio, const QString& path)
   : QObject()
   , m_paintData(S52::Lookup::PriorityCount)
   , m_id(id)
+  , m_priority(prio)
   , m_path(path)
   , m_infoSkipList {S52::FindCIndex("MAGVAR"),
                     S52::FindCIndex("ADMARE"),
@@ -583,7 +584,7 @@ void S57Chart::drawAreas(const Camera* cam, int prio, bool blend) {
   m_proxy->m_staticIndexBuffer.bind();
 
   prog->setGlobals(cam, m_modelMatrix);
-  prog->setDepth(prio);
+  prog->setDepth(m_priority, prio);
 
   auto f = QOpenGLContext::currentContext()->extraFunctions();
 
@@ -629,7 +630,7 @@ void S57Chart::drawLineArrays(const Camera* cam, int prio, bool blend) {
   prog->initializePaint();
 
   prog->setGlobals(cam, m_modelMatrix);
-  prog->setDepth(prio);
+  prog->setDepth(m_priority, prio);
 
   auto f = QOpenGLContext::currentContext()->extraFunctions();
   f->glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_proxy->m_dynamicCoordBuffer.bufferId());
@@ -657,7 +658,7 @@ void S57Chart::drawSegmentArrays(const Camera* cam, int prio) {
   prog->initializePaint();
 
   prog->setGlobals(cam, m_modelMatrix);
-  prog->setDepth(prio);
+  prog->setDepth(m_priority, prio);
 
   auto f = QOpenGLContext::currentContext()->extraFunctions();
 
@@ -689,7 +690,7 @@ void S57Chart::drawLineElems(const Camera* cam, int prio, bool blend) {
   prog->initializePaint();
 
   prog->setGlobals(cam, m_modelMatrix);
-  prog->setDepth(prio);
+  prog->setDepth(m_priority, prio);
 
   auto f = QOpenGLContext::currentContext()->extraFunctions();
 
@@ -721,7 +722,7 @@ void S57Chart::drawText(const Camera* cam, int prio) {
   TextManager::instance()->bind();
 
   prog->setGlobals(cam, m_modelMatrix);
-  prog->setDepth(prio);
+  prog->setDepth(m_priority, prio);
 
   auto f = QOpenGLContext::currentContext()->extraFunctions();
 
@@ -749,7 +750,7 @@ void S57Chart::drawRasterSymbols(const Camera* cam, int prio) {
   RasterSymbolManager::instance()->bind();
 
   prog->setGlobals(cam, m_modelMatrix);
-  prog->setDepth(prio);
+  prog->setDepth(m_priority, prio);
 
   auto f = QOpenGLContext::currentContext()->extraFunctions();
 
@@ -790,7 +791,7 @@ void S57Chart::drawVectorSymbols(const Camera* cam, int prio, bool blend) {
   VectorSymbolManager::instance()->bind();
 
   prog->setGlobals(cam, m_modelMatrix);
-  prog->setDepth(prio);
+  prog->setDepth(m_priority, prio);
 
   auto f = QOpenGLContext::currentContext()->extraFunctions();
 
@@ -848,7 +849,7 @@ void S57Chart::drawRasterPatterns(const Camera *cam) {
       m_proxy->m_staticIndexBuffer.bind();
       GL::Shader* prog = GL::AreaShader::instance();
       prog->initializePaint();
-      prog->setDepth(prio);
+      prog->setDepth(m_priority, prio);
       prog->setGlobals(cam, m_modelMatrix);
 
       f->glStencilFunc(GL_ALWAYS, 1, 0xff);
@@ -879,7 +880,7 @@ void S57Chart::drawRasterPatterns(const Camera *cam) {
       RasterSymbolManager::instance()->bind();
       prog = GL::RasterSymbolShader::instance();
       prog->initializePaint();
-      prog->setDepth(prio);
+      prog->setDepth(m_priority, prio);
       prog->setGlobals(cam, m_modelMatrix);
 
       d->setUniforms();
@@ -923,7 +924,7 @@ void S57Chart::drawVectorPatterns(const Camera *cam) {
       m_proxy->m_staticIndexBuffer.bind();
       GL::Shader* prog = GL::AreaShader::instance();
       prog->initializePaint();
-      prog->setDepth(prio);
+      prog->setDepth(m_priority, prio);
       prog->setGlobals(cam, m_modelMatrix);
 
       f->glStencilFunc(GL_ALWAYS, 1, 0xff);
@@ -954,7 +955,7 @@ void S57Chart::drawVectorPatterns(const Camera *cam) {
       VectorSymbolManager::instance()->bind();
       prog = GL::VectorSymbolShader::instance();
       prog->initializePaint();
-      prog->setDepth(prio);
+      prog->setDepth(m_priority, prio);
       prog->setGlobals(cam, m_modelMatrix);
 
       d->setUniforms();

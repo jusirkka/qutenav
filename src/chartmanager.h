@@ -107,7 +107,7 @@ private:
   using IDStack = QStack<quint32>;
   using IDList = QList<quint32>;
   using IDVector = QVector<quint32>;
-  using IDMap = QMap<quint32, quint32>;
+  using IDMap = QMap<quint32, int>;
   using ScaleVector = QVector<quint32>;
 
   void createOutline(const WGS84Point& sw, const WGS84Point& ne);

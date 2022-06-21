@@ -46,10 +46,12 @@ Updater::~Updater() {
 }
 
 void Updater::fullSync(const QStringList& paths) {
+  qDebug() << paths;
   m_clearCache = false;
   ChartInfoMap current;
   manageCharts(paths, &current);
   updateCharts(current);
+  updateScalePriorities();
   emit status("Ready:FullSync");
   qDebug() << "emit ready, clearCache =" << m_clearCache;
   emit ready(m_clearCache);
@@ -58,6 +60,7 @@ void Updater::fullSync(const QStringList& paths) {
 void Updater::sync(const QStringList& paths) {
   m_clearCache = false;
   manageCharts(paths, nullptr);
+  updateScalePriorities();
   emit status("Ready:Sync");
   qDebug() << "emit ready, clearCache =" << m_clearCache;
   emit ready(m_clearCache);
@@ -221,8 +224,8 @@ void Updater::insertCharts(const PathHash& paths) {
       S57ChartOutline ch = reader->readOutline(path, gp.data());
       if (!scales.contains(name) || !scales[name].contains(ch.scale())) {
         auto r4 = m_db.prepare("insert into scales "
-                               "(chartset_id, scale) "
-                               "values(?, ?)");
+                               "(chartset_id, scale, priority) "
+                               "values(?, ?, 0)");
         r4.bindValue(0, chartsets[name]);
         r4.bindValue(1, ch.scale());
         m_db.exec(r4);
@@ -443,4 +446,45 @@ void Updater::update(quint32 id, const S57ChartOutline &ch) {
   insertCov(id, 1, ch.coverage());
   insertCov(id, 2, ch.nocoverage());
 
+}
+
+void Updater::updateScalePriorities() {
+  QMap<quint32, QString> chartSets;
+
+  using ScaleVector = QVector<quint32>;
+
+  QSqlQuery r0 = m_db.exec("select id, name from chartsets");
+  while (r0.next()) chartSets[r0.value(0).toUInt()] = r0.value(1).toString();
+
+  for (auto it = chartSets.cbegin(); it != chartSets.cend(); ++it) {
+    qDebug() << "Updating" << it.value() << "priorities";
+
+    QSqlQuery r1 = m_db.prepare("select scale from scales where chartset_id=?");
+    r1.bindValue(0, it.key());
+    m_db.exec(r1);
+    ScaleVector scales;
+    while (r1.next()) scales.append(r1.value(0).toUInt());
+
+    std::sort(scales.begin(), scales.end(), [] (quint32 s1, quint32 s2) {
+      return s1 > s2;
+    });
+
+    if (!m_db.transaction()) {
+      qWarning() << "Cannot create db transaction";
+    }
+
+    quint32 cnt = 1;
+    for (auto s: scales) {
+      QSqlQuery r2 = m_db.prepare("update scales set priority=? where scale=? and chartset_id=?");
+      r2.bindValue(0, cnt);
+      r2.bindValue(1, s);
+      r2.bindValue(2, it.key());
+      m_db.exec(r2);
+      cnt++;
+    }
+
+    if (!m_db.commit()) {
+      qWarning() << "DB commit failed!";
+    }
+  }
 }

@@ -480,7 +480,9 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
   }
   // create pending chart creation data
   if (!newCharts.isEmpty()) {
-    QString sql = "select id, path from charts where id in (";
+    QString sql = "select chart_id, priority, path "
+                  "from m.charts "
+                  "where chart_id in (";
     sql += QString("?,").repeated(newCharts.size());
     sql = sql.replace(sql.length() - 1, 1, ")");
     QSqlQuery r = m_db.prepare(sql);
@@ -490,15 +492,16 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
     m_db.exec(r);
     while (r.next()) {
       const quint32 id = r.value(0).toUInt();
-      const auto path = r.value(1).toString();
+      const int prio = r.value(1).toInt();
+      const auto path = r.value(2).toString();
       qCDebug(CMGR) << "New chart" << path;
-      m_pendingStack.push(ChartData(id, path, m_scale,
+      m_pendingStack.push(ChartData(id, prio, path, m_scale,
                                     regions[id].toWGS84(cam->geoprojection())));
     }
   }
   // create pending bg chart creation data
   for (const auto id: bgCharts) {
-    m_pendingStack.push(ChartData(id, QString("gshhs://production/%1").arg(id), m_scale,
+    m_pendingStack.push(ChartData(id, 0, QString("gshhs://production/%1").arg(id), m_scale,
                                   regions[id].toWGS84(cam->geoprojection())));
   }
 
@@ -563,6 +566,13 @@ void ChartManager::manageThreads(S57Chart* chart) {
 
   // qCDebug(CMGR) << "chartmanager" << m_idleStack.size() << "/" << m_workers.size();
   if (m_idleStack.size() == m_workers.size()) {
+    // Sort charts in priority order
+    std::sort(m_charts.begin(), m_charts.end(), [] (const S57Chart* c1, const S57Chart* c2) {
+      return c1->priority() > c2->priority();
+    });
+    for (int i = 0; i < m_charts.size(); ++i) {
+      m_chartIds[m_charts[i]->id()] = i;
+    }
     if (!m_hadCharts) {
       // qCDebug(CMGR) << "chartmanager: manageThreads: active";
       emit active(m_viewArea);

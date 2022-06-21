@@ -36,6 +36,7 @@ ChartDatabase::ChartDatabase()
   m_Query.exec("create table if not exists m.charts ("
                "chart_id integer not null, "
                "scale integer not null, "
+               "priority integer not null, "
                "swx real not null, "
                "swy real not null, "
                "nex real not null, "
@@ -75,36 +76,37 @@ void ChartDatabase::createTables() {
     auto query = QSqlQuery(db);
 
     query.exec("create table if not exists chartsets ("
-             "id integer primary key autoincrement, "
-             "name text not null)");
+               "id integer primary key autoincrement, "
+               "name text not null)");
 
     query.exec("create table if not exists scales ("
-             "id integer primary key autoincrement, "
-             "chartset_id integer not null, "
-             "scale int not null, "
-             "unique (chartset_id, scale))");
+               "id integer primary key autoincrement, "
+               "chartset_id integer not null, "
+               "scale int not null, "
+               "priority int not null, "
+               "unique (chartset_id, scale))");
 
     query.exec("create table if not exists charts ("
-             "id integer primary key autoincrement, "
-             "scale_id integer not null, "
-             "swx real not null, "
-             "swy real not null, "
-             "nex real not null, "
-             "ney real not null, "
-             "published int not null, " // Julian day
+               "id integer primary key autoincrement, "
+               "scale_id integer not null, "
+               "swx real not null, "
+               "swy real not null, "
+               "nex real not null, "
+               "ney real not null, "
+               "published int not null, " // Julian day
                "modified int not null, "  // Julian day
                "path text not null unique)");
 
     query.exec("create table if not exists coverage ("
-             "id integer primary key autoincrement, "
-             "type_id integer not null, "
-             "chart_id integer not null)");
+               "id integer primary key autoincrement, "
+               "type_id integer not null, "
+               "chart_id integer not null)");
 
     query.exec("create table if not exists polygons ("
-             "id integer primary key autoincrement, "
-             "cov_id integer not null, "
-             "x real not null, "
-             "y real not null)");
+               "id integer primary key autoincrement, "
+               "cov_id integer not null, "
+               "x real not null, "
+               "y real not null)");
 
     db.close();
   }
@@ -123,7 +125,7 @@ void ChartDatabase::loadCharts(int chartset_id) {
   checkError();
 
   m_Query.prepare("insert into m.charts select "
-                  "c.id, s.scale, c.swx, c.swy, c.nex, c.ney, c.path from "
+                  "c.id, s.scale, s.priority, c.swx, c.swy, c.nex, c.ney, c.path from "
                   "main.charts c "
                   "join main.scales s on c.scale_id = s.id "
                   "where s.chartset_id = ?");

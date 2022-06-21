@@ -26,7 +26,7 @@
 #include <QFile>
 #include "settings.h"
 
-GL::Shader::Shader(const QVector<Source>& sources, GLfloat ds)
+GL::Shader::Shader(const QVector<Source>& sources, int ds)
   : m_depthShift(ds)
 {
   m_program = new QOpenGLShaderProgram;
@@ -45,8 +45,14 @@ GL::Shader::Shader(const QVector<Source>& sources, GLfloat ds)
   m_depth = m_program->uniformLocation("depth");
 }
 
-void GL::Shader::setDepth(int prio) {
-  m_program->setUniformValue(m_depth, -1.f + .1f * prio + m_depthShift);
+void GL::Shader::setDepth(int chartPrio, int prio) {
+  // chartPrio: 0-99
+  // prio: 0-9
+  // depthShift: 0-9
+  m_program->setUniformValue(m_depth, -1.f +
+                             .01f * chartPrio +
+                             .001f * prio +
+                             .0001f * m_depthShift);
 }
 
 GL::Shader::~Shader() {
@@ -77,7 +83,7 @@ void GL::AreaShader::setGlobals(const Camera *cam, const QMatrix4x4 &mt) {
 
 GL::AreaShader::AreaShader()
   : Shader({{QOpenGLShader::Vertex, ":chartpainter.vert"},
-            {QOpenGLShader::Fragment, ":chartpainter.frag"}}, .01)
+            {QOpenGLShader::Fragment, ":chartpainter.frag"}}, 1)
 {
   m_locations.base_color = m_program->uniformLocation("base_color");
   m_locations.m_p = m_program->uniformLocation("m_p");
@@ -100,7 +106,7 @@ void GL::LineElemShader::setGlobals(const Camera *cam, const QMatrix4x4 &mt) {
 
 GL::LineElemShader::LineElemShader()
   : Shader({{QOpenGLShader::Vertex, ":chartpainter-lineelems.vert"},
-            {QOpenGLShader::Fragment, ":chartpainter-lines.frag"}}, .02)
+            {QOpenGLShader::Fragment, ":chartpainter-lines.frag"}}, 2)
 {
   m_locations.m_p = m_program->uniformLocation("m_p");
   m_locations.m_model = m_program->uniformLocation("m_model");
@@ -128,7 +134,7 @@ void GL::LineArrayShader::setGlobals(const Camera *cam, const QMatrix4x4 &mt) {
 
 GL::LineArrayShader::LineArrayShader()
   : Shader({{QOpenGLShader::Vertex, ":chartpainter-linearrays.vert"},
-            {QOpenGLShader::Fragment, ":chartpainter-lines.frag"}}, .02)
+            {QOpenGLShader::Fragment, ":chartpainter-lines.frag"}}, 2)
 {
   m_locations.m_p = m_program->uniformLocation("m_p");
   m_locations.m_model = m_program->uniformLocation("m_model");
@@ -155,7 +161,7 @@ void GL::SegmentArrayShader::setGlobals(const Camera *cam, const QMatrix4x4 &mt)
 
 GL::SegmentArrayShader::SegmentArrayShader()
   : Shader({{QOpenGLShader::Vertex, ":chartpainter-segmentarrays.vert"},
-            {QOpenGLShader::Fragment, ":chartpainter-lines.frag"}}, .02)
+            {QOpenGLShader::Fragment, ":chartpainter-lines.frag"}}, 2)
 {
   m_locations.m_p = m_program->uniformLocation("m_p");
   m_locations.m_model = m_program->uniformLocation("m_model");
@@ -183,7 +189,7 @@ void GL::TextShader::setGlobals(const Camera *cam, const QMatrix4x4 &mt) {
 
 GL::TextShader::TextShader()
   : Shader({{QOpenGLShader::Vertex, ":chartpainter-text.vert"},
-            {QOpenGLShader::Fragment, ":chartpainter-text.frag"}}, .04)
+            {QOpenGLShader::Fragment, ":chartpainter-text.frag"}}, 5)
 {
   m_locations.m_p = m_program->uniformLocation("m_p");
   m_locations.m_model = m_program->uniformLocation("m_model");
@@ -230,7 +236,7 @@ void GL::RasterSymbolShader::setGlobals(const Camera *cam, const QMatrix4x4 &mt)
 
 GL::RasterSymbolShader::RasterSymbolShader()
   : Shader({{QOpenGLShader::Vertex, ":chartpainter-rastersymbol.vert"},
-            {QOpenGLShader::Fragment, ":chartpainter-texture.frag"}}, .03)
+            {QOpenGLShader::Fragment, ":chartpainter-texture.frag"}}, 3)
 {
   m_locations.m_p = m_program->uniformLocation("m_p");
   m_locations.m_model = m_program->uniformLocation("m_model");
@@ -271,7 +277,7 @@ void GL::VectorSymbolShader::setGlobals(const Camera *cam, const QMatrix4x4 &mt)
 
 GL::VectorSymbolShader::VectorSymbolShader()
   : Shader({{QOpenGLShader::Vertex, ":chartpainter-vectorsymbol.vert"},
-            {QOpenGLShader::Fragment, ":chartpainter.frag"}}, .035)
+            {QOpenGLShader::Fragment, ":chartpainter.frag"}}, 4)
 {
   m_locations.m_p = m_program->uniformLocation("m_p");
   m_locations.m_model = m_program->uniformLocation("m_model");
@@ -353,7 +359,7 @@ void GL::TextureShader::setUniforms(const Camera* cam,
 
 GL::TextureShader::TextureShader()
   : Shader({{QOpenGLShader::Vertex, ":chartpainter-texture.vert"},
-            {QOpenGLShader::Fragment, ":chartpainter-texture.frag"}}, .0)
+            {QOpenGLShader::Fragment, ":chartpainter-texture.frag"}}, 0)
 {
   m_locations.m_pv = m_program->uniformLocation("m_pv");
   m_locations.scale_tex = m_program->uniformLocation("scale_tex");

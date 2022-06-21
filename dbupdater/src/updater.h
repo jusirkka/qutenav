@@ -87,6 +87,7 @@ private:
   void update(quint32 id, const S57ChartOutline& ch);
   void insertCov(quint32 chart_id, quint32 type_id, const WGS84Polygon& r);
   void cleanupDB();
+  void updateScalePriorities();
 
   ChartDatabase m_db;
 

@@ -41,10 +41,11 @@ ChartData::ChartData(S57Chart* c,
   , updLup(upd)
 {}
 
-ChartData::ChartData(quint32 i, const QString& pth,
+ChartData::ChartData(quint32 i, int p, const QString& pth,
                      quint32 s, const WGS84PointVector& cs)
   : chart(nullptr)
   , id(i)
+  , priority(p)
   , path(pth)
   , scale(s)
   , cover(cs)
@@ -55,7 +56,7 @@ ChartData::ChartData(quint32 i, const QString& pth,
 
 void ChartUpdater::createChart(const ChartData& d) {
   try {
-    auto chart = new S57Chart(d.id, d.path);
+    auto chart = new S57Chart(d.id, d.priority, d.path);
     chart->updatePaintData(d.cover, d.scale);
     emit done(chart);
   } catch (ChartFileError& e) {

@@ -42,7 +42,7 @@ public:
 
   const QOpenGLShaderProgram* prog() const {return m_program;}
   QOpenGLShaderProgram* prog() {return m_program;}
-  void setDepth(int prio);
+  void setDepth(int chartPrio, int prio);
 
   virtual void setGlobals(const Camera* cam, const QMatrix4x4& mt) = 0;
   virtual void initializePaint();
@@ -58,11 +58,11 @@ protected:
     QString fname;
   };
 
-  Shader(const QVector<Source>& sources, GLfloat ds);
+  Shader(const QVector<Source>& sources, int ds);
 
   QOpenGLShaderProgram* m_program;
 
-  GLfloat m_depthShift;
+  const int m_depthShift;
   int m_depth;
 
 };

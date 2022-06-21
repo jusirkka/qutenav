@@ -34,11 +34,12 @@ struct ChartData {
   ChartData(S57Chart* c,
             quint32 s, const WGS84PointVector& cover, bool ulup);
 
-  ChartData(quint32 i, const QString& pth,
+  ChartData(quint32 i, int p, const QString& pth,
             quint32 s, const WGS84PointVector& cover);
 
   S57Chart* chart;
   quint32 id;
+  int priority;
   QString path;
   quint32 scale;
   WGS84PointVector cover;

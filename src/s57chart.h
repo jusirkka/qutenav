@@ -45,7 +45,7 @@ class S57Chart: public QObject {
 
 public:
 
-  S57Chart(quint32 id, const QString& path);
+  S57Chart(quint32 id, int prio, const QString& path);
   void encode(QDataStream& stream);
 
   void updateModelTransform(const Camera* cam);
@@ -63,7 +63,8 @@ public:
   const GeoProjection* geoProjection() const {return m_nativeProj;}
 
   quint32 id() const {return m_id;}
-  const QString& path() {return m_path;}
+  int priority() const {return m_priority;}
+  const QString& path() const {return m_path;}
 
   void updatePaintData(const WGS84PointVector& cover, quint32 scale);
   void updateLookups();
@@ -132,6 +133,7 @@ private:
   ContourVector m_contours;
   PaintPriorityVector m_paintData;
   quint32 m_id;
+  int m_priority;
   QString m_path;
 
   QMatrix4x4 m_modelMatrix;
