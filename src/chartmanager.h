@@ -61,7 +61,7 @@ public:
   void paintIcon(QPainter& painter, quint32 chartId, quint32 objectIndex) const;
 
   const ChartVector& charts() const {return m_charts;}
-  const GL::VertexVector& outlines() const {return m_outlines;}
+  const WGS84Polygon& outlines() const {return m_outlines;}
   const ChartReaderVector& readers() const {return m_readers;}
   quint32 nextScale() const {return m_nextScale;}
 
@@ -110,7 +110,6 @@ private:
   using IDMap = QMap<quint32, int>;
   using ScaleVector = QVector<quint32>;
 
-  void createOutline(const WGS84Point& sw, const WGS84Point& ne);
   void loadPlugins();
   const ChartCover* getCover(quint32 chart_id,
                              const WGS84Point& sw,
@@ -137,7 +136,7 @@ private:
   ChartManager& operator=(const ChartManager&) = delete;
 
   ChartVector m_charts;
-  GL::VertexVector m_outlines;
+  WGS84Polygon m_outlines;
   ChartDatabase m_db;
   WGS84Point m_ref;
   QRectF m_viewport;

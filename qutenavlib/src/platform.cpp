@@ -25,7 +25,7 @@
 #include <QTranslator>
 #include <QStandardPaths>
 #include <QLocale>
-#include "logging.h"
+#include <thread>
 
 float dots_per_mm_x() {
   static float v = QGuiApplication::primaryScreen()->physicalDotsPerInchX() / 25.4;
@@ -52,6 +52,10 @@ const QString& baseAppName() {
   // qutenav or harbour-qutenav
   static QString name = qAppName().replace("_dbupdater", "").replace("_", "-");
   return name;
+}
+
+int numberOfChartThreads() {
+  return std::max(1, static_cast<int>(std::thread::hardware_concurrency()) - 1);
 }
 
 

@@ -112,8 +112,7 @@ elseif (PLATFORM STREQUAL silica)
     qml/platform.silica/ThemePL.qml
     qml/platform.silica/ViewPlaceholderPL.qml
     qml/qutenav.qml
-)
-
+  )
 
 endif ()
 
@@ -201,6 +200,7 @@ target_sources(qutenav
     src/s57paintdata.cpp
     src/settings.cpp
     src/shader.cpp
+    src/slotcounter.cpp
     src/symboldata.cpp
     src/textmanager.cpp
     src/tiny_sdf.cpp

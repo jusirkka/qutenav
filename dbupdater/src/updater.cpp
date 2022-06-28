@@ -46,7 +46,7 @@ Updater::~Updater() {
 }
 
 void Updater::fullSync(const QStringList& paths) {
-  qDebug() << paths;
+  // qDebug() << paths;
   m_clearCache = false;
   ChartInfoMap current;
   manageCharts(paths, &current);
@@ -58,6 +58,7 @@ void Updater::fullSync(const QStringList& paths) {
 }
 
 void Updater::sync(const QStringList& paths) {
+  // qDebug() << paths;
   m_clearCache = false;
   manageCharts(paths, nullptr);
   updateScalePriorities();

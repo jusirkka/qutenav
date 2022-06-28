@@ -1,6 +1,5 @@
 add_library(QuteNavLib STATIC)
 
-
 target_sources(QuteNavLib
   PRIVATE
     src/chartdatabase.cpp

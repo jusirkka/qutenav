@@ -81,11 +81,11 @@ WGS84Point WGS84Point::parseISO6709(const QString& loc) {
   QRegularExpressionMatch m;
   QString rest;
   for (m = coord.match(loc); m.hasMatch(); m = coord.match(m.captured(2))) {
-      cs.append(m.captured(1).toDouble());
-      rest = m.captured(2);
+    cs.append(m.captured(1).toDouble());
+    rest = m.captured(2);
   }
   if (cs.length() < 2) {
-      return WGS84Point();
+    return WGS84Point();
   }
 
   double lat = cs[0];
@@ -95,12 +95,12 @@ WGS84Point WGS84Point::parseISO6709(const QString& loc) {
   QRegularExpression datumRe("CRS([^/]+)(/.*)");
   m = datumRe.match(rest);
   if (m.hasMatch()) {
-      datum = m.captured(1);
-      rest = m.captured(2);
+    datum = m.captured(1);
+    rest = m.captured(2);
   }
 
   if (rest != "/" || datum != "WGS_84") {
-      return WGS84Point();
+    return WGS84Point();
   }
 
   return WGS84Point(lng, lat);
@@ -165,8 +165,8 @@ QString WGS84Point::toISO6709() const {
   //% "N/A"
   if (!m_Valid) return QT_TRID_NOOP("qutenav-not-applicable");
   // +27.5916+086.5640CRSWGS_84/
-  QChar z('0');
-  QString s("%1%2%3%4CRSWGS_84/"); // sign lat, abs lat, sign lng, abs lng
+  const QChar z('0');
+  const QString s("%1%2%3%4CRSWGS_84/"); // sign lat, abs lat, sign lng, abs lng
   return s.arg(m_Latitude < 0 ? '-' : '+').arg(std::abs(m_Latitude), 0, 'f', 10, z)
       .arg(m_Longitude < 0 ? '-' : '+').arg(std::abs(m_Longitude), 0, 'f', 10, z);
 }

@@ -30,7 +30,7 @@
 
 Outliner::Outliner(QObject* parent)
   : Drawable(parent)
-  , m_cornerBuffer(QOpenGLBuffer::VertexBuffer)
+  , m_vertexBuffer(QOpenGLBuffer::VertexBuffer)
   , m_program(nullptr)
   , m_manager(ChartManager::instance())
 {}
@@ -58,16 +58,13 @@ void Outliner::initializeGL() {
       qFatal("Failed to link the outliner program: %s", m_program->log().toUtf8().data());
     }
 
-    m_cornerBuffer.create();
-    m_cornerBuffer.setUsagePattern(QOpenGLBuffer::DynamicDraw);
+    m_vertexBuffer.create();
+    m_vertexBuffer.setUsagePattern(QOpenGLBuffer::DynamicDraw);
 
     // locations
     m_program->bind();
     m_locations.base_color = m_program->uniformLocation("base_color");
     m_locations.m_pv = m_program->uniformLocation("m_pv");
-    m_locations.center = m_program->uniformLocation("center");
-    m_locations.angle = m_program->uniformLocation("angle");
-    m_locations.nump = m_program->uniformLocation("nump");
 
   }
 
@@ -80,57 +77,73 @@ void Outliner::updateCharts(const Camera* /*cam*/, const QRectF& /*viewArea*/) {
 
 void Outliner::paintGL(const Camera* cam) {
 
-  m_cornerBuffer.bind();
+  m_vertexBuffer.bind();
 
   m_program->bind();
   m_program->enableAttributeArray(0);
-  m_program->setAttributeBuffer(0, GL_FLOAT, 0, 4, 0);
+  m_program->setAttributeBuffer(0, GL_FLOAT, 0, 3, 0);
 
   auto f = QOpenGLContext::currentContext()->extraFunctions();
-  f->glVertexAttribDivisor(0, 1);
-
 
   f->glEnable(GL_DEPTH_TEST);
   f->glDisable(GL_BLEND);
   f->glDisable(GL_STENCIL_TEST);
-  f->glEnable(GL_CULL_FACE);
-  f->glFrontFace(GL_CW);
-  f->glCullFace(GL_BACK);
+  //  f->glDisable(GL_CULL_FACE);
+  //  f->glFrontFace(GL_CW);
+  //  f->glCullFace(GL_BACK);
 
   // uniforms
   m_program->setUniformValue(m_locations.m_pv, cam->projection() * cam->view());
-  GLfloat angle = qMax(1.e-5, GLfloat(cam->scale()) / cam->maxScale() * 0.005);
-  m_program->setUniformValue(m_locations.angle, angle);
-  m_program->setUniformValue(m_locations.nump, 10);
-  m_program->setUniformValue(m_locations.base_color, QColor("#ff0000"));
+  m_program->setUniformValue(m_locations.base_color, QColor("#00ff00"));
 
-  f->glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 2 * (4 * 10 + 1), m_instances);
+  int first = 0;
+  for (auto s: m_lineStringSizes) {
+    f->glDrawArrays(GL_LINE_STRIP, first, s);
+    first += s;
+  }
+}
 
-  f->glVertexAttribDivisor(0, 0);
-
+void Outliner::writeVertex(GL::VertexVector& vertices, const WGS84Point& p) const {
+  const float r = 1.002;
+  const double lng = p.radiansLng();
+  const double lat = p.radiansLat();
+  vertices << r * cos(lng) * cos(lat);
+  vertices << r * sin(lng) * cos(lat);
+  vertices << r * sin(lat);
 }
 
 
 void Outliner::updateBuffers() {
 
-  m_cornerBuffer.bind();
+  m_lineStringSizes.clear();
 
 
-  m_instances = m_manager->outlines().size() / 8;
+  GL::VertexVector vertices;
 
-  GL::VertexVector corners;
-
-  const GL::VertexVector &d = m_manager->outlines();
-
-  for (int i = 0; i < m_instances; ++i) {
-    const int first = 8 * i;
-    // sw, ne
-    corners << d[first + 2] << d[first + 3] << d[first + 6] << d[first + 7];
+  const WGS84Polygon& polys = m_manager->outlines();
+  const qreal D = 1.e5; // 100 km
+  for (const WGS84PointVector& ps: polys) {
+    const int N = ps.size();
+    int lineStringSize = 0;
+    for (int i = 0; i < N - 1; ++i) {
+      const WGS84Bearing b = ps[i + 1] - ps[i];
+      const auto K = static_cast<int>(std::ceil(b.meters() / D));
+      writeVertex(vertices, ps[i]);
+      for (int k = 1; k < K; ++k) {
+        const double s = (static_cast<double>(k) / K);
+        writeVertex(vertices, ps[i] + s * b);
+      }
+      lineStringSize += K;
+    }
+    writeVertex(vertices, ps.last());
+    lineStringSize += 1;
+    m_lineStringSizes.append(lineStringSize);
   }
 
-  GLsizei dataLen = corners.size() * sizeof(GLfloat);
-  m_cornerBuffer.allocate(dataLen);
-  m_cornerBuffer.write(0, corners.constData(), dataLen);
+  m_vertexBuffer.bind();
+  GLsizei dataLen = vertices.size() * sizeof(GLfloat);
+  m_vertexBuffer.allocate(dataLen);
+  m_vertexBuffer.write(0, vertices.constData(), dataLen);
 
-  qDebug() << "number of rectangles =" << m_instances;
+  qDebug() << "number of lines =" << vertices.size() / 3;
 }

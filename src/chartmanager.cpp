@@ -42,6 +42,7 @@
 #include "conf_quick.h"
 #include "platform.h"
 #include "utils.h"
+#include "slotcounter.h"
 
 ChartManager* ChartManager::instance() {
   static ChartManager* m = new ChartManager();
@@ -188,13 +189,15 @@ void ChartManager::setChartSet(const QString &name, const GeoProjection* vproj, 
   const uint set_id = r0.value(0).toUInt();
 
   // get available scales
-  QSqlQuery r = m_db.prepare("select scale "
-                             "from main.scales "
-                             "where chartset_id=?");
-  r.bindValue(0, set_id);
-  m_db.exec(r);
-  while (r.next()) {
-    m_scales.append(r.value(0).toUInt());
+  QSqlQuery r1 = m_db.prepare("select scale, priority "
+                              "from main.scales "
+                              "where chartset_id=? order by priority");
+  r1.bindValue(0, set_id);
+  m_db.exec(r1);
+  IDVector priorities;
+  while (r1.next()) {
+    m_scales.append(r1.value(0).toUInt());
+    priorities.append(r1.value(1).toUInt());
   }
   std::sort(m_scales.begin(), m_scales.end());
 
@@ -202,29 +205,66 @@ void ChartManager::setChartSet(const QString &name, const GeoProjection* vproj, 
   m_db.loadCharts(set_id);
 
   // outlines
-  QSqlQuery s = m_db.exec("select swx, swy, nex, ney "
-                          "from m.charts");
-  while (s.next()) {
-    auto sw = WGS84Point::fromLL(s.value(0).toDouble(), s.value(1).toDouble());
-    auto ne = WGS84Point::fromLL(s.value(2).toDouble(), s.value(3).toDouble());
-    createOutline(sw, ne);
+  SlotCounter counter;
+  IDVector ids;
+  for (const auto prio: priorities) {
+
+    if (counter.full()) break;
+
+    // qDebug() << "Checking priority =" << prio << "charts";
+
+    QSqlQuery t0 = m_db.prepare("select chart_id, swx, swy, nex, ney "
+                                "from m.charts "
+                                "where priority = ?");
+    t0.bindValue(0, prio);
+    m_db.exec(t0);
+    while (t0.next()) {
+      const auto sw = WGS84Point::fromLL(t0.value(1).toDouble(), t0.value(2).toDouble());
+      const auto ne = WGS84Point::fromLL(t0.value(3).toDouble(), t0.value(4).toDouble());
+      counter.fill(sw, ne, prio);
+      if (counter.updated()) {
+        const auto id = t0.value(0).toUInt();
+        // qDebug() << "Adding chart" << id;
+        ids.append(id);
+      }
+    }
+  }
+
+  const auto sql = QString("select cv.id, p.x, p.y from "
+                           "m.polygons p join m.coverage cv "
+                           "on p.cov_id = cv.id "
+                           "where cv.type_id=1 and cv.chart_id in (?%1) "
+                           "order by cv.id, p.id")
+      .arg(QString(",?").repeated(ids.size() - 1));
+
+  QSqlQuery r2 = m_db.prepare(sql);
+  int cnt = 0;
+  for (const auto id: ids) {
+    r2.bindValue(cnt, id);
+    cnt++;
+  }
+  m_db.exec(r2);
+
+  int prev = -1;
+  WGS84PointVector ps;
+  while (r2.next()) {
+    const int cid = r2.value(0).toInt();
+    if (cid != prev) {
+      if (!ps.isEmpty()) {
+        m_outlines << ps;
+      }
+      ps.clear();
+    }
+    ps << WGS84Point::fromLL(r2.value(1).toDouble(), r2.value(2).toDouble());
+    prev = cid;
+  }
+  if (!ps.isEmpty()) {
+    m_outlines << ps;
   }
 }
 
-void ChartManager::createOutline(const WGS84Point& sw, const WGS84Point& ne) {
-  m_outlines.append(sw.lng());
-  m_outlines.append(sw.lat());
-  m_outlines.append(ne.lng());
-  m_outlines.append(sw.lat());
-  m_outlines.append(ne.lng());
-  m_outlines.append(ne.lat());
-  m_outlines.append(sw.lng());
-  m_outlines.append(ne.lat());
-}
-
 void ChartManager::createThreads() {
-  // hardcoded for now: gives bullshit values in sfos/Qt-5.6.3
-  const int numThreads = 3; // qMax(1, QThread::idealThreadCount() - 1);
+  const int numThreads = numberOfChartThreads();
   qCDebug(CMGR) << "number of chart updaters =" << numThreads;
   for (int i = 0; i < numThreads; ++i) {
     qCDebug(CMGR) << "creating thread" << i;

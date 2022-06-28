@@ -1,8 +1,10 @@
 /* -*- coding: utf-8-unix -*-
  *
- * File: src/platform.h
+ * slotcounter.h
  *
- * Copyright (C) 2021 Jukka Sirkka
+ * Created: 2022-06-28 2022 by Jukka Sirkka
+ *
+ * Copyright (C) 2022 Jukka Sirkka
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,18 +19,32 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 #pragma once
 
-class QTranslator;
-class QString;
+#include "types.h"
 
-extern float dots_per_mm_x();
-extern float dots_per_mm_y();
-extern float dots_per_inch_x();
-extern float dots_per_inch_y();
 
-extern const QString& baseAppName();
+class SlotCounter {
+public:
 
-static const float nominal_dpmm = 3.125;
+  SlotCounter();
+  bool full() const {return m_slotsLeft <= 0;}
+  void fill(const WGS84Point& sw, const WGS84Point& ne, int prio);
+  bool updated() const {return m_updated;}
 
-extern int numberOfChartThreads();
+private:
+
+  static const inline quint32 x0 = 1800;
+  static const inline quint32 y0 = 800;
+
+  const quint32 m_lvl;
+
+  QVector<int> m_slots;
+
+
+  int m_slotsLeft;
+  bool m_updated;
+
+};
+

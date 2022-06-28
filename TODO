@@ -1,8 +1,6 @@
 - tides
 - busy spinner while charts are loading
 - ObjectInfo rewrite
-- better globe mouse controls
-- VAO sanity
 - firejail compatibility
 - quick settings
 - speedup dbupdater by adding threads
@@ -13,5 +11,6 @@
 - display total distance when editing a route
 - RulerSelection enum type -> create enumerations.h to hold all custom enums
 
-- draw largest scale coverages instead of rectangles in globe mode
-- bug: line flicker in globe mode
+- check only bbox of the remaining region when fetching chart data from the database
+- bug: wrong sign in geoprojection when mapping lng ~ -180 with ref_lng ~ 160
+- bug: too slow small scale handling when there are many available scales

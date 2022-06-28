@@ -42,22 +42,22 @@ public:
 
 private:
 
-  void updateBuffers();
+  using SizeVector = QVector<int>;
 
-  QOpenGLBuffer m_cornerBuffer;
-  int m_instances;
+  void updateBuffers();
+  void writeVertex(GL::VertexVector& vertices, const WGS84Point& p) const;
+
+  QOpenGLBuffer m_vertexBuffer;
+  SizeVector m_lineStringSizes;
   QOpenGLShaderProgram* m_program;
 
   struct _locations {
     int base_color;
     int m_pv;
-    int center;
-    int angle;
-    int nump;
   } m_locations;
 
 
-  ChartManager* m_manager;
+  const ChartManager* m_manager;
 
 };
 
