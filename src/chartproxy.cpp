@@ -19,6 +19,7 @@
  */
 
 #include "chartproxy.h"
+#include "logging.h"
 
 GL::ChartProxy::ChartProxy(const VertexVector& vertices, const IndexVector& indices)
   : m_staticCoordBuffer(QOpenGLBuffer::VertexBuffer)
@@ -113,6 +114,24 @@ void GL::ChartProxy::update() {
   m_textTransforms.clear();
 }
 
+void GL::ChartProxy::initializeGL() {
+  if (m_staticCoordBuffer.isCreated()) return;
+  create();
+}
+
+void GL::ChartProxy::finalizeGL() {
+  m_staticCoordBuffer.destroy();
+  m_staticIndexBuffer.destroy();
+  m_dynamicCoordBuffer.destroy();
+  m_pivotBuffer.destroy();
+  m_transformBuffer.destroy();
+  m_textTransformBuffer.destroy();
+
+  m_dynamicVertices.clear();
+  m_pivots.clear();
+  m_transforms.clear();
+  m_textTransforms.clear();
+}
 
 GL::ChartProxyVector GL::ChartProxyQueue::consume() {
   m_mutex.lock();

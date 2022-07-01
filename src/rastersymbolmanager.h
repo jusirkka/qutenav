@@ -42,18 +42,24 @@ public:
   RasterSymbolManager();
 
   static RasterSymbolManager* instance();
-  void createSymbols();
   void init();
 
   SymbolData symbolData(quint32 index, S52::SymbolType type) const;
   bool paintIcon(QPainter& painter, quint32 index, S52::SymbolType type);
   void changeSymbolAtlas();
 
+  void initializeGL();
+  void finalizeGL();
+
+
   void bind();
 
   ~RasterSymbolManager();
 
 private:
+
+  void createSymbols();
+
 
   struct ParseData {
     QPointF offset;
@@ -79,15 +85,9 @@ private:
   using PainterDataMap = QHash<SymbolKey, PainterData>;
   using PixmapCache = QCache<SymbolKey, QPixmap>;
 
-  void parseSymbols(QXmlStreamReader& reader,
-                    GL::VertexVector& vertices,
-                    GL::IndexVector& indices,
-                    S52::SymbolType type);
+  void parseSymbols(QXmlStreamReader& reader, S52::SymbolType type);
 
-  void parseSymbolData(QXmlStreamReader& reader,
-                       ParseData& d,
-                       GL::VertexVector& vertices,
-                       GL::IndexVector& indices);
+  void parseSymbolData(QXmlStreamReader& reader, ParseData& d);
 
   SymbolMap m_symbolMap;
   SymbolData m_invalid;
@@ -99,4 +99,7 @@ private:
   // paintIcon interface
   PainterDataMap m_painterData;
   PixmapCache m_pixmapCache;
+  // backup
+  GL::VertexVector m_vertexBackup;
+  GL::IndexVector m_indexBackup;
 };

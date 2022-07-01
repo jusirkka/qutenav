@@ -30,13 +30,6 @@ class QOpenGLFramebufferObject;
 class QOpenGLDebugLogger;
 
 namespace GL {
-class AreaShader;
-class LineElemShader;
-class LineArrayShader;
-class SegmentArrayShader;
-class TextShader;
-class RasterSymbolShader;
-class VectorSymbolShader;
 class TextureShader;
 }
 

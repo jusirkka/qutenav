@@ -40,6 +40,9 @@ namespace GL {
 class Shader {
 public:
 
+  static void InitializeGL();
+  static void FinalizeGL();
+
   const QOpenGLShaderProgram* prog() const {return m_program;}
   QOpenGLShaderProgram* prog() {return m_program;}
   void setDepth(int chartPrio, int prio);
@@ -51,6 +54,8 @@ public:
 
 protected:
 
+  virtual void doInitializeGL() = 0;
+
   Shader() = default;
 
   struct Source {
@@ -58,12 +63,22 @@ protected:
     QString fname;
   };
 
-  Shader(const QVector<Source>& sources, int ds);
+  using SourceVector = QVector<Source>;
+
+
+  Shader(const SourceVector& sources, int ds);
 
   QOpenGLShaderProgram* m_program;
 
   const int m_depthShift;
   int m_depth;
+  const SourceVector m_sources;
+
+private:
+
+  void initializeGL();
+  void finalizeGL();
+
 
 };
 
@@ -77,6 +92,8 @@ public:
 
 private:
   AreaShader();
+
+  void doInitializeGL() override;
 
   struct _locations {
     int m_p;
@@ -97,6 +114,8 @@ public:
 
 private:
   LineElemShader();
+
+  void doInitializeGL() override;
 
   static constexpr uint linePatlen = 18;
   static constexpr uint linefactor = 1;
@@ -125,6 +144,8 @@ public:
 private:
   LineArrayShader();
 
+  void doInitializeGL() override;
+
   static constexpr uint linePatlen = 18;
   static constexpr uint linefactor = 1;
 
@@ -149,6 +170,8 @@ public:
 
 private:
   SegmentArrayShader();
+
+  void doInitializeGL() override;
 
   static constexpr uint linePatlen = 18;
   static constexpr uint linefactor = 1;
@@ -176,6 +199,8 @@ public:
 private:
   TextShader();
 
+  void doInitializeGL() override;
+
   struct _locations {
     int m_p;
     int m_model;
@@ -198,6 +223,8 @@ public:
 private:
   RasterSymbolShader();
 
+  void doInitializeGL() override;
+
   struct _locations {
     int m_p;
     int m_model;
@@ -217,6 +244,8 @@ public:
 
 private:
   VectorSymbolShader();
+
+  void doInitializeGL() override;
 
   struct _locations {
     int m_p;
@@ -239,6 +268,8 @@ public:
 
 private:
   TextureShader();
+
+  void doInitializeGL() override;
 
   struct _locations {
     int m_pv;

@@ -321,14 +321,9 @@ ChartPagePL {
     z: 300
     visible: !page.infoMode
     scaleWidth: encdis.scaleBarLength
-    Connections {
-      target: encdis
-      onScaleBarTextChanged: function() {
-        scaleBar.distanceText = encdis.scaleBarText(0)
-        scaleBar.scaleText = encdis.scaleBarText(1)
-        scaleBar.scaleText2 = encdis.scaleBarText(2)
-      }
-    }
+    distanceText: encdis.scaleBarTexts[0]
+    scaleText: encdis.scaleBarTexts[1]
+    scaleText2: encdis.scaleBarTexts[2]
   }
 
   Bubble {

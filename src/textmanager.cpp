@@ -53,6 +53,14 @@ TextManager::~TextManager() {
   delete m_glyphTexture;
 }
 
+void TextManager::finalizeGL() {
+  m_glyphTexture->destroy();
+}
+
+void TextManager::initializeGL() {
+  updateTextureData();
+}
+
 TextManager* TextManager::instance() {
   static TextManager* m = new TextManager();
   return m;

@@ -44,6 +44,28 @@ void RasterSymbolManager::init() {
   qCDebug(CDPY) << "init (noop)";
 }
 
+void RasterSymbolManager::initializeGL() {
+  changeSymbolAtlas();
+  createSymbols();
+}
+
+void RasterSymbolManager::finalizeGL() {
+  m_coordBuffer.bind();
+  m_vertexBackup.resize(m_coordBuffer.size() / sizeof(GLfloat));
+  memcpy(m_vertexBackup.data(), m_coordBuffer.map(QOpenGLBuffer::ReadOnly), m_coordBuffer.size());
+  m_coordBuffer.unmap();
+  m_coordBuffer.destroy();
+
+  m_indexBuffer.bind();
+  m_indexBackup.resize(m_indexBuffer.size() / sizeof(GLuint));
+  memcpy(m_indexBackup.data(), m_indexBuffer.map(QOpenGLBuffer::ReadOnly), m_indexBuffer.size());
+  m_indexBuffer.unmap();
+  m_indexBuffer.destroy();
+
+  delete m_symbolTexture;
+  m_symbolTexture = nullptr;
+}
+
 RasterSymbolManager* RasterSymbolManager::instance() {
   static RasterSymbolManager* m = new RasterSymbolManager();
   return m;
@@ -68,18 +90,11 @@ void RasterSymbolManager::bind() {
 
 void RasterSymbolManager::changeSymbolAtlas() {
   auto rname = S52::GetRasterFileName();
-  if (rname == m_symbolAtlas) return;
+  if (rname == m_symbolAtlas && m_symbolTexture != nullptr) return;
   m_symbolAtlas = rname;
   QImage img(m_symbolAtlas);
   m_size = img.size();
-  if (m_symbolTexture != nullptr) {
-    // bare delete without destroying underlying resources first leads to a segfault in
-    // sfos/qt5.6. A bug?
-    qCDebug(CDPY) << "destroy texture";
-    m_symbolTexture->destroy();
-    qCDebug(CDPY) << "delete texture";
-    delete m_symbolTexture;
-  }
+  delete m_symbolTexture;
   qCDebug(CDPY) << "new texture";
   m_symbolTexture = new QOpenGLTexture(img, QOpenGLTexture::DontGenerateMipMaps);
   m_symbolTexture->setWrapMode(QOpenGLTexture::ClampToEdge);
@@ -90,43 +105,43 @@ void RasterSymbolManager::createSymbols() {
 
   if (m_coordBuffer.isCreated()) return;
 
-  QFile file(S52::FindPath("chartsymbols.xml"));
-  file.open(QFile::ReadOnly);
-  QXmlStreamReader reader(&file);
+  if (m_vertexBackup.isEmpty()) {
+    QFile file(S52::FindPath("chartsymbols.xml"));
+    file.open(QFile::ReadOnly);
+    QXmlStreamReader reader(&file);
 
-  reader.readNextStartElement();
-  Q_ASSERT(reader.name() == "chartsymbols");
+    reader.readNextStartElement();
+    Q_ASSERT(reader.name() == "chartsymbols");
 
-  GL::VertexVector vertices;
-  GL::IndexVector indices;
-  // Note: there exists no raster line styles
-  while (reader.readNextStartElement()) {
-    if (reader.name() == "patterns") {
-      parseSymbols(reader, vertices, indices, S52::SymbolType::Pattern);
-    } else if (reader.name() == "symbols") {
-      parseSymbols(reader, vertices, indices, S52::SymbolType::Single);
-    } else {
-      reader.skipCurrentElement();
+    // Note: there exists no raster line styles
+    while (reader.readNextStartElement()) {
+      if (reader.name() == "patterns") {
+        parseSymbols(reader, S52::SymbolType::Pattern);
+      } else if (reader.name() == "symbols") {
+        parseSymbols(reader, S52::SymbolType::Single);
+      } else {
+        reader.skipCurrentElement();
+      }
     }
+    file.close();
   }
-  file.close();
 
   // fill in vertex buffer
   m_coordBuffer.create();
   m_coordBuffer.bind();
   m_coordBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
-  m_coordBuffer.allocate(vertices.constData(), sizeof(GLfloat) * vertices.size());
+  m_coordBuffer.allocate(m_vertexBackup.constData(), sizeof(GLfloat) * m_vertexBackup.size());
+  m_vertexBackup.clear();
 
   // fill in index buffer
   m_indexBuffer.create();
   m_indexBuffer.bind();
   m_indexBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
-  m_indexBuffer.allocate(indices.constData(), sizeof(GLuint) * indices.size());
+  m_indexBuffer.allocate(m_indexBackup.constData(), sizeof(GLuint) * m_indexBackup.size());
+  m_indexBackup.clear();
 }
 
 void RasterSymbolManager::parseSymbols(QXmlStreamReader &reader,
-                                       GL::VertexVector &vertices,
-                                       GL::IndexVector &indices,
                                        S52::SymbolType t) {
 
   const QString itemName = t == S52::SymbolType::Single ? "symbol" : "pattern";
@@ -145,7 +160,7 @@ void RasterSymbolManager::parseSymbols(QXmlStreamReader &reader,
       } else if (reader.name() == "filltype") {
         staggered = reader.readElementText() != "L";
       } else if (reader.name() == "bitmap") {
-        parseSymbolData(reader, d, vertices, indices);
+        parseSymbolData(reader, d);
       } else if (reader.name() == "prefer-bitmap") {
         skip = reader.readElementText() == "no";
       } else {
@@ -172,9 +187,7 @@ void RasterSymbolManager::parseSymbols(QXmlStreamReader &reader,
 
 
 void RasterSymbolManager::parseSymbolData(QXmlStreamReader &reader,
-                                          ParseData &d,
-                                          GL::VertexVector &vertices,
-                                          GL::IndexVector &indices) {
+                                          ParseData &d) {
   Q_ASSERT(reader.name() == "bitmap");
 
   int w = reader.attributes().value("width").toInt();
@@ -216,11 +229,11 @@ void RasterSymbolManager::parseSymbolData(QXmlStreamReader &reader,
   // offset of the upper left corner
   d.offset = QPointF((o.x() - p.x()) / dots_per_mm_x(),
                      (p.y() - o.y()) / dots_per_mm_y());
-  d.elements = S57::ElementData(GL_TRIANGLES, indices.size() * sizeof(GLuint), 6);
+  d.elements = S57::ElementData(GL_TRIANGLES, m_indexBackup.size() * sizeof(GLuint), 6);
 
 
-  const GLuint ioff = vertices.size() / 4;
-  indices << 0 + ioff << 1 + ioff << 2 + ioff << 0 + ioff << 2 + ioff << 3 + ioff;
+  const GLuint ioff = m_vertexBackup.size() / 4;
+  m_indexBackup << 0 + ioff << 1 + ioff << 2 + ioff << 0 + ioff << 2 + ioff << 3 + ioff;
 
   // upper left
   const QPointF p0(0., 0.);
@@ -228,10 +241,10 @@ void RasterSymbolManager::parseSymbolData(QXmlStreamReader &reader,
   const QPointF p1 = p0 + QPointF(w / dots_per_mm_x(), - h / dots_per_mm_y());
   const QPointF t1 = t0 + QPointF(w / W, h / H);
 
-  vertices << p0.x() << p0.y() << t0.x() << t0.y();
-  vertices << p1.x() << p0.y() << t1.x() << t0.y();
-  vertices << p1.x() << p1.y() << t1.x() << t1.y();
-  vertices << p0.x() << p1.y() << t0.x() << t1.y();
+  m_vertexBackup << p0.x() << p0.y() << t0.x() << t0.y();
+  m_vertexBackup << p1.x() << p0.y() << t1.x() << t0.y();
+  m_vertexBackup << p1.x() << p1.y() << t1.x() << t1.y();
+  m_vertexBackup << p0.x() << p1.y() << t0.x() << t1.y();
 
 }
 

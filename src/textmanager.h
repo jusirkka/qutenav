@@ -165,8 +165,10 @@ public:
              qint8 offsetX,
              qint8 offsetY);
 
-  void createTexture(int w, int h);
   void updateTextureData();
+
+  void initializeGL();
+  void finalizeGL();
 
   int atlasWidth() const;
   int atlasHeight() const;
@@ -189,6 +191,9 @@ private slots:
   void requestUpdate();
 
 private:
+
+  void createTexture(int w, int h);
+
 
   using TextMap = QHash<TextKey, int>;
   using DataVector = QVector<GL::VertexVector>;

@@ -45,6 +45,7 @@ ChartPainter::ChartPainter(QObject* parent)
 
 ChartPainter::~ChartPainter() {
   delete m_fbo;
+  delete m_logger;
 }
 
 void ChartPainter::initializeGL() {
@@ -113,6 +114,7 @@ void ChartPainter::paintGL(const Camera *cam) {
   m_textureShader->setUniforms(cam, m_ref, m_viewArea);
 
   funcs->glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+  funcs->glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 void ChartPainter::updateCharts(const Camera* cam, const QRectF& viewArea) {
@@ -130,6 +132,7 @@ void ChartPainter::updateCharts(const Camera* cam, const QRectF& viewArea) {
     QOpenGLFramebufferObjectFormat fmt;
     fmt.setAttachment(QOpenGLFramebufferObject::CombinedDepthStencil);
     m_fbo = new QOpenGLFramebufferObject(bufSize.toSize(), fmt);
+    // qCDebug(CDPY) << "FBO" << m_fbo->handle() << m_fbo->isValid();
   }
 
   // qCDebug(CDPY) << "updateCharts:" << bufSize << viewArea.size();
@@ -154,7 +157,6 @@ void ChartPainter::updateCharts(const Camera* cam, const QRectF& viewArea) {
     chart->lock();
     chart->updateModelTransform(bufCam);
   }
-
 
   // draw opaque objects nearest (highest priority) first
   for (int i = S52::Lookup::PriorityCount - 1; i >= 0; i--) {

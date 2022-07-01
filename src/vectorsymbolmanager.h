@@ -67,11 +67,14 @@ public:
   VectorSymbolManager();
 
   static VectorSymbolManager* instance();
-  void createSymbols();
+
   void init();
 
   SymbolData symbolData(quint32 index, S52::SymbolType type) const;
   bool paintIcon(QPainter& painter, quint32 index, S52::SymbolType type, qint16 angle);
+
+  void initializeGL();
+  void finalizeGL();
 
   void bind();
 
@@ -79,6 +82,8 @@ public:
 
 
 private:
+
+  void createSymbols();
 
   // length units in millimeters
   static const inline qreal mmUnit = .01;
@@ -109,14 +114,8 @@ private:
   using PainterDataMap = QHash<SymbolKey, PainterData>;
   using PixmapCache = QCache<CacheKey, QPixmap>;
 
-  void parseSymbols(QXmlStreamReader& reader,
-                    GL::VertexVector& vertices,
-                    GL::IndexVector& indices,
-                    S52::SymbolType type);
-
-  void parseSymbolData(QXmlStreamReader& reader,
-                       ParseData& d,
-                       QString& src);
+  void parseSymbols(QXmlStreamReader& reader, S52::SymbolType type);
+  void parseSymbolData(QXmlStreamReader& reader, ParseData& d, QString& src);
 
   SymbolMap m_symbolMap;
   SymbolData m_invalid;
@@ -125,4 +124,7 @@ private:
   // paintIcon interface
   PainterDataMap m_painterData;
   PixmapCache m_pixmapCache;
+  // backup
+  GL::VertexVector m_vertexBackup;
+  GL::IndexVector m_indexBackup;
 };

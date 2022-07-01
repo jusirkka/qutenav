@@ -29,6 +29,8 @@
 #include "chartmanager.h"
 #include "rastersymbolmanager.h"
 #include "vectorsymbolmanager.h"
+#include "s57chart.h"
+#include "shader.h"
 
 
 ChartRenderer::ChartRenderer(QQuickWindow *window)
@@ -45,15 +47,19 @@ void ChartRenderer::initializeGL() {
 
   m_vao.bind();
 
-  RasterSymbolManager::instance()->createSymbols();
-  VectorSymbolManager::instance()->createSymbols();
+  TextManager::instance()->initializeGL();
+  RasterSymbolManager::instance()->initializeGL();
+  VectorSymbolManager::instance()->initializeGL();
 
-  RasterSymbolManager::instance()->changeSymbolAtlas();
-  TextManager::instance()->updateTextureData();
+  for (S57Chart* c: ChartManager::instance()->charts()) {
+    c->proxy()->initializeGL();
+  }
 
   for (Drawable* drawable: m_mode->drawables()) {
     drawable->initializeGL();
   }
+
+  GL::Shader::InitializeGL();
 
   if (m_logger == nullptr) {
     m_logger = new QOpenGLDebugLogger;
@@ -114,6 +120,16 @@ QOpenGLFramebufferObject* ChartRenderer::createFramebufferObject(const QSize& si
 
 ChartRenderer::~ChartRenderer() {
   qCDebug(CDPY) << "ChartRenderer::~ChartRenderer";
+  TextManager::instance()->finalizeGL();
+  RasterSymbolManager::instance()->finalizeGL();
+  VectorSymbolManager::instance()->finalizeGL();
+
+  for (S57Chart* c: ChartManager::instance()->charts()) {
+    c->proxy()->finalizeGL();
+  }
+
+  GL::Shader::FinalizeGL();
+
   m_mode->saveState();
   delete m_mode;
   delete m_logger;

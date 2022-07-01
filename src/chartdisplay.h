@@ -115,7 +115,6 @@ public:
   Q_INVOKABLE QPointF advance(const QGeoCoordinate& q, qreal distance, qreal heading) const;
   Q_INVOKABLE void updateChartDB(bool fullUpdate);
   Q_INVOKABLE QString displayBearing(const QGeoCoordinate& q1, const QGeoCoordinate& q2, bool swap) const;
-  Q_INVOKABLE QString scaleBarText(int index) const;
 
   Q_PROPERTY(QStringList chartSets
              READ chartSets
@@ -130,6 +129,22 @@ public:
              READ scaleBarLength
              NOTIFY scaleBarLengthChanged)
 
+  Q_PROPERTY(QStringList scaleBarTexts
+             READ scaleBarTexts
+             NOTIFY scaleBarTextsChanged)
+
+  Q_PROPERTY(QString scaleBarFontFamily
+             READ scaleBarFontFamily
+             CONSTANT)
+
+  Q_PROPERTY(int scaleBarFontPointSize
+             READ scaleBarFontPointSize
+             CONSTANT)
+
+  Q_PROPERTY(bool scaleBarFontBold
+             READ scaleBarFontBold
+             CONSTANT)
+
   using PointVector = QVector<QPointF>;
   void syncPositions(const WGS84PointVector& positions, PointVector& vertices) const;
   void syncPositions(const KV::EventString& events, PointVector& vertices) const;
@@ -137,6 +152,10 @@ public:
   QStringList chartSets() const;
   QString chartSet() const;
   qreal scaleBarLength() const {return m_scaleBarLength;}
+  QStringList scaleBarTexts() const {return m_scaleBarText;}
+  QString scaleBarFontFamily() const {return scale_bar_font_family;}
+  int scaleBarFontPointSize() const {return scale_bar_font_point_size;}
+  bool scaleBarFontBold() const {return scale_bar_font_bold;}
 
   void setChartSet(const QString& s);
 
@@ -185,9 +204,14 @@ signals:
   void infoQueryFullReady(const QList<QObject*>& info);
   void infoRequest(const WGS84Point& p);
   void chartDBStatus(const QString& msg);
-  void scaleBarTextChanged();
+  void scaleBarTextsChanged();
 
 private:
+
+  static const inline QString scale_bar_font_family = "sans-serif";
+  static const inline int scale_bar_font_point_size = 18;
+  static const inline bool scale_bar_font_bold = true;
+
 
   //% "Full sync ready"
   static const inline char* status_full_sync_ready = QT_TRID_NOOP("qutenav-status-full-sync-ready");

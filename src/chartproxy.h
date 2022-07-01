@@ -41,6 +41,8 @@ public:
   void create();
   void update();
 
+  void initializeGL();
+  void finalizeGL();
 
 private:
 

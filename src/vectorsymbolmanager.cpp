@@ -43,6 +43,25 @@ VectorSymbolManager* VectorSymbolManager::instance() {
   return m;
 }
 
+void VectorSymbolManager::initializeGL() {
+  createSymbols();
+}
+
+void VectorSymbolManager::finalizeGL() {
+  m_coordBuffer.bind();
+  m_vertexBackup.resize(m_coordBuffer.size() / sizeof(GLfloat));
+  memcpy(m_vertexBackup.data(), m_coordBuffer.map(QOpenGLBuffer::ReadOnly), m_coordBuffer.size());
+  m_coordBuffer.unmap();
+  m_coordBuffer.destroy();
+
+  m_indexBuffer.bind();
+  m_indexBackup.resize(m_indexBuffer.size() / sizeof(GLuint));
+  memcpy(m_indexBackup.data(), m_indexBuffer.map(QOpenGLBuffer::ReadOnly), m_indexBuffer.size());
+  m_indexBuffer.unmap();
+  m_indexBuffer.destroy();
+}
+
+
 VectorSymbolManager::~VectorSymbolManager() {}
 
 SymbolData VectorSymbolManager::symbolData(quint32 index, S52::SymbolType type) const {
@@ -62,47 +81,45 @@ void VectorSymbolManager::createSymbols() {
 
   if (m_coordBuffer.isCreated()) return;
 
-  QFile file(S52::FindPath("chartsymbols.xml"));
-  file.open(QFile::ReadOnly);
-  QXmlStreamReader reader(&file);
+  if (m_vertexBackup.isEmpty()) {
 
-  reader.readNextStartElement();
-  Q_ASSERT(reader.name() == "chartsymbols");
+    QFile file(S52::FindPath("chartsymbols.xml"));
+    file.open(QFile::ReadOnly);
+    QXmlStreamReader reader(&file);
 
-  GL::VertexVector vertices;
-  GL::IndexVector indices;
-  while (reader.readNextStartElement()) {
-    if (reader.name() == "line-styles") {
-      parseSymbols(reader, vertices, indices, S52::SymbolType::LineStyle);
-    } else if (reader.name() == "patterns") {
-      parseSymbols(reader, vertices, indices, S52::SymbolType::Pattern);
-    } else if (reader.name() == "symbols") {
-      parseSymbols(reader, vertices, indices, S52::SymbolType::Single);
-    } else {
-      reader.skipCurrentElement();
+    reader.readNextStartElement();
+    Q_ASSERT(reader.name() == "chartsymbols");
+
+    while (reader.readNextStartElement()) {
+      if (reader.name() == "line-styles") {
+        parseSymbols(reader, S52::SymbolType::LineStyle);
+      } else if (reader.name() == "patterns") {
+        parseSymbols(reader, S52::SymbolType::Pattern);
+      } else if (reader.name() == "symbols") {
+        parseSymbols(reader, S52::SymbolType::Single);
+      } else {
+        reader.skipCurrentElement();
+      }
     }
+    file.close();
   }
-  file.close();
-
-  // fill in vertex buffer
+    // fill in vertex buffer
   m_coordBuffer.create();
   m_coordBuffer.bind();
   m_coordBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
-  m_coordBuffer.allocate(vertices.constData(), sizeof(GLfloat) * vertices.size());
+  m_coordBuffer.allocate(m_vertexBackup.constData(), sizeof(GLfloat) * m_vertexBackup.size());
+  m_vertexBackup.clear();
 
   // fill in index buffer
   m_indexBuffer.create();
   m_indexBuffer.bind();
   m_indexBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
-  m_indexBuffer.allocate(indices.constData(), sizeof(GLuint) * indices.size());
-
+  m_indexBuffer.allocate(m_indexBackup.constData(), sizeof(GLuint) * m_indexBackup.size());
+  m_indexBackup.clear();
 }
 
 
-void VectorSymbolManager::parseSymbols(QXmlStreamReader& reader,
-                                       GL::VertexVector& vertices,
-                                       GL::IndexVector& indices,
-                                       S52::SymbolType t) {
+void VectorSymbolManager::parseSymbols(QXmlStreamReader& reader, S52::SymbolType t) {
   const QString itemName = t == S52::SymbolType::Single ?
         "symbol" : t == S52::SymbolType::LineStyle ? "line-style" : "pattern";
 
@@ -148,13 +165,13 @@ void VectorSymbolManager::parseSymbols(QXmlStreamReader& reader,
       S57::ElementData e;
       e.mode = GL_TRIANGLES;
       e.count = item.indices.size();
-      e.offset = indices.size() * sizeof(GLuint);
+      e.offset = m_indexBackup.size() * sizeof(GLuint);
       elems.append(e);
       // update vertices & indices
-      const GLuint offset = vertices.size() / 2;
-      vertices.append(item.vertices);
+      const GLuint offset = m_vertexBackup.size() / 2;
+      m_vertexBackup.append(item.vertices);
       for (GLuint i: item.indices) {
-        indices << offset + i;
+        m_indexBackup << offset + i;
       }
     }
 

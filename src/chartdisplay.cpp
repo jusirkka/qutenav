@@ -38,6 +38,8 @@
 #include "platform.h"
 #include "rastersymbolmanager.h"
 #include "vectorsymbolmanager.h"
+#include <QFont>
+#include <QFontMetrics>
 
 ObjectObject::ObjectObject(const QString &n, QObject *parent)
   : QObject(parent)
@@ -475,37 +477,49 @@ static QVector<quint32> digits(quint32 v) {
 }
 
 void ChartDisplay::computeScaleBar() {
-  // quarter width of the window in meters
-  const float w = m_camera->heightMM() * m_camera->aspect();
-  const float thresholdSI = 2.5e-4 * w * m_camera->scale();
-  auto conv = Units::Manager::instance()->distance();
-  float threshold = conv->fromSI(thresholdSI);
-  if (threshold < 1.) {
-    conv = Units::Manager::instance()->shortDistance();
-    threshold = conv->fromSI(thresholdSI);
-  }
-  auto ds = digits(threshold);
-  float x = ds[ds.size() - 1] * exp10(ds.size() - 1);
-  if (ds.size() > 1 && ds[ds.size() - 2] >= 5) {
-    x += 5 * exp10(ds.size() - 2);
-  }
   const quint32 sc = m_camera->scale();
-  m_scaleBarLength = dots_per_mm_x() * conv->toSI(x) / sc * 1000;
-  m_scaleBarText[0] = conv->display(x);
-  m_scaleBarText[1] = QString("1:%1").arg(static_cast<quint32>(1000 * std::round(sc / 1000.)));
-  m_scaleBarText[2] = "";
+  // window width in meters
+  const float w = m_camera->heightMM() * m_camera->aspect() * sc * .001;
+
+  const QFont font(scale_bar_font_family,
+                   scale_bar_font_point_size,
+                   scale_bar_font_bold ? QFont::Bold : -1);
+
+  for (float r = .25; r < .92; r += .02) {
+    const float thresholdSI = r * w;
+    auto conv = Units::Manager::instance()->distance();
+    float threshold = conv->fromSI(thresholdSI);
+    if (threshold < 1.) {
+      conv = Units::Manager::instance()->shortDistance();
+      threshold = conv->fromSI(thresholdSI);
+    }
+    auto ds = digits(threshold);
+    float x = ds[ds.size() - 1] * exp10(ds.size() - 1);
+    if (ds.size() > 1 && ds[ds.size() - 2] >= 5) {
+      x += 5 * exp10(ds.size() - 2);
+    }
+    m_scaleBarLength = dots_per_mm_x() * conv->toSI(x) / sc * 1000;
+    m_scaleBarText[0] = conv->display(x);
+    m_scaleBarText[1] = QString("1:%1").arg(static_cast<quint32>(1000 * std::round(sc / 1000.)));
+    m_scaleBarText[2] = "";
+
+    const auto minWidth = QFontMetrics(font).width(QString("%1xxx%2")
+                                                   .arg(m_scaleBarText[0])
+                                                   .arg(m_scaleBarText[1]));
+
+    // qCDebug(CDPY) << "scalebar:" << r << m_scaleBarLength << minWidth;
+
+    if (m_scaleBarLength > minWidth) break;
+  }
+
   if (Conf::Quick::IndicateScales() && ChartManager::instance()->nextScale() > 0) {
     m_scaleBarText[2] = QString("1:%1").arg(ChartManager::instance()->nextScale());
   }
   // qCDebug(CDPY) << "scalebar:" << m_scaleBarText;
   emit scaleBarLengthChanged(m_scaleBarLength);
-  emit scaleBarTextChanged();
+  emit scaleBarTextsChanged();
 }
 
-QString ChartDisplay::scaleBarText(int index) const {
-  if ((index < 0) || (index > 2)) return "";
-  return m_scaleBarText[index];
-}
 
 QString ChartDisplay::displayBearing(const QGeoCoordinate& q1, const QGeoCoordinate& q2, bool swap) const {
   if (!q1.isValid() || !q2.isValid()) return "";

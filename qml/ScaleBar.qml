@@ -65,9 +65,9 @@ Item {
     anchors.rightMargin: theme.paddingSmall
     anchors.right: rbar.left
     color: "black"
-    font.bold: true
-    font.family: "sans-serif"
-    font.pixelSize: Math.round(theme.pixelRatio * 18)
+    font.bold: encdis.scaleBarFontBold
+    font.family: encdis.scaleBarFontFamily
+    font.pointSize: encdis.scaleBarFontPointSize
     horizontalAlignment: Text.AlignHRight
     text: scaleBar.distanceText
   }
@@ -78,9 +78,9 @@ Item {
     anchors.leftMargin: theme.paddingSmall
     anchors.left: lbar.right
     color: "black"
-    font.bold: true
-    font.family: "sans-serif"
-    font.pixelSize: Math.round(theme.pixelRatio * 18)
+    font.bold: encdis.scaleBarFontBold
+    font.family: encdis.scaleBarFontFamily
+    font.pointSize: encdis.scaleBarFontPointSize
     horizontalAlignment: Text.AlignHLeft
     text: scaleBar.scaleText
   }
@@ -91,9 +91,9 @@ Item {
     anchors.leftMargin: theme.paddingSmall
     anchors.left: lbar.right
     color: "green"
-    font.bold: true
-    font.family: "sans-serif"
-    font.pixelSize: Math.round(theme.pixelRatio * 18)
+    font.bold: encdis.scaleBarFontBold
+    font.family: encdis.scaleBarFontFamily
+    font.pointSize: encdis.scaleBarFontPointSize
     horizontalAlignment: Text.AlignHLeft
     text: scaleBar.scaleText2
     visible: text.length > 0
