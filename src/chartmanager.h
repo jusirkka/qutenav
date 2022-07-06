@@ -117,8 +117,6 @@ private:
                              const GeoProjection* p,
                              quint32 scale);
   void handleSmallScales(const ScaleVector& scales,
-                         const WGS84Point& sw,
-                         const WGS84Point& ne,
                          const GeoProjection* proj);
 
   void createBackground(KV::RegionMap& regions, const GeoProjection* gp, const KV::Region& remaining) const;

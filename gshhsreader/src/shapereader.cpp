@@ -27,8 +27,10 @@
 
 
 
-ShapeReader::ShapeReader(const QRectF& box, const GeoProjection* gp)
-  : m_box(box)
+ShapeReader::ShapeReader(const WGS84Point& sw, const WGS84Point& ne, const GeoProjection *gp)
+  : m_sw(sw)
+  , m_ne(ne)
+  , m_box(gp->fromWGS84(sw), gp->fromWGS84(ne))
   , m_proj(gp)
 {}
 
@@ -41,7 +43,7 @@ template<typename T> T read_value(QDataStream& stream) {
   return value;
 }
 
-QRectF read_bbox(QDataStream& stream, const GeoProjection* gp) {
+QRectF read_extent(QDataStream& stream) {
   const auto x0 = read_value<double>(stream);
   const auto y0 = read_value<double>(stream);
   const auto x1 = read_value<double>(stream);
@@ -50,8 +52,7 @@ QRectF read_bbox(QDataStream& stream, const GeoProjection* gp) {
   //  qDebug() << x0 << y0;
   //  qDebug() << x1 << y1;
 
-  return QRectF(gp->fromWGS84(WGS84Point::fromLL(x0, y0)),
-                gp->fromWGS84(WGS84Point::fromLL(x1, y1)));
+  return QRectF(QPointF(x0, y0), QPointF(x1, y1));
 }
 
 QPointF read_vertex(QDataStream& stream, const GeoProjection* gp) {
@@ -59,6 +60,32 @@ QPointF read_vertex(QDataStream& stream, const GeoProjection* gp) {
   const auto y = read_value<double>(stream);
 
   return gp->fromWGS84(WGS84Point::fromLL(x, y));
+}
+
+bool ShapeReader::extentIntersects(const QRectF& r) const {
+  if (r.height() <= 0) return false;
+  if (m_sw.lat() >= m_ne.lat()) return false;
+
+  const auto sw = r.topLeft(); // inverted y-axis
+  const auto ne = r.bottomRight(); // inverted y-axis
+
+  if (m_sw.lat() >= ne.y() || m_ne.lat() <= sw.y()) return false;
+
+  double d0 = m_ne.lng() - m_sw.lng();
+  while (d0 < 0.) d0 += 360;
+  while (d0 >= 360.) d0 -= 360.;
+
+  double x1 = sw.x() - m_sw.lng();
+  while (x1 < 0.) x1 += 360;
+  while (x1 >= 360.) x1 -= 360.;
+
+  double x2 = ne.x() - m_sw.lng();
+  while (x2 < 0.) x2 += 360;
+  while (x2 >= 360.) x2 -= 360.;
+
+  if (x1 >= d0 && x2 >= x1) return false;
+
+  return true;
 }
 
 void ShapeReader::read(GL::VertexVector& vertices,
@@ -103,9 +130,9 @@ void ShapeReader::read(GL::VertexVector& vertices,
     if (shpType != polygonType) {
       throw ChartFileError(QString("Shapetype %1 in record %2 is not polygon in %3").arg(shpType).arg(recNum).arg(path));
     }
-    auto bbox = read_bbox(stream, m_proj);
+    auto bbox = read_extent(stream);
     contentLen2 -= 16;
-    if (!m_box.intersects(bbox)) {
+    if (!extentIntersects(bbox)) {
       // qDebug() << "skipping" << recNum;
       stream.skipRawData(contentLen2 * 2);
       continue;

@@ -126,10 +126,10 @@ void GSHHSReader::readChart(GL::VertexVector& vertices,
   const auto lvl = index2Level(index);
   const double r = .1 * lvl;
 
-  auto box = QRectF(gp->fromWGS84(WGS84Point::fromLL(ref.lng() - r, ref.lat() - r)),
-                    gp->fromWGS84(WGS84Point::fromLL(ref.lng() + r, ref.lat() + r)));
+  ShapeReader reader(WGS84Point::fromLL(ref.lng() - r, ref.lat() - r),
+                     WGS84Point::fromLL(ref.lng() + r, ref.lat() + r),
+                     gp);
 
-  ShapeReader reader(box, gp);
   S57::ObjectBuilder helper;
 
   const quint32 newobj = S52::FindCIndex("NEWOBJ");
@@ -139,7 +139,7 @@ void GSHHSReader::readChart(GL::VertexVector& vertices,
 
   auto obj = new S57::Object(1, newobj);
   auto geom = reader.createBoxGeometry(vertices, indices);
-  helper.gshhsSetGeometry(obj, geom, box);
+  helper.gshhsSetGeometry(obj, geom, reader.bbox());
   S57::AttributeMap attrs;
   attrs[clsnam] = S57::Attribute(QString("GSHHSC"));
   attrs[symins] = S57::Attribute(QString("CS(GSHHSC01)"));

@@ -29,7 +29,7 @@ class ShapeReader {
 
 public:
 
-  ShapeReader(const QRectF& box, const GeoProjection* gp);
+  ShapeReader(const WGS84Point& sw, const WGS84Point& ne, const GeoProjection* gp);
 
   struct GeomArea {
     S57::Geometry::Area* area;
@@ -47,6 +47,7 @@ public:
 
   S57::Geometry::Area* createBoxGeometry(GL::VertexVector& vertices,
                                          GL::IndexVector& indices) const;
+  const QRectF& bbox() const {return m_box;}
 
 
 private:
@@ -79,6 +80,7 @@ private:
   bool boxContains(const QPointF& p) const;
   quint8 locationCode(const QPointF& p) const;
   bool boundaryPoint(const QPointF& p) const;
+  bool extentIntersects(const QRectF& r) const;
 
   void removeTail(GL::VertexVector& vertices, quint32 index, const QPointF& p) const;
 
@@ -104,7 +106,9 @@ private:
                             IndexVector& is,
                             quint32 vertexOffset) const;
 
-  QRectF m_box;
+  const WGS84Point m_sw;
+  const WGS84Point m_ne;
+  const QRectF m_box;
   const GeoProjection* m_proj;
 };
 

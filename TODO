@@ -1,5 +1,7 @@
 - tides
+- bug: assert failure in KV::Region when browsing high latitudes
 - busy spinner while charts are loading
+- check that chart db fetches work across dateline
 - ObjectInfo rewrite
 - firejail compatibility
 - quick settings
@@ -9,8 +11,4 @@
 - Route/editor: reverse & edit a route
 - Datetime format to Units: standard, localized
 - display total distance when editing a route
-- RulerSelection enum type -> create enumerations.h to hold all custom enums
 
-- check only bbox of the remaining region when fetching chart data from the database
-- bug: wrong sign in geoprojection when mapping lng ~ -180 with ref_lng ~ 160
-- bug: too slow small scale handling when there are many available scales

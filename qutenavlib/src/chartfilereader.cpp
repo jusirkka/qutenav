@@ -40,6 +40,14 @@ bool ChartFileReader::isBGIndex(quint32 index) {
 
 
 quint32 ChartFileReader::numBGIndices(const WGS84Point& sw, const WGS84Point& ne, quint32 lvl) {
+
+  // handle dateline
+  if (ne.lng() < sw.lng()) {
+    const auto ne1 = WGS84Point::fromLL(180., ne.lat());
+    const auto sw1 = WGS84Point::fromLL(-180., sw.lat());
+    return numBGIndices(sw, ne1, lvl) + numBGIndices(sw1, ne, lvl);
+  }
+
   auto ix1 = static_cast<qint32>(std::floor((10. * sw.lng() + x0) / 2 / lvl));
   ix1 = std::min(static_cast<qint32>(x0 / lvl - 1), std::max(0, ix1));
 
@@ -64,6 +72,18 @@ ChartFileReader::LevelVector ChartFileReader::bgLevels() {
 }
 
 ChartFileReader::BGIndexMap ChartFileReader::bgIndices(const WGS84Point& sw, const WGS84Point& ne, quint32 D) {
+  // handle dateline
+  if (ne.lng() < sw.lng()) {
+    const auto ne1 = WGS84Point::fromLL(180., ne.lat());
+    const auto sw1 = WGS84Point::fromLL(-180., sw.lat());
+    BGIndexMap r = bgIndices(sw, ne1, D);
+    const BGIndexMap r2 = bgIndices(sw1, ne, D);
+    for (auto it = r2.cbegin(); it != r2.cend(); ++it) {
+      r[it.key()] = it.value();
+    }
+    return r;
+  }
+
   auto ix1 = static_cast<qint32>(std::floor((10. * sw.lng() + x0) / 2 / D));
   ix1 = std::min(static_cast<qint32>(x0 / D - 1), std::max(0, ix1));
 

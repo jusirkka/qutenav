@@ -48,7 +48,9 @@ QPointF SimpleMercator::fromWGS84(const WGS84Point &p) const {
   const double s = sin(p.radiansLat());
   const double y3 = .5 * log((1 + s) / (1 - s)) * z0;
 
-  return QPointF((p.radiansLng() - m_ref.radiansLng()) * z0, y3 - m_y30);
+  const auto d = Angle::fromDegrees(p.lng() - m_ref.lng());
+
+  return QPointF(d.radians * z0, y3 - m_y30);
 }
 
 WGS84Point SimpleMercator::toWGS84(const QPointF &p) const {
@@ -81,8 +83,9 @@ QPointF CM93Mercator::fromWGS84(const WGS84Point& p) const {
   const double s = sin(p.radiansLat());
   const double y3 = .5 * log((1 + s) / (1 - s)) * zC;
 
-  return QPointF((p.radiansLng() - m_ref.radiansLng()) * zC / m_scaling.width(),
-                 (y3 - m_y30) / m_scaling.height());
+  const auto d = Angle::fromDegrees(p.lng() - m_ref.lng());
+
+  return QPointF(d.radians * zC / m_scaling.width(), (y3 - m_y30) / m_scaling.height());
 }
 
 WGS84Point CM93Mercator::toWGS84(const QPointF &p) const {

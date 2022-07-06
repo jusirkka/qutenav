@@ -121,7 +121,7 @@ protected:
   QString m_name;
 
   static const inline quint32 x0 = 1800;
-  static const inline quint32 y0 = 900;
+  static const inline quint32 y0 = 870;
   static const inline quint32 Index_Mask = 0x80000000;
 
 };

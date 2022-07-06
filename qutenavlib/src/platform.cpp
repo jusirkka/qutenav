@@ -55,9 +55,9 @@ const QString& baseAppName() {
 }
 
 int numberOfChartThreads() {
-  return 5;
   // FIXME: this is not constant/correct in sfos
   // return std::max(1, static_cast<int>(std::thread::hardware_concurrency()) - 1);
+  return 5;
 }
 
 
