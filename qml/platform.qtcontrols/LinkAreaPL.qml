@@ -1,6 +1,6 @@
 /* -*- coding: utf-8-unix -*-
  *
- * File: ButtonPL.qml
+ * File: LinkAreaPL.qml
  *
  * Copyright (C) 2021 Jukka Sirkka
  *

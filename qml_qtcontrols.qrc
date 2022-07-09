@@ -36,6 +36,7 @@
         <file alias="platform/ListItemPL.qml">qml/platform.qtcontrols/ListItemPL.qml</file>
         <file alias="platform/FolderPickerPL.qml">qml/platform.qtcontrols/FolderPickerPL.qml</file>
         <file alias="platform/LinkAreaPL.qml">qml/platform.qtcontrols/LinkAreaPL.qml</file>
+        <file alias="platform/BusyIndicatorPL.qml">qml/platform.qtcontrols/BusyIndicatorPL.qml</file>
         <file alias="PreferencesPage.qml">qml/PreferencesPage.qml</file>
         <file alias="ChartPreferencesPage.qml">qml/ChartPreferencesPage.qml</file>
         <file alias="UnitPreferencesPage.qml">qml/UnitPreferencesPage.qml</file>

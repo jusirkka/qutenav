@@ -56,6 +56,8 @@ ChartDisplay::ChartDisplay()
   : QQuickFramebufferObject()
   , m_camera(DetailMode::RestoreCamera())
   , m_initialized(false)
+  , m_processingCharts(false)
+  , m_busyTimer(new QTimer(this))
   , m_flags(0)
   , m_orientation(Qt::PortraitOrientation)
   , m_scaleBarLength(100)
@@ -65,6 +67,13 @@ ChartDisplay::ChartDisplay()
   setMirrorVertically(true);
   connect(this, &QQuickItem::windowChanged, this, &ChartDisplay::handleWindowChanged);
   connect(m_updater, &UpdaterInterface::status, this, &ChartDisplay::handleUpdaterStatus);
+
+  m_busyTimer->setSingleShot(true);
+  m_busyTimer->setInterval(500);
+
+  connect(m_busyTimer, &QTimer::timeout, this, [this] () {
+    indicateBusy(true);
+  });
 
   // Ensure that manager instances run in the main thread by calling them here
   ChartManager::instance()->createThreads();
@@ -133,17 +142,24 @@ void ChartDisplay::initializeSG() {
   });
 
   connect(chartMgr, &ChartManager::active, this, [this] (const QRectF& viewArea) {
-    // qCDebug(CDPY) << "active";
+    // qCDebug(CDPY) << "timer stop";
     m_flags |= EnteringChartMode | ChartsUpdated;
     m_viewArea = viewArea;
+    m_busyTimer->stop();
     update();
   });
 
   connect(chartMgr, &ChartManager::chartsUpdated, this, [this] (const QRectF& viewArea) {
-    // qCDebug(CDPY) << "charts updated";
+    // qCDebug(CDPY) << "timer stop";
     m_flags |= ChartsUpdated;
     m_viewArea = viewArea;
+    m_busyTimer->stop();
     update();
+  });
+
+  connect(chartMgr, &ChartManager::updatingCharts, this, [this] () {
+    // qCDebug(CDPY) << "timer start";
+    m_busyTimer->start();
   });
 
   connect(chartMgr, &ChartManager::proxyChanged, this, [this] () {
@@ -202,6 +218,14 @@ ChartDisplay::~ChartDisplay() {
 ChartDisplay::Renderer* ChartDisplay::createRenderer() const {
   qCDebug(CDPY) << "create renderer";
   return new ChartRenderer(window());
+}
+
+void ChartDisplay::indicateBusy(bool busy) {
+  // qCDebug(CDPY) << "processing charts =" << busy;
+  if (m_processingCharts != busy) {
+    m_processingCharts = busy;
+    emit processingChartsChanged();
+  }
 }
 
 QString ChartDisplay::defaultChartSet() const {

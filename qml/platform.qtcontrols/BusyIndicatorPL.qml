@@ -1,8 +1,8 @@
 /* -*- coding: utf-8-unix -*-
  *
- * File: LinkAreaPL.qml
+ * File: BusyIndicatorPL.qml
  *
- * Copyright (C) 2021 Jukka Sirkka
+ * Copyright (C) 2022 Jukka Sirkka
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,29 +17,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import Sailfish.Silica 1.0
-import org.qutenav 1.0
-import QtQuick 2.6
 
-BackgroundItem {
-  id: item
-  width: link.width + theme.paddingSmall
-  height: link.height
+import QtQuick 2.12
+import QtQuick.Controls 2.12
 
-  property alias linkText: link.text
-  signal linkActivated()
-
-  onClicked: {
-    linkActivated()
-  }
-
-  Text {
-    id: link
-    color: item.highlighted ? theme.highlightColor : theme.primaryColor
-    font.underline: true
-    font.pixelSize: theme.fontSizeSmall
-    textFormat: Text.PlainText
-    wrapMode: Text.Wrap
-  }
-
-}
+BusyIndicator {}

@@ -91,6 +91,7 @@ elseif (PLATFORM STREQUAL silica)
     qml/ValuePref.qml
     qml/platform.silica/ApplicationWindowPL.qml
     qml/platform.silica/ButtonPL.qml
+    qml/platform.silica/BusyIndicatorPL.qml
     qml/platform.silica/ChartPagePL.qml
     qml/platform.silica/ComboBoxPL.qml
     qml/platform.silica/ContextMenuItemPL.qml

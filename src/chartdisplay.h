@@ -29,6 +29,7 @@
 class DetailMode;
 class Camera;
 class UpdaterInterface;
+class QTimer;
 
 class AttributeObject: public QObject {
 
@@ -145,6 +146,10 @@ public:
              READ scaleBarFontBold
              CONSTANT)
 
+  Q_PROPERTY(bool processingCharts
+             READ processingCharts
+             NOTIFY processingChartsChanged)
+
   using PointVector = QVector<QPointF>;
   void syncPositions(const WGS84PointVector& positions, PointVector& vertices) const;
   void syncPositions(const KV::EventString& events, PointVector& vertices) const;
@@ -156,6 +161,7 @@ public:
   QString scaleBarFontFamily() const {return scale_bar_font_family;}
   int scaleBarFontPointSize() const {return scale_bar_font_point_size;}
   bool scaleBarFontBold() const {return scale_bar_font_bold;}
+  bool processingCharts() const {return m_processingCharts;}
 
   void setChartSet(const QString& s);
 
@@ -170,6 +176,7 @@ public:
   WGS84Point location(const QPointF& pos) const;
   QPointF position(const WGS84Point& wp) const;
 
+  void indicateBusy(bool busy);
 
   static const quint32 ChartsUpdated = 1;
   static const quint32 EnteringChartMode = 2;
@@ -205,6 +212,7 @@ signals:
   void infoRequest(const WGS84Point& p);
   void chartDBStatus(const QString& msg);
   void scaleBarTextsChanged();
+  void processingChartsChanged();
 
 private:
 
@@ -231,6 +239,8 @@ private:
 
   Camera* m_camera;
   bool m_initialized;
+  bool m_processingCharts;
+  QTimer* m_busyTimer;
   QRectF m_viewArea;
   quint32 m_flags;
 

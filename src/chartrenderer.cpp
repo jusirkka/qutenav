@@ -196,6 +196,7 @@ void ChartRenderer::synchronize(QQuickFramebufferObject *parent) {
     for (Drawable* d: m_mode->drawables()) {
       d->updateCharts(m_mode->camera(), item->viewArea());
     }
+    item->indicateBusy(false);
   }
 
   m_window->resetOpenGLState();

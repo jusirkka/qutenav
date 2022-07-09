@@ -376,6 +376,9 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
 
   if (m_viewport.contains(vp) && cam->scale() == m_scale && flags == 0) return;
 
+  // Inform chartdisplay that we are busy now
+  emit updatingCharts();
+
   // setup viewarea
   qreal mw = vp.width() * (viewportFactor - 1) / 2;
   qreal mh = vp.height() * (viewportFactor - 1) / 2;

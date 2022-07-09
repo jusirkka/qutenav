@@ -217,6 +217,12 @@ ChartPagePL {
     hasHeading: headingValid
   }
 
+  BusyIndicatorPL {
+    running: encdis.processingCharts
+    anchors.centerIn: parent
+    z: 400
+  }
+
   TrackInfo {
     id: trackInfo
     visible: !page.infoMode && trackButton.tracking

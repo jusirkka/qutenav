@@ -4,7 +4,7 @@
 - firejail compatibility
 - quick settings
 
-- busy spinner while charts are loading
+- sfos container build
 - ObjectInfo rewrite
 - speedup dbupdater by adding threads
 - display less details in smaller chart scales

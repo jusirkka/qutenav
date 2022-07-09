@@ -83,6 +83,7 @@ signals:
   void idle();
   void active(const QRectF& viewArea);
   void chartsUpdated(const QRectF& viewArea);
+  void updatingCharts();
   void infoResponse(const QString& objectId, const QString& info);
   void chartSetsUpdated();
   void proxyChanged();
