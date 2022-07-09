@@ -24,7 +24,7 @@ Dialog {
 
   //% "Accept"
   property string acceptText: qsTrId("qutenav-dialog-accept")
-  property int pageHeight: 300
+  property int pageHeight: 400
   property int pageWidth: parent.width / 3
   property bool hasOK: false
 

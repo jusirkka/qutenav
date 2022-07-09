@@ -525,7 +525,7 @@
       <translation>N/A</translation>
     </message>
     <message id="qutenav-edit-remove-selected">
-      <location filename="../qml/ChartPage.qml" line="+289" />
+      <location filename="../qml/ChartPage.qml" line="+292" />
       <source>Remove selected</source>
       <translation>Remove selected</translation>
     </message>
@@ -693,6 +693,11 @@
       <source>Create new route</source>
       <translation>Create new route</translation>
     </message>
+    <message id="qutenav-dialog-create-reversed-route">
+      <location line="+10" />
+      <source>Create reversed route</source>
+      <translation>Create reversed route</translation>
+    </message>
     <message id="qutenav-dialog-create-close-current">
       <location line="+10" />
       <source>Close current</source>
@@ -810,7 +815,7 @@
       <translation>National language text</translation>
     </message>
     <message id="qutenav-status-full-sync-ready">
-      <location filename="../src/chartdisplay.h" line="+195" />
+      <location filename="../src/chartdisplay.h" line="+217" />
       <source>Full sync ready</source>
       <translation>Full sync ready</translation>
     </message>

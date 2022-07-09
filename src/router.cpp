@@ -34,6 +34,7 @@ Router::Router(QQuickItem* parent)
   , m_synced(false)
   , m_modified(false)
   , m_routeId(-1)
+  , m_distance(0.)
 {
   setFlag(ItemHasContents, true);
 }
@@ -83,6 +84,12 @@ int Router::append(const QPointF& q) {
 
   m_modified = true;
 
+  if (m_positions.size() > 1) {
+    const auto last = m_positions.size() - 1;
+    m_distance += (m_positions[last] - m_positions[last - 1]).meters();
+    emit distanceChanged(m_distance);
+  }
+
   update();
 
   return m_vertices.size() - 1;
@@ -96,9 +103,20 @@ void Router::move(int index, const QPointF& dp) {
   }
 
   const QPointF q = m_vertices[index] + dp;
+  const auto pos = encdis->location(q);
 
+  qreal oldDist = 0.;
+  qreal newDist = 0.;
+  if (index > 0) {
+    oldDist += (m_positions[index] - m_positions[index - 1]).meters();
+    newDist += (pos - m_positions[index - 1]).meters();
+  }
+  if (index < m_positions.size() - 1) {
+    oldDist += (m_positions[index + 1] - m_positions[index]).meters();
+    newDist += (m_positions[index + 1] - pos).meters();
+  }
 
-  m_positions[index] = encdis->location(q);
+  m_positions[index] = pos;
   m_vertices[index] = q;
 
   for (QQuickItem* kid: childItems()) {
@@ -116,6 +134,10 @@ void Router::move(int index, const QPointF& dp) {
 
   m_synced = true;
 
+  if (newDist != oldDist) {
+    m_distance += newDist - oldDist;
+    emit distanceChanged(m_distance);
+  }
 
   update();
 }
@@ -160,6 +182,8 @@ void Router::remove(int index) {
 
   m_modified = true;
 
+  updateDistance();
+
   update();
 }
 
@@ -191,6 +215,31 @@ void Router::clear() {
   m_modified = true;
   m_synced = true;
 
+  m_distance = 0.;
+
+  update();
+}
+
+void Router::reverse() {
+
+  std::reverse(m_positions.begin(), m_positions.end());
+  std::reverse(m_vertices.begin(), m_vertices.end());
+
+  for (QQuickItem* kid: childItems()) {
+    auto index = QQmlProperty::read(kid, "index").toInt();
+    kid->setProperty("center", m_vertices[index]);
+  }
+
+  if (!m_edited) {
+    m_edited = true;
+    emit editedChanged();
+  }
+
+  m_routeId = -1;
+
+  m_modified = true;
+  m_synced = true;
+
   update();
 }
 
@@ -207,7 +256,6 @@ void Router::save() {
     }
     return;
   }
-
 
   try {
     if (m_routeId < 0) {
@@ -268,6 +316,7 @@ void Router::load(int rid) {
   m_modified = true;
   m_synced = true;
 
+  updateDistance();
 
   // No need to test m_edited - archive page enabled only if there are no edits.
 
@@ -301,7 +350,6 @@ QPointF Router::insert(int index) {
   m_positions.insert(index, encdis->location(q));
   m_vertices.insert(index, q);
 
-
   for (QQuickItem* kid: childItems()) {
     auto k = QQmlProperty::read(kid, "index").toInt();
     if (k >= index) {
@@ -316,9 +364,22 @@ QPointF Router::insert(int index) {
 
   m_modified = true;
 
+  updateDistance();
+
   update();
 
   return q;
+}
+
+void Router::updateDistance() {
+  qreal dist = 0.;
+  for (int i = 1; i < m_positions.size(); ++i) {
+    dist += (m_positions[i] - m_positions[i - 1]).meters();
+  }
+  if (m_distance != dist) {
+    m_distance = dist;
+    emit distanceChanged(m_distance);
+  }
 }
 
 QString Router::name() const {

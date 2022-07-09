@@ -198,6 +198,9 @@ ChartPagePL {
       id: router
       z: 200
       visible: !page.infoMode && !empty && !zoom.zooming
+      onDistanceChanged: {
+        bubble.show(units.displayDistance(distance, 3))
+      }
     }
 
     ChartIndicator {
@@ -272,11 +275,21 @@ ChartPagePL {
   }
 
   MapLabel {
+    id: bearingLabel
     visible: ruler.visible
     z: 300
     anchors.left: parent.left
     anchors.bottom: distButton.top
     label: encdis.displayBearing(ruler.c1, ruler.c2, ruler.selection === 1)
+  }
+
+  MapLabel {
+    id: locationLabel
+    visible: ruler.visible
+    z: 300
+    anchors.left: parent.left
+    anchors.bottom: bearingLabel.top
+    label: units.location(ruler.selection === 1 ? ruler.c1 : ruler.c2, 2)
   }
 
   EditButton {

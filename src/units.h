@@ -67,7 +67,7 @@ public:
   }
 
   Q_INVOKABLE float speed(float v) const {return m_speed->fromSI(v);}
-  Q_INVOKABLE QString displaySpeed(float v) const {return m_speed->displaySI(v);}
+  Q_INVOKABLE QString displaySpeed(float v, int prec = 0) const {return m_speed->displaySI(v, prec);}
 
   Q_PROPERTY(QString distanceSymbol
              READ distanceSymbol
@@ -78,7 +78,7 @@ public:
   }
 
   Q_INVOKABLE float distance(float v) const {return m_distance->fromSI(v);}
-  Q_INVOKABLE QString displayDistance(float v) const {return m_distance->displaySI(v);}
+  Q_INVOKABLE QString displayDistance(float v, int prec = 0) const {return m_distance->displaySI(v, prec);}
 
 
   Q_PROPERTY(QString depthSymbol

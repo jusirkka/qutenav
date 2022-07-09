@@ -116,8 +116,8 @@ void RouteTracker::updateSegment() {
   }
 
   if (m_position > m_route.length()) {
-    if (m_segmentEndPoint < m_route.size()) {
-      m_segmentEndPoint = m_route.size();
+    if (m_segmentEndPoint < m_route.size() - 1) {
+      m_segmentEndPoint = m_route.size() - 1;
       emit segmentEndPointChanged();
     }
     if (!std::isnan(m_segmentBearing)) {

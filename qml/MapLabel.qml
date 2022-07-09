@@ -31,6 +31,7 @@ Rectangle {
   border.color: "black"
 
   anchors {
+    topMargin: theme.paddingMedium
     bottomMargin: theme.paddingMedium
     leftMargin: theme.paddingMedium
     rightMargin: theme.paddingMedium

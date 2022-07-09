@@ -61,6 +61,16 @@ DialogPL {
     }
 
     IconListItemPL {
+      //% "Create reversed route"
+      label: qsTrId("qutenav-dialog-create-reversed-route")
+      iconName: app.getSystemIcon('new')
+      onClicked: {
+        dialog.router.reverse();
+        dialog.accept();
+      }
+    }
+
+    IconListItemPL {
       //% "Close current"
       label: qsTrId("qutenav-dialog-create-close-current")
       iconName: app.getSystemIcon('clear')

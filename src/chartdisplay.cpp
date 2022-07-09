@@ -524,7 +524,10 @@ void ChartDisplay::computeScaleBar() {
 QString ChartDisplay::displayBearing(const QGeoCoordinate& q1, const QGeoCoordinate& q2, bool swap) const {
   if (!q1.isValid() || !q2.isValid()) return "";
 
-  const WGS84Bearing d = WGS84Point::fromLL(q2.longitude(), q2.latitude()) - WGS84Point::fromLL(q1.longitude(), q1.latitude());
+  const auto p1 = WGS84Point::fromLL(q1.longitude(), q1.latitude());
+  const auto p2 = WGS84Point::fromLL(q2.longitude(), q2.latitude());
+
+  const WGS84Bearing d =  p2 - p1;
 
   auto conv = Units::Manager::instance()->distance();
   if (conv->fromSI(d.meters()) < 1.) {
@@ -532,19 +535,19 @@ QString ChartDisplay::displayBearing(const QGeoCoordinate& q1, const QGeoCoordin
   }
 
   int b = std::round(d.degrees());
-
   if (b < 0) b += 360;
-  int b1 = (b + 180) % 360;
-  if (swap) {
-    const int tmp = b;
-    b = b1;
-    b1 = tmp;
-  }
 
-  const QString tmpl = "%1   %2° - %3°";
+  int b1 = (b + 180) % 360;
+
+  if (swap) std::swap(b, b1);
+
+  const QString tmpl = "%1  %2° - %3°";
   const QChar z('0');
 
-  return tmpl.arg(conv->displaySI(d.meters(), 3)).arg(b, 3, 10, z).arg(b1, 3, 10, z);
+  return tmpl
+      .arg(conv->displaySI(d.meters(), 3))
+      .arg(b, 3, 10, z)
+      .arg(b1, 3, 10, z);
 }
 
 #include <QTextStream>

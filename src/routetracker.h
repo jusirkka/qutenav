@@ -61,7 +61,7 @@ private:
   geos::geom::Coordinate fromWGS84Point(const WGS84Point& wp) const;
 
   static const inline qreal z0 = WGS84Point::semimajor_axis * 0.9996;
-  static const inline qreal alpha = 1. - exp(- 1. / 150); // 2.5 minute line speed average
+  static const inline qreal alpha = 1. - exp(- 1. / 60); // one minute line speed average
 
   int m_segmentEndPoint;
 

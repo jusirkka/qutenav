@@ -24,3 +24,9 @@ target_compile_options(GeographicLib
   PRIVATE
     -fPIC
 )
+
+target_compile_definitions(GeographicLib
+  PRIVATE
+    GEOGRAPHICLIB_GEODESIC_ORDER=4
+)
+

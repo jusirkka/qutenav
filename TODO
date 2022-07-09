@@ -1,14 +1,10 @@
 - tides
 - bug: assert failure in KV::Region when browsing high latitudes
-- busy spinner while charts are loading
 - check that chart db fetches work across dateline
-- ObjectInfo rewrite
 - firejail compatibility
 - quick settings
+
+- busy spinner while charts are loading
+- ObjectInfo rewrite
 - speedup dbupdater by adding threads
 - display less details in smaller chart scales
-- bug: loading a route when already tracking does not find correct location in the route
-- Route/editor: reverse & edit a route
-- Datetime format to Units: standard, localized
-- display total distance when editing a route
-

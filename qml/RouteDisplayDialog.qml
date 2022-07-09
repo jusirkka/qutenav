@@ -25,6 +25,7 @@ DialogPL {
   id: dialog
 
   property var router
+  property var tracker
   property int routeId
 
   //% "Select route"
@@ -36,6 +37,7 @@ DialogPL {
   onAccepted: {
     if (routeId > 0) {
       router.load(routeId);
+      tracker.reset()
     }
   }
 

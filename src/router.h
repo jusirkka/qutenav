@@ -60,6 +60,7 @@ public:
 
   Q_INVOKABLE void save();
   Q_INVOKABLE void clear();
+  Q_INVOKABLE void reverse();
   Q_INVOKABLE void load(int rid);
 
   Q_INVOKABLE QString name() const;
@@ -72,10 +73,13 @@ signals:
 
   void emptyChanged();
   void editedChanged();
+  void distanceChanged(qreal distance);
 
 public slots:
 
 private:
+
+  void updateDistance();
 
   static const int lineWidth = 4;
 
@@ -88,6 +92,7 @@ private:
   bool m_synced;
   bool m_modified;
   int m_routeId;
+  qreal m_distance;
 
 };
 
