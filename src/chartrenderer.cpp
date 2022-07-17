@@ -161,6 +161,7 @@ void ChartRenderer::synchronize(QQuickFramebufferObject *parent) {
       qCDebug(CDPY) << "LeavingChartMode";
       item->setCamera(m_mode->cloneCamera());
     }
+    item->indicateBusy(false);
   }
 
   if (item->consume(ChartDisplay::ProxyChanged)) {

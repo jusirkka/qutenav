@@ -25,6 +25,7 @@
 #include "dbupdater_adaptor.h"
 #include "s52names.h"
 #include "chartdatabase.h"
+#include "state.h"
 
 Q_IMPORT_PLUGIN(CM93ReaderFactory)
 Q_IMPORT_PLUGIN(S57ReaderFactory)
@@ -33,6 +34,9 @@ Q_IMPORT_PLUGIN(OesencReaderFactory)
 
 int main(int argc, char *argv[]) {
   QCoreApplication app(argc, argv);
+
+  qRegisterMetaType<State::OutlineData>();
+  qRegisterMetaType<S57ChartOutline>();
 
   S52::InitNames();
   auto updater = new Updater;

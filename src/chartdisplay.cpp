@@ -138,6 +138,7 @@ void ChartDisplay::initializeSG() {
   connect(chartMgr, &ChartManager::idle, this, [this] () {
     // qCDebug(CDPY) << "leaving chart mode";
     m_flags |= LeavingChartMode;
+    m_busyTimer->stop();
     update();
   });
 

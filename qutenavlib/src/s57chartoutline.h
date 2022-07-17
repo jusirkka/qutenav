@@ -73,3 +73,4 @@ private:
 
 };
 
+Q_DECLARE_METATYPE(S57ChartOutline)

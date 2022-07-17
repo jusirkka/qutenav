@@ -19,14 +19,13 @@
  */
 #pragma once
 
-#include <QObject>
-#include "chartdatabase.h"
-#include <QMap>
-#include <QHash>
-#include "s57chartoutline.h"
+#include <QStateMachine>
 
-class ChartFileReader;
-class ChartFileReaderFactory;
+class QState;
+
+namespace State {
+class Busy;
+}
 
 class Updater: public QObject {
 
@@ -49,49 +48,13 @@ signals:
   void ready(bool clearCache);
   void status(const QString& msg);
 
+  void start(const QStringList& paths, bool full);
+  void abort();
+
 
 private:
 
-  static const int statusFrequency = 50;
+  QStateMachine m_states;
+  State::Busy* m_busyState;
 
-  using IdSet = QSet<quint32>;
-
-  using FactoryMap = QMap<QString, ChartFileReaderFactory*>;
-  using ReaderMap = QMap<QString, ChartFileReader*>;
-  using ScaleMap = QMap<quint32, quint32>; // scale -> scale_id
-  using ScaleChartsetMap = QMap<QString, ScaleMap>;
-  using ChartsetMap = QMap<QString, quint32>; // chartset name -> chartset id
-
-  struct ChartInfo {
-    ChartInfo() = default;
-    ChartInfo(const QString& p, ChartFileReader* r)
-      : path(p)
-      , reader(r) {}
-    QString path;
-    ChartFileReader* reader;
-  };
-
-  using ChartInfoMap = QMap<quint32, ChartInfo>;
-  using ChartInfoVector = QVector<ChartInfo>;
-  using PathHash = QHash<QString, ChartFileReader*>;
-
-  void manageCharts(const QStringList& paths, ChartInfoMap* charts);
-  void updateCharts(const ChartInfoMap& charts);
-
-  void insertCharts(const PathHash& paths);
-  void checkChartsets();
-  void loadPlugins();
-  void deleteCharts(const IdSet& ids);
-  void deleteFrom(const QString& chartName, const IdSet& ids);
-  void insert(const QString& path, const S57ChartOutline& ch, quint32 scale_id);
-  void update(quint32 id, const S57ChartOutline& ch);
-  void insertCov(quint32 chart_id, quint32 type_id, const WGS84Polygon& r);
-  void cleanupDB();
-  void updateScalePriorities();
-
-  ChartDatabase m_db;
-
-  ReaderMap m_readers;
-  FactoryMap m_factories;
-  bool m_clearCache;
 };

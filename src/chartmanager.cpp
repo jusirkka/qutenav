@@ -754,11 +754,10 @@ void ChartManager::requestInfo(const WGS84Point &p) {
 
   if (m_charts.empty()) return;
 
-  QString sql("select chart_id, swx, swy, nex, ney "
-              "from m.charts "
-              "where chart_id in (");
-  sql += QString("?,").repeated(m_charts.size());
-  sql = sql.replace(sql.length() - 1, 1, ")");
+  const auto sql = QString("select chart_id, swx, swy, nex, ney "
+                           "from m.charts "
+                           "where chart_id in (?%1)")
+      .arg(QString(",?").repeated(m_charts.size() - 1));
 
   QSqlQuery r = m_db.prepare(sql);
   for (int i = 0; i < m_charts.size(); i++) {
