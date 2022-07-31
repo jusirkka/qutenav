@@ -778,7 +778,6 @@ S57ChartOutline CM93Reader::readOutline(const QString& path, const GeoProjection
         Edge e = mesh[index];
         e.reversed = edgeflags & ReversedBit;
         e.inner = edgeflags & InnerRingBit;
-        e.border = edgeflags & BorderBit;
         edges.append(e);
       }
     }
@@ -1022,7 +1021,6 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
         Edge e = mesh[index];
         e.reversed = edgeflags & ReversedBit;
         e.inner = edgeflags & InnerRingBit;
-        e.border = edgeflags & BorderBit;
         edges.append(e);
       }
       S57::ElementDataVector lines;

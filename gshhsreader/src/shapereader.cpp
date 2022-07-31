@@ -430,12 +430,14 @@ void ShapeReader::createAreaGeometries(GeomAreaVector& geoms,
 
     if (xps[j].index == lastIndex) {
       // create geom
-      const auto poly = ChartFileReader::createLineElements(indices, vertices, areaEdges);
+      auto poly = ChartFileReader::createLineElements(indices, vertices, areaEdges);
       S57::ElementDataVector triangles;
       ChartFileReader::triangulate(triangles, indices, vertices, poly);
       const auto center = ChartFileReader::computeAreaCenterAndBboxes(triangles, vertices, indices);
       auto lines = ChartFileReader::createLineElements(indices, vertices, lineEdges);
-      auto box = ChartFileReader::computeBBox(lines, vertices, indices);
+      const auto box =
+          ChartFileReader::computeBBox(lines, vertices, indices) |
+          ChartFileReader::computeBBox(poly, vertices, indices);
       auto area = new S57::Geometry::Area(lines,
                                           center,
                                           triangles,

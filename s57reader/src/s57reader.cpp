@@ -216,6 +216,7 @@ using Orient = S57::Record::Orient::palette;
 using TopInd = S57::Record::TopInd::palette;
 using Boundary = S57::Record::Boundary::palette;
 using Geom = S57::Record::Geometry::palette;
+using Usage = S57::Record::Usage::palette;
 
 GeoProjection* S57Reader::configuredProjection(const QString& path) const {
 
@@ -488,6 +489,7 @@ S57ChartOutline S57Reader::readOutline(const QString& path, const GeoProjection*
             ref.id = pf.id;
             ref.reversed = pf.orient.value == Orient::Reverse;
             ref.inner = pf.boundary.value == Boundary::Interior;
+            ref.masked = pf.usage.value != Usage::Show;
             crefs.refs.append(ref);
           }
           covRefs[frid->id()] = crefs;
@@ -507,6 +509,7 @@ S57ChartOutline S57Reader::readOutline(const QString& path, const GeoProjection*
             ref.id = pf.id;
             ref.reversed = pf.orient.value == Orient::Reverse;
             ref.inner = pf.boundary.value == Boundary::Interior;
+            ref.masked = pf.usage.value != Usage::Show;
             covRefs[frid->id()].refs.insert(fspc->first - 1, ref);
           }
           return true;
@@ -518,6 +521,7 @@ S57ChartOutline S57Reader::readOutline(const QString& path, const GeoProjection*
           ref.id = pf.id;
           ref.reversed = pf.orient.value == Orient::Reverse;
           ref.inner = pf.boundary.value == Boundary::Interior;
+          ref.masked = pf.usage.value != Usage::Show;
           covRefs[frid->id()].refs[fspc->first - 1 + i] = ref;
         }
         return true;
@@ -857,6 +861,7 @@ void S57Reader::readChart(GL::VertexVector& vertices,
                 ref.id = pf.id;
                 ref.reversed = pf.orient.value == Orient::Reverse;
                 ref.inner = pf.boundary.value == Boundary::Interior;
+                ref.masked = pf.usage.value != Usage::Show;
                 feature.edgeRefs.append(ref);
               }
             }
@@ -914,6 +919,7 @@ void S57Reader::readChart(GL::VertexVector& vertices,
             ref.id = pf.id;
             ref.reversed = pf.orient.value == Orient::Reverse;
             ref.inner = pf.boundary.value == Boundary::Interior;
+            ref.masked = pf.usage.value != Usage::Show;
             features[frid->id()].edgeRefs.insert(fspc->first - 1, ref);
           }
           return true;
@@ -931,6 +937,7 @@ void S57Reader::readChart(GL::VertexVector& vertices,
             ref.id = pf.id;
             ref.reversed = pf.orient.value == Orient::Reverse;
             ref.inner = pf.boundary.value == Boundary::Interior;
+            ref.masked = pf.usage.value != Usage::Show;
             features[frid->id()].edgeRefs[fspc->first - 1 + i] = ref;
           }
         }
@@ -1064,21 +1071,43 @@ void S57Reader::readChart(GL::VertexVector& vertices,
         delete objects.takeLast();
         continue;
       }
-      EdgeVector shape;
+      EdgeVector areaEdges;
+      EdgeVector lineEdges;
+      bool hasMaskedEdge = false;
       for (const RawEdgeRef& ref: feature.edgeRefs) {
         Edge e = pedges[ref.id];
         e.reversed = ref.reversed;
         e.inner = ref.inner;
-        shape.append(e);
+        if (!ref.masked) {
+          lineEdges.append(e);
+        } else {
+          hasMaskedEdge = true;
+        }
+        if (geom == Geom::Area) {
+          areaEdges.append(e);
+        }
       }
-      auto lines = createLineElements(indices, vertices, shape);
-      auto bbox = computeBBox(lines, vertices, indices);
+      //      if (hasMaskedEdge) {
+      //        qCDebug(CENC) << S52::GetClassInfo(obj->classCode())
+      //                      << (geom == Geom::Area ? "[Area]" : "[Line]")
+      //                      << "has masked edges";
+      //      }
 
       if (geom == Geom::Area) {
+        auto poly = createLineElements(indices, vertices, areaEdges);
+        auto bbox = computeBBox(poly, vertices, indices);
         S57::ElementDataVector triangles;
-        triangulate(triangles, indices, vertices, lines);
+        triangulate(triangles, indices, vertices, poly);
 
-        auto center = computeAreaCenterAndBboxes(triangles, vertices, indices);
+        S57::ElementDataVector lines;
+        if (!hasMaskedEdge) {
+          lines = poly;
+        } else {
+          lines = createLineElements(indices, vertices, lineEdges);
+          bbox |= computeBBox(lines, vertices, indices);
+        }
+        const auto center = computeAreaCenterAndBboxes(triangles, vertices, indices);
+
         helper.s57SetGeometry(obj,
                               new S57::Geometry::Area(lines,
                                                       center,
@@ -1089,7 +1118,9 @@ void S57Reader::readChart(GL::VertexVector& vertices,
                               bbox);
 
       } else {
-        auto center = computeLineCenter(lines, vertices, indices);
+        auto lines = createLineElements(indices, vertices, lineEdges);
+        const auto bbox = computeBBox(lines, vertices, indices);
+        const auto center = computeLineCenter(lines, vertices, indices);
         helper.s57SetGeometry(obj,
                               new S57::Geometry::Line(lines, center, 0, gp),
                               bbox);

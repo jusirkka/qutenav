@@ -28,7 +28,7 @@
 #include <QScopedPointer>
 #include <QStateMachine>
 #include <QThread>
-
+#include <QDebug>
 
 State::Busy::Busy()
   : QState()

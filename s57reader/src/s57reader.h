@@ -63,6 +63,7 @@ private:
     quint32 id;
     bool reversed;
     bool inner;
+    bool masked;
   };
   using RawEdgeRefVector = QVector<RawEdgeRef>;
 

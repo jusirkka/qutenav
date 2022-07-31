@@ -86,7 +86,7 @@ struct ElementData {
   size_t count;
   QRectF bbox;
 
-  // default constructor does not cut anything
+  // constructor does not cut anything by default
   ElementData(GLenum m, uintptr_t off, size_t c)
     : mode(m)
     , offset(off)

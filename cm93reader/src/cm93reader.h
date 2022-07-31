@@ -58,7 +58,7 @@ private:
   static const quint8 RelatedBit2 = 2;
   static const quint8 AttributeBit = 8;
 
-  static const quint8 BorderBit = 1;
+  static const quint8 UnknownBit = 1;
   static const quint8 InnerRingBit = 2;
   static const quint8 ReversedBit = 4;
 
@@ -72,7 +72,6 @@ private:
     int count;
     bool reversed;
     bool inner;
-    bool border;
   };
   using EdgeVector = QVector<Edge>;
 
