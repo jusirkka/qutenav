@@ -23,6 +23,7 @@
 #include "s57chartoutline.h"
 #include "s57object.h"
 #include <QIODevice>
+#include <QDataStream>
 
 class GeoProjection;
 
@@ -132,7 +133,8 @@ enum class SencRecordType: quint16 {
   CELL_COVR_RECORD = 98,
   CELL_NOCOVR_RECORD = 99,
   CELL_EXTENT_RECORD = 100,
-  CELL_TXTDSC_INFO_FILE_RECORD = 101
+  CELL_TXTDSC_INFO_FILE_RECORD = 101,
+  SERVER_STATUS_RECORD = 200
 };
 
 #pragma pack(push,1)
@@ -205,5 +207,42 @@ struct OSENC_AreaGeometry_Record_Payload {
   char edge_data;
 };
 
+struct OSENC_ServerStat_Record_Payload {
+  uint16_t serverStatus;
+  uint16_t decryptStatus;
+  uint16_t expireStatus;
+  uint16_t expireDaysRemaining;
+  uint16_t graceDaysAllowed;
+  uint16_t graceDaysRemaining;
+};
+
 #pragma pack(pop)
 
+using Buffer = QVector<char>;
+
+template<typename T> const T* read_record(Buffer& buffer, QDataStream& stream, SencRecordType type) {
+
+  const int baseSize = sizeof(OSENC_Record_Base);
+
+  buffer.resize(baseSize);
+  if (stream.readRawData(buffer.data(), baseSize) < baseSize) {
+    throw ChartFileError(QString("Error reading %1 bytes").arg(baseSize));
+  }
+
+  auto record = reinterpret_cast<OSENC_Record_Base*>(buffer.data());
+  // Check the record
+  if (record->record_type != type){
+    throw ChartFileError(QString("Not a supported senc file: expecting type %1")
+                         .arg(as_numeric(type)));
+  }
+  buffer.resize(record->record_length - baseSize);
+  if (buffer.size() != sizeof(T)) {
+    throw ChartFileError(QStringLiteral("Size mismatch"));
+  }
+  // Read the record
+  if (stream.readRawData(buffer.data(), buffer.size()) < buffer.size()) {
+    throw ChartFileError(QString("Error reading %1 bytes from device").arg(buffer.size()));
+  }
+
+  return reinterpret_cast<const T*>(buffer.constData());
+}

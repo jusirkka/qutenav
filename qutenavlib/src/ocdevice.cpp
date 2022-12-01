@@ -1,6 +1,6 @@
 /* -*- coding: utf-8-unix -*-
  *
- * oedevice.cpp
+ * OCDevice.cpp
  *
  * Created: 2021-02-23 2021 by Jukka Sirkka
  *
@@ -20,7 +20,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "oedevice.h"
+#include "ocdevice.h"
 
 #include "logging.h"
 #include <QFileInfo>
@@ -37,12 +37,12 @@ extern "C" {
 #include <unistd.h>
 }
 
-OeDevice::OeDevice(const QString& path, ReadMode mode)
+OCDevice::OCDevice(const QString &path, ReadMode mode, const OCHelper* helper, const char* serverEPName)
   : QIODevice()
   , m_mode(mode)
   , m_path(path)
-  , m_userKey()
-  , m_clientEP(-1)
+  , m_helper(helper)
+  , m_serverEPName(serverEPName)
 {
 
   setObjectName(path);
@@ -51,39 +51,15 @@ OeDevice::OeDevice(const QString& path, ReadMode mode)
     throw ChartFileError(QString("Chart path %1 longer than 255 bytes").arg(m_path));
   }
 
-  // Get the user key
-  QFileInfo info(m_path);
-  QDir charts(info.path());
-  if (!charts.exists(QStringLiteral("Chartinfo.txt"))) {
-    throw ChartFileError(QString("Chartinfo.txt not found in %1").arg(info.path()));
-  }
-  QFile afile(charts.filePath(QStringLiteral("Chartinfo.txt")));
-  afile.open(QFile::ReadOnly);
-  QTextStream stream(&afile);
-  while (!stream.atEnd()) {
-    const QStringList parts = stream.readLine().split(":");
-    if (parts.length() != 2) continue;
-    if (parts[0] == QStringLiteral("UserKey")) {
-      m_userKey = parts[1].trimmed();
-      break;
-    }
-  }
-  afile.close();
-  if (m_userKey.isEmpty()) {
-    throw ChartFileError(QStringLiteral("User key not found in Chartinfo.txt"));
-  }
-  if (m_userKey.size() > 255) {
-    throw ChartFileError(QString("User key %1 longer than 255 bytes").arg(m_userKey));
-  }
+  m_chartKey = helper->getChartKey(m_path);
 
   // Create client endpoint
   m_clientEPName = QString("%1/%2-%3-%4-%5")
       .arg(QDir::tempPath())
       .arg(QApplication::applicationName())
       .arg(QApplication::applicationPid())
-      .arg(static_cast<uint>(m_mode))
+      .arg(static_cast<int>(helper->getCommand(m_mode)))
       .arg(QString(CacheId(m_path)));
-
 
   if (m_clientEPName.size() > 255) {
     throw ChartFileError(QString("Client endpoint name %1 longer than 255 bytes").arg(m_clientEPName));
@@ -100,23 +76,24 @@ OeDevice::OeDevice(const QString& path, ReadMode mode)
   }
 }
 
-OeDevice::~OeDevice() {
-  qCDebug(CENC) << "~OeDevice";
+OCDevice::~OCDevice() {
+  qCDebug(CENC) << "~OCDevice";
+  delete m_helper;
   close();
 }
 
-bool OeDevice::atEnd() const {
-  // qCDebug(CENC) << "OeDevice::atEnd" << (m_clientEP < 0);
+bool OCDevice::atEnd() const {
+  // qCDebug(CENC) << "OCDevice::atEnd" << (m_clientEP < 0);
   return m_clientEP < 0;
 }
 
-qint64 OeDevice::bytesAvailable() const {
-  qCDebug(CENC) << "OeDevice::bytesAvailable" << QIODevice::bytesAvailable();
+qint64 OCDevice::bytesAvailable() const {
+  qCDebug(CENC) << "OCDevice::bytesAvailable" << QIODevice::bytesAvailable();
   return QIODevice::bytesAvailable();
 }
 
-void OeDevice::close() {
-  qCDebug(CENC) << "OeDevice::close";
+void OCDevice::close() {
+  qCDebug(CENC) << "OCDevice::close";
   if (m_clientEP > 0) {
     ::close(m_clientEP);
   }
@@ -127,35 +104,30 @@ void OeDevice::close() {
   }
 }
 
-bool OeDevice::isSequential() const {
+bool OCDevice::isSequential() const {
   return true;
 }
 
-bool OeDevice::open(OpenMode mode) {
+bool OCDevice::open(OpenMode mode) {
   if (!(mode & ReadOnly)) {
-    qCDebug(CENC) << "OeDevice::open failed: not readonly";
+    qCDebug(CENC) << "OCDevice::open failed: not readonly";
     return false;
   }
 
   if (!QIODevice::open(mode | Unbuffered)) {
-    qCDebug(CENC) << "OeDevice::open failed";
+    qCDebug(CENC) << "OCDevice::open failed";
     return false;
   }
 
-  auto serverEP = ::open(serverEPName, O_WRONLY | O_NDELAY);
+  auto serverEP = ::open(m_serverEPName.toUtf8().constData(), O_WRONLY | O_NDELAY);
   if (serverEP < 0) {
     qCWarning(CENC) << strerror(errno);
     return false;
   }
 
+  auto bytes = m_helper->encodeMsg(m_mode, m_path, m_clientEPName, m_chartKey);
 
-  FifoMessage msg;
-  msg.cmd = static_cast<char>(m_mode);
-  strncpy(msg.fifo_name, m_clientEPName.toUtf8().constData(), 256);
-  strncpy(msg.senc_name, m_path.toUtf8().constData(), 256);
-  strncpy(msg.senc_key, m_userKey.toUtf8().constData(), 256);
-
-  ::write(serverEP, reinterpret_cast<char*>(&msg), sizeof(msg));
+  ::write(serverEP, bytes.constData(), bytes.size());
 
   ::close(serverEP);
 
@@ -170,7 +142,7 @@ bool OeDevice::open(OpenMode mode) {
 #define READ_SIZE 64000LL
 #define MAX_TRIES 100
 
-qint64 OeDevice::readData(char* data, qint64 len) {
+qint64 OCDevice::readData(char* data, qint64 len) {
 
   if (m_clientEP < 0) return -1;
 
@@ -203,14 +175,14 @@ qint64 OeDevice::readData(char* data, qint64 len) {
   return bytesRead;
 }
 
-QByteArray OeDevice::CacheId(const QString& path) {
+QByteArray OCDevice::CacheId(const QString& path) {
   QCryptographicHash hash(QCryptographicHash::Sha1);
   hash.addData(path.toUtf8());
   // convert sha1 to base36 form and return first 8 bytes for use as string
   return QByteArray::number(*reinterpret_cast<const quint64*>(hash.result().constData()), 36).left(8);
 }
 
-void OeDevice::Kickoff() {
+void OCDevice::Kickoff(const char* serverPath, const char* serverEPName) {
   int cnt = 10;
   auto serverEP = ::open(serverEPName, O_WRONLY | O_NDELAY);
   while ((serverEP < 0) && (cnt > 0)) {
@@ -220,13 +192,13 @@ void OeDevice::Kickoff() {
     cnt--;
   }
   if (serverEP > 0) {
-    qCDebug(CENC) << "oeserverd already running";
+    qCDebug(CENC) << serverPath << "already running";
     ::close(serverEP);
     return;
   }
 
-  bool ok = QProcess::startDetached(QString(serverName), QStringList());
-  qCDebug(CENC) << "launched" << serverName << ", status =" << ok;
+  bool ok = QProcess::startDetached(QString(serverPath), QStringList());
+  qCDebug(CENC) << "launched" << serverPath << ", status =" << ok;
 
   serverEP = ::open(serverEPName, O_WRONLY | O_NDELAY);
   cnt = 20;
@@ -238,7 +210,7 @@ void OeDevice::Kickoff() {
   }
   if (serverEP < 0) {
     throw ChartFileError(QString("%1 launched with status %2: cannot open %3")
-                         .arg(QString(serverName)).arg(ok).arg(QString(serverEPName)));
+                         .arg(QString(serverPath)).arg(ok).arg(QString(serverEPName)));
   }
   ::close(serverEP);
 }

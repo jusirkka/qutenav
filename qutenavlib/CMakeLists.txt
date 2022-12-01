@@ -1,5 +1,10 @@
 add_library(QuteNavLib STATIC)
 
+set_target_properties(QuteNavLib
+  PROPERTIES
+    AUTOMOC ON
+)
+
 target_sources(QuteNavLib
   PRIVATE
     src/chartdatabase.cpp
@@ -8,6 +13,7 @@ target_sources(QuteNavLib
     src/geoprojection.cpp
     src/logging.cpp
     src/osenc.cpp
+    src/ocdevice.cpp
     src/platform.cpp
     src/region.cpp
     src/s52names.cpp

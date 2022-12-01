@@ -27,7 +27,6 @@
 // #include "gnuplot.h"
 #include <QFileInfo>
 
-using Buffer = QVector<char>;
 using HandlerFunc = std::function<bool (const Buffer&)>;
 
 struct Handler {
@@ -51,27 +50,9 @@ GeoProjection* Osenc::configuredProjection(QIODevice *device, const QString &cls
   QDataStream stream(device);
 
   Buffer buffer;
-  const int baseSize = sizeof(OSENC_Record_Base);
 
-  buffer.resize(baseSize);
-  if (stream.readRawData(buffer.data(), baseSize) < baseSize) {
-    throw ChartFileError(QString("Error reading %1 bytes").arg(buffer.size()));
-  }
-
-  //  For identification purposes, the very first record must be the OSENC Version Number Record
-  auto record = reinterpret_cast<OSENC_Record_Base*>(buffer.data());
-
-  // Check Record
-  if (record->record_type != SencRecordType::HEADER_SENC_VERSION){
-    throw ChartFileError(QString("Not a supported senc file"));
-  }
-
-  //  This is the correct record type (OSENC Version Number Record), so read it
-  buffer.resize(record->record_length - baseSize);
-  if (stream.readRawData(buffer.data(), buffer.size()) < buffer.size()) {
-    throw ChartFileError(QString("Error reading %1 bytes from device").arg(buffer.size()));
-  }
-  // auto p16 = reinterpret_cast<quint16*>(buffer.data());
+  /*auto p16 =*/
+  read_record<quint16>(buffer, stream, SencRecordType::HEADER_SENC_VERSION);
   // qCDebug(CENC) << "senc version =" << *p16;
 
   WGS84Point ref;
@@ -124,6 +105,7 @@ GeoProjection* Osenc::configuredProjection(QIODevice *device, const QString &cls
     },
   };
 
+  const int baseSize = sizeof(OSENC_Record_Base);
   bool done = false;
 
   while (!done) {
@@ -133,7 +115,7 @@ GeoProjection* Osenc::configuredProjection(QIODevice *device, const QString &cls
       done = true;
       continue;
     }
-    record = reinterpret_cast<OSENC_Record_Base*>(buffer.data());
+    auto record = reinterpret_cast<OSENC_Record_Base*>(buffer.data());
 
     if (record->record_length <= baseSize) {
       done = true;
@@ -169,27 +151,8 @@ S57ChartOutline Osenc::readOutline(QIODevice *device, const GeoProjection* gp) c
   QDataStream stream(device);
 
   Buffer buffer;
-  const int baseSize = sizeof(OSENC_Record_Base);
-
-  buffer.resize(baseSize);
-  if (stream.readRawData(buffer.data(), baseSize) < baseSize) {
-    throw ChartFileError(QString("Error reading %1 bytes from device").arg(baseSize));
-  }
-
-  //  For identification purposes, the very first record must be the OSENC Version Number Record
-  auto record = reinterpret_cast<OSENC_Record_Base*>(buffer.data());
-
-  // Check Record
-  if (record->record_type != SencRecordType::HEADER_SENC_VERSION){
-    throw ChartFileError(QString("Not a supported senc file"));
-  }
-
-  //  This is the correct record type (OSENC Version Number Record), so read it
-  buffer.resize(record->record_length - baseSize);
-  if (stream.readRawData(buffer.data(), buffer.size()) < buffer.size()) {
-    throw ChartFileError(QString("Error reading %1 bytes from device").arg(buffer.size()));
-  }
-  // auto p16 = reinterpret_cast<quint16*>(buffer.data());
+  /*auto p16 =*/
+  read_record<quint16>(buffer, stream, SencRecordType::HEADER_SENC_VERSION);
   // qCDebug(CENC) << "senc version =" << *p16;
 
   QDate pub;
@@ -284,6 +247,7 @@ S57ChartOutline Osenc::readOutline(QIODevice *device, const GeoProjection* gp) c
 
   };
 
+  const int baseSize = sizeof(OSENC_Record_Base);
   bool done = false;
 
   while (!done) {
@@ -293,7 +257,7 @@ S57ChartOutline Osenc::readOutline(QIODevice *device, const GeoProjection* gp) c
       done = true;
       continue;
     }
-    record = reinterpret_cast<OSENC_Record_Base*>(buffer.data());
+    auto record = reinterpret_cast<OSENC_Record_Base*>(buffer.data());
 
     if (record->record_length <= baseSize) {
       done = true;
@@ -655,9 +619,8 @@ void Osenc::readChart(GL::VertexVector& vertices,
 
   };
 
-  bool done = false;
-
   const int baseSize = sizeof(OSENC_Record_Base);
+  bool done = false;
 
   while (!done) {
 

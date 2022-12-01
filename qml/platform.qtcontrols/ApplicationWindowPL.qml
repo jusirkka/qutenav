@@ -93,7 +93,7 @@ ApplicationWindow {
   }
 
   Shortcut {
-    sequence: StandardKey.ZoomIn
+    sequences: ["Ctrl+=", "Ctrl++"] // Do not use StandardKey.ZoomIn: QTBUG-105193
     context: Qt.ApplicationShortcut
     onActivated: {
       encdis.zoomIn()

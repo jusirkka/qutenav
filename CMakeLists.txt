@@ -319,6 +319,7 @@ add_subdirectory(geographiclib)
 add_subdirectory(triangulate)
 add_subdirectory(osencreader)
 add_subdirectory(oesencreader)
+add_subdirectory(oesureader)
 add_subdirectory(cm93reader)
 add_subdirectory(s57reader)
 add_subdirectory(gshhsreader)
@@ -334,6 +335,7 @@ target_link_libraries(qutenav
     Platform
     Osencreader
     Oesencreader
+    Oesureader
     Cm93reader
     S57reader
     GSHHSreader
@@ -358,6 +360,7 @@ target_link_libraries(qutenav_dbupdater
     Dbupdater
     Osencreader
     Oesencreader
+    Oesureader
     Cm93reader
     S57reader
     QuteNavLib

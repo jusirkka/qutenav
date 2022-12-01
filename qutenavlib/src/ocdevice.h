@@ -1,6 +1,6 @@
 /* -*- coding: utf-8-unix -*-
  *
- * oedevice.h
+ * ocdevice.h
  *
  * Created: 2021-02-23 2021 by Jukka Sirkka
  *
@@ -22,17 +22,18 @@
 #pragma once
 
 #include <QIODevice>
+#include "ochelper.h"
 
-class OeDevice: public QIODevice {
+using ReadMode = OCHelper::ReadMode;
+
+class OCDevice: public QIODevice {
 
   Q_OBJECT
 
 public:
 
-  enum ReadMode {ReadSENC = 0, ReadHeader = 3};
-
-  OeDevice(const QString& path, ReadMode mode);
-  virtual ~OeDevice();
+  OCDevice(const QString& path, ReadMode mode, const OCHelper* helper, const char* serverEPName);
+  virtual ~OCDevice();
 
   bool atEnd() const override;
   qint64 bytesAvailable() const override;
@@ -40,7 +41,7 @@ public:
   bool isSequential() const override;
   bool open(OpenMode mode) override;
 
-  static void Kickoff();
+  static void Kickoff(const char* serverPath, const char* serverEPName);
 
 protected:
 
@@ -49,26 +50,17 @@ protected:
 
 private:
 
-  struct FifoMessage {
-    char cmd;
-    char fifo_name[256];
-    char senc_name[256];
-    char senc_key[256];
-  };
-
-  static const qint8 CmdExit = 2;
-  static const qint8 CmdTestAvail = 1;
-
-  static inline const char serverEPName[] = "/tmp/OCPN_PIPE";
-  static inline const char serverName[] = "/usr/bin/oeserverd";
-
   static QByteArray CacheId(const QString& path);
 
   ReadMode m_mode;
   QString m_path;
-  QString m_userKey;
+  QString m_chartKey;
+  const OCHelper* m_helper;
+
+  const QString m_serverEPName;
+
   QString m_clientEPName;
-  int m_clientEP;
+  int m_clientEP = -1;
 };
 
 

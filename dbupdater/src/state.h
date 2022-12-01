@@ -63,7 +63,7 @@ private slots:
 private:
 
   static const int statusFrequency = 50;
-  static const int numberOfThreads = 4;
+  static const int numberOfThreads = 5;
 
 
   void loadPlugins();

@@ -6,7 +6,7 @@ Only offline vector charts are supported, namely
 - CM93v2 charts
 - S57 charts
 - OpenCPN/SENC charts
-- OpenCPN/SENC encrypted charts (oesenc)
+- OpenCPN/SENC encrypted charts (oesenc, oesu)
 
 For sources of these charts, see the [OpenCPN chart source page](https://opencpn.org/OpenCPN/info/chartsource.html)
 
@@ -16,9 +16,11 @@ License (GPL) version 3. QuteNav also contains source code from other projects
 Charles Karney and licensed under the MIT/X11 License.
 - 2D Line string code from [GEOS](https://trac.osgeo.org/geos) (C) GEOS contributors and licenced under GPL.
 - [Earcut](https://github.com/mapbox/earcut.hpp) header-only triangulator (C) Mapbox, ISC License.
-- CM93v2 and O(E)SENC readers are based on work done in OpenCPN project (C) David S. Register, GPL v2.
-- The binaries oeserverd and libsgl*.so from [oesenc_pi OpenCPN plugin](https://github.com/bdbcat/oesenc_pi/)
+- CM93v2, OESU and O(E)SENC readers are based on work done in OpenCPN project (C) David S. Register, GPL v2.
+- The binaries oeserverd and libsgl*.so from [oesenc OpenCPN plugin](https://github.com/bdbcat/oesenc_pi/)
 needed to decrypt oesenc files are closed source, but re-distribution is allowed (C) David S. Register.
+- The binaries oexserverd and libsgl*.so from [o-charts OpenCPN plugin](https://github.com/bdbcat/o-charts_pi/)
+needed to decrypt oesu files are closed source, but re-distribution is allowed (C) David S. Register.
 - The design to organize platform dependencies of the qml code was copied from [pure-maps](https://github.com/rinigus/pure-maps)
 - The Glyph manager contains the Skyline bin packing algorithm from [RectangleBinPack](https://github.com/juj/RectangleBinPack)
 - The QuteNav logo is from [svgrepo.com](https://www.svgrepo.com/svg/233528/buoy), CC0 Licence.
@@ -97,4 +99,5 @@ Assuming you have enabled developer mode in your device, you can uninstall the p
 - `cmake -DPLATFORM=qtcontrols -DCMAKE_BUILD_TYPE=Release ..`
 - `make -j4`
 - `sudo make install`
-- optional: if you intend to use oesenc charts, install opencpn-plugin-oesenc or just copy the binaries oeserved and libsgllnx64-$(VERSION).so to `/usr/bin/oeserverd` and `/usr/lib64/libsgllnx64-$(VERSION).so`
+- optional: if you intend to use oesenc charts, install opencpn-plugin-oesenc or just copy the binaries oeserverd and libsgllnx64-$(VERSION).so to `/usr/bin/oeserverd` and `/usr/lib64/libsgllnx64-$(VERSION).so`
+- optional: if you intend to use oesu charts, install opencpn-plugin-o-charts or just copy the binaries oexserverd and libsgllnx64-$(VERSION).so to `/usr/bin/oexserverd` and `/usr/lib64/libsgllnx64-$(VERSION).so`

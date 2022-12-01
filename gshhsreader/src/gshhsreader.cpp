@@ -90,9 +90,14 @@ GeoProjection* GSHHSReader::configuredProjection(const QString& path) const {
 
 
 S57ChartOutline GSHHSReader::readOutline(const QString& path, const GeoProjection*) const {
-  const auto ref = index2Coord(parsePath(path));
-  const auto sw = WGS84Point::fromLL(ref.lng() - 1, ref.lat() - 1);
-  const auto ne = WGS84Point::fromLL(ref.lng() + 1, ref.lat() + 1);
+  const auto index = parsePath(path);
+
+  const auto ref = index2Coord(index);
+  const auto lvl = index2Level(index);
+  const double r = .1 * lvl;
+
+  const auto sw = WGS84Point::fromLL(ref.lng() - r, ref.lat() - r);
+  const auto ne = WGS84Point::fromLL(ref.lng() + r, ref.lat() + r);
   return S57ChartOutline(sw, ne, WGS84Polygon(), WGS84Polygon(), UINT32_MAX, QDate(), QDate());
 }
 

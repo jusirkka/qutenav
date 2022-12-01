@@ -325,7 +325,7 @@ bool S57::Object::canPaint(const KV::Region& cover, quint32 scale,
 
   if (m_bbox.isValid() && !cover.intersects(m_bbox)) {
     // qCDebug(CS57) << "no intersect" << m_bbox << S52::GetClassInfo(m_feature_type_code);
-    // return false;
+    return false;
   }
 
   if (coverOnly) return true;

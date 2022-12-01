@@ -19,8 +19,76 @@
  */
 #include "oesencreader.h"
 #include "osenc.h"
-#include "oedevice.h"
+#include "ocdevice.h"
+#include <QFileInfo>
+#include <QDir>
 
+class OesencHelper: public OCHelper {
+public:
+  QString getChartKey(const QString& path) const override {
+    QFileInfo info(path);
+    QDir charts(info.path());
+    if (!charts.exists(QStringLiteral("Chartinfo.txt"))) {
+      throw ChartFileError(QString("Chartinfo.txt not found in %1").arg(info.path()));
+    }
+    QFile afile(charts.filePath(QStringLiteral("Chartinfo.txt")));
+    afile.open(QFile::ReadOnly);
+    QTextStream stream(&afile);
+    QString userKey;
+    while (!stream.atEnd()) {
+      const QStringList parts = stream.readLine().split(":");
+      if (parts.length() != 2) continue;
+      if (parts[0] == QStringLiteral("UserKey")) {
+        userKey = parts[1].trimmed();
+        break;
+      }
+    }
+    afile.close();
+    if (userKey.isEmpty()) {
+      throw ChartFileError(QStringLiteral("User key not found in Chartinfo.txt"));
+    }
+    if (userKey.size() > 255) {
+      throw ChartFileError(QString("User key %1 longer than 255 bytes").arg(userKey));
+    }
+
+    return userKey;
+  }
+
+  char getCommand(ReadMode mode) const override {
+    return readModeMap[mode];
+  }
+
+  QByteArray encodeMsg(ReadMode mode, const QString& path, const QString& endPoint, const QString& chartKey) const override {
+    return OCHelperNS::encodeMsg<FifoMessage>(this, mode, path, endPoint, chartKey);
+  }
+
+  virtual ~OesencHelper() = default;
+
+private:
+
+  static const inline QMap<ReadMode, char> readModeMap =  {
+    {ReadMode::ReadHeader, 3},
+    {ReadMode::ReadSENC, 0},
+  };
+
+  struct FifoMessage {
+    char cmd;
+    char fifo_name[256];
+    char senc_name[256];
+    char senc_key[256];
+  };
+
+};
+
+class OesencDevice: public OCDevice {
+public:
+  OesencDevice(const QString& path, ReadMode mode):
+    OCDevice(path, mode, new OesencHelper, serverEPName) {}
+
+  static inline const char serverEPName[] = "/tmp/OCPN_PIPE";
+  static inline const char serverPath[] = "/usr/bin/oeserverd";
+
+};
 
 
 const GeoProjection* OesencReader::geoprojection() const {
@@ -39,8 +107,8 @@ OesencReader::~OesencReader() {
 
 GeoProjection* OesencReader::configuredProjection(const QString &path) const {
 
-  OeDevice device(path, OeDevice::ReadHeader);
-  if (!device.open(OeDevice::ReadOnly)) {
+  OesencDevice device(path, ReadMode::ReadHeader);
+  if (!device.open(OCDevice::ReadOnly)) {
     throw ChartFileError(QString("Cannot open %1 for reading").arg(path));
   }
 
@@ -50,8 +118,8 @@ GeoProjection* OesencReader::configuredProjection(const QString &path) const {
 
 S57ChartOutline OesencReader::readOutline(const QString &path, const GeoProjection *gp) const {
 
-  OeDevice device(path, OeDevice::ReadHeader);
-  if (!device.open(OeDevice::ReadOnly)) {
+  OesencDevice device(path, ReadMode::ReadHeader);
+  if (!device.open(OCDevice::ReadOnly)) {
     throw ChartFileError(QString("Cannot open %1 for reading").arg(path));
   }
 
@@ -66,8 +134,10 @@ void OesencReader::readChart(GL::VertexVector& vertices,
                             S57::ObjectVector& objects,
                             const QString& path,
                             const GeoProjection* gp) const {
-  OeDevice device(path, OeDevice::ReadSENC);
-  device.open(OeDevice::ReadOnly);
+  OesencDevice device(path, ReadMode::ReadSENC);
+  if (!device.open(OCDevice::ReadOnly)) {
+    throw ChartFileError(QString("Cannot open %1 for reading").arg(path));
+  }
 
   Osenc senc;
   senc.readChart(vertices, indices, objects, &device, gp);
@@ -87,7 +157,7 @@ QStringList OesencReaderFactory::filters() const {
 }
 
 void OesencReaderFactory::initialize(const QStringList&) const {
-  OeDevice::Kickoff();
+  OCDevice::Kickoff(OesencDevice::serverPath, OesencDevice::serverEPName);
 }
 
 ChartFileReader* OesencReaderFactory::create() const {

@@ -7,7 +7,6 @@ set_target_properties(Oesencreader
 
 target_sources(Oesencreader
   PRIVATE
-    src/oedevice.cpp
     src/oesencreader.cpp
 )
 
