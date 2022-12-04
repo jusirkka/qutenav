@@ -156,9 +156,9 @@ bool S57::Geometry::Point::containedBy(const QRectF& box, int& index) const {
 
 
 void S57::Geometry::Line::doEncode(QDataStream& stream, Transform /*transform*/) const {
-  const int ne = m_lineElements.size();
+  const int ne = m_elements.size();
   stream << ne;
-  for (const ElementData& d: m_lineElements) {
+  for (const ElementData& d: m_elements) {
     stream << static_cast<uint>(d.mode);
     stream << static_cast<uint>(d.offset);
     stream << static_cast<uint>(d.count);
@@ -181,7 +181,7 @@ void S57::Geometry::Line::doDecode(QDataStream& stream) {
     stream >> v;
     d.count = v;
     stream >> d.bbox;
-    m_lineElements.append(d);
+    m_elements.append(d);
   }
 
   stream >> m_vertexOffset;
@@ -189,7 +189,7 @@ void S57::Geometry::Line::doDecode(QDataStream& stream) {
 
 bool S57::Geometry::Line::crosses(const glm::vec2* vertices, const GLuint* indices,
                                   const QRectF& box) const {
-  for (const S57::ElementData& elem: m_lineElements) {
+  for (const S57::ElementData& elem: m_elements) {
     if (!elem.bbox.intersects(box)) continue;
     const int n = elem.count - 2;
     const int first = elem.offset / sizeof(GLuint) + 1;
@@ -204,7 +204,12 @@ bool S57::Geometry::Line::crosses(const glm::vec2* vertices, const GLuint* indic
 
 
 void S57::Geometry::Area::doEncode(QDataStream& stream, Transform transform) const {
-  Line::doEncode(stream, transform);
+  m_border->encode(stream, transform);
+  const bool noHoles = m_border == m_lines;
+  stream << noHoles;
+  if (!noHoles) {
+    m_lines->encode(stream, transform);
+  }
   const int ne = m_triangleElements.size();
   stream << ne;
   for (const ElementData& d: m_triangleElements) {
@@ -217,7 +222,17 @@ void S57::Geometry::Area::doEncode(QDataStream& stream, Transform transform) con
 }
 
 void S57::Geometry::Area::doDecode(QDataStream& stream) {
-  Line::doDecode(stream);
+  m_border = dynamic_cast<Line*>(Decode(stream));
+  Q_ASSERT(m_border != nullptr);
+
+  bool noHoles;
+  stream >> noHoles;
+  if (noHoles) {
+    m_lines = m_border;
+  } else {
+    m_lines = dynamic_cast<Line*>(Decode(stream));
+    Q_ASSERT(m_lines != nullptr);
+  }
 
   int ne;
   stream >> ne;
@@ -251,7 +266,7 @@ bool S57::Geometry::Area::includes(const glm::vec2* vs, const GLuint* is, const 
     return is[first + 1] == is[last - 1];
   };
 
-  const S57::ElementDataVector elems = m_lineElements;
+  const S57::ElementDataVector elems = m_border->elements();
   if (!closed(elems.first())) return false;
   if (!inbox(elems.first(), p)) return false;
   if (!insidePolygon(elems.first().count, elems.first().offset, vs, is, p)) return false;

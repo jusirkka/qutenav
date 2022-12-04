@@ -1033,11 +1033,11 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
       const QRectF bbox = computeBBox(lines, vertices, indices);
       helper.cm93SetGeometry(object,
                              new S57::Geometry::Area(lines,
-                                                     center,
                                                      triangles,
+                                                     center,
+                                                     projSc->toWGS84(center),
                                                      0,
-                                                     true,
-                                                     projSc.data()),
+                                                     true),
                              bbox);
 
       n_bytes -= n_elems * 2 + 2;
@@ -1061,7 +1061,7 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
       const QPointF center = computeLineCenter(lines, vertices, indices);
       const QRectF bbox = computeBBox(lines, vertices, indices);
       helper.cm93SetGeometry(object,
-                             new S57::Geometry::Line(lines, center, 0, projSc.data()),
+                             new S57::Geometry::Line(lines, center, projSc->toWGS84(center), 0),
                              bbox);
       n_bytes -= n_elems * 2 + 2;
       break;
@@ -1070,7 +1070,7 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
       auto index = read_and_decode<quint16>(stream);
       auto p0 = points[index];
       QRectF bbox(p0 - QPointF(10, 10), QSizeF(20, 20));
-      helper.cm93SetGeometry(object, new S57::Geometry::Point(p0, projSc.data()), bbox);
+      helper.cm93SetGeometry(object, new S57::Geometry::Point(p0, projSc->toWGS84(p0)), bbox);
       n_bytes -= 2;
       break;
     }

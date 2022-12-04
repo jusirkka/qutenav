@@ -281,16 +281,17 @@ S57::Geometry::Area* ShapeReader::createBoxGeometry(GL::VertexVector& vertices, 
   const quint32 first = vertices.size() / 2 - 4;
   Edge edge(first, first, first + 1, 3);
   EdgeVector edges {edge};
-  const auto lines = ChartFileReader::createLineElements(indices, vertices, edges);
+  const auto border = ChartFileReader::createLineElements(indices, vertices, edges);
   S57::ElementDataVector triangles;
-  ChartFileReader::triangulate(triangles, indices, vertices, lines);
+  ChartFileReader::triangulate(triangles, indices, vertices, border);
   const auto center = ChartFileReader::computeAreaCenterAndBboxes(triangles, vertices, indices);
-  return new S57::Geometry::Area(S57::ElementDataVector(),
-                                 center,
+  return new S57::Geometry::Area(border,
                                  triangles,
+                                 S57::ElementDataVector(),
+                                 center,
+                                 m_proj->toWGS84(center),
                                  0,
-                                 true,
-                                 m_proj);
+                                 true);
 }
 
 
@@ -309,19 +310,19 @@ void ShapeReader::createAreaGeometries(GeomAreaVector& geoms,
     const quint32 count = vertices.size() / 2 - first - 1;
     Edge edge(first, first, first + 1, count);
     EdgeVector edges {edge};
-    auto lines = ChartFileReader::createLineElements(indices, vertices, edges);
-    auto box = ChartFileReader::computeBBox(lines, vertices, indices);
+    auto border = ChartFileReader::createLineElements(indices, vertices, edges);
+    auto box = ChartFileReader::computeBBox(border, vertices, indices);
 
     S57::ElementDataVector triangles;
-    ChartFileReader::triangulate(triangles, indices, vertices, lines);
+    ChartFileReader::triangulate(triangles, indices, vertices, border);
     const auto center = ChartFileReader::computeAreaCenterAndBboxes(triangles, vertices, indices);
 
-    auto area = new S57::Geometry::Area(lines,
-                                        center,
+    auto area = new S57::Geometry::Area(border,
                                         triangles,
+                                        center,
+                                        m_proj->toWGS84(center),
                                         0,
-                                        true,
-                                        m_proj);
+                                        true);
     GeomArea geom {area, box};
     geoms.append(geom);
     return;
@@ -373,7 +374,7 @@ void ShapeReader::createAreaGeometries(GeomAreaVector& geoms,
   quint32 nextIndex = !is.isEmpty() ? is.first() : 0;
   const quint32 lastShapeIndex = vertices.size() / 2 - 1;
   const quint32 firstShapeIndex = vertexOffset / 2;
-  EdgeVector areaEdges;
+  EdgeVector borderEdges;
   EdgeVector lineEdges;
   while (!is.isEmpty()) {
     quint32 i1;
@@ -391,31 +392,31 @@ void ShapeReader::createAreaGeometries(GeomAreaVector& geoms,
       head.append(is);
       is = head;
     }
-    if (areaEdges.isEmpty()) {
+    if (borderEdges.isEmpty()) {
       lastIndex = i1;
     }
     if (i1 < i2) {
       Edge edge(i1, i2, i1 + 1, i2 - i1 - 1);
-      areaEdges.append(edge);
+      borderEdges.append(edge);
       lineEdges.append(edge);
     } else if (i2 == firstShapeIndex) {
       Edge edge(i1, i2, i1 + 1, lastShapeIndex - i1);
-      areaEdges.append(edge);
+      borderEdges.append(edge);
       lineEdges.append(edge);
     } else if (i1 == lastShapeIndex) {
       Edge edge(i1, i2, firstShapeIndex, i2 - firstShapeIndex);
-      areaEdges.append(edge);
+      borderEdges.append(edge);
       lineEdges.append(edge);
     } else {
       Edge edge1(i1, firstShapeIndex, i1 + 1, lastShapeIndex - i1);
-      areaEdges.append(edge1);
+      borderEdges.append(edge1);
       lineEdges.append(edge1);
       Edge edge2(firstShapeIndex, i2, firstShapeIndex + 1, i2 - firstShapeIndex - 1);
-      areaEdges.append(edge2);
+      borderEdges.append(edge2);
       lineEdges.append(edge2);
     }
 
-    // add to areaEdges only
+    // add to borderEdges only
     int j = 0;
     while (xps[j].index != i2 || xps[j].type == XP::Type::Corner) j++;
     j = (j + M + 1) % M;
@@ -426,28 +427,29 @@ void ShapeReader::createAreaGeometries(GeomAreaVector& geoms,
       j = (j + M + 1) % M;
     }
     Edge cornerEdge(i2, xps[j].index, lastSize / 2, (vertices.size() - lastSize) / 2);
-    areaEdges.append(cornerEdge);
+    borderEdges.append(cornerEdge);
 
     if (xps[j].index == lastIndex) {
       // create geom
-      auto poly = ChartFileReader::createLineElements(indices, vertices, areaEdges);
+      auto border = ChartFileReader::createLineElements(indices, vertices, borderEdges);
       S57::ElementDataVector triangles;
-      ChartFileReader::triangulate(triangles, indices, vertices, poly);
+      ChartFileReader::triangulate(triangles, indices, vertices, border);
       const auto center = ChartFileReader::computeAreaCenterAndBboxes(triangles, vertices, indices);
       auto lines = ChartFileReader::createLineElements(indices, vertices, lineEdges);
       const auto box =
-          ChartFileReader::computeBBox(lines, vertices, indices) |
-          ChartFileReader::computeBBox(poly, vertices, indices);
-      auto area = new S57::Geometry::Area(lines,
-                                          center,
+          ChartFileReader::computeBBox(border, vertices, indices) |
+          ChartFileReader::computeBBox(lines, vertices, indices);
+      auto area = new S57::Geometry::Area(border,
                                           triangles,
+                                          lines,
+                                          center,
+                                          m_proj->toWGS84(center),
                                           0,
-                                          true,
-                                          m_proj);
+                                          true);
       GeomArea geom {area, box};
       geoms.append(geom);
 
-      areaEdges.clear();
+      borderEdges.clear();
       lineEdges.clear();
       if (!is.isEmpty()) {
         nextIndex = is.first();

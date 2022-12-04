@@ -153,13 +153,21 @@ void S52::AreaPattern::paintIcon(QPainter& painter,
 S57::PaintDataMap S52::LineSimple::execute(const QVector<QVariant>& vals,
                                            const S57::Object* obj) {
 
+  S57::ElementDataVector lines;
   auto line = dynamic_cast<const S57::Geometry::Line*>(obj->geometry());
+  if (line == nullptr) {
+    auto area = dynamic_cast<const S57::Geometry::Area*>(obj->geometry());
+    Q_ASSERT(area != nullptr);
+    lines = area->lineElements();
+  } else {
+    lines = line->elements();
+  }
 
   auto pattern = as_enum<S52::LineType>(vals[0].toUInt(), S52::AllLineTypes);
   auto width = vals[1].toUInt();
   auto color = S52::GetColor(vals[2].toUInt());
 
-  auto p = new S57::LineElemData(line->lineElements(), 0, color,
+  auto p = new S57::LineElemData(lines, 0, color,
                                  S52::LineWidthMM(width), as_numeric(pattern));
 
   return S57::PaintDataMap{{p->type(), p}};
@@ -211,8 +219,15 @@ S57::PaintDataMap S52::LineComplex::execute(const QVector<QVariant>& vals,
     return S57::PaintDataMap();
   }
 
-  auto geom = dynamic_cast<const S57::Geometry::Line*>(obj->geometry());
-  Q_ASSERT(geom != nullptr);
+  S57::ElementDataVector lines;
+  auto line = dynamic_cast<const S57::Geometry::Line*>(obj->geometry());
+  if (line == nullptr) {
+    auto area = dynamic_cast<const S57::Geometry::Area*>(obj->geometry());
+    Q_ASSERT(area != nullptr);
+    lines = area->lineElements();
+  } else {
+    lines = line->elements();
+  }
 
   //  qCDebug(CS57) << "[LineStyle:Class]" << S52::GetClassInfo(obj->classCode()) << obj->classCode();
   //  qCDebug(CS57) << "[LineStyle:Symbol]" << S52::GetSymbolInfo(index, S52::SymbolType::LineStyle) << index;
@@ -227,7 +242,7 @@ S57::PaintDataMap S52::LineComplex::execute(const QVector<QVariant>& vals,
     colors.append(color);
   }
   auto p = new S57::LineStylePaintData(index,
-                                       geom->lineElements(),
+                                       lines,
                                        0,
                                        obj->boundingBox(),
                                        s.advance(),

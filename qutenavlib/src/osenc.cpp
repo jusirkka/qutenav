@@ -435,10 +435,11 @@ void Osenc::readChart(GL::VertexVector& vertices,
         // qCDebug(CENC) << "feature geometry/point record";
         if (!current) return false;
         auto p = reinterpret_cast<const OSENC_PointGeometry_Record_Payload*>(b.constData());
-        auto p0 = gp->fromWGS84(WGS84Point::fromLL(p->lon, p->lat));
+        const auto c0 = WGS84Point::fromLL(p->lon, p->lat);
+        const auto p0 = gp->fromWGS84(c0);
         features.last().geom = S57::Geometry::Type::Point;
         QRectF bb(p0 - QPointF(10, 10), QSizeF(20, 20));
-        return helper.osEncSetGeometry(current, new S57::Geometry::Point(p0, gp), bb);
+        return helper.osEncSetGeometry(current, new S57::Geometry::Point(p0, c0), bb);
       })
     },
 
@@ -717,17 +718,17 @@ void Osenc::readChart(GL::VertexVector& vertices,
 
         helper.osEncSetGeometry(w.object,
                                 new S57::Geometry::Area(lines,
-                                                        center,
                                                         triangles,
+                                                        center,
+                                                        gp->toWGS84(center),
                                                         offset,
-                                                        false,
-                                                        gp),
+                                                        false),
                                 bbox);
 
       } else {
         auto center = ChartFileReader::computeLineCenter(lines, vertices, indices);
         helper.osEncSetGeometry(w.object,
-                                new S57::Geometry::Line(lines, center, 0, gp),
+                                new S57::Geometry::Line(lines, center, gp->toWGS84(center), 0),
                                 bbox);
       }
     }

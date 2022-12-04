@@ -1052,7 +1052,7 @@ void S57Reader::readChart(GL::VertexVector& vertices,
         if (isolated.contains(feature.pointRef)) {
           auto p = getIso(feature.pointRef);
           QRectF bbox(p - QPointF(10, 10), QSizeF(20, 20));
-          helper.s57SetGeometry(obj, new S57::Geometry::Point(p, gp), bbox);
+          helper.s57SetGeometry(obj, new S57::Geometry::Point(p, gp->toWGS84(p)), bbox);
         } else if (soundings.contains(feature.pointRef)) {
           auto ps = getSnd(feature.pointRef);
           auto bbox = computeSoundingsBBox(ps);
@@ -1064,14 +1064,14 @@ void S57Reader::readChart(GL::VertexVector& vertices,
         Q_ASSERT(connected.contains(feature.pointRef));
         auto p = getConn(feature.pointRef);
         QRectF bbox(p - QPointF(10, 10), QSizeF(20, 20));
-        helper.s57SetGeometry(obj, new S57::Geometry::Point(p, gp), bbox);
+        helper.s57SetGeometry(obj, new S57::Geometry::Point(p, gp->toWGS84(p)), bbox);
       }
     } else if (geom == Geom::Line || geom == Geom::Area) {
       if (feature.edgeRefs.isEmpty()) {
         delete objects.takeLast();
         continue;
       }
-      EdgeVector areaEdges;
+      EdgeVector borderEdges;
       EdgeVector lineEdges;
       bool hasMaskedEdge = false;
       for (const RawEdgeRef& ref: feature.edgeRefs) {
@@ -1084,7 +1084,7 @@ void S57Reader::readChart(GL::VertexVector& vertices,
           hasMaskedEdge = true;
         }
         if (geom == Geom::Area) {
-          areaEdges.append(e);
+          borderEdges.append(e);
         }
       }
       //      if (hasMaskedEdge) {
@@ -1094,35 +1094,41 @@ void S57Reader::readChart(GL::VertexVector& vertices,
       //      }
 
       if (geom == Geom::Area) {
-        auto poly = createLineElements(indices, vertices, areaEdges);
-        auto bbox = computeBBox(poly, vertices, indices);
+        auto border = createLineElements(indices, vertices, borderEdges);
+        auto bbox = computeBBox(border, vertices, indices);
         S57::ElementDataVector triangles;
-        triangulate(triangles, indices, vertices, poly);
+        triangulate(triangles, indices, vertices, border);
+        const auto center = computeAreaCenterAndBboxes(triangles, vertices, indices);
 
         S57::ElementDataVector lines;
+        S57::Geometry::Area* area;
         if (!hasMaskedEdge) {
-          lines = poly;
+          area = new S57::Geometry::Area(border,
+                                         triangles,
+                                         center,
+                                         gp->toWGS84(center),
+                                         0,
+                                         true);
         } else {
           lines = createLineElements(indices, vertices, lineEdges);
           bbox |= computeBBox(lines, vertices, indices);
+          area = new S57::Geometry::Area(border,
+                                         triangles,
+                                         lines,
+                                         center,
+                                         gp->toWGS84(center),
+                                         0,
+                                         true);
         }
-        const auto center = computeAreaCenterAndBboxes(triangles, vertices, indices);
 
-        helper.s57SetGeometry(obj,
-                              new S57::Geometry::Area(lines,
-                                                      center,
-                                                      triangles,
-                                                      0,
-                                                      true,
-                                                      gp),
-                              bbox);
+        helper.s57SetGeometry(obj, area, bbox);
 
       } else {
         auto lines = createLineElements(indices, vertices, lineEdges);
         const auto bbox = computeBBox(lines, vertices, indices);
         const auto center = computeLineCenter(lines, vertices, indices);
         helper.s57SetGeometry(obj,
-                              new S57::Geometry::Line(lines, center, 0, gp),
+                              new S57::Geometry::Line(lines, center, gp->toWGS84(center), 0),
                               bbox);
       }
 

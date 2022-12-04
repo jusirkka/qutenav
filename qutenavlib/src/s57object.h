@@ -86,15 +86,16 @@ struct ElementData {
   size_t count;
   QRectF bbox;
 
-  // constructor does not cut anything by default
+
   ElementData(GLenum m, uintptr_t off, size_t c)
     : mode(m)
     , offset(off)
     , count(c)
+    // ensure bounding box includes all points even if not computed later
     , bbox(QPointF(-1.e15, -1.e15), QPointF(1.e15, 1.e15))
   {}
 
-  ElementData(size_t c = 0)
+  explicit ElementData(size_t c = 0)
     : ElementData(0, 0, c) {}
 
 };
@@ -158,8 +159,8 @@ public:
 
   Point(): Base(Type::Point) {}
 
-  Point(const QPointF& p, const GeoProjection* proj)
-    : Base(Type::Point, p, proj->toWGS84(p)) {
+  Point(const QPointF& p, const WGS84Point& c)
+    : Base(Type::Point, p, c) {
     m_points.append(p.x());
     m_points.append(p.y());
   }
@@ -198,14 +199,15 @@ public:
   Line(): Base(Type::Line) {}
 
   Line(const ElementDataVector& elems,
-       const QPointF& c,
-       GLsizei vo,
-       const GeoProjection* proj)
-    : Base(Type::Line, c, proj->toWGS84(c))
-    , m_lineElements(elems)
-    , m_vertexOffset(vo) {}
+       const QPointF& cc,
+       const WGS84Point& cw,
+       GLsizei offset)
+    : Base(Type::Line, cc, cw)
+    , m_elements(elems)
+    , m_vertexOffset(offset)
+  {}
 
-  const ElementDataVector& lineElements() const {return m_lineElements;}
+  const ElementDataVector& elements() const {return m_elements;}
   GLsizei vertexOffset() const {return m_vertexOffset;}
 
   bool crosses(const glm::vec2* vertices, const GLuint* indices, const QRectF& box) const;
@@ -213,37 +215,62 @@ public:
 
 protected:
 
-  virtual void doEncode(QDataStream &stream, Transform transform) const override;
+  virtual void doEncode(QDataStream& stream, Transform transform) const override;
   virtual void doDecode(QDataStream& stream) override;
 
-  ElementDataVector m_lineElements;
+  ElementDataVector m_elements;
   GLsizei m_vertexOffset;
 
 };
 
-class Area: public Line {
+class Area: public Base {
 public:
 
-  Area(): Line() {m_type = Type::Area;}
+  Area(): Base(Type::Area) {}
 
-  Area(const ElementDataVector& lelems,
-       const QPointF& c,
-       const ElementDataVector& telems,
+  Area(const ElementDataVector& borderElems,
+       const ElementDataVector& triangleElems,
+       const QPointF& cc,
+       const WGS84Point& cw,
        GLsizei vo,
-       bool indexed,
-       const GeoProjection* proj)
-    : Line(lelems, c, vo, proj)
-    , m_triangleElements(telems)
+       bool indexed)
+    : Base(Type::Area, cc, cw)
+    , m_triangleElements(triangleElems)
     , m_indexed(indexed)
-  {
-    m_type = Type::Area;
-  }
+    , m_border(new Line(borderElems, cc, cw, vo))
+    , m_lines(m_border)
+  {}
+
+  Area(const ElementDataVector& borderElems,
+       const ElementDataVector& triangleElems,
+       const ElementDataVector& lineElems,
+       const QPointF& cc,
+       const WGS84Point& cw,
+       GLsizei vo,
+       bool indexed)
+    : Base(Type::Area, cc, cw)
+    , m_triangleElements(triangleElems)
+    , m_indexed(indexed)
+    , m_border(new Line(borderElems, cc, cw, vo))
+    , m_lines(new Line(lineElems, cc, cw, vo))
+  {}
 
   const ElementDataVector& triangleElements() const {return m_triangleElements;}
+  const ElementDataVector& borderElements() const {return m_border->elements();}
+  const ElementDataVector& lineElements() const {return m_lines->elements();}
+
+  GLsizei vertexOffset() const {return m_border->vertexOffset();}
+
   bool indexed() const {return m_indexed;}
 
   bool includes(const glm::vec2* vs, const GLuint* is, const QPointF& p) const;
 
+  ~Area() {
+    if (m_lines != m_border) {
+      delete m_lines;
+    }
+    delete m_border;
+  }
 
 protected:
 
@@ -254,7 +281,8 @@ private:
 
   ElementDataVector m_triangleElements;
   bool m_indexed;
-
+  Line* m_border; // closed linestring bordering the area
+  Line* m_lines; // visible edges
 };
 
 } // namespace Geometry

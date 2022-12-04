@@ -522,10 +522,10 @@ void S57Chart::updateModelTransform(const Camera *cam) {
   }
 }
 
-void S57Chart::findUnderling(S57::Object *overling,
-                              const S57::ObjectVector &candidates,
-                              const GL::VertexVector &vertices,
-                              const GL::IndexVector &indices) {
+void S57Chart::findUnderling(S57::Object* overling,
+                              const S57::ObjectVector& candidates,
+                              const GL::VertexVector& vertices,
+                              const GL::IndexVector& indices) {
   const QPointF p = overling->geometry()->center();
 
   auto inbox = [] (const S57::ElementData& elem, const QPointF& p) {
@@ -543,8 +543,9 @@ void S57Chart::findUnderling(S57::Object *overling,
   auto is = indices.constData();
 
   for (S57::Object* c: candidates) {
-    auto geom = dynamic_cast<const S57::Geometry::Line*>(c->geometry());
-    const S57::ElementDataVector elems = geom->lineElements();
+    auto geom = dynamic_cast<const S57::Geometry::Area*>(c->geometry());
+    Q_ASSERT(geom != nullptr);
+    const S57::ElementDataVector elems = geom->borderElements();
     if (!closed(elems.first())) continue;
     if (!inbox(elems.first(), p)) continue;
     if (!insidePolygon(elems.first().count, elems.first().offset, qs, is, p)) continue;

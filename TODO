@@ -5,5 +5,5 @@
 - quick settings
 - POI (including Guest harbours) support
 - display less details in smaller chart scales
-- Geom::Area should have displayEdges and borderEdges
+
 - ObjectInfo rewrite
