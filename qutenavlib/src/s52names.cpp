@@ -37,8 +37,10 @@ private:
 
   Names();
 
-  void readObjectClasses();
+
   void readAttributes();
+  void readObjectClasses();
+
 
 public:
 
@@ -47,14 +49,24 @@ public:
   using IdentifierHash = QHash<QString, quint32>;
 
   struct ClassInfo {
-    ClassInfo(const QString& c, bool meta)
+    ClassInfo(const QString& c, bool meta,
+              const AttributeIndexVector& catA = {},
+              const AttributeIndexVector& catB = {},
+              const AttributeIndexVector& catC = {})
       : code(c)
-      , isMeta(meta) {}
+      , isMeta(meta)
+      , categoryA(catA)
+      , categoryB(catB)
+      , categoryC(catC)
+    {}
 
     ClassInfo() = default;
 
     QString code;
-    bool isMeta;
+    bool isMeta = false;
+    AttributeIndexVector categoryA;
+    AttributeIndexVector categoryB;
+    AttributeIndexVector categoryC;
   };
 
   using ClassHash = QHash<quint32, ClassInfo>;
@@ -95,46 +107,6 @@ S52::Names::Names() {
 void S52::Names::init() {
   // noop
 }
-
-
-void S52::Names::readObjectClasses() {
-  QFile file(S52::FindPath("s57objectclasses.csv"));
-  file.open(QFile::ReadOnly);
-  QTextStream s(&file);
-
-  while (!s.atEnd()) {
-    const QStringList parts = s.readLine().split(",");
-    bool ok;
-    const quint32 classCode = parts[0].toUInt(&ok);
-    if (!ok) continue;
-    QString description = parts[1];
-    int i = 1;
-    while (!description.endsWith("\"")) {
-      i += 1;
-      description += ",";
-      description += parts[i];
-    }
-    const QString className = parts[i + 1];
-    if (names.contains(className)) {
-      qCWarning(CS52) << className << "already parsed";
-      continue;
-    }
-    bool meta = parts[parts.length() - 2] == "M";
-
-    names[className] = classCode;
-    classes[classCode] = ClassInfo(className, meta);
-
-  }
-
-  // Object class for unknowns
-  const quint32 unknownCode = 666666;
-  const QString unknownClass("######");
-  names[unknownClass] = unknownCode;
-  classes[unknownCode] = ClassInfo(unknownClass, false);
-
-  file.close();
-}
-
 
 void S52::Names::readAttributes() {
   const QMap<QString, S57::AttributeType> typeLookup {
@@ -195,6 +167,58 @@ void S52::Names::readAttributes() {
   dfile.close();
 }
 
+void S52::Names::readObjectClasses() {
+  QFile file(S52::FindPath("s57objectclasses.csv"));
+  file.open(QFile::ReadOnly);
+  QTextStream s(&file);
+
+  while (!s.atEnd()) {
+    const QStringList parts = s.readLine().split(",");
+    bool ok;
+    const quint32 classCode = parts[0].toUInt(&ok);
+    if (!ok) continue;
+    QString description = parts[1];
+    int i = 1;
+    while (!description.endsWith("\"")) {
+      i += 1;
+      description += ",";
+      description += parts[i];
+    }
+    const QString className = parts[i + 1];
+    if (names.contains(className)) {
+      qCWarning(CS52) << className << "already parsed";
+      continue;
+    }
+    AttributeIndexVector cat[3];
+    for (int j = 0; j < 3; ++j) {
+      const auto attrNames = parts[i + 2 + j].split(";", QString::SkipEmptyParts);
+      for (const QString& attrName: attrNames) {
+        if (!names.contains(attrName)) {
+          qCWarning(CS52) << "Attribute" << attrName << "not known";
+          continue;
+        }
+        cat[j] << names[attrName];
+      }
+    }
+
+    bool meta = parts[parts.length() - 2] == "M";
+
+    names[className] = classCode;
+    classes[classCode] = ClassInfo(className, meta, cat[0], cat[1], cat[2]);
+
+  }
+
+  // Object class for unknowns
+  const quint32 unknownCode = 666666;
+  const QString unknownClass("######");
+  names[unknownClass] = unknownCode;
+  classes[unknownCode] = ClassInfo(unknownClass, false);
+
+  file.close();
+}
+
+
+
 void S52::InitNames() {
   auto p = Names::instance();
   p->init();
@@ -244,6 +268,25 @@ QString S52::GetClassInfo(quint32 code) {
 
   return cl.code + ": " + qtTrId(id.toUtf8());
 }
+
+const S52::AttributeIndexVector& S52::GetCategoryA(quint32 code) {
+  auto p = Names::instance();
+  Q_ASSERT(p->classes.contains(code));
+  return p->classes[code].categoryA;
+}
+
+const S52::AttributeIndexVector& S52::GetCategoryB(quint32 code) {
+  auto p = Names::instance();
+  Q_ASSERT(p->classes.contains(code));
+  return p->classes[code].categoryB;
+}
+
+const S52::AttributeIndexVector& S52::GetCategoryC(quint32 code) {
+  auto p = Names::instance();
+  Q_ASSERT(p->classes.contains(code));
+  return p->classes[code].categoryC;
+}
+
 
 S57::AttributeType S52::GetAttributeType(quint32 index) {
   auto p = Names::instance();

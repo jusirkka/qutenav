@@ -81,13 +81,26 @@ public:
   bool needUnderling() const {return m_needUnderling;}
 
   S57::PaintDataMap execute(const S57::Object* obj) const;
-  QString description(const S57::Object* obj) const;
+  S57::PaintDataMap modifiers(const S57::Object* obj) const;
   void paintIcon(QPainter& painter, const S57::Object* obj) const;
 
   // bytecode interface
   enum class Code: quint8 {Immed, Var, Fun, DefVar};
 
+
 private:
+
+  using CodeStack = QVector<Code>;
+  using ValueStack = QVector<QVariant>;
+  using ReferenceStack = QVector<quint32>;
+
+  using Accumulator = std::function<void (
+    S52::Function*,
+    const S52::Lookup::ValueStack&,
+    const S57::Object*
+  )>;
+
+  void run_bytecode(const S57::Object* obj, Accumulator accumulate) const;
 
   Type m_type;
   int m_rcid;
@@ -101,16 +114,13 @@ private:
   bool m_needUnderling;
   bool m_canOverride;
 
-  // bytecode interface
-  using CodeStack = QVector<Code>;
-  using ValueStack = QVector<QVariant>;
-  using ReferenceStack = QVector<quint32>;
 
   CodeStack m_code;
   ValueStack m_immed;
   ReferenceStack m_references;
 
 };
+
 
 Lookup* FindLookup(const S57::Object* obj);
 Function* FindFunction(quint32 index);
@@ -123,6 +133,7 @@ QString GetRasterFileName();
 QString GetSymbolInfo(quint32 index, S52::SymbolType t);
 QString GetSymbolInfo(const SymbolKey& key);
 QString GetAttributeInfo(quint32 index, const S57::Object* obj);
+QString ObjectDescription(const S57::Object* obj);
 quint32 FindIndex(const QString& name);
 quint32 FindIndex(const QString& name, bool* ok);
 void ParseInstruction(Lookup* lup, bool* ok = nullptr);

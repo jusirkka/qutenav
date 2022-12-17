@@ -1603,8 +1603,8 @@
     </message>
     <message id="qutenav-TWRTPT">
       <location line="+1" />
-      <source>Two-way route  part</source>
-      <translation>Two-way route  part</translation>
+      <source>Two-way route part</source>
+      <translation>Two-way route part</translation>
     </message>
     <message id="qutenav-UWTROC">
       <location line="+1" />

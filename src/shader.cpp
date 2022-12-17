@@ -87,9 +87,9 @@ void GL::Shader::setDepth(int chartPrio, int prio) {
   // prio: 0-9
   // depthShift: 0-9
   m_program->setUniformValue(m_depth, -1.f +
-                             .01f * chartPrio +
-                             .001f * prio +
-                             .0001f * m_depthShift);
+                             .02f * chartPrio +
+                             .002f * prio +
+                             .0002f * m_depthShift);
 }
 
 GL::Shader::~Shader() {

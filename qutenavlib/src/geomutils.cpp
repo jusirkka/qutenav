@@ -27,7 +27,7 @@ static const uint LEFT = 1;
 static const uint RIGHT = 2;
 static const uint BOTTOM = 4;
 static const uint TOP = 8;
-static const inline float eps = .1;
+static const inline float eps = .1; // 10cm
 
 static uint locationCode(const glm::vec2& v, const QRectF& va) {
   uint code = 0;

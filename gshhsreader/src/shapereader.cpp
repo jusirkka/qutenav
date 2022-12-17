@@ -587,7 +587,6 @@ ShapeReader::PointVector ShapeReader::intersections(const QPointF& p1, const QPo
 
     if (codeA & codeB) { // trivial reject
       return PointVector();
-
     }
 
     if (codeA) { // a outside, intersect with clip edge

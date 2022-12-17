@@ -271,6 +271,7 @@ bool S57::Geometry::Area::includes(const glm::vec2* vs, const GLuint* is, const 
   if (!inbox(elems.first(), p)) return false;
   if (!insidePolygon(elems.first().count, elems.first().offset, vs, is, p)) return false;
 
+  // holes
   for (int i = 1; i < elems.count(); i++) {
     if (!closed(elems[i])) continue;
     if (!inbox(elems[i], p)) continue;

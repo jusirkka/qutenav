@@ -65,9 +65,11 @@ void VectorSymbolManager::finalizeGL() {
 VectorSymbolManager::~VectorSymbolManager() {}
 
 SymbolData VectorSymbolManager::symbolData(quint32 index, S52::SymbolType type) const {
-  const SymbolKey key(index, type);
-  if (m_symbolMap.contains(key)) return m_symbolMap[key];
+  return symbolData(SymbolKey(index, type));
+}
 
+SymbolData VectorSymbolManager::symbolData(const SymbolKey& key) const {
+  if (m_symbolMap.contains(key)) return m_symbolMap[key];
   return m_invalid;
 }
 

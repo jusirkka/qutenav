@@ -66,6 +66,35 @@ Angle::Angle(double r): m_valid(true) {
   radians = r;
 }
 
+
+
+QString Angle::printAsLongitude() const {
+  const double v = std::abs(degrees());
+  quint32 a = static_cast<int>(v);
+  const double b = v - a;
+
+  if (a > 0) {
+    // manipulate b -> b' (int)
+    quint32 b1 = std::round(60 * b);
+    if (b1 == 60) {
+      b1 = 0;
+      a += 1;
+    }
+    // print a + b'
+    const QString r = QString::number(a) + "°%1'" + (radians >= 0 ? "E" : "W");
+    return r.arg(b1, 2, 10, QChar('0'));
+  }
+  // manipulate b -> b' (int)
+  quint32 b1 = std::round(60 * b);
+  QString r = QString("%1'") +  (radians >= 0 ? "E" : "W");
+  if (b1 == 60) {
+    b1 = 0;
+    r = "1°" + r;
+  }
+  // print b'
+  return r.arg(b1, 2, 10, QChar('0'));
+}
+
 WGS84Point WGS84Point::fromLL(double lng, double lat) {
   return WGS84Point(lng, lat);
 }

@@ -66,30 +66,19 @@ S57Chart::S57Chart(quint32 id, int prio, const QString& path)
   , m_id(id)
   , m_priority(prio)
   , m_path(path)
-  , m_infoSkipList {S52::FindCIndex("MAGVAR"),
-                    S52::FindCIndex("ADMARE"),
-                    S52::FindCIndex("CTNARE")}
-  , m_navaids({S52::FindIndex("LITFLT"),
-              S52::FindIndex("LITVES"),
-              S52::FindIndex("BOYCAR"),
-              S52::FindIndex("BOYINB"),
-              S52::FindIndex("BOYISD"),
-              S52::FindIndex("BOYLAT"),
-              S52::FindIndex("BOYSAW"),
-              S52::FindIndex("BOYSPP"),
-              S52::FindIndex("boylat"),
-              S52::FindIndex("boywtw"),
-              S52::FindIndex("BCNCAR"),
-              S52::FindIndex("BCNISD"),
-              S52::FindIndex("BCNLAT"),
-              S52::FindIndex("BCNSAW"),
-              S52::FindIndex("BCNSPP"),
-              S52::FindIndex("bcnlat"),
-              S52::FindIndex("bcnwtw"),
-              })
-    , m_light(S52::FindIndex("LIGHTS"))
   , m_mutex()
   , m_proxy(nullptr)
+  , m_pickPriorityMap{{S52::FindCIndex("MAGVAR"), 0},
+                      {S52::FindCIndex("ADMARE"), 0},
+                      {S52::FindCIndex("MIPARE"), 0},
+                      {S52::FindCIndex("SEAARE"), 0},
+                      {S52::FindCIndex("TESARE"), 0},
+                      {S52::FindCIndex("RESARE"), 0},
+                      {S52::FindCIndex("SWPARE"), 0},
+                      {S52::FindCIndex("RTPBCN"), 3},
+                      {S52::FindCIndex("PILPNT"), 3},
+                      }
+  , m_pickImageList{S52::FindCIndex("LIGHTS"), S52::FindCIndex("TOPMAR")}
 {
 
   ChartFileReader* reader = nullptr;
@@ -256,6 +245,145 @@ S57Chart::~S57Chart() {
   delete m_nativeProj;
 }
 
+class S57Chart::PaintDataFilter {
+public:
+  PaintDataFilter(const KV::Region& r, quint32 scale, qreal sf, const GL::ChartProxy* proxy)
+    : m_cover(r)
+    , m_scale(scale)
+    , m_scaleFactor(sf)
+    , m_proxy(proxy)
+  {}
+
+  bool staticPass(const S57Chart::ObjectLookup& d) const {
+    // check bbox & scale
+    if (!d.object->canPaint(m_cover, m_scale, m_today, d.lookup->canOverride())) {
+      return false;
+    }
+    // check display category
+    if (!d.lookup->canOverride() && as_numeric(d.lookup->category()) > m_maxcat) {
+      // qCDebug(CS57) << "Skipping by category" << S52::GetClassInfo(d.object->classCode());
+      return false;
+    }
+
+    // Meta-object filter
+    if (S52::IsMetaClass(d.object->classCode()) || d.object->geometry()->type() == S57::Geometry::Type::Meta) {
+      // Filter out unknown meta classes
+      if (d.lookup->classCode() == m_unknownClass) {
+        // qCDebug(CS57) << "Filtering out" << S52::GetClassInfo(d.object->classCode());
+        return false;
+      }
+      if (!m_showMeta) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  bool dynamicPass(S57::PaintDataMap& pd,
+                   int& prio,
+                   const S57Chart::ObjectLookup& d,
+                   PointVector* centers = nullptr) const {
+    // check category overrides
+    // three cases:
+    // 1. override scamin & category check and set to high priority
+    // 2. override only category check
+    // 3. filter by category and scale
+    if (pd.contains(S57::PaintData::Type::Override)) {
+      auto ovr = pd.find(S57::PaintData::Type::Override);
+
+      auto p = dynamic_cast<const S57::OverrideData*>(ovr.value());
+      if (p->override()) {
+        prio = 8;
+      } else if (!d.object->canPaint(m_scale)) {
+        for (S57::PaintMutIterator it = pd.begin(); it != pd.end(); ++it) {
+          delete it.value();
+        }
+        return false;
+      }
+      delete p;
+      pd.erase(ovr);
+    } else if (d.lookup->canOverride() && // check overriddable objects
+               (as_numeric(d.lookup->category()) > m_maxcat || !d.object->canPaint(m_scale))) {
+      for (S57::PaintMutIterator it = pd.begin(); it != pd.end(); ++it) {
+        delete it.value();
+      }
+      return false;
+    }
+
+    // check priority changes
+    if (pd.contains(S57::PaintData::Type::Priority)) {
+      auto pr = pd.find(S57::PaintData::Type::Priority);
+      auto p = dynamic_cast<const S57::PriorityData*>(pr.value());
+      prio = p->priority();
+      delete p;
+      pd.erase(pr);
+    }
+
+    // check symbols outside of area
+    auto area = dynamic_cast<const S57::Geometry::Area*>(d.object->geometry());
+    if (area == nullptr) return true;
+
+    using SymbolGetter = std::function<SymbolData (S57::PaintMutIterator)>;
+
+    auto checkSymbols = [this, &pd, &centers, &area] (S57::PaintData::Type t, SymbolGetter getter) {
+
+      auto vertices = reinterpret_cast<const glm::vec2*>(m_proxy->m_staticVertices.constData());
+      auto indices = reinterpret_cast<const GLuint*>(m_proxy->m_staticIndices.constData());
+
+      auto ptr = pd.find(t);
+      while (ptr != pd.end() && ptr.key() == t) {
+        auto data = getter(ptr);
+        // coordinate of the symbol center in chart units.
+        QPointF center =
+            area->center() + (data.offset() +
+                              .5 * QPointF(data.size().width(), - data.size().height())) / m_scaleFactor;
+        if (area->includes(vertices, indices, center)) {
+          ++ptr;
+          if (centers != nullptr) {
+            *centers << center;
+          }
+        } else {
+          delete ptr.value();
+          ptr = pd.erase(ptr);
+        }
+      }
+    };
+
+    auto rasterGetter = [] (S57::PaintMutIterator it) {
+      auto p = dynamic_cast<const S57::RasterSymbolPaintData*>(it.value());
+      return RasterSymbolManager::instance()->symbolData(p->key());
+    };
+
+    checkSymbols(S57::PaintData::Type::RasterSymbols, rasterGetter);
+
+    auto vectorGetter = [] (S57::PaintMutIterator it) {
+      auto p = dynamic_cast<const S57::VectorSymbolPaintData*>(it.value());
+      return VectorSymbolManager::instance()->symbolData(p->key());
+    };
+
+    checkSymbols(S57::PaintData::Type::VectorSymbols, vectorGetter);
+
+    return true;
+  }
+
+private:
+
+  PaintDataFilter() = delete;
+  PaintDataFilter(const PaintDataFilter&) = delete;
+  PaintDataFilter& operator=(const PaintDataFilter&) = delete;
+
+  const quint8 m_maxcat = static_cast<quint8>(Conf::MarinerParams::MaxCategory());
+  const QDate m_today = QDate::currentDate();
+  const bool m_showMeta = Conf::MarinerParams::ShowMeta();
+  const quint32 m_unknownClass = S52::FindIndex("######");
+
+  const KV::Region m_cover;
+  const quint32 m_scale;
+  const qreal m_scaleFactor;
+  const GL::ChartProxy* m_proxy;
+};
+
 void S57Chart::updatePaintData(const WGS84PointVector& cs, quint32 scale) {
 
   lock();
@@ -271,11 +399,6 @@ void S57Chart::updatePaintData(const WGS84PointVector& cs, quint32 scale) {
   GL::VertexVector pivots;
   GL::VertexVector transforms;
   GL::VertexVector textTransforms;
-
-  const auto maxcat = static_cast<quint8>(Conf::MarinerParams::MaxCategory());
-  const auto today = QDate::currentDate();
-  const bool showMeta = Conf::MarinerParams::ShowMeta();
-  const quint32 unknownClass = S52::FindIndex("######");
 
   KV::Region cover(cs, m_nativeProj);
 
@@ -338,64 +461,16 @@ void S57Chart::updatePaintData(const WGS84PointVector& cs, quint32 scale) {
 
 
   PaintPriorityVector updates(S52::Lookup::PriorityCount);
+  PaintDataFilter filter(cover, scale, sf, m_proxy);
 
   for (ObjectLookup& d: m_lookups) {
 
-    // check bbox & scale
-    if (!d.object->canPaint(cover, scale, today, d.lookup->canOverride())) continue;
-
-    // check display category
-    if (!d.lookup->canOverride() && as_numeric(d.lookup->category()) > maxcat) {
-      // qCDebug(CS57) << "Skipping by category" << S52::GetClassInfo(d.object->classCode());
-      continue;
-    }
-
-    // Meta-object filter
-    if (S52::IsMetaClass(d.object->classCode())) {
-      // Filter out unknown meta classes
-      if (d.lookup->classCode() == unknownClass) {
-        // qCDebug(CS57) << "Filtering out" << S52::GetClassInfo(d.object->classCode());
-        continue;
-      }
-      if (!showMeta) {
-        continue;
-      }
-    }
+    if (!filter.staticPass(d)) continue;
 
     S57::PaintDataMap pd = d.lookup->execute(d.object);
-
     int prio = d.lookup->priority();
-    // check category overrides
-    if (pd.contains(S57::PaintData::Type::Override)) {
-      auto ovr = pd.find(S57::PaintData::Type::Override);
 
-      auto p = dynamic_cast<const S57::OverrideData*>(ovr.value());
-      if (p->override()) {
-        prio = 8;
-      } else if (!d.object->canPaint(scale)) {
-        for (S57::PaintMutIterator it = pd.begin(); it != pd.end(); ++it) {
-          delete it.value();
-        }
-        continue;
-      }
-      delete p;
-      pd.erase(ovr);
-    } else if (d.lookup->canOverride() && // check overriddable objects
-               (as_numeric(d.lookup->category()) > maxcat || !d.object->canPaint(scale))) {
-      for (S57::PaintMutIterator it = pd.begin(); it != pd.end(); ++it) {
-        delete it.value();
-      }
-      continue;
-    }
-
-    // check priority changes
-    if (pd.contains(S57::PaintData::Type::Priority)) {
-      auto pr = pd.find(S57::PaintData::Type::Priority);
-      auto p = dynamic_cast<const S57::PriorityData*>(pr.value());
-      prio = p->priority();
-      delete p;
-      pd.erase(pr);
-    }
+    if (!filter.dynamicPass(pd, prio, d)) continue;
 
     updates[prio] += pd;
   }
@@ -985,7 +1060,7 @@ void S57Chart::drawVectorPatterns(const Camera *cam) {
 S57::InfoTypeFull S57Chart::objectInfoFull(const WGS84Point& p, quint32 scale) {
   const auto q = m_nativeProj->fromWGS84(p);
 
-  // 20 pixel resolution mapped to meters
+  // Resolution in pixels mapped to meters
   const float res = 0.001 / dots_per_mm_y() * KV::PeepHoleSize * scale;
   const QRectF box(q - .5 * QPointF(res, res), QSizeF(res, res));
 
@@ -1001,7 +1076,7 @@ S57::InfoTypeFull S57Chart::objectInfoFull(const WGS84Point& p, quint32 scale) {
     S57::Description desc;
   };
 
-  const QMap<S57::Geometry::Type, int> tmap {{S57::Geometry::Type::Point, 4},
+  const QMap<S57::Geometry::Type, int> prioMap {{S57::Geometry::Type::Point, 4},
                                              {S57::Geometry::Type::Line, 3},
                                              {S57::Geometry::Type::Area, 3},
                                              {S57::Geometry::Type::Meta, 1}};
@@ -1016,7 +1091,7 @@ S57::InfoTypeFull S57Chart::objectInfoFull(const WGS84Point& p, quint32 scale) {
     auto geom = p.object->geometry();
 
     WrappedDesc desc;
-    desc.geom = tmap[geom->type()];
+    desc.geom = prioMap[geom->type()];
     desc.prio = p.lookup->priority();
     desc.desc.name = "";
 
@@ -1078,95 +1153,124 @@ S57::InfoType S57Chart::objectInfo(const WGS84Point& wp, quint32 scale) {
   auto indices = reinterpret_cast<const GLuint*>(m_proxy->m_staticIndices.constData());
 
 
-  const QMap<S57::Geometry::Type, int> tmap {{S57::Geometry::Type::Point, 4},
-                                             {S57::Geometry::Type::Line, 3},
-                                             {S57::Geometry::Type::Area, 2},
-                                             {S57::Geometry::Type::Meta, 1}};
+  const QMap<S57::Geometry::Type, int> prioMap {{S57::Geometry::Type::Point, 40},
+                                                {S57::Geometry::Type::Line, 30},
+                                                {S57::Geometry::Type::Area, 20},
+                                                {S57::Geometry::Type::Meta, 10}};
 
-  struct WrappedInfo {
-    QString objectId;
-    int priority;
-    QStringList desc;
+
+  struct Prio {
+    const S57::Object* object;
+    quint32 priority;
+    quint32 index;
   };
 
-  WrappedInfo info;
-  info.priority = 0;
-  qreal minArea = 1.e60;
+  QVector<Prio> priorities;
 
-  const auto maxcat = static_cast<quint8>(Conf::MarinerParams::MaxCategory());
-  const auto today = QDate::currentDate();
   const KV::Region cover(box);
+  const qreal sf = scaleFactor(cover.boundingRect(), scale);
+  PaintDataFilter filter(cover, scale, sf, m_proxy);
 
+  for (auto it = m_lookups.cbegin(); it != m_lookups.cend(); ++it) {
 
-  for (int i = 0; i < m_lookups.size(); ++i) {
+    if (!filter.staticPass(*it)) continue;
 
-    const ObjectLookup& p = m_lookups[i];
-    if (S52::IsMetaClass(p.object->classCode())) continue;
-    if (m_infoSkipList.contains(p.object->classCode())) continue;
+    S57::PaintDataMap pd = it->lookup->modifiers(it->object);
+    int prio = it->lookup->priority();
 
-    // check bbox & scale
-    if (!p.object->canPaint(cover, scale, today, p.lookup->canOverride())) continue;
-    // check display category
-    if (!p.lookup->canOverride() && as_numeric(p.lookup->category()) > maxcat) continue;
+    if (!filter.dynamicPass(pd, prio, *it)) continue;
 
-    auto geom = p.object->geometry();
-    // select all points at same location; use highest priority for other geometries
-    const int prio = 10 * tmap[geom->type()] +
-        (geom->type() == S57::Geometry::Type::Point ? 0 : p.lookup->priority());
-    if (prio < info.priority) continue;
+    PointVector symbolCenters;
+    auto geom = it->object->geometry();
 
-    QString desc;
     if (geom->type() == S57::Geometry::Type::Point) {
-      auto ps = dynamic_cast<const S57::Geometry::Point*>(geom);
+      auto points = dynamic_cast<const S57::Geometry::Point*>(geom);
       int soundingIndex = -1;
-      if (ps->containedBy(box, soundingIndex)) {
-        const QString depth = soundingIndex < 0 ? "" : QString("Sounding (%1m)").arg(ps->points()[soundingIndex + 2]);
-        desc = p.lookup->description(p.object) + depth;
-      }
+      if (!points->containedBy(box, soundingIndex)) continue;
     } else if (geom->type() == S57::Geometry::Type::Line) {
-      auto ls = dynamic_cast<const S57::Geometry::Line*>(geom);
-      if (ls->crosses(vertices, indices, box)) {
-        desc = p.lookup->description(p.object);
-      }
+      auto line = dynamic_cast<const S57::Geometry::Line*>(geom);
+      if (!line->crosses(vertices, indices, box)) continue;
     } else if (geom->type() == S57::Geometry::Type::Area) {
-      auto as = dynamic_cast<const S57::Geometry::Area*>(geom);
-      if (as->includes(vertices, indices, q)) {
-        desc = p.lookup->description(p.object);
+      auto area = dynamic_cast<const S57::Geometry::Area*>(geom);
+      if (!area->includes(vertices, indices, q)) continue;
+      // Find symbol centers
+      S57::PaintDataMap apd = it->lookup->execute(it->object);
+      filter.dynamicPass(apd, prio, *it, &symbolCenters);
+      for (auto ait = apd.begin(); ait != apd.end(); ++ait) {
+        delete ait.value();
       }
     }
-    if (desc.isEmpty()) continue;
 
-    if (info.priority == prio) {
-      if (geom->type() == S57::Geometry::Type::Area) {
-        const QRectF bbox = p.object->boundingBox();
-        const qreal area = bbox.width() * bbox.height();
-        if (area < minArea) {
-          minArea = area;
-          if (desc != "hidden") {
-            info.desc.append(desc);
-          }
-          info.objectId = QString("%1/%2").arg(id()).arg(i);
-          continue;
+    bool userPicked = false;
+    if (geom->type() == S57::Geometry::Type::Area) {
+      for (const QPointF& center: symbolCenters) {
+        if (box.contains(center)) {
+          // user requests info on this particular area object by hovering over a center symbol
+          // (there might be several).
+          userPicked = true;
+          break;
         }
       }
-      if (desc != "hidden") {
-        info.desc.append(desc);
-      }
-      info.objectId += QString("-%1").arg(i);
+    }
+
+    Prio pr;
+    if (userPicked) {
+      // give it the highest priority
+      pr.priority = 10000 * m_priority + prioMap[S57::Geometry::Type::Point] + 9;
     } else {
-      info.priority = prio;
-      if (desc != "hidden") {
-        info.desc.append(desc);
+      if (m_pickPriorityMap.contains(it->object->classCode())) {
+        prio = m_pickPriorityMap[it->object->classCode()];
       }
-      info.objectId = QString("%1/%2").arg(id()).arg(i);
+      pr.priority = 10000 * m_priority + prioMap[geom->type()] + prio;
+    }
+    pr.object = it->object;
+    pr.index = it - m_lookups.cbegin();
+    priorities.append(pr);
+  }
+
+
+  std::sort(priorities.begin(), priorities.end(), [] (const Prio& t1, const Prio& t2) {
+    return t1.priority > t2.priority;
+  });
+
+  // Handle lights and topmarks
+  auto ptr = priorities.begin();
+  QString extraIds;
+  while (ptr != priorities.end() && ptr->object->geometry()->type() == S57::Geometry::Type::Point) {
+    if (m_pickImageList.contains(ptr->object->classCode())) {
+      extraIds += QString("-%1").arg(ptr->index);
+      ptr = priorities.erase(ptr);
+    } else {
+      ++ptr;
     }
   }
 
-  S57::InfoType ret;
-  ret.objectId = info.objectId;
-  ret.priority = info.priority;
-  ret.info = info.desc.join("; ");
-  return ret;
+  qCDebug(CS57) << "-------- Pick Results --------";
+  for (const Prio& pr: priorities) {
+    auto code = pr.object->classCode();
+    qCDebug(CS57) << pr.priority << ":"
+                  << S52::GetClassInfo(code);
+    const auto catA = S52::GetCategoryA(code);
+    for (quint32 aid: catA) {
+      if (pr.object->attributeValue(aid).isValid()) {
+        qCDebug(CS57) << "     A:    " << S52::GetAttributeInfo(aid, pr.object);
+      }
+    }
+    const auto catB = S52::GetCategoryB(code);
+    for (quint32 aid: catB) {
+      if (pr.object->attributeValue(aid).isValid()) {
+        qCDebug(CS57) << "     B:    " << S52::GetAttributeInfo(aid, pr.object);
+      }
+    }
+  }
+
+  if (priorities.isEmpty()) return S57::InfoType();
+
+  S57::InfoType info;
+  info.objectId = QString("%1/%2%3").arg(id()).arg(priorities.first().index).arg(extraIds);
+  info.priority = priorities.first().priority;
+  info.info = S52::ObjectDescription(priorities.first().object);
+  return info;
 }
 
 void S57Chart::paintIcon(QPainter& painter, quint32 objectIndex) const {

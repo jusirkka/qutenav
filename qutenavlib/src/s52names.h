@@ -25,8 +25,14 @@ namespace S52 {
 
 void InitNames();
 
+using AttributeIndexVector = QVector<quint32>;
+
 QString GetClassDescription(quint32 index);
 QString GetClassInfo(quint32 code);
+
+const AttributeIndexVector& GetCategoryA(quint32 code);
+const AttributeIndexVector& GetCategoryB(quint32 code);
+const AttributeIndexVector& GetCategoryC(quint32 code);
 
 S57::AttributeType GetAttributeType(quint32 index);
 QString GetAttributeName(quint32 index);

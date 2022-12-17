@@ -102,6 +102,8 @@ private:
     S52::Lookup* lookup;
   };
 
+  class PaintDataFilter;
+
   using ObjectLookupVector = QVector<ObjectLookup>;
 
   using PaintPriorityVector = QVector<S57::PaintDataMap>;
@@ -138,13 +140,13 @@ private:
 
   QMatrix4x4 m_modelMatrix;
 
-  const QVector<quint32> m_infoSkipList;
-  const QVector<quint32> m_navaids;
-  const quint32 m_light;
-
   QMutex m_mutex;
 
   GL::ChartProxy* m_proxy;
+
+  const QMap<quint32, quint32> m_pickPriorityMap;
+  const QVector<quint32> m_pickImageList;
+
 };
 
 

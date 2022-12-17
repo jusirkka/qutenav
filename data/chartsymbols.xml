@@ -1335,8 +1335,7 @@
                         <radar-prio>Suppressed</radar-prio>
                         <table-name>Plain</table-name>
                         <attrib-code index="0">MARSYS1</attrib-code>
-                        <attrib-code index="1">ORIENT </attrib-code>
-                        <instruction>SY(DIRBOYA1,ORIENT);LS(DASH,1,CHYLW)</instruction>
+                        <instruction>SY(DIRBOYA1);LS(DASH,1,CHYLW)</instruction>
                         <display-cat>Standard</display-cat>
                         <comment>27040</comment>
                 </lookup>
@@ -1346,8 +1345,7 @@
                         <radar-prio>Suppressed</radar-prio>
                         <table-name>Plain</table-name>
                         <attrib-code index="0">MARSYS2</attrib-code>
-                        <attrib-code index="1">ORIENT </attrib-code>
-                        <instruction>SY(DIRBOYB1,ORIENT);LS(DASH,1,CHGRD)</instruction>
+                        <instruction>SY(DIRBOYB1);LS(DASH,1,CHGRD)</instruction>
                         <display-cat>Standard</display-cat>
                         <comment>27040</comment>
                 </lookup>
@@ -4631,8 +4629,7 @@
                         <radar-prio>Suppressed</radar-prio>
                         <table-name>Symbolized</table-name>
                         <attrib-code index="0">MARSYS1</attrib-code>
-                        <attrib-code index="1">ORIENT </attrib-code>
-                        <instruction>SY(DIRBOYA1,ORIENT);LC(NAVARE51)</instruction>
+                        <instruction>SY(DIRBOYA1);LC(NAVARE51)</instruction>
                         <display-cat>Standard</display-cat>
                         <comment>27040</comment>
                 </lookup>
@@ -4642,8 +4639,7 @@
                         <radar-prio>Suppressed</radar-prio>
                         <table-name>Symbolized</table-name>
                         <attrib-code index="0">MARSYS2</attrib-code>
-                        <attrib-code index="1">ORIENT </attrib-code>
-                        <instruction>SY(DIRBOYB1,ORIENT);LC(NAVARE51)</instruction>
+                        <instruction>SY(DIRBOYB1);LC(NAVARE51)</instruction>
                         <display-cat>Standard</display-cat>
                         <comment>27040</comment>
                 </lookup>

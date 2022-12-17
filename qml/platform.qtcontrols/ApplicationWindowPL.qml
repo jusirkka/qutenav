@@ -120,6 +120,24 @@ ApplicationWindow {
   }
 
   Shortcut {
+    sequence: "B"
+    context: Qt.ApplicationShortcut
+    onActivated: {
+      encdis.rotate(1)
+      chartPage.syncLayers()
+    }
+  }
+
+  Shortcut {
+    sequence: "M"
+    context: Qt.ApplicationShortcut
+    onActivated: {
+      encdis.rotate(-1)
+      chartPage.syncLayers()
+    }
+  }
+
+  Shortcut {
     sequence: StandardKey.FullScreen
     context: Qt.ApplicationShortcut
     onActivated: {

@@ -71,6 +71,7 @@ public:
   void init();
 
   SymbolData symbolData(quint32 index, S52::SymbolType type) const;
+  SymbolData symbolData(const SymbolKey& key) const;
   bool paintIcon(QPainter& painter, quint32 index, S52::SymbolType type, qint16 angle);
 
   void initializeGL();

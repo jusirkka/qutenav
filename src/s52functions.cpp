@@ -49,10 +49,6 @@ S57::PaintDataMap S52::AreaColor::execute(const QVector<QVariant>& vals,
   return S57::PaintDataMap{{p->type(), p}};
 }
 
-QStringList S52::AreaColor::descriptions(const QVector<QVariant>&, const S57::Object* obj) const {
-  return QStringList {GetClassDescription(obj->classCode())};
-}
-
 void S52::AreaColor::paintIcon(QPainter& painter,
                                const QVector<QVariant>& vals, const S57::Object* obj) const {
   auto color = S52::GetColor(vals[0].toUInt());
@@ -128,11 +124,6 @@ S57::PaintDataMap S52::AreaPattern::execute(const QVector<QVariant>& vals,
 
 }
 
-QStringList S52::AreaPattern::descriptions(const QVector<QVariant>& vals, const S57::Object* obj) const {
-  return QStringList {GetClassDescription(obj->classCode())};
-}
-
-
 void S52::AreaPattern::paintIcon(QPainter& painter,
                                  const QVector<QVariant>& vals, const S57::Object* obj) const {
   quint32 index = vals[0].toUInt();
@@ -172,11 +163,6 @@ S57::PaintDataMap S52::LineSimple::execute(const QVector<QVariant>& vals,
 
   return S57::PaintDataMap{{p->type(), p}};
 }
-
-QStringList S52::LineSimple::descriptions(const QVector<QVariant>& vals, const S57::Object* obj) const {
-  return QStringList {GetClassDescription(obj->classCode())};
-}
-
 
 void S52::LineSimple::paintIcon(QPainter& painter,
                                 const QVector<QVariant>& vals, const S57::Object* obj) const {
@@ -252,11 +238,6 @@ S57::PaintDataMap S52::LineComplex::execute(const QVector<QVariant>& vals,
   return S57::PaintDataMap{{p->type(), p}};
 }
 
-QStringList S52::LineComplex::descriptions(const QVector<QVariant>& vals, const S57::Object* obj) const {
-  return QStringList {GetClassDescription(obj->classCode())};
-}
-
-
 void S52::LineComplex::paintIcon(QPainter& painter,
                                  const QVector<QVariant>& vals, const S57::Object* obj) const {
   quint32 index = vals[0].toUInt();
@@ -329,18 +310,6 @@ S57::PaintDataMap S52::PointSymbol::execute(const QVector<QVariant>& vals,
   return S57::PaintDataMap{{p->type(), p}};
 }
 
-QStringList S52::PointSymbol::descriptions(const QVector<QVariant>& vals, const S57::Object* obj) const {
-  qCDebug(CS57) << " --- NAME ---" << obj->name() << obj->geometry()->centerLL().print();
-  QStringList ds;
-  if (obj->attributeValue(m_catlam).isValid()) {
-    ds << S52::GetAttributeValueDescription(m_catlam, obj->attributeValue(m_catlam));
-  } else if (obj->attributeValue(m_catcam).isValid()) {
-    ds << S52::GetAttributeValueDescription(m_catcam, obj->attributeValue(m_catcam));
-  } else {
-    ds << GetClassDescription(obj->classCode());
-  }
-  return ds;
-}
 
 void S52::PointSymbol::paintIcon(QPainter& painter,
                                  const QVector<QVariant>& vals, const S57::Object* obj) const {
@@ -441,27 +410,6 @@ S57::PaintDataMap S52::Text::execute(const QVector<QVariant>& vals,
   return S57::PaintDataMap{{p->type(), p}};
 }
 
-QStringList S52::Text::descriptions(const QVector<QVariant>& vals, const S57::Object* obj) const {
-
-  QString txt;
-
-  const QMetaType::Type t = static_cast<QMetaType::Type>(vals[0].type());
-  if (t == QMetaType::UInt) {
-    const quint32 index = vals[0].toUInt();
-    txt = GetAttributeValueDescription(index, obj->attributeValue(index));
-  } else if (t == QMetaType::QString) {
-    txt = vals[0].toString();
-  } else {
-    return QStringList();
-  }
-
-  if (txt.isEmpty() || txt.length() > 80) {//
-    return QStringList();
-  }
-
-  return QStringList {"\"" + txt + "\""};
-}
-
 
 S57::PaintDataMap S52::TextExtended::execute(const QVector<QVariant>& vals,
                                              const S57::Object* obj) {
@@ -518,50 +466,6 @@ S57::PaintDataMap S52::TextExtended::execute(const QVector<QVariant>& vals,
 
   return S52::FindFunction("TX")->execute(txVals, obj);
 }
-
-QStringList S52::TextExtended::descriptions(const QVector<QVariant>& vals, const S57::Object* obj) const {
-
-  const int numAttrs = vals[1].toInt();
-
-  const QString txt = vals[0].toString();
-  if (txt.isEmpty()) {
-    return QStringList();
-  }
-
-  char format[256];
-  strcpy(format, txt.toUtf8().data());
-  char buf[256];
-  for (int i = 0; i < numAttrs; i++) {
-    const QMetaType::Type t = static_cast<QMetaType::Type>(vals[2 + i].type());
-    switch (t) {
-    case QMetaType::QString:
-      sprintf(buf, format, vals[2 + i].toString().toUtf8().constData());
-      break;
-    case QMetaType::Double:
-      sprintf(buf, format, vals[2 + i].toDouble());
-      break;
-    case QMetaType::Int:
-    case QMetaType::UInt:
-      sprintf(buf, format, vals[2 + i].toInt());
-      break;
-    case QMetaType::UnknownType: // Empty QVariant
-      return QStringList();
-    default:
-      qCWarning(CS57) << "TE: Unhandled attribute value" << vals[2 + i];
-      return QStringList();
-    }
-    strcpy(format, buf);
-  }
-
-  QVector<QVariant> txVals;
-  txVals.append(QVariant::fromValue(QString::fromUtf8(buf)));
-  for (int i = 0; i < 8; i++) {
-    txVals.append(vals[numAttrs + 2 + i]);
-  }
-
-  return S52::FindFunction("TX")->descriptions(txVals, obj);
-}
-
 
 
 S52::CSDepthArea01::CSDepthArea01(quint32 index)
@@ -632,15 +536,6 @@ S57::PaintDataMap S52::CSDepthArea01::execute(const QVector<QVariant>&,
   ps += S52::FindFunction("LS")->execute(v2, obj);
 
   return ps;
-}
-
-QStringList S52::CSDepthArea01::descriptions(const QVector<QVariant>& vals, const S57::Object* obj) const {
-  const QString lower = obj->attributeValue(m_drval1).isValid() ?
-        QString::number(obj->attributeValue(m_drval1).toDouble()) : "";
-  const QString upper = obj->attributeValue(m_drval2).isValid() ?
-        QString::number(obj->attributeValue(m_drval2).toDouble()) : "";
-
-  return QStringList {QString("(%1-%2m)").arg(lower).arg(upper)};
 }
 
 
@@ -872,16 +767,20 @@ S57::PaintDataMap S52::CSResArea02::execute(const QVector<QVariant>&,
 
 }
 
+S57::PaintDataMap S52::CSResArea02::modifiers(const QVector<QVariant>&,
+                                              const S57::Object* obj) {
+  S57::PaintDataMap ps;
+  QSet<int> restrn = obj->attributeSetValue(m_restrn);
 
-QStringList S52::CSResArea02::descriptions(const QVector<QVariant>& vals, const S57::Object* obj) const {
-  QStringList ds;
-  if (obj->attributeValue(m_catrea).isValid()) {
-    ds << S52::GetAttributeValueDescription(m_catrea, obj->attributeValue(m_catrea));
-  }
   if (obj->attributeValue(m_restrn).isValid()) {
-    ds << S52::GetAttributeValueDescription(m_restrn, obj->attributeValue(m_restrn));
+    if (restrn.intersects(m_entry_set) || restrn.intersects(m_anchor_set) || restrn.intersects(m_fish_set)) {
+      auto p = new S57::PriorityData(6);
+      ps.insert(p->type(), p);
+      return ps;
+    }
   }
-  return ds;
+
+  return ps;
 }
 
 void S52::CSResArea02::paintIcon(QPainter& painter,
@@ -1030,10 +929,6 @@ S57::PaintDataMap S52::CSDepthArea02::execute(const QVector<QVariant>& vals,
   return S52::FindFunction("DEPARE01")->execute(vals, obj);
 }
 
-QStringList S52::CSDepthArea02::descriptions(const QVector<QVariant>& vals,
-                                             const S57::Object* obj) const {
-  return S52::FindFunction("DEPARE01")->descriptions(vals, obj);
-}
 
 void S52::CSDepthArea02::paintIcon(QPainter& painter,
                                    const QVector<QVariant>& vals, const S57::Object* obj) const {
@@ -1053,17 +948,10 @@ S52::CSDepthContours02::CSDepthContours02(quint32 index)
 
 S57::PaintDataMap S52::CSDepthContours02::execute(const QVector<QVariant>&,
                                                   const S57::Object* obj) {
-  bool isSafetyContour = false;
   const double sc = Conf::MarinerParams::SafetyContour();
-  if (obj->classCode() == m_depare && obj->geometry()->type() == S57::Geometry::Type::Line) {
-    const double d1 = obj->attributeValue(m_drval1).isValid() ? obj->attributeValue(m_drval1).toDouble() : 0.;
-    const double d2 = obj->attributeValue(m_drval2).isValid() ? obj->attributeValue(m_drval2).toDouble() : 0.;
-    isSafetyContour = d1 <= sc && sc <= d2;
-  } else {
-    // continuation A
-    const double v0 = obj->attributeValue(m_valdco).isValid() ? obj->attributeValue(m_valdco).toDouble() : 0.;
-    isSafetyContour = v0 == obj->getSafetyContour(sc);
-  }
+  // continuation A
+  const double v0 = obj->attributeValue(m_valdco).isValid() ? obj->attributeValue(m_valdco).toDouble() : 0.;
+  const bool isSafetyContour = v0 == obj->getSafetyContour(sc);
   // continuation B
   S57::PaintDataMap ps;
   const int quapos = obj->attributeValue(m_quapos).isValid() ? obj->attributeValue(m_quapos).toInt() : 0;
@@ -1091,39 +979,24 @@ S57::PaintDataMap S52::CSDepthContours02::execute(const QVector<QVariant>&,
   return ps;
 }
 
-QStringList S52::CSDepthContours02::descriptions(const QVector<QVariant>& vals,
-                                                 const S57::Object* obj) const {
-
-  if (obj->classCode() == m_depare && obj->geometry()->type() == S57::Geometry::Type::Line) {
-    const QString lower = obj->attributeValue(m_drval1).isValid() ?
-          QString::number(obj->attributeValue(m_drval1).toDouble()) : "";
-    const QString upper = obj->attributeValue(m_drval2).isValid() ?
-          QString::number(obj->attributeValue(m_drval2).toDouble()) : "";
-    return QStringList {QString("(%1-%2m)").arg(lower).arg(upper)};
+S57::PaintDataMap S52::CSDepthContours02::modifiers(const QVector<QVariant>&,
+                                                    const S57::Object* obj) {
+  const double sc = Conf::MarinerParams::SafetyContour();
+  const double v0 = obj->attributeValue(m_valdco).isValid() ? obj->attributeValue(m_valdco).toDouble() : 0.;
+  S57::PaintDataMap ps;
+  if (v0 == obj->getSafetyContour(sc)) {
+    auto p = new S57::OverrideData(true);
+    ps.insert(p->type(), p);
   }
-
-  const QString val = obj->attributeValue(m_valdco).isValid() ?
-        QString::number(obj->attributeValue(m_valdco).toDouble()) : "";
-  if (!val.isEmpty()) {
-    return QStringList {QString("(%1m)").arg(val)};
-  }
-
-  return QStringList();
+  return ps;
 }
 
 void S52::CSDepthContours02::paintIcon(QPainter& painter, const QVector<QVariant>&,
                                        const S57::Object* obj) const {
-  bool isSafetyContour = false;
   const double sc = Conf::MarinerParams::SafetyContour();
-  if (obj->classCode() == m_depare && obj->geometry()->type() == S57::Geometry::Type::Line) {
-    const double d1 = obj->attributeValue(m_drval1).isValid() ? obj->attributeValue(m_drval1).toDouble() : 0.;
-    const double d2 = obj->attributeValue(m_drval2).isValid() ? obj->attributeValue(m_drval2).toDouble() : 0.;
-    isSafetyContour = d1 <= sc && sc <= d2;
-  } else {
-    // continuation A
-    const double v0 = obj->attributeValue(m_valdco).isValid() ? obj->attributeValue(m_valdco).toDouble() : 0.;
-    isSafetyContour = v0 == obj->getSafetyContour(sc);
-  }
+  // continuation A
+  const double v0 = obj->attributeValue(m_valdco).isValid() ? obj->attributeValue(m_valdco).toDouble() : 0.;
+  const bool isSafetyContour = v0 == obj->getSafetyContour(sc);
   // continuation B
   const int quapos = obj->attributeValue(m_quapos).isValid() ? obj->attributeValue(m_quapos).toInt() : 0;
   if (quapos > 1 && quapos < 10) {
@@ -1144,8 +1017,6 @@ void S52::CSDepthContours02::paintIcon(QPainter& painter, const QVector<QVariant
     }
   }
 }
-
-
 
 S52::CSLights05::CSLights05(quint32 index)
   : Function("LIGHTS05", index)
@@ -1453,43 +1324,6 @@ S57::PaintDataMap S52::CSLights05::execute(const QVector<QVariant>&,
   return ps;
 }
 
-QStringList S52::CSLights05::descriptions(const QVector<QVariant>& vals,
-                                          const S57::Object* obj) const {
-  QStringList ds {GetClassDescription(obj->classCode())};
-  if (obj->attributeValue(m_catlit).isValid()) {
-    ds << S52::GetAttributeValueDescription(m_catlit, obj->attributeValue(m_catlit));
-    auto catlit = obj->attributeSetValue(m_catlit);
-    if (catlit.contains(directional) || catlit.contains(moire_effect)) {
-      auto orient = obj->attributeValue(m_orient);
-      if (orient.isValid()) {
-        ds << QString("%1°").arg(orient.toDouble(), 3, 'f', 0, '0');
-      }
-    }
-  }
-  const bool isSector = obj->attributeValue(m_sectr1).isValid() && obj->attributeValue(m_sectr2).isValid();
-  if (isSector) {
-    auto s1 = obj->attributeValue(m_sectr1).toFloat();
-    float smin = 360;
-    S57::Object::LocationIterator it = obj->others();
-    for (; it != obj->othersEnd() && it.key() == obj->geometry()->centerLL(); ++it) {
-      if (it.value() == obj) {
-        if (s1 < smin) smin = s1;
-        continue;
-      }
-      if (!it.value()->attributeValue(m_sectr1).isValid()) continue;
-      const auto s3 = it.value()->attributeValue(m_sectr1).toFloat();
-      if (s3 < smin) smin = s3;
-    }
-    // show text for only one sector
-    if (s1 != smin) return QStringList();
-  }
-
-  const QString desc = litdsn01(obj);
-  if (!desc.isEmpty()) {
-    ds << desc;
-  }
-  return ds;
-}
 
 void S52::CSLights05::paintIcon(QPainter& painter,
                                 const QVector<QVariant>& /*vals*/, const S57::Object* obj) const {
@@ -1952,24 +1786,31 @@ S57::PaintDataMap S52::CSObstruction04::execute(const QVector<QVariant>&,
   return ps;
 }
 
+S57::PaintDataMap S52::CSObstruction04::modifiers(const QVector<QVariant>&,
+                                                  const S57::Object* obj) {
+  double depth = S52::DefaultDepth; // always dry land
 
-QStringList S52::CSObstruction04::descriptions(const QVector<QVariant>& vals,
-                                               const S57::Object* obj) const {
-
-  QStringList ds;
-  if (obj->attributeValue(m_catobs).isValid()) {
-    ds << S52::GetAttributeValueDescription(m_catobs, obj->attributeValue(m_catobs));
-  }
+  int watlev = 0;
   if (obj->attributeValue(m_watlev).isValid()) {
-    ds << S52::GetAttributeValueDescription(m_watlev, obj->attributeValue(m_watlev));
+    watlev = obj->attributeValue(m_watlev).toInt();
+  }
+  int catobs = 0;
+  if (obj->attributeValue(m_catobs).isValid()) {
+    catobs = obj->attributeValue(m_catobs).toInt();
   }
 
   if (obj->attributeValue(m_valsou).isValid()) {
-    ds << QString("Sounding (%1m)").arg(obj->attributeValue(m_valsou).toDouble());
+    depth = obj->attributeValue(m_valsou).toDouble();
+  } else if (catobs == 6 || watlev == 3) {
+    depth = .01;
+  } else if (watlev == 5) {
+    depth = 0.;
   }
 
-  return ds;
+  auto wrecks = dynamic_cast<S52::CSWrecks02*>(S52::FindFunction("WRECKS02"));
+  return wrecks->dangerModifiers(depth, obj);
 }
+
 
 void S52::CSObstruction04::paintIcon(QPainter& painter, const QVector<QVariant>&,
                                      const S57::Object* obj) const {
@@ -2154,10 +1995,6 @@ S57::PaintDataMap S52::CSQualOfPos01::execute(const QVector<QVariant>&,
   }
 
   return S57::PaintDataMap();
-}
-
-QStringList S52::CSQualOfPos01::descriptions(const QVector<QVariant>& vals, const S57::Object* obj) const {
-  return QStringList {GetClassDescription(obj->classCode())};
 }
 
 
@@ -2353,17 +2190,6 @@ S57::PaintDataMap S52::CSRestrEntry01::execute(const QVector<QVariant>&,
   return S52::FindFunction("SY")->execute(vals, obj);
 }
 
-QStringList S52::CSRestrEntry01::descriptions(const QVector<QVariant>& vals,
-                                               const S57::Object* obj) const {
-
-  QStringList ds;
-  if (obj->attributeValue(m_restrn).isValid()) {
-    ds << S52::GetAttributeValueDescription(m_restrn, obj->attributeValue(m_restrn));
-  }
-
-  return ds;
-}
-
 void S52::CSRestrEntry01::paintIcon(QPainter& painter, const QVector<QVariant>&,
                                     const S57::Object* obj) const {
   if (!obj->attributeValue(m_restrn).isValid()) return;
@@ -2489,22 +2315,6 @@ S57::PaintDataMap S52::CSShorelineQualOfPos03::execute(const QVector<QVariant>&,
   return ps;
 }
 
-QStringList S52::CSShorelineQualOfPos03::descriptions(const QVector<QVariant>& vals,
-                                                      const S57::Object* obj) const {
-
-  QStringList ds;
-  if (obj->attributeValue(m_catslc).isValid()) {
-    ds << S52::GetAttributeValueDescription(m_catslc, obj->attributeValue(m_catslc));
-  }
-  if (obj->attributeValue(m_watlev).isValid()) {
-    ds << S52::GetAttributeValueDescription(m_watlev, obj->attributeValue(m_watlev));
-  }
-  if (obj->attributeValue(m_condtn).isValid()) {
-    ds << S52::GetAttributeValueDescription(m_condtn, obj->attributeValue(m_condtn));
-  }
-
-  return ds;
-}
 
 
 S52::CSSoundings02::CSSoundings02(quint32 index)
@@ -2721,11 +2531,6 @@ S57::PaintDataMap S52::CSTopmarks01::execute(const QVector<QVariant>&,
   return S52::FindFunction("SY")->execute(vals, obj);
 }
 
-QStringList S52::CSTopmarks01::descriptions(const QVector<QVariant>&,
-                                            const S57::Object* obj) const {
-  return QStringList {"hidden"};
-}
-
 void S52::CSTopmarks01::paintIcon(QPainter& painter, const QVector<QVariant>&,
                                   const S57::Object* obj) const {
   quint32 topmrk = m_quesmrk1;
@@ -2898,22 +2703,34 @@ S57::PaintDataMap S52::CSWrecks02::execute(const QVector<QVariant>&,
   return ps;
 }
 
-QStringList S52::CSWrecks02::descriptions(const QVector<QVariant>& vals,
-                                          const S57::Object* obj) const {
 
-  QStringList ds;
-  if (obj->attributeValue(m_catwrk).isValid()) {
-    ds << S52::GetAttributeValueDescription(m_catwrk, obj->attributeValue(m_catwrk));
-  }
+S57::PaintDataMap S52::CSWrecks02::modifiers(const QVector<QVariant>&,
+                                             const S57::Object* obj) {
+
+  double depth = S52::DefaultDepth; // always dry land
+
+  int watlev = 0;
   if (obj->attributeValue(m_watlev).isValid()) {
-    ds << S52::GetAttributeValueDescription(m_watlev, obj->attributeValue(m_watlev));
+    watlev = obj->attributeValue(m_watlev).toInt();
+  }
+  int catwrk = 0;
+  if (obj->attributeValue(m_catwrk).isValid()) {
+    catwrk = obj->attributeValue(m_catwrk).toInt();
   }
 
   if (obj->attributeValue(m_valsou).isValid()) {
-    ds << QString("Sounding (%1m)").arg(obj->attributeValue(m_valsou).toDouble());
+    depth = obj->attributeValue(m_valsou).toDouble();
+  } else if (watlev == 3) {
+    depth = .01;
+  } else if (watlev == 5) {
+    depth = 0.;
+  } else if (catwrk == 1) {
+    depth = 20.;
+  } else if (catwrk == 2) {
+    depth = 0.;
   }
 
-  return ds;
+  return dangerModifiers(depth, obj);
 }
 
 void S52::CSWrecks02::paintIcon(QPainter& painter,
@@ -3027,12 +2844,6 @@ S57::PaintDataMap S52::CSWrecks02::dangerData(double depth,
   if (depth > limit) {
     return S57::PaintDataMap();
   }
-
-  int expsou = 0;
-  if (obj->attributeValue(m_expsou).isValid()) {
-    expsou = obj->attributeValue(m_expsou).toInt();
-  }
-
   bool danger = false;
 
   for (const S57::Object* underling: obj->underlings()) {
@@ -3042,18 +2853,10 @@ S57::PaintDataMap S52::CSWrecks02::dangerData(double depth,
     //    for (auto k: underling->attributes().keys()) {
     //      qCDebug(CS57) << GetAttributeInfo(k, underling);
     //    }
-    if (underling->geometry()->type() == S57::Geometry::Type::Line) {
-      if (!underling->attributeValue(m_drval2).isValid()) continue;
-      if (underling->attributeValue(m_drval2).toDouble() < limit) {
-        danger = true;
-        break;
-      }
-    } else {
-      if (!underling->attributeValue(m_drval1).isValid()) continue;
-      if (underling->attributeValue(m_drval1).toDouble() >= limit && expsou != 1) {
-        danger = true;
-        break;
-      }
+    if (!underling->attributeValue(m_drval1).isValid()) continue;
+    if (underling->attributeValue(m_drval1).toDouble() >= limit) {
+      danger = true;
+      break;
     }
   }
 
@@ -3079,6 +2882,49 @@ S57::PaintDataMap S52::CSWrecks02::dangerData(double depth,
 
   return ps;
 }
+
+S57::PaintDataMap S52::CSWrecks02::dangerModifiers(double depth,
+                                                   const S57::Object *obj) const {
+
+  auto limit = Conf::MarinerParams::SafetyContour();
+
+  if (depth > limit) {
+    return S57::PaintDataMap();
+  }
+  bool danger = false;
+
+  for (const S57::Object* underling: obj->underlings()) {
+    //    qCDebug(CS57) << "[Underling:Class]" << S52::GetClassInfo(underling->classCode());
+    //    qCDebug(CS57) << "[Overling:Location]" << obj->geometry()->centerLL().print();
+    //    qCDebug(CS57) << "[Limit]" << limit;
+    //    for (auto k: underling->attributes().keys()) {
+    //      qCDebug(CS57) << GetAttributeInfo(k, underling);
+    //    }
+    if (!underling->attributeValue(m_drval1).isValid()) continue;
+    if (underling->attributeValue(m_drval1).toDouble() >= limit) {
+      danger = true;
+      break;
+    }
+  }
+
+  if (!danger) {
+    return S57::PaintDataMap();
+  }
+
+  int watlev = 0;
+  if (obj->attributeValue(m_watlev).isValid()) {
+    watlev = obj->attributeValue(m_watlev).toInt();
+  }
+
+  if (watlev == 1 || watlev == 2) {
+    auto p = new S57::OverrideData(false);
+    return S57::PaintDataMap{{p->type(), p}};
+  }
+
+  auto p = new S57::OverrideData(true);
+  return S57::PaintDataMap{{p->type(), p}};
+}
+
 
 S52::CSSymbolInsert01::CSSymbolInsert01(quint32 index)
   : Function("SYMINS01", index)
@@ -3107,12 +2953,6 @@ S57::PaintDataMap S52::CSSymbolInsert01::execute(const QVector<QVariant>&,
     m_lookups[name] = lup;
   }
   return m_lookups[name]->execute(obj);
-}
-
-QStringList S52::CSSymbolInsert01::descriptions(const QVector<QVariant>&,
-                                                const S57::Object*) const {
-  qCWarning(CS52) << "Not implemented";
-  return QStringList();
 }
 
 
@@ -3172,11 +3012,4 @@ S57::PaintDataMap S52::CSGSHHSMapper::execute(const QVector<QVariant>&,
 
   return ps;
 }
-
-QStringList S52::CSGSHHSMapper::descriptions(const QVector<QVariant>&,
-                                             const S57::Object*) const {
-  qCWarning(CS52) << "Not implemented";
-  return QStringList();
-}
-
 

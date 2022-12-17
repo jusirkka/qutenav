@@ -120,12 +120,14 @@ private:
   void handleSmallScales(const ScaleVector& scales,
                          const GeoProjection* proj);
 
+  KV::RegionMap findCharts(KV::Region& remainingArea, qreal& cov, const ScaleVector& scales, const Camera* cam);
+
   void createBackground(KV::RegionMap& regions, const GeoProjection* gp, const KV::Region& remaining) const;
 
 
   static const inline float viewportFactor = 1.65;
   static const inline float marginFactor = 1.08;
-  static const inline float maxScaleRatio = 32;
+  static const inline float maxScaleRatio = 25;
   static const inline float maxScale = 25000000;
   static const inline float minCoverage = .975;
   static const inline quint32 bgChartLimit = 15;

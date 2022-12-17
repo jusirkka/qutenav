@@ -82,6 +82,8 @@ public:
   Angle& operator=(const Angle& a) {radians = a.radians; m_valid = a.m_valid; return *this;}
   Angle(): radians(0), m_valid(false) {}
 
+  QString printAsLongitude() const;
+
   double radians;
 
 private:
@@ -364,7 +366,7 @@ enum class AttributeType: uint8_t {
 
 // Data type for object info requests
 struct InfoType {
-  quint8 priority;
+  quint32 priority;
   QString objectId;
   QString info;
 };
@@ -406,7 +408,7 @@ Q_DECLARE_METATYPE(S57::InfoType)
 namespace KV {
 using ColorVector = QVector<QColor>;
 // For Crosshair / Object info queries
-static const int PeepHoleSize = 25;
+static const int PeepHoleSize = 20;
 }
 
 namespace GL {

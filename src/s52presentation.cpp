@@ -22,150 +22,86 @@
 #include <QDir>
 #include <QStandardPaths>
 #include "s52names.h"
+#include <functional>
+#include "units.h"
+
+void S52::Lookup::run_bytecode(const S57::Object *obj, Accumulator accumulate) const {
+
+  int stackPos = 0;
+  int immedPos = 0;
+  int refPos = 0;
+
+  S52::Lookup::ValueStack stack(20);
+
+  for (auto code: m_code) {
+
+    switch (code) {
+
+    case Code::Immed:
+      stack[stackPos++] = m_immed[immedPos++];
+      break;
+
+    case Code::Fun: {
+      auto fun = S52::FindFunction(m_references[refPos++]);
+      // qCDebug(CS52) << "function" << fun->name();
+      stackPos = 0;
+      accumulate(fun, stack, obj);
+      break;
+    }
+
+    case Code::Var:
+      stack[stackPos++] = obj->attributeValue(m_references[refPos++]);
+      break;
+
+    case Code::DefVar: {
+      QVariant v = obj->attributeValue(m_references[refPos++]);
+      QVariant d = m_immed[immedPos++];
+      if (v.isValid()) {
+        stack[stackPos++] = v;
+      } else {
+        stack[stackPos++] = d;
+      }
+      break;
+    }
+    default:
+      Q_ASSERT(false);
+    }
+  }
+}
 
 S57::PaintDataMap S52::Lookup::execute(const S57::Object *obj) const {
 
-  int stackPos = 0;
-  int immedPos = 0;
-  int refPos = 0;
+  S57::PaintDataMap ps;
 
-  ValueStack stack(20);
+  auto accum = [&ps] (S52::Function* fun, const ValueStack& values, const S57::Object* thing) {
+    ps += fun->execute(values, thing);
+  };
 
+  run_bytecode(obj, accum);
 
-  S57::PaintDataMap paintData;
-
-  for (auto code: m_code) {
-
-    switch (code) {
-
-    case Code::Immed:
-      stack[stackPos++] = m_immed[immedPos++];
-      break;
-
-    case Code::Fun: {
-      auto fun = S52::FindFunction(m_references[refPos++]);
-      // qCDebug(CS52) << "function" << fun->name();
-      stackPos = 0;
-      paintData += fun->execute(stack, obj);
-      break;
-    }
-
-    case Code::Var:
-      stack[stackPos++] = obj->attributeValue(m_references[refPos++]);
-      break;
-
-    case Code::DefVar: {
-      QVariant v = obj->attributeValue(m_references[refPos++]);
-      QVariant d = m_immed[immedPos++];
-      if (v.isValid()) {
-        stack[stackPos++] = v;
-      } else {
-        stack[stackPos++] = d;
-      }
-      break;
-    }
-    default:
-      Q_ASSERT(false);
-    }
-  }
-
-  return paintData;
+  return ps;
 }
 
-QString S52::Lookup::description(const S57::Object* obj) const {
+S57::PaintDataMap S52::Lookup::modifiers(const S57::Object *obj) const {
 
-  // TODO: remove duplicate code: execute / description are almost identical
-  int stackPos = 0;
-  int immedPos = 0;
-  int refPos = 0;
+  S57::PaintDataMap ps;
 
-  ValueStack stack(20);
+  auto accum = [&ps] (S52::Function* fun, const ValueStack& values, const S57::Object* thing) {
+    ps += fun->modifiers(values, thing);
+  };
 
+  run_bytecode(obj, accum);
 
-  QStringList descriptions;
-
-  for (auto code: m_code) {
-
-    switch (code) {
-
-    case Code::Immed:
-      stack[stackPos++] = m_immed[immedPos++];
-      break;
-
-    case Code::Fun: {
-      auto fun = S52::FindFunction(m_references[refPos++]);
-      // qCDebug(CS52) << "function" << fun->name();
-      stackPos = 0;
-      descriptions += fun->descriptions(stack, obj);
-      break;
-    }
-
-    case Code::Var:
-      stack[stackPos++] = obj->attributeValue(m_references[refPos++]);
-      break;
-
-    case Code::DefVar: {
-      QVariant v = obj->attributeValue(m_references[refPos++]);
-      QVariant d = m_immed[immedPos++];
-      if (v.isValid()) {
-        stack[stackPos++] = v;
-      } else {
-        stack[stackPos++] = d;
-      }
-      break;
-    }
-    default:
-      Q_ASSERT(false);
-    }
-  }
-
-  return descriptions.join("; ");
+  return ps;
 }
-
 
 void S52::Lookup::paintIcon(QPainter& painter, const S57::Object* obj) const {
 
-  int stackPos = 0;
-  int immedPos = 0;
-  int refPos = 0;
+  auto accum = [&painter] (S52::Function* fun, const ValueStack& values, const S57::Object* thing) {
+    fun->paintIcon(painter, values, thing);
+  };
 
-  ValueStack stack(20);
-
-
-  for (auto code: m_code) {
-
-    switch (code) {
-
-    case Code::Immed:
-      stack[stackPos++] = m_immed[immedPos++];
-      break;
-
-    case Code::Fun: {
-      auto fun = S52::FindFunction(m_references[refPos++]);
-      // qCDebug(CS52) << "function" << fun->name();
-      stackPos = 0;
-      fun->paintIcon(painter, stack, obj);
-      break;
-    }
-
-    case Code::Var:
-      stack[stackPos++] = obj->attributeValue(m_references[refPos++]);
-      break;
-
-    case Code::DefVar: {
-      QVariant v = obj->attributeValue(m_references[refPos++]);
-      QVariant d = m_immed[immedPos++];
-      if (v.isValid()) {
-        stack[stackPos++] = v;
-      } else {
-        stack[stackPos++] = d;
-      }
-      break;
-    }
-    default:
-      Q_ASSERT(false);
-    }
-  }
+  run_bytecode(obj, accum);
 }
 
 
@@ -317,4 +253,375 @@ void S52::ParseInstruction(Lookup* lup, bool* ok) {
   Private::Presentation* p = Private::Presentation::instance();
   int err = p->parseInstruction(lup);
   if (ok != nullptr) *ok = err == 0;
+}
+
+
+
+static void attributeDesc(QStringList& parts, quint32 aid, const S57::Object* obj, const int skipVal = -1) {
+
+  static const QSet<quint32> depths {
+    S52::FindCIndex("VALDCO"),
+    S52::FindCIndex("DRVAL1"),
+    S52::FindCIndex("VALSOU")
+  };
+  static const QSet<quint32> lengths {S52::FindCIndex("HEIGHT")};
+
+  const QVariant v = obj->attributeValue(aid);
+  if (!v.isValid()) return;
+
+  switch (S52::GetAttributeType(aid)) {
+  case S57::Attribute::Type::Real: {
+    const auto v = obj->attributeValue(aid).toDouble();
+    if (depths.contains(aid)) {
+      parts << Units::Manager::instance()->depth()->displaySI(v, 2);
+    } else if (lengths.contains(aid)) {
+      parts << Units::Manager::instance()->shortDistance()->displaySI(v, 1);
+    } else {
+      Q_ASSERT(false);
+    }
+    break;
+  }
+  case S57::Attribute::Type::Integer: {
+    const auto eid = obj->attributeValue(aid).toInt();
+    if (skipVal < 0 || eid != skipVal) {
+      parts << S52::GetAttributeEnumDescription(aid, eid);
+    }
+    break;
+  }
+  case S57::Attribute::Type::IntegerList: {
+    auto items = obj->attributeValue(aid).toList();
+    QStringList vs;
+    for (auto a: items) {
+      const auto eid = a.toInt();
+      if (skipVal < 0 || eid != skipVal) {
+        vs << S52::GetAttributeEnumDescription(aid, eid);
+      }
+    }
+    if (!vs.isEmpty()) parts << vs.join(", ");
+    break;
+  }
+  case S57::Attribute::Type::String: {
+    parts << obj->attributeValue(aid).toString();
+    break;
+  }
+  default:
+    Q_ASSERT(false);
+  }
+}
+
+static QString desc_rectrc(const S57::Object* obj) {
+  static auto drval1 = S52::FindCIndex("DRVAL1");
+  const auto base = S52::GetClassDescription(obj->classCode());
+  if (obj->attributeValue(drval1).isValid()) {
+    const auto v = obj->attributeValue(drval1).toDouble();
+    return QString("%1 (%2)")
+        .arg(base)
+        .arg(Units::Manager::instance()->depth()->displaySI(v, 2));
+  }
+  return base;
+}
+
+static QString desc_depcnt(const S57::Object* obj) {
+  static auto valdco = S52::FindCIndex("VALDCO");
+  static auto base = S52::GetClassDescription(obj->classCode());
+  const auto v = obj->attributeValue(valdco).toDouble();
+  return QString("%1 (%2)")
+      .arg(base)
+      .arg(Units::Manager::instance()->depth()->displaySI(v, 2));
+}
+
+static QString desc_bcnspp(const S57::Object* obj) {
+  static const QVector<QPair<quint32, int>> attrs = {
+    {S52::FindCIndex("BCNSHP"), -1},
+    {S52::FindCIndex("CATSPM"), 52},
+    {S52::FindCIndex("COLPAT"), -1},
+    {S52::FindCIndex("COLOUR"), -1},
+    {S52::FindCIndex("HEIGHT"), -1},
+    {S52::FindCIndex("STATUS"), -1},
+  };
+
+  QStringList parts;
+  for (const auto& a: attrs) {
+    attributeDesc(parts, a.first, obj, a.second);
+  }
+  return parts.join("; ");
+}
+
+static QString desc_bcnlat(const S57::Object* obj) {
+  static const QVector<quint32> attrs = {
+    S52::FindCIndex("CATLAM"),
+    S52::FindCIndex("BCNSHP"),
+    S52::FindCIndex("HEIGHT"),
+    S52::FindCIndex("STATUS"),
+  };
+
+  QStringList parts;
+  for (auto aid: attrs) {
+    attributeDesc(parts, aid, obj);
+  }
+  return parts.join("; ");
+}
+
+static QString desc_bcncar(const S57::Object* obj) {
+  static const QVector<quint32> attrs = {
+    S52::FindCIndex("CATCAM"),
+    S52::FindCIndex("BCNSHP"),
+    S52::FindCIndex("HEIGHT"),
+    S52::FindCIndex("STATUS"),
+  };
+
+  QStringList parts;
+  for (auto aid: attrs) {
+    attributeDesc(parts, aid, obj);
+  }
+  return parts.join("; ");
+}
+
+static QString desc_boyspp(const S57::Object* obj) {
+  static const QVector<QPair<quint32, int>> attrs = {
+    {S52::FindCIndex("BOYSHP"), -1},
+    {S52::FindCIndex("CATSPM"), 52},
+    {S52::FindCIndex("COLPAT"), -1},
+    {S52::FindCIndex("COLOUR"), -1},
+    {S52::FindCIndex("STATUS"), -1},
+  };
+
+  QStringList parts;
+  for (const auto& a: attrs) {
+    attributeDesc(parts, a.first, obj, a.second);
+  }
+  return parts.join("; ");
+}
+
+
+static QString desc_boylat(const S57::Object* obj) {
+  static const QVector<quint32> attrs = {
+    S52::FindCIndex("CATLAM"),
+    S52::FindCIndex("BOYSHP"),
+    S52::FindCIndex("STATUS"),
+  };
+
+  QStringList parts;
+  for (auto aid: attrs) {
+    attributeDesc(parts, aid, obj);
+  }
+  return parts.join("; ");
+}
+
+static QString desc_boycar(const S57::Object* obj) {
+  static const QVector<quint32> attrs = {
+    S52::FindCIndex("CATCAM"),
+    S52::FindCIndex("BOYSHP"),
+    S52::FindCIndex("STATUS"),
+  };
+
+  QStringList parts;
+  for (auto aid: attrs) {
+    attributeDesc(parts, aid, obj);
+  }
+  return parts.join("; ");
+}
+
+static QString desc_mipare(const S57::Object* obj) {
+  static const QVector<quint32> attrs = {
+    S52::FindCIndex("CATMPA"),
+    S52::FindCIndex("STATUS"),
+  };
+
+  QStringList parts;
+  for (auto aid: attrs) {
+    attributeDesc(parts, aid, obj);
+  }
+  return parts.join("; ");
+}
+
+static QString desc_magvar(const S57::Object* obj) {
+  static auto valmag = S52::FindCIndex("VALMAG");
+  static auto ryrmgv = S52::FindCIndex("RYRMGV");
+  static auto valacm = S52::FindCIndex("VALACM");
+
+  const auto year = obj->attributeValue(ryrmgv).toString();
+  const auto val = Angle::fromDegrees(obj->attributeValue(valmag).toDouble());
+  const auto ann = Angle::fromDegrees(obj->attributeValue(valacm).toDouble() / 60.);
+
+  // value year (annual change)
+  return QString("%1: %2 %3 (%4)")
+      .arg(S52::GetClassDescription(obj->classCode()))
+      .arg(val.printAsLongitude())
+      .arg(year)
+      .arg(ann.printAsLongitude());
+}
+
+static QString desc_resare(const S57::Object* obj) {
+  static const QVector<quint32> attrs = {
+    S52::FindCIndex("CATREA"),
+    S52::FindCIndex("RESTRN"),
+    S52::FindCIndex("STATUS"),
+  };
+
+  QStringList parts;
+  for (auto aid: attrs) {
+    attributeDesc(parts, aid, obj);
+  }
+  return parts.join("; ");
+}
+
+static QString desc_achare(const S57::Object* obj) {
+  static const QVector<quint32> attrs = {
+    S52::FindCIndex("CATACH"),
+    S52::FindCIndex("RESTRN"),
+    S52::FindCIndex("STATUS"),
+  };
+
+  QStringList parts;
+  for (auto aid: attrs) {
+    attributeDesc(parts, aid, obj);
+  }
+  return parts.join("; ");
+}
+
+static QString desc_newobj(const S57::Object* obj) {
+  static const QVector<quint32> attrs = {
+    S52::FindCIndex("CLSNAM"),
+    S52::FindCIndex("RESTRN"),
+    S52::FindCIndex("STATUS"),
+  };
+
+  QStringList parts;
+  for (auto aid: attrs) {
+    attributeDesc(parts, aid, obj);
+  }
+  return parts.join("; ");
+}
+
+static QString desc_lndmrk(const S57::Object* obj) {
+  static const QVector<QPair<quint32, int>> attrs = {
+    {S52::FindCIndex("CATLMK"), -1},
+    {S52::FindCIndex("FUNCTN"), 1},
+    {S52::FindCIndex("COLPAT"), -1},
+    {S52::FindCIndex("COLOUR"), -1},
+    {S52::FindCIndex("HEIGHT"), -1},
+    {S52::FindCIndex("STATUS"), -1},
+  };
+
+  QStringList parts;
+  for (const auto& a: attrs) {
+    attributeDesc(parts, a.first, obj, a.second);
+  }
+  return parts.join("; ");
+}
+
+static QString desc_sistaw(const S57::Object* obj) {
+  static const QVector<quint32> attrs = {
+    S52::FindCIndex("CATSIW"),
+    S52::FindCIndex("COMCHA"),
+    S52::FindCIndex("STATUS"),
+  };
+
+  QStringList parts;
+  for (auto aid: attrs) {
+    attributeDesc(parts, aid, obj);
+  }
+  return S52::GetClassDescription(obj->classCode()) + ": " + parts.join("; ");
+}
+
+static QString desc_wrecks(const S57::Object* obj) {
+  static const QVector<quint32> attrs = {
+    S52::FindCIndex("CATWRK"),
+    S52::FindCIndex("WATLEV"),
+    S52::FindCIndex("VALSOU"),
+    S52::FindCIndex("EXPSOU"),
+    S52::FindCIndex("QUASOU"),
+    S52::FindCIndex("STATUS"),
+  };
+
+  QStringList parts;
+  for (auto aid: attrs) {
+    attributeDesc(parts, aid, obj);
+  }
+  return parts.join("; ");
+}
+
+static QString desc_uwtroc(const S57::Object* obj) {
+  static const QVector<quint32> attrs = {
+    S52::FindCIndex("NATSUR"),
+    S52::FindCIndex("WATLEV"),
+    S52::FindCIndex("VALSOU"),
+    S52::FindCIndex("EXPSOU"),
+    S52::FindCIndex("QUASOU"),
+    S52::FindCIndex("STATUS"),
+  };
+
+  QStringList parts;
+  for (auto aid: attrs) {
+    attributeDesc(parts, aid, obj);
+  }
+  return parts.join("; ");
+}
+
+static QString desc_obstrn(const S57::Object* obj) {
+  static const QVector<quint32> attrs = {
+    S52::FindCIndex("CATOBS"),
+    S52::FindCIndex("NATSUR"),
+    S52::FindCIndex("WATLEV"),
+    S52::FindCIndex("VALSOU"),
+    S52::FindCIndex("EXPSOU"),
+    S52::FindCIndex("QUASOU"),
+    S52::FindCIndex("STATUS"),
+  };
+
+  QStringList parts;
+  for (auto aid: attrs) {
+    attributeDesc(parts, aid, obj);
+  }
+  return parts.join("; ");
+}
+
+static QString desc_morfac(const S57::Object* obj) {
+  static const QVector<quint32> attrs = {
+    S52::FindCIndex("CATMOR"),
+    S52::FindCIndex("WATLEV"),
+    S52::FindCIndex("COLOUR"),
+    S52::FindCIndex("HEIGHT"),
+    S52::FindCIndex("STATUS"),
+  };
+
+  QStringList parts;
+  for (auto aid: attrs) {
+    attributeDesc(parts, aid, obj);
+  }
+  return parts.join("; ");
+}
+
+using Descriptor = std::function<QString (const S57::Object*)>;
+
+QString S52::ObjectDescription(const S57::Object* obj) {
+  static const QMap<quint32, Descriptor> descriptions = {
+    {S52::FindCIndex("RECTRC"), desc_rectrc},
+    {S52::FindCIndex("TWRTPT"), desc_rectrc}, // reuses rectrc
+    {S52::FindCIndex("DEPCNT"), desc_depcnt},
+    {S52::FindCIndex("BCNSPP"), desc_bcnspp},
+    {S52::FindCIndex("BCNLAT"), desc_bcnlat},
+    {S52::FindCIndex("BCNCAR"), desc_bcncar},
+    {S52::FindCIndex("BOYSPP"), desc_boyspp},
+    {S52::FindCIndex("BOYLAT"), desc_boylat},
+    {S52::FindCIndex("BOYCAR"), desc_boycar},
+    {S52::FindCIndex("MIPARE"), desc_mipare},
+    {S52::FindCIndex("MAGVAR"), desc_magvar},
+    {S52::FindCIndex("RESARE"), desc_resare},
+    {S52::FindCIndex("ACHARE"), desc_achare},
+    {S52::FindCIndex("NEWOBJ"), desc_newobj},
+    {S52::FindCIndex("LNDMRK"), desc_lndmrk},
+    {S52::FindCIndex("SISTAW"), desc_sistaw},
+    {S52::FindCIndex("WRECKS"), desc_wrecks},
+    {S52::FindCIndex("UWTROC"), desc_uwtroc},
+    {S52::FindCIndex("OBSTRN"), desc_obstrn},
+    {S52::FindCIndex("MORFAC"), desc_morfac},
+  };
+
+  const auto code = obj->classCode();
+
+  if (descriptions.contains(code)) return descriptions[code](obj);
+
+  return S52::GetClassDescription(code);
 }
