@@ -8,7 +8,7 @@
 - POI (including Guest harbours) support
 - display less details in smaller chart scales
 - object class filter & config
+- bug: non-dangerous wrecks shown as dangerous
 
-- Fix object info images
-- bug: object info system hangs when hovering over bg chart
-- Full object info
+- Fix ObjectInfo images
+- Full ObjectInfo

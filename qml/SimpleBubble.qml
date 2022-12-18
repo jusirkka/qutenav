@@ -1,8 +1,8 @@
 /* -*- coding: utf-8-unix -*-
  *
- * File: mobile/qml/TrackSpeedInfoBox.qml
+ * File: qml/SimpleBubble.qml
  *
- * Copyright (C) 2021 Jukka Sirkka
+ * Copyright (C) 2022 Jukka Sirkka
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,36 +19,42 @@
  */
 import QtQuick 2.6
 
-TrackInfoBox {
+Bubble {
 
-  id: info
+  id: simple
 
-  property real mps: NaN
+  property string text
 
-  target: Rectangle {
-    id: speedBox
-    color: "white"
-    radius: 4
-    height: speedDisplay.height
-    width: 1.5 * height + 2 * padding
+  function show(msg, pos) {
+    text = msg
+    state = pos ? pos : "top"
+    _restart(4000)
+  }
 
-    DimensionalValue {
-      id: speedDisplay
+  function notify(msg) {
+    text = msg
+    state = "center"
+    _restart(1500)
+  }
+
+  target: Item {
+    id: content
+
+    height: info.height
+    width: info.width + 2 * theme.paddingSmall
+
+    Text {
+      id: info
+
+      text: simple.text
 
       anchors {
-        left: parent.left
-        leftMargin: padding / 2
-        rightMargin: padding / 2
-        centerIn: parent
+        right: parent.right
+        verticalCenter: content.verticalCenter
       }
-
-      unit: units.speedSymbol
-      value: units.speed(info.mps)
-      fontSize: info.fontSize
-
-      onUnitChanged: {
-        value = Qt.binding(function () {return units.speed(info.mps)})
-      }
+      color: "black"
+      font.pixelSize: theme.fontSizeMedium
+      horizontalAlignment: Text.AlignLeft
     }
   }
 }

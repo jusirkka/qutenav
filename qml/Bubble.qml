@@ -1,6 +1,6 @@
 /* -*- coding: utf-8-unix -*-
  *
- * File: mobile/qml/Bubble.qml
+ * File: qml/Bubble.qml
  *
  * Copyright (C) 2021 Jukka Sirkka
  *
@@ -27,16 +27,22 @@ Rectangle {
   anchors.bottomMargin: theme.paddingLarge
   anchors.horizontalCenter: parent.horizontalCenter
 
-  width: content.width + 2 * theme.paddingLarge
-  height: content.height + 2 * theme.paddingLarge
+  width: bubbleContent.width + 2 * theme.paddingLarge
+  height: bubbleContent.height + 2 * theme.paddingLarge
   radius: 20
   color: "white"
   border.color: "black"
 
   property var topItem: null
   property var bottomItem: null
+  property alias target: bubbleContent.sourceComponent
 
   visible: timer.running
+
+  function _restart(msecs) {
+    timer.interval = msecs
+    timer.restart()
+  }
 
   state: "top"
 
@@ -65,60 +71,17 @@ Rectangle {
     }
   ]
 
-  function show(msg, img, pos) {
-    info.text = msg
-    if (img) {
-      fig.source = img
-      fig.width = 32
-    } else {
-      fig.source = ""
-      fig.width = 0
-    }
-    state = pos ? pos : "top"
-    timer.restart()
-  }
-
-  function notify(msg) {
-    info.text = msg
-    fig.source = ""
-    fig.width = 0
-    state = "center"
-    timer.interval = 1500
-    timer.restart()
-  }
-
-  Item {
-    id: content
-
-    height: Math.max(fig.height, info.height)
-    width: fig.width + info.width + 2 * theme.paddingSmall
-
-    anchors.horizontalCenter: parent.horizontalCenter
-    anchors.verticalCenter: parent.verticalCenter
-
-
-    Image {
-      id: fig
-      visible: !!source
-      height: width
-    }
-
-    Text {
-      id: info
-      anchors {
-        right: parent.right
-        verticalCenter: content.verticalCenter
-      }
-      color: "black"
-      font.pixelSize: theme.fontSizeMedium
-      horizontalAlignment: Text.AlignHCenter
-    }
-  }
-
   Timer {
     id: timer
     interval: 4000
     repeat: false
     running: false
+  }
+
+  Loader {
+    id: bubbleContent
+
+    anchors.horizontalCenter: parent.horizontalCenter
+    anchors.verticalCenter: parent.verticalCenter
   }
 }

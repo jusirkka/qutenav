@@ -337,7 +337,7 @@ static QString desc_bcnspp(const S57::Object* obj) {
     {S52::FindCIndex("COLPAT"), -1},
     {S52::FindCIndex("COLOUR"), -1},
     {S52::FindCIndex("HEIGHT"), -1},
-    {S52::FindCIndex("STATUS"), -1},
+    {S52::FindCIndex("STATUS"), 1}, // permanent
   };
 
   QStringList parts;
@@ -348,31 +348,31 @@ static QString desc_bcnspp(const S57::Object* obj) {
 }
 
 static QString desc_bcnlat(const S57::Object* obj) {
-  static const QVector<quint32> attrs = {
-    S52::FindCIndex("CATLAM"),
-    S52::FindCIndex("BCNSHP"),
-    S52::FindCIndex("HEIGHT"),
-    S52::FindCIndex("STATUS"),
+  static const QVector<QPair<quint32, int>> attrs = {
+    {S52::FindCIndex("CATLAM"), -1},
+    {S52::FindCIndex("BCNSHP"), -1},
+    {S52::FindCIndex("HEIGHT"), -1},
+    {S52::FindCIndex("STATUS"), 1},
   };
 
   QStringList parts;
-  for (auto aid: attrs) {
-    attributeDesc(parts, aid, obj);
+  for (auto a: attrs) {
+    attributeDesc(parts, a.first, obj, a.second);
   }
   return parts.join("; ");
 }
 
 static QString desc_bcncar(const S57::Object* obj) {
-  static const QVector<quint32> attrs = {
-    S52::FindCIndex("CATCAM"),
-    S52::FindCIndex("BCNSHP"),
-    S52::FindCIndex("HEIGHT"),
-    S52::FindCIndex("STATUS"),
+  static const QVector<QPair<quint32, int>> attrs = {
+    {S52::FindCIndex("CATCAM"), -1},
+    {S52::FindCIndex("BCNSHP"), -1},
+    {S52::FindCIndex("HEIGHT"), -1},
+    {S52::FindCIndex("STATUS"), 1},
   };
 
   QStringList parts;
-  for (auto aid: attrs) {
-    attributeDesc(parts, aid, obj);
+  for (auto a: attrs) {
+    attributeDesc(parts, a.first, obj, a.second);
   }
   return parts.join("; ");
 }
@@ -383,7 +383,7 @@ static QString desc_boyspp(const S57::Object* obj) {
     {S52::FindCIndex("CATSPM"), 52},
     {S52::FindCIndex("COLPAT"), -1},
     {S52::FindCIndex("COLOUR"), -1},
-    {S52::FindCIndex("STATUS"), -1},
+    {S52::FindCIndex("STATUS"), 1},
   };
 
   QStringList parts;
@@ -395,29 +395,29 @@ static QString desc_boyspp(const S57::Object* obj) {
 
 
 static QString desc_boylat(const S57::Object* obj) {
-  static const QVector<quint32> attrs = {
-    S52::FindCIndex("CATLAM"),
-    S52::FindCIndex("BOYSHP"),
-    S52::FindCIndex("STATUS"),
+  static const QVector<QPair<quint32, int>> attrs = {
+    {S52::FindCIndex("CATLAM"), -1},
+    {S52::FindCIndex("BOYSHP"), -1},
+    {S52::FindCIndex("STATUS"), 1},
   };
 
   QStringList parts;
-  for (auto aid: attrs) {
-    attributeDesc(parts, aid, obj);
+  for (const auto& a: attrs) {
+    attributeDesc(parts, a.first, obj, a.second);
   }
   return parts.join("; ");
 }
 
 static QString desc_boycar(const S57::Object* obj) {
-  static const QVector<quint32> attrs = {
-    S52::FindCIndex("CATCAM"),
-    S52::FindCIndex("BOYSHP"),
-    S52::FindCIndex("STATUS"),
+  static const QVector<QPair<quint32, int>> attrs = {
+    {S52::FindCIndex("CATCAM"), -1},
+    {S52::FindCIndex("BOYSHP"), -1},
+    {S52::FindCIndex("STATUS"), 1},
   };
 
   QStringList parts;
-  for (auto aid: attrs) {
-    attributeDesc(parts, aid, obj);
+  for (const auto& a: attrs) {
+    attributeDesc(parts, a.first, obj, a.second);
   }
   return parts.join("; ");
 }
@@ -467,15 +467,15 @@ static QString desc_resare(const S57::Object* obj) {
 }
 
 static QString desc_achare(const S57::Object* obj) {
-  static const QVector<quint32> attrs = {
-    S52::FindCIndex("CATACH"),
-    S52::FindCIndex("RESTRN"),
-    S52::FindCIndex("STATUS"),
+  static const QVector<QPair<quint32, int>> attrs = {
+    {S52::FindCIndex("CATACH"), -1},
+    {S52::FindCIndex("RESTRN"), -1},
+    {S52::FindCIndex("STATUS"), 1},
   };
 
   QStringList parts;
-  for (auto aid: attrs) {
-    attributeDesc(parts, aid, obj);
+  for (const auto& a: attrs) {
+    attributeDesc(parts, a.first, obj, a.second);
   }
   return parts.join("; ");
 }
@@ -501,7 +501,7 @@ static QString desc_lndmrk(const S57::Object* obj) {
     {S52::FindCIndex("COLPAT"), -1},
     {S52::FindCIndex("COLOUR"), -1},
     {S52::FindCIndex("HEIGHT"), -1},
-    {S52::FindCIndex("STATUS"), -1},
+    {S52::FindCIndex("STATUS"), 1},
   };
 
   QStringList parts;
@@ -578,17 +578,17 @@ static QString desc_obstrn(const S57::Object* obj) {
 }
 
 static QString desc_morfac(const S57::Object* obj) {
-  static const QVector<quint32> attrs = {
-    S52::FindCIndex("CATMOR"),
-    S52::FindCIndex("WATLEV"),
-    S52::FindCIndex("COLOUR"),
-    S52::FindCIndex("HEIGHT"),
-    S52::FindCIndex("STATUS"),
+  static const QVector<QPair<quint32, int>> attrs = {
+    {S52::FindCIndex("CATMOR"), -1},
+    {S52::FindCIndex("WATLEV"), -1},
+    {S52::FindCIndex("COLOUR"), -1},
+    {S52::FindCIndex("HEIGHT"), -1},
+    {S52::FindCIndex("STATUS"), 1},
   };
 
   QStringList parts;
-  for (auto aid: attrs) {
-    attributeDesc(parts, aid, obj);
+  for (const auto& a: attrs) {
+    attributeDesc(parts, a.first, obj, a.second);
   }
   return parts.join("; ");
 }

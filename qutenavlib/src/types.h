@@ -366,9 +366,9 @@ enum class AttributeType: uint8_t {
 
 // Data type for object info requests
 struct InfoType {
-  quint32 priority;
-  QString objectId;
-  QString info;
+  quint32 priority = 0;
+  QString objectId {};
+  QString info {};
 };
 
 

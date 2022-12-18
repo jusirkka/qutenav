@@ -56,12 +56,20 @@ ChartPagePL {
     syncLayers()
   }
 
+  Timer {
+    id: infoPendingTimer
+    interval: 1000
+    repeat: false
+    onTriggered: page.infoQueryPending = false
+  }
+
   function infoModeMouseMoveHandler(m) {
     infoPoint.peepHole = Qt.point(infoPoint.peepHole.x + m.x - mouse.prev.x,
                                   infoPoint.peepHole.y + m.y - mouse.prev.y)
     mouse.prev = Qt.point(m.x, m.y);
     if (!infoQueryPending) {
       infoQueryPending = true
+      infoPendingTimer.restart()
       encdis.infoQuery(infoPoint.peepHole)
     }
   }
@@ -177,9 +185,11 @@ ChartPagePL {
     anchors.fill: parent
 
     onInfoQueryReady: {
-      page.infoQueryPending = false;
-      bubble.show(info, "image://s57/" + objectId,
-                  infoPoint.peepHole.y > page.height / 2 ? "top" : "bottom")
+      page.infoQueryPending = false
+      infoPendingTimer.stop()
+      if (!info) return
+      objectInfo.show(info, "image://s57/" + objectId,
+                      infoPoint.peepHole.y > page.height / 2 ? "top" : "bottom")
     }
 
     onChartDBStatus: {
@@ -345,8 +355,15 @@ ChartPagePL {
     scaleText2: encdis.scaleBarTexts[2]
   }
 
-  Bubble {
+  SimpleBubble {
     id: bubble
+    bottomItem: menuButton
+    topItem: trackInfo
+    z: 301
+  }
+
+  ObjectInfoBubble {
+    id: objectInfo
     bottomItem: menuButton
     topItem: trackInfo
     z: 301

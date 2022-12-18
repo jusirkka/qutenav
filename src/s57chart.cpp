@@ -1245,11 +1245,13 @@ S57::InfoType S57Chart::objectInfo(const WGS84Point& wp, quint32 scale) {
     }
   }
 
+  if (priorities.isEmpty()) return S57::InfoType();
+
   qCDebug(CS57) << "-------- Pick Results --------";
   for (const Prio& pr: priorities) {
     auto code = pr.object->classCode();
     qCDebug(CS57) << pr.priority << ":"
-                  << S52::GetClassInfo(code);
+                    << S52::GetClassInfo(code);
     const auto catA = S52::GetCategoryA(code);
     for (quint32 aid: catA) {
       if (pr.object->attributeValue(aid).isValid()) {
@@ -1263,8 +1265,6 @@ S57::InfoType S57Chart::objectInfo(const WGS84Point& wp, quint32 scale) {
       }
     }
   }
-
-  if (priorities.isEmpty()) return S57::InfoType();
 
   S57::InfoType info;
   info.objectId = QString("%1/%2%3").arg(id()).arg(priorities.first().index).arg(extraIds);

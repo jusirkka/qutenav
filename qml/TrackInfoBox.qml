@@ -31,7 +31,6 @@ Rectangle {
   property real bearing: NaN
 
   property alias target: upperLeft.sourceComponent
-  property alias targetItem: upperLeft.item
 
   height: upperBox.height + lowerBox.height + 3 * padding
   width: upperLeft.width + upperBox.width + 3 * padding

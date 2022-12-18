@@ -33,7 +33,7 @@ PagePL {
   title: name + " " + qsTrId("qtnav-stats")
   pageHeight: parent.height
 
-  Bubble {
+  SimpleBubble {
     id: info
     parent: page.contentItem
   }

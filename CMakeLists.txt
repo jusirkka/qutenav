@@ -67,6 +67,7 @@ elseif (PLATFORM STREQUAL silica)
     qml/MapLabel.qml
     qml/MenuButton.qml
     qml/MenuPage.qml
+    qml/ObjectInfoBubble.qml
     qml/Pinpoint.qml
     qml/PreferencesPage.qml
     qml/Renamer.qml
@@ -78,6 +79,7 @@ elseif (PLATFORM STREQUAL silica)
     qml/Ruler.qml
     qml/ScaleBar.qml
     qml/SystemPreferencesPage.qml
+    qml/SimpleBubble.qml
     qml/TrackButton.qml
     qml/TrackDisplayDialog.qml
     qml/TrackInfo.qml

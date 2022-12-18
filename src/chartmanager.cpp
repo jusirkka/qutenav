@@ -440,7 +440,7 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
     std::reverse(smallScales.begin(), smallScales.end());
   }
 
-  if (cov < minCoverage && !regions.isEmpty()) {
+  if (cov < minCoverage && !regions.isEmpty() && !remainingArea.isEmpty()) {
     createBackground(regions, cam->geoprojection(), remainingArea);
   }
 
@@ -792,7 +792,8 @@ void ChartManager::requestInfo(const WGS84Point &p) {
   }
 
   if (reqs.isEmpty()) {
-    qCInfo(CMGR) << p.print() << "is outside of area covered by current chartset";
+    // qCDebug(CMGR) << p.print() << "is outside of area covered by current chartset";
+    emit infoResponse("", "");
     return;
   }
 
@@ -817,17 +818,12 @@ void ChartManager::manageInfoResponse(const S57::InfoType& info, quint32 tid) {
 
   if (m_transactions[tid] == m_charts.size()) {
     // All responses received
-    const S57::InfoType* resp = nullptr;
-    quint8 prio = 0;
-    for (const S57::InfoType& info: m_info[tid]) {
-      if (info.priority > prio) {
-        prio = info.priority;
-        resp = &info;
-      }
-    }
-    if (resp != nullptr) {
+    auto it = std::max_element(m_info[tid].cbegin(), m_info[tid].cend(), [] (const S57::InfoType& t1, const S57::InfoType& t2) {
+      return t1.priority < t2.priority;
+    });
+    if (it != m_info[tid].cend()) {
       // qCDebug(CMGR) << "ChartManager::manageInfoResponse" << resp->objectId << resp->info;
-      emit infoResponse(resp->objectId, resp->info);
+      emit infoResponse(it->objectId, it->info);
     }
     m_info.remove(tid);
     m_transactions.remove(tid);

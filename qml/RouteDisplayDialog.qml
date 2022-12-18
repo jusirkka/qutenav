@@ -132,7 +132,7 @@ DialogPL {
       }
     }
 
-    Bubble {
+    SimpleBubble {
       id: info
     }
 
