@@ -250,18 +250,43 @@ void RasterSymbolManager::parseSymbolData(QXmlStreamReader &reader,
 
 }
 
-bool RasterSymbolManager::paintIcon(QPainter& painter, quint32 index, S52::SymbolType type) {
+bool RasterSymbolManager::paintIcon(PickIconData& icon, quint32 index, S52::SymbolType type, bool centered) {
   const SymbolKey key(index, type);
   if (!m_pixmapCache.contains(key)) {
     if (!m_painterData.contains(key)) return false;
     auto pix = new QPixmap;
-    int h = 2 * m_painterData[key].graphicsLocation.height();
-    *pix = QPixmap(m_symbolAtlas).copy(m_painterData[key].graphicsLocation).scaledToHeight(h);
+    *pix = QPixmap(m_symbolAtlas).copy(m_painterData[key].graphicsLocation);
     m_pixmapCache.insert(key, pix);
   }
-  const auto ox = qMax(0, painter.device()->width() / 6 + m_painterData[key].offset.x());
-  const auto oy = qMax(0, painter.device()->height() / 6 + m_painterData[key].offset.y());
-  painter.drawPixmap(ox, oy, *m_pixmapCache[key]);
+  QPainter painter(&icon.canvas);
+  auto pix = *m_pixmapCache[key];
+  // TODO: area patterns: type = S52::SymbolType::Pattern
+  if (centered) {
+    if (pix.width() > PickIconMax * PickIconSize || pix.height() > PickIconMax * PickIconSize) {
+      if (pix.width() > pix.height()) {
+        pix = pix.scaledToWidth(PickIconMax * PickIconSize);
+      } else {
+        pix = pix.scaledToHeight(PickIconMax * PickIconSize);
+      }
+    } else if (pix.width() < PickIconMin * PickIconSize || pix.height() < PickIconMin * PickIconSize) {
+      if (pix.width() > pix.height()) {
+        pix = pix.scaledToWidth(PickIconMin * PickIconSize);
+      } else {
+        pix = pix.scaledToHeight(PickIconMin * PickIconSize);
+      }
+    }
+
+    QPointF c = .5 * QPointF(PickIconSize - pix.width(), PickIconSize - pix.height());
+    painter.drawPixmap(c, pix);
+    icon.bbox |= QRectF(c, pix.size());
+
+  } else {
+    const auto p = m_painterData[key].offset;
+    const auto ox = painter.device()->width() / 2 - p.x();
+    const auto oy = painter.device()->height() / 2 - p.y();
+    painter.drawPixmap(ox, oy, pix);
+    icon.bbox |= QRectF(ox, oy, pix.width(), pix.height());
+  }
   return true;
 }
 

@@ -26,6 +26,7 @@
 #include "hpglopenglparser.h"
 #include "hpglpixmapparser.h"
 #include <QPainter>
+#include "platform.h"
 
 VectorSymbolManager::VectorSymbolManager()
   : m_invalid()
@@ -129,8 +130,6 @@ void VectorSymbolManager::parseSymbols(QXmlStreamReader& reader, S52::SymbolType
     Q_ASSERT(reader.name() == itemName);
 
     QString symbolName;
-    QString cmap;
-    QString src;
     ParseData d;
     bool staggered = false;
 
@@ -138,11 +137,11 @@ void VectorSymbolManager::parseSymbols(QXmlStreamReader& reader, S52::SymbolType
       if (reader.name() == "name") {
         symbolName = reader.readElementText();
       } else if (reader.name() == "vector") {
-        parseSymbolData(reader, d, src);
+        parseSymbolData(reader, d);
       } else if (reader.name() == "HPGL") {
-        src = reader.readElementText();
+        d.pdata.src = reader.readElementText();
       } else if (reader.name() == "color-ref") {
-        cmap = reader.readElementText();
+        d.pdata.cmap = reader.readElementText();
       } else if (reader.name() == "filltype") {
         staggered = reader.readElementText() != "L";
       } else {
@@ -152,7 +151,7 @@ void VectorSymbolManager::parseSymbols(QXmlStreamReader& reader, S52::SymbolType
 
     if (!d.size.isValid()) continue;
 
-    HPGL::OpenGLParser parser(src, cmap, d.pivot);
+    HPGL::OpenGLParser parser(d.pdata.src, d.pdata.cmap, d.pivot);
     if (!parser.ok()) {
       qCWarning(CSYM) << "HPGLParser failed, skipping" << symbolName;
       continue;
@@ -188,13 +187,11 @@ void VectorSymbolManager::parseSymbols(QXmlStreamReader& reader, S52::SymbolType
                       << symbolName << ", skipping earlier";
     }
     m_symbolMap.insert(key, s);
-    m_painterData.insert(key, PainterData(src, cmap, d.center));
+    m_painterData.insert(key, d.pdata);
   }
 }
 
-void VectorSymbolManager::parseSymbolData(QXmlStreamReader &reader,
-                                          ParseData &d,
-                                          QString& src) {
+void VectorSymbolManager::parseSymbolData(QXmlStreamReader &reader, ParseData &d) {
   Q_ASSERT(reader.name() == "vector");
 
   int w = reader.attributes().value("width").toInt();
@@ -202,6 +199,10 @@ void VectorSymbolManager::parseSymbolData(QXmlStreamReader &reader,
   d.size = QSizeF(mmUnit * w, mmUnit * h);
 
   QPointF o;
+
+  auto scalePoint = [] (const QPointF& p) {
+    return QPointF(p.x() * dots_per_mm_x(), p.y() * dots_per_mm_y());
+  };
 
   while (reader.readNextStartElement()) {
     if (reader.name() == "distance") {
@@ -211,47 +212,65 @@ void VectorSymbolManager::parseSymbolData(QXmlStreamReader &reader,
     } else if (reader.name() == "pivot") {
       d.pivot = QPointF(reader.attributes().value("x").toInt() * mmUnit,
                         reader.attributes().value("y").toInt() * mmUnit);
+      d.pdata.pivot = scalePoint(d.pivot);
       reader.skipCurrentElement();
     } else if (reader.name() == "origin") {
-      d.center = QPoint(reader.attributes().value("x").toInt(),
-                        reader.attributes().value("y").toInt());
-      o = QPointF(d.center.x() * mmUnit, d.center.y() * mmUnit);
+      o = QPointF(reader.attributes().value("x").toInt() * mmUnit,
+                  reader.attributes().value("y").toInt() * mmUnit);
       reader.skipCurrentElement();
     } else if (reader.name() == "HPGL") {
-      src = reader.readElementText();
+      d.pdata.src = reader.readElementText();
     } else {
       reader.skipCurrentElement();
     }
   }
 
   // offset of the upper left corner
-  d.offset = QPointF(o.x() - d.pivot.x(),
-                     d.pivot.y() - o.y());
-
+  d.offset = QPointF(o.x() - d.pivot.x(), d.pivot.y() - o.y());
 }
 
-bool VectorSymbolManager::paintIcon(QPainter& painter,
+bool VectorSymbolManager::paintIcon(PickIconData& icon,
                                     quint32 index, S52::SymbolType type,
-                                    qint16 angle) {
+                                    qint16 angle, bool centered) {
   const CacheKey key(index, type, angle);
   if (!m_pixmapCache.contains(key)) {
     const SymbolKey key0 = key.key();
     if (!m_painterData.contains(key0)) return false;
     auto pix = new QPixmap;
-    const PainterData& d = m_painterData[key0];
-    HPGL::PixmapParser parser(d.src, d.cmap, angle);
+    PainterData& d = m_painterData[key0];
+    HPGL::PixmapParser parser(d.src, d.cmap, d.pivot, angle);
     *pix = parser.pixmap();
+    d.bbox = parser.bbox();
     m_pixmapCache.insert(key, pix);
   }
-  QPixmap pix = *m_pixmapCache[key];
-  if (pix.width() > .75 * painter.device()->width()) {
-    pix = pix.scaledToWidth(.75 * painter.device()->width());
+  QPainter painter(&icon.canvas);
+  auto pix = *m_pixmapCache[key];
+  // TODO area patterns: type = S52::SymbolType::Pattern
+  // TODO line styles: type = S52::SymbolType::LineStyle
+  if (centered) {
+    if (pix.width() > PickIconMax * PickIconSize || pix.height() > PickIconMax * PickIconSize) {
+      if (pix.width() > pix.height()) {
+        pix = pix.scaledToWidth(PickIconMax * PickIconSize);
+      } else {
+        pix = pix.scaledToHeight(PickIconMax * PickIconSize);
+      }
+    } else if (pix.width() < PickIconMin * PickIconSize || pix.height() < PickIconMin * PickIconSize) {
+      if (pix.width() > pix.height()) {
+        pix = pix.scaledToWidth(PickIconMin * PickIconSize);
+      } else {
+        pix = pix.scaledToHeight(PickIconMin * PickIconSize);
+      }
+    }
+
+    QPointF c = .5 * QPointF(PickIconSize - pix.width(), PickIconSize - pix.height());
+    painter.drawPixmap(c, pix);
+    icon.bbox |= QRectF(c, pix.size());
+  } else {
+    const auto p = m_painterData[key.key()].bbox.topLeft();
+    const auto ox = painter.device()->width() / 2 - p.x();
+    const auto oy = painter.device()->height() / 2 - p.y();
+    painter.drawPixmap(ox, oy, pix);
+    icon.bbox |= QRectF(ox, oy, pix.width(), pix.height());
   }
-  if (pix.height() > .75 * painter.device()->height()) {
-    pix = pix.scaledToHeight(.75 * painter.device()->height());
-  }
-  const auto ox = (painter.device()->width() - pix.width()) / 2;
-  const auto oy = (painter.device()->height() - pix.height()) / 2;
-  painter.drawPixmap(ox, oy, pix);
   return true;
 }

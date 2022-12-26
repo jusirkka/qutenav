@@ -21,11 +21,13 @@
 #include <QDebug>
 #include "s52presentation.h"
 #include <QPainter>
+#include "settings.h"
 #include "platform.h"
 
-HPGL::PixmapParser::PixmapParser(const QString &src, const QString& colors, qint16 angle)
+HPGL::PixmapParser::PixmapParser(const QString& src, const QString& colors,
+                                 const QPointF& pivot, qint16 angle)
   : Parser(colors)
-  , m_pix()
+  , m_pivot(pivot)
   , m_started(false)
   , m_penDown(false)
 {
@@ -41,32 +43,27 @@ HPGL::PixmapParser::PixmapParser(const QString &src, const QString& colors, qint
   }
   edgeSketch();
 
-  QRectF bbox;
-  for (const PainterItem& item: m_items) {
-    for (const QPolygonF& p: item.path) {
-      bbox |= p.boundingRect();
-    }
-  }
-
   if (angle != 0) {
-    const auto c = bbox.center();
     QTransform rot;
-    rot.translate(c.x(), c.y());
     rot.rotate(angle);
-    rot.translate(-c.x(), -c.y());
 
-    bbox = QRectF();
     for (PainterItem& item: m_items) {
       for (QPolygonF& p: item.path) {
         p = rot.map(p);
-        bbox |= p.boundingRect();
+        m_bbox |= p.boundingRect();
+      }
+    }
+  } else {
+    for (const PainterItem& item: m_items) {
+      for (const QPolygonF& p: item.path) {
+        m_bbox |= p.boundingRect();
       }
     }
   }
 
 
-  int w = bbox.width() + .5;
-  int h = bbox.height() + .5;
+  int w = m_bbox.width() + .5;
+  int h = m_bbox.height() + .5;
   m_pix = QPixmap(w, h);
   m_pix.fill(QColor("transparent"));
 
@@ -75,11 +72,9 @@ HPGL::PixmapParser::PixmapParser(const QString &src, const QString& colors, qint
     painter.setPen(item.pen);
     painter.setBrush(item.brush);
     for (const QPolygonF& p: item.path) {
-      painter.drawPolygon(p.translated(- bbox.topLeft()));
+      painter.drawPolygon(p.translated(- m_bbox.topLeft()));
     }
-
   }
-
 }
 
 
@@ -296,8 +291,8 @@ void HPGL::PixmapParser::edgeSketch() {
 }
 
 QPointF HPGL::PixmapParser::makePoint(int x, int y) {
-  QPointF p(x * mmUnit * dots_per_mm_x(), y * mmUnit * dots_per_mm_y());
-  return p;
+  const QPointF p(x * mmUnit * dots_per_mm_x(), y * mmUnit * dots_per_mm_y());
+  return (p - m_pivot) / Settings::instance()->displayLengthScaling();
 }
 
 

@@ -34,7 +34,7 @@ static quint8 numdigits(quint32 v) {
 }
 
 
-QString Converter::display(float v, int prec) const {
+QString Converter::display(float v, int prec, bool wsym) const {
   Q_ASSERT(v >= 0.f);
 
   quint32 a = static_cast<int>(v);
@@ -51,16 +51,16 @@ QString Converter::display(float v, int prec) const {
         a += 1;
       }
       // print a + b'
-      const QString r = QString::number(a) + ".%1 " + m_symbol;
+      const QString r = QString::number(a) + ".%1 " + (wsym ? m_symbol : "");
       return r.arg(b1, prec - d, 10, QChar('0'));
     }
     // print a
-    return QString::number(static_cast<int>(std::round(v))) + " " + m_symbol;
+    return QString::number(static_cast<int>(std::round(v))) + " " + (wsym ? m_symbol : "");
   }
   // manipulate b -> b' (int)
   const quint32 m = std::pow(10, prec);
   quint32 b1 = std::round(m * b);
-  QString r = ".%1 " + m_symbol;
+  QString r = ".%1 " + (wsym ? m_symbol : "");
   if (b1 == m) {
     b1 = 0;
     r = "1" + r;
@@ -130,8 +130,8 @@ class NMSConverter: public Converter {
 public:
   NMSConverter(): Converter(qtTrId(symbol), 18.52) {}
 
-  QString display(float v, int prec = 0) const override {
-    return Converter::display(v * .01, 2 + prec);
+  QString display(float v, int prec = 0, bool wsym = true) const override {
+    return Converter::display(v * .01, 2 + prec, wsym);
   }
 };
 

@@ -95,10 +95,10 @@ S57::PaintDataMap S52::Lookup::modifiers(const S57::Object *obj) const {
   return ps;
 }
 
-void S52::Lookup::paintIcon(QPainter& painter, const S57::Object* obj) const {
+void S52::Lookup::paintIcon(PickIconData& icon, const S57::Object* obj) const {
 
-  auto accum = [&painter] (S52::Function* fun, const ValueStack& values, const S57::Object* thing) {
-    fun->paintIcon(painter, values, thing);
+  auto accum = [&icon] (S52::Function* fun, const ValueStack& values, const S57::Object* thing) {
+    fun->paintIcon(icon, values, thing);
   };
 
   run_bytecode(obj, accum);
@@ -593,6 +593,44 @@ static QString desc_morfac(const S57::Object* obj) {
   return parts.join("; ");
 }
 
+static QString desc_bridge(const S57::Object* obj) {
+  static const QVector<quint32> attrs = {
+    S52::FindCIndex("CATBRG"),
+    S52::FindCIndex("VERCLR"),
+  };
+
+  QStringList parts;
+  for (auto aid: attrs) {
+    attributeDesc(parts, aid, obj);
+  }
+  return parts.join("; ");
+}
+
+static QString desc_depare(const S57::Object* obj) {
+  static auto drval1 = S52::FindCIndex("DRVAL1");
+  static auto drval2 = S52::FindCIndex("DRVAL2");
+  static auto base = S52::GetClassDescription(obj->classCode());
+
+  const auto d1 = obj->attributeValue(drval1);
+  const auto d2 = obj->attributeValue(drval2);
+  if (!d1.isValid() || !d2.isValid()) {
+    return base;
+  }
+
+  const auto v1 = d1.toDouble();
+
+  const auto v2 = d2.toDouble();
+  const auto s2 = Units::Manager::instance()->depth()->displaySI(v2, 2);
+
+  if (v1 == 0) {
+    return QString("%1 (0 - %2)").arg(base).arg(s2);
+  }
+
+  const auto s1 = Units::Manager::instance()->depth()->displaySI(v1, 2, false);
+  return QString("%1 (%2 - %3)").arg(base).arg(s1).arg(s2);
+}
+
+
 using Descriptor = std::function<QString (const S57::Object*)>;
 
 QString S52::ObjectDescription(const S57::Object* obj) {
@@ -617,6 +655,8 @@ QString S52::ObjectDescription(const S57::Object* obj) {
     {S52::FindCIndex("UWTROC"), desc_uwtroc},
     {S52::FindCIndex("OBSTRN"), desc_obstrn},
     {S52::FindCIndex("MORFAC"), desc_morfac},
+    {S52::FindCIndex("BRIDGE"), desc_bridge},
+    {S52::FindCIndex("DEPARE"), desc_depare},
   };
 
   const auto code = obj->classCode();

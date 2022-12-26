@@ -72,7 +72,7 @@ public:
   S57::InfoTypeFull objectInfoFull(const WGS84Point& p, quint32 scale);
   S57::InfoType objectInfo(const WGS84Point& p, quint32 scale);
 
-  void paintIcon(QPainter& painter, quint32 objectIndex) const;
+  void paintIcon(PickIconData& icon, quint32 objectIndex) const;
 
   // mutex inteface
   void lock();

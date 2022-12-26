@@ -72,7 +72,8 @@ public:
 
   SymbolData symbolData(quint32 index, S52::SymbolType type) const;
   SymbolData symbolData(const SymbolKey& key) const;
-  bool paintIcon(QPainter& painter, quint32 index, S52::SymbolType type, qint16 angle);
+  bool paintIcon(PickIconData& icon, quint32 index, S52::SymbolType type, qint16 angle,
+                 bool centered = false);
 
   void initializeGL();
   void finalizeGL();
@@ -89,26 +90,28 @@ private:
   // length units in millimeters
   static const inline qreal mmUnit = .01;
 
+  struct PainterData {
+    PainterData(const QString& s, const QString& c, const QPointF& p)
+      : src(s)
+      , cmap(c)
+      , pivot(p) {}
+    PainterData() = default;
+
+    QString src;
+    QString cmap;
+    QPointF pivot;
+    QRectF bbox;
+  };
+
   struct ParseData {
     QPointF offset;
     QPointF pivot;
     QSizeF size;
     qreal minDist;
     qreal maxDist;
-    QPoint center;
+    PainterData pdata;
   };
 
-  struct PainterData {
-    PainterData(const QString& s, const QString& c, const QPoint& p)
-      : src(s)
-      , cmap(c)
-      , center(p) {}
-    PainterData() = default;
-
-    QString src;
-    QString cmap;
-    QPoint center;
-  };
 
 
   using SymbolMap = QHash<SymbolKey, SymbolData>;
@@ -116,7 +119,7 @@ private:
   using PixmapCache = QCache<CacheKey, QPixmap>;
 
   void parseSymbols(QXmlStreamReader& reader, S52::SymbolType type);
-  void parseSymbolData(QXmlStreamReader& reader, ParseData& d, QString& src);
+  void parseSymbolData(QXmlStreamReader& reader, ParseData& d);
 
   SymbolMap m_symbolMap;
   SymbolData m_invalid;

@@ -58,7 +58,7 @@ public:
   void setChartSet(const QString& charts, const GeoProjection* vproj, bool force = false);
   QString chartSet() const;
 
-  void paintIcon(QPainter& painter, quint32 chartId, quint32 objectIndex) const;
+  void paintIcon(PickIconData& icon, quint32 chartId, quint32 objectIndex) const;
 
   const ChartVector& charts() const {return m_charts;}
   const WGS84Polygon& outlines() const {return m_outlines;}

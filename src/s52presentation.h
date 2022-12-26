@@ -82,7 +82,7 @@ public:
 
   S57::PaintDataMap execute(const S57::Object* obj) const;
   S57::PaintDataMap modifiers(const S57::Object* obj) const;
-  void paintIcon(QPainter& painter, const S57::Object* obj) const;
+  void paintIcon(PickIconData& icon, const S57::Object* obj) const;
 
   // bytecode interface
   enum class Code: quint8 {Immed, Var, Fun, DefVar};

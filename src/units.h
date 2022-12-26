@@ -35,9 +35,11 @@ public:
 
   const QString& symbol() const {return m_symbol;}
 
-  virtual QString display(float v, int prec = 0) const;
+  virtual QString display(float v, int prec = 0, bool wsym = true) const;
 
-  QString displaySI(float v, int prec = 0) const {return display(fromSI(v), prec);}
+  QString displaySI(float v, int prec = 0, bool wsym = true) const {
+    return display(fromSI(v), prec, wsym);
+  }
 
   virtual ~Converter() = default;
 protected:

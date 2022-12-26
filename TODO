@@ -9,6 +9,10 @@
 - display less details in smaller chart scales
 - object class filter & config
 - bug: non-dangerous wrecks shown as dangerous
+- bug: artifacts in route editing: when projection of a point is before/after previous/next point
 
-- Fix ObjectInfo images
+- ObjectInfo images: patterns
+- ObjectInfo images: symbolized lines
+- ObjectInfo images: sector lights
+- ObjectInfo images: directional lights
 - Full ObjectInfo

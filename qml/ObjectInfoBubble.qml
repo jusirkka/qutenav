@@ -1,8 +1,8 @@
 /* -*- coding: utf-8-unix -*-
  *
- * File: qml/Bubble.qml
+ * File: qml/ObjectInfoBubble.qml
  *
- * Copyright (C) 2021 Jukka Sirkka
+ * Copyright (C) 2022 Jukka Sirkka
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,19 +23,12 @@ Bubble {
 
   id: objectInfo
 
-  property real imgWidth
   property string imgSource
   property string text
 
   function show(msg, img, pos) {
     text = msg
-    if (img) {
-      imgSource = img
-      imgWidth = 32
-    } else {
-      imgSource = ""
-      imgWidth = 0
-    }
+    imgSource = img
     state = pos ? pos : "top"
     _restart(4000)
   }
@@ -48,15 +41,12 @@ Bubble {
 
     Image {
       id: fig
-      visible: !!source
-      width: objectInfo.imgWidth
-      height: width
       source: objectInfo.imgSource
     }
 
     TextMetrics {
       id: maxMetrics
-      text: "sample text for measurement of maximum line length"
+      text: "sample text for measurement of max line len"
       font: info.font
     }
 

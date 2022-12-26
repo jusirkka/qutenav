@@ -32,15 +32,17 @@ class PixmapParser: public Parser {
 
 public:
 
-  PixmapParser(const QString& src, const QString& colors, qint16 angle);
+  PixmapParser(const QString& src, const QString& colors, const QPointF& pivot, qint16 angle);
 
   QPixmap pixmap() const {return m_pix;}
+  QRectF bbox() const {return m_bbox;}
 
 private:
 
 
-  QPixmap m_pix;
-
+  QPixmap m_pix {};
+  QPointF m_pivot {};
+  QRectF m_bbox {};
 
 private: // bison interface
 

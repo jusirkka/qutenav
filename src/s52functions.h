@@ -47,7 +47,10 @@ public:
     return S57::PaintDataMap();
   }
 
-  virtual void paintIcon(QPainter& painter, const QVector<QVariant>& vals, const S57::Object* obj) const {}
+  virtual void paintIcon(PickIconData& /*icon*/, const QVector<QVariant>& /*vals*/,
+                         const S57::Object* /*obj*/) const {
+    // noop
+  }
 
 protected:
 
@@ -57,6 +60,13 @@ protected:
 
 
   virtual ~Function() = default;
+
+  using Accumulator = std::function<void (
+    Function*,
+    const QVector<QVariant>&,
+    const S57::Object*
+  )>;
+
 
 private:
 
@@ -71,7 +81,7 @@ public:
     : Function("AC", index) {}
 
   S57::PaintDataMap execute(const QVector<QVariant>& vals, const S57::Object* obj) override;
-  void paintIcon(QPainter& painter, const QVector<QVariant>& vals, const S57::Object* obj) const override;
+  void paintIcon(PickIconData& icon, const QVector<QVariant>& vals, const S57::Object* obj) const override;
 };
 
 class AreaPattern: public Function {
@@ -80,7 +90,7 @@ public:
     : Function("AP", index) {}
 
   S57::PaintDataMap execute(const QVector<QVariant>& vals, const S57::Object* obj) override;
-  void paintIcon(QPainter& painter, const QVector<QVariant>& vals, const S57::Object* obj) const override;
+  void paintIcon(PickIconData& icon, const QVector<QVariant>& vals, const S57::Object* obj) const override;
 
 };
 
@@ -90,7 +100,7 @@ public:
     : Function("LS", index) {}
 
   S57::PaintDataMap execute(const QVector<QVariant>& vals, const S57::Object* obj) override;
-  void paintIcon(QPainter& painter, const QVector<QVariant>& vals, const S57::Object* obj) const override;
+  void paintIcon(PickIconData& icon, const QVector<QVariant>& vals, const S57::Object* obj) const override;
 
 };
 
@@ -100,7 +110,7 @@ public:
     : Function("LC", index) {}
 
   S57::PaintDataMap execute(const QVector<QVariant>& vals, const S57::Object* obj) override;
-  void paintIcon(QPainter& painter, const QVector<QVariant>& vals, const S57::Object* obj) const override;
+  void paintIcon(PickIconData& icon, const QVector<QVariant>& vals, const S57::Object* obj) const override;
 
 };
 
@@ -109,12 +119,9 @@ public:
   PointSymbol(quint32 index);
 
   S57::PaintDataMap execute(const QVector<QVariant>& vals, const S57::Object* obj) override;
-  void paintIcon(QPainter& painter, const QVector<QVariant>& vals, const S57::Object* obj) const override;
+  void paintIcon(PickIconData& icon, const QVector<QVariant>& vals, const S57::Object* obj) const override;
 
 private:
-
-  const quint32 m_catlam;
-  const quint32 m_catcam;
 
 
 };
@@ -155,9 +162,11 @@ class CSDepthArea01: public Function {
 public:
   CSDepthArea01(quint32 index);
   S57::PaintDataMap execute(const QVector<QVariant>&, const S57::Object* obj) override;
-  void paintIcon(QPainter& painter, const QVector<QVariant>& vals, const S57::Object* obj) const override;
+  void paintIcon(PickIconData& icon, const QVector<QVariant>& vals, const S57::Object* obj) const override;
 
 private:
+
+  void runner(const S57::Object* obj, Accumulator accumulate) const;
 
   const quint32 m_drval1;
   const quint32 m_drval2;
@@ -177,9 +186,12 @@ public:
 
   S57::PaintDataMap execute(const QVector<QVariant>&, const S57::Object* obj) override;
   S57::PaintDataMap modifiers(const QVector<QVariant>&, const S57::Object* obj) override;
-  void paintIcon(QPainter& painter, const QVector<QVariant>& vals, const S57::Object* obj) const override;
+  void paintIcon(PickIconData& icon, const QVector<QVariant>& vals, const S57::Object* obj) const override;
 
 private:
+
+  using PrioSetter = std::function<void ()>;
+  void runner(const S57::Object* obj, Accumulator accumulate, PrioSetter setPrio) const;
 
   const quint32 m_chmgd;
   const quint32 m_catrea;
@@ -220,7 +232,7 @@ public:
     : Function("DEPARE02", index) {}
 
   S57::PaintDataMap execute(const QVector<QVariant>&, const S57::Object* obj) override;
-  void paintIcon(QPainter& painter, const QVector<QVariant>& vals, const S57::Object* obj) const override;
+  void paintIcon(PickIconData& icon, const QVector<QVariant>& vals, const S57::Object* obj) const override;
 };
 
 class CSDepthContours02: public Function {
@@ -229,9 +241,12 @@ public:
 
   S57::PaintDataMap execute(const QVector<QVariant>&, const S57::Object* obj) override;
   S57::PaintDataMap modifiers(const QVector<QVariant>&, const S57::Object* obj) override;
-  void paintIcon(QPainter& painter, const QVector<QVariant>& vals, const S57::Object* obj) const override;
+  void paintIcon(PickIconData& icon, const QVector<QVariant>& vals, const S57::Object* obj) const override;
 
 private:
+
+  using Overrider = std::function<void ()>;
+  void runner(const S57::Object* obj, Accumulator accumulate, Overrider overRide) const;
 
   const quint32 m_depare;
   const quint32 m_drval1;
@@ -247,11 +262,19 @@ class CSLights05: public Function {
 public:
   CSLights05(quint32 index);
   S57::PaintDataMap execute(const QVector<QVariant>&, const S57::Object* obj) override;
-  void paintIcon(QPainter& painter, const QVector<QVariant>& vals, const S57::Object* obj) const override;
+  void paintIcon(PickIconData& icon, const QVector<QVariant>& vals, const S57::Object* obj) const override;
 
   QString litdsn01(const S57::Object* obj) const;
 
 private:
+
+  using DirectionalAccumulator = std::function<void (const S57::Object*, const QVariant& orient)>;
+  using TextAccumulator = std::function<void (const S57::Object*, bool)>;
+  using SectorAccumulator = std::function<void (const S57::Object*, bool, quint32)>;
+
+  void runner(const S57::Object* obj,
+              Accumulator accumulate, DirectionalAccumulator dir, TextAccumulator txt, SectorAccumulator sec) const;
+
   static const uint floodlight = 8;
   static const uint spotlight = 11;
   static const uint striplight = 9;
@@ -315,9 +338,13 @@ public:
 
   S57::PaintDataMap execute(const QVector<QVariant>&, const S57::Object* obj) override;
   S57::PaintDataMap modifiers(const QVector<QVariant>&, const S57::Object* obj) override;
-  void paintIcon(QPainter& painter, const QVector<QVariant>& vals, const S57::Object* obj) const override;
+  void paintIcon(PickIconData& icon, const QVector<QVariant>& vals, const S57::Object* obj) const override;
 
 private:
+
+  using Overrider = std::function<void (bool)>;
+
+  void runner(const S57::Object* obj, Accumulator accum, Overrider ovr) const;
 
   const quint32 m_watlev;
   const quint32 m_catobs;
@@ -348,18 +375,20 @@ private:
 };
 
 class CSQualOfPos01: public Function {
+  friend class CSObstruction04;
+  friend class CSSoundings02;
+  friend class CSWrecks02;
 public:
   CSQualOfPos01(quint32 index);
 
   S57::PaintDataMap execute(const QVector<QVariant>&, const S57::Object* obj) override;
-  void paintIcon(QPainter& painter, const QVector<QVariant>& vals, const S57::Object* obj) const override;
-
-  S57::PaintDataMap lineData(const S57::Object* obj) const;
-  S57::PaintDataMap pointData(const S57::Object* obj) const;
-  void paintLine(QPainter& painter, const S57::Object* obj) const;
-  void paintPoint(QPainter& painter, const S57::Object* obj) const;
+  void paintIcon(PickIconData& icon, const QVector<QVariant>&, const S57::Object* obj) const override;
 
 private:
+
+  void run_line(const S57::Object* obj, Accumulator accum) const;
+  void run_point(const S57::Object* obj, Accumulator accum) const;
+  void runner(const S57::Object* obj, Accumulator accum) const;
 
   const quint32 m_quapos;
   const quint32 m_lowacc21;
@@ -378,9 +407,11 @@ public:
   CSRestrEntry01(quint32 index);
 
   S57::PaintDataMap execute(const QVector<QVariant>&, const S57::Object* obj) override;
-  void paintIcon(QPainter& painter, const QVector<QVariant>& vals, const S57::Object* obj) const override;
+  void paintIcon(PickIconData& icon, const QVector<QVariant>& vals, const S57::Object* obj) const override;
 
 private:
+
+  void runner(const S57::Object* obj, Accumulator accum) const;
 
   const quint32 m_restrn;
   const quint32 m_entres51;
@@ -418,13 +449,16 @@ private:
 };
 
 class CSSoundings02: public Function {
+  friend class CSObstruction04;
+  friend class CSWrecks02;
 public:
   CSSoundings02(quint32 index);
 
   S57::PaintDataMap execute(const QVector<QVariant>&, const S57::Object* obj) override;
-  S57::PaintDataMap symbols(double depth, int index, const S57::Object* obj) const;
 
 private:
+
+  void run_symbols(double depth, int index, const S57::Object* obj, Accumulator accumulate) const;
 
   const quint32 m_chblk;
   const quint32 m_chgrd;
@@ -449,9 +483,11 @@ public:
   CSTopmarks01(quint32 index);
 
   S57::PaintDataMap execute(const QVector<QVariant>&, const S57::Object* obj) override;
-  void paintIcon(QPainter& painter, const QVector<QVariant>& vals, const S57::Object* obj) const override;
+  void paintIcon(PickIconData& icon, const QVector<QVariant>& vals, const S57::Object* obj) const override;
 
 private:
+
+  void runner(const S57::Object* obj, Accumulator accumulate) const;
 
   bool isFloating(const S57::Object* obj) const;
   bool isRigid(const S57::Object* obj) const;
@@ -466,23 +502,24 @@ private:
 
   const QMap<quint32, quint32> m_floats;
   const QMap<quint32, quint32> m_rigids;
-
-
-
 };
 
 class CSWrecks02: public Function {
+  friend class CSObstruction04;
+
 public:
   CSWrecks02(quint32 index);
 
   S57::PaintDataMap execute(const QVector<QVariant>&, const S57::Object* obj) override;
+  void paintIcon(PickIconData& icon, const QVector<QVariant>& vals, const S57::Object* obj) const override;
   S57::PaintDataMap modifiers(const QVector<QVariant>&, const S57::Object* obj) override;
-  void paintIcon(QPainter& painter, const QVector<QVariant>& vals, const S57::Object* obj) const override;
-
-  S57::PaintDataMap dangerData(double depth, const S57::Object* obj) const;
-  S57::PaintDataMap dangerModifiers(double depth, const S57::Object* obj) const;
 
 private:
+
+  using Overrider = std::function<void (bool)>;
+
+  void run_danger(double depth, const S57::Object* obj, Accumulator accum, Overrider ovr, bool* danger = nullptr) const;
+  void runner(const S57::Object* obj, Accumulator accum, Overrider ovr) const;
 
   const quint32 m_valsou;
   const quint32 m_watlev;

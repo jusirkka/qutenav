@@ -22,6 +22,7 @@
 #include <QRegularExpression>
 #include "Geodesic.hpp"
 #include <QDebug>
+#include <algorithm>
 
 double Angle::degrees() const {
   return radians * DEGS_PER_RAD;
@@ -348,5 +349,47 @@ WGS84Bearing operator* (double s, const WGS84Bearing& b) {
     return WGS84Bearing::fromMeters( - s * b.meters(), Angle::fromRadians(b.radians() + M_PI));
   }
   return WGS84Bearing::fromMeters(s * b.meters(), Angle::fromRadians(b.radians()));
+}
+
+QVector<QPointF> areaPath(const QSize& cs, qreal lw) {
+  const QPointF ul(lw / 2, lw / 2);
+  const QPointF lr(PickIconSize - lw / 2, PickIconSize - lw / 2);
+  const QRectF r(ul, lr);
+
+  QVector<QPointF> vs {
+    r.topLeft(), r.topRight(),
+    r.topRight(), r.bottomRight(),
+    r.bottomRight(), r.bottomLeft(),
+    r.bottomLeft(), r.topLeft()
+  };
+
+  const QPointF dp = .5 * QPointF(cs.width() - r.width(), cs.height() - r.height()) - r.topLeft();
+
+  std::for_each(vs.begin(), vs.end(), [&dp] (QPointF& v) {
+    v += dp;
+  });
+
+  return vs;
+}
+
+QVector<QPointF> linePath(const QSize& cs, qreal lw) {
+  const QPointF ul(lw / 2, lw / 2);
+  const QPointF lr(PickIconSize - lw / 2, PickIconSize - lw / 2);
+  const QRectF r(ul, lr);
+
+  //  const QPointF p1(r.left() + .5 * r.width(), r.top() + .15 * r.height());
+  //  const QPointF p2(r.left() + .5 * r.width(), r.top() + .85 * r.height());
+
+  QVector<QPointF> vs {
+    r.topLeft(), r.bottomRight()
+  };
+
+  const QPointF dp = .5 * QPointF(cs.width() - r.width(), cs.height() - r.height()) - r.topLeft();
+
+  std::for_each(vs.begin(), vs.end(), [&dp] (QPointF& v) {
+    v += dp;
+  });
+
+  return vs;
 }
 

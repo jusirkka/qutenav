@@ -26,6 +26,8 @@
 #include <QOpenGLFunctions> // for GLfloat etc
 #include <glm/vec2.hpp>
 #include <QPointF>
+#include <QRectF>
+#include <QPixmap>
 
 class NotImplementedError {
 public:
@@ -320,13 +322,6 @@ enum class LineType: uint {Solid = 0x3ffff,
                            Dotted = 0x30c30}; // 2B 4W 2B 4W 2B 4W
 static const inline QVector<uint> AllLineTypes {0x3ffff, 0x3ffc0, 0x30c30};
 
-
-inline QString PrintScale(quint32 s) {
-  s = s / 100;
-  if (s >= 10000) return QString("%1 km/cm").arg(s / 1000);
-  return QString("%1 m/cm").arg(s);
-}
-
 struct Color {
   Color(quint32 i = 0, Alpha a = Alpha::Unset) : index(i), alpha(a) {}
   quint32 index;
@@ -403,6 +398,19 @@ using InfoTypeFull = QVector<Description>;
 
 Q_DECLARE_METATYPE(S57::InfoTypeFull)
 Q_DECLARE_METATYPE(S57::InfoType)
+
+// Data types for painting Pick Icons
+static const inline int PickIconSize = 48;
+static const inline double PickIconMin = .50;
+static const inline double PickIconMax = .90;
+
+struct PickIconData {
+  QRectF bbox {};
+  QPixmap canvas {};
+};
+
+QVector<QPointF> areaPath(const QSize& cs, qreal lw);
+QVector<QPointF> linePath(const QSize& cs, qreal lw);
 
 
 namespace KV {

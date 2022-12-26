@@ -46,7 +46,7 @@ public:
 
   SymbolData symbolData(quint32 index, S52::SymbolType type) const;
   SymbolData symbolData(const SymbolKey& key) const;
-  bool paintIcon(QPainter& painter, quint32 index, S52::SymbolType type);
+  bool paintIcon(PickIconData& icon, quint32 index, S52::SymbolType type, bool centerd = false);
   void changeSymbolAtlas();
 
   void initializeGL();

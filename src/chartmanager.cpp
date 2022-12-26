@@ -759,8 +759,8 @@ void ChartManager::createBackground(KV::RegionMap& regions,
 
     remainingArea -= delta;
     cov = 1 - remainingArea.area() / totarea;
-    qCDebug(CMGR) << "covers" << box.width() * box.height() / totarea * 100
-                  << ", subtracts" << delta.area() / totarea * 100
+    qCDebug(CMGR) << it.value().print(WGS84Point::Units::Deg, 0)
+                  << ": subtracts" << delta.area() / totarea * 100
                   << ", remaining" << (1 - cov) * 100;
 
     if (cov >= minCoverage) break;
@@ -830,8 +830,8 @@ void ChartManager::manageInfoResponse(const S57::InfoType& info, quint32 tid) {
   }
 }
 
-void ChartManager::paintIcon(QPainter& painter, quint32 chartId, quint32 objectIndex) const {
+void ChartManager::paintIcon(PickIconData& icon, quint32 chartId, quint32 objectIndex) const {
   if (!m_chartIds.contains(chartId)) return;
-  m_charts[m_chartIds[chartId]]->paintIcon(painter, objectIndex);
+  m_charts[m_chartIds[chartId]]->paintIcon(icon, objectIndex);
 }
 

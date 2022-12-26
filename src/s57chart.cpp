@@ -75,6 +75,7 @@ S57Chart::S57Chart(quint32 id, int prio, const QString& path)
                       {S52::FindCIndex("TESARE"), 0},
                       {S52::FindCIndex("RESARE"), 0},
                       {S52::FindCIndex("SWPARE"), 0},
+                      {S52::FindCIndex("EXEZNE"), 0},
                       {S52::FindCIndex("RTPBCN"), 3},
                       {S52::FindCIndex("PILPNT"), 3},
                       }
@@ -1273,10 +1274,10 @@ S57::InfoType S57Chart::objectInfo(const WGS84Point& wp, quint32 scale) {
   return info;
 }
 
-void S57Chart::paintIcon(QPainter& painter, quint32 objectIndex) const {
+void S57Chart::paintIcon(PickIconData& icon, quint32 objectIndex) const {
   if (static_cast<int>(objectIndex) >= m_lookups.size()) return;
   const ObjectLookup& p = m_lookups[objectIndex];
-  p.lookup->paintIcon(painter, p.object);
+  p.lookup->paintIcon(icon, p.object);
 }
 
 void S57Chart::lock() {
