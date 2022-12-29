@@ -242,7 +242,8 @@ S57::PaintDataMap S52::LineComplex::execute(const QVector<QVariant>& vals,
 void S52::LineComplex::paintIcon(PickIconData& icon,
                                  const QVector<QVariant>& vals, const S57::Object* obj) const {
   quint32 index = vals[0].toUInt();
-  VectorSymbolManager::instance()->paintIcon(icon, index, S52::SymbolType::LineStyle, 0);
+  const bool optLine = obj->geometry()->type() == S57::Geometry::Type::Line;
+  VectorSymbolManager::instance()->paintIcon(icon, index, S52::SymbolType::LineStyle, 0, optLine);
 }
 
 
@@ -1836,35 +1837,33 @@ S52::CSShorelineQualOfPos03::CSShorelineQualOfPos03(quint32 index)
   , m_catslc(S52::FindIndex("CATSLC"))
   , m_watlev(S52::FindIndex("WATLEV")) {}
 
-S57::PaintDataMap S52::CSShorelineQualOfPos03::execute(const QVector<QVariant>&,
-                                                       const S57::Object* obj) {
+void S52::CSShorelineQualOfPos03::runner(const S57::Object* obj, Accumulator accumulate) const {
 
   const QVariant quapos = obj->attributeValue(m_quapos);
   const int v = quapos.toInt();
   const bool inaccurate = quapos.isValid() && v >= 2 && v < 10;
 
-  if (obj->geometry()->type() == S57::Geometry::Type::Meta) return S57::PaintDataMap();
+  if (obj->geometry()->type() == S57::Geometry::Type::Meta) return;
 
   if (obj->geometry()->type() == S57::Geometry::Type::Point) {
     if (inaccurate) {
       const QVector<QVariant> vals {m_lowacc01, 0.};
-      return S52::FindFunction("SY")->execute(vals, obj);
+      accumulate(S52::FindFunction("SY"), vals, obj);
     }
-    return S57::PaintDataMap();
+    return;
   }
 
-  S57::PaintDataMap ps;
   if (obj->geometry()->type() == S57::Geometry::Type::Area) {
     QVector<QVariant> vals;
     vals.append(QVariant::fromValue(m_crossx01));
     vals.append(QVariant::fromValue(0.));
-    ps = S52::FindFunction("AP")->execute(vals, obj);
+    accumulate(S52::FindFunction("AP"), vals, obj);
   }
 
   if (inaccurate) {
     QVector<QVariant> vals;
     vals.append(QVariant::fromValue(m_lowacc01));
-    ps += S52::FindFunction("LC")->execute(vals, obj);
+    accumulate(S52::FindFunction("LC"), vals, obj);
   } else {
     const QVariant condtn = obj->attributeValue(m_condtn);
     const int v1 = condtn.toInt();
@@ -1899,13 +1898,35 @@ S57::PaintDataMap S52::CSShorelineQualOfPos03::execute(const QVector<QVariant>&,
 
       if (!vals.isEmpty()) {
         vals.append(QVariant::fromValue(m_cstln));
-        ps += S52::FindFunction("LS")->execute(vals, obj);
+        accumulate(S52::FindFunction("LS"), vals, obj);
       }
     }
   }
+}
+
+S57::PaintDataMap S52::CSShorelineQualOfPos03::execute(const QVector<QVariant>&,
+                                                       const S57::Object* obj) {
+
+  S57::PaintDataMap ps;
+
+  auto accum = [&ps] (Function* func, const QVector<QVariant> vs, const S57::Object* o) {
+    ps += func->execute(vs, o);
+  };
+
+  runner(obj, accum);
 
   return ps;
 }
+
+void S52::CSShorelineQualOfPos03::paintIcon(PickIconData& icon, const QVector<QVariant>&,
+                                    const S57::Object* obj) const {
+  auto accum = [&icon] (Function* func, const QVector<QVariant>& vs, const S57::Object* o) {
+    func->paintIcon(icon, vs, o);
+  };
+
+  runner(obj, accum);
+}
+
 
 
 

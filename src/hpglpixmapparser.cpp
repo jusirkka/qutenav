@@ -24,6 +24,9 @@
 #include "settings.h"
 #include "platform.h"
 
+
+
+
 HPGL::PixmapParser::PixmapParser(const QString& src, const QString& colors,
                                  const QPointF& pivot, qint16 angle)
   : Parser(colors)
@@ -62,20 +65,125 @@ HPGL::PixmapParser::PixmapParser(const QString& src, const QString& colors,
   }
 
 
-  int w = m_bbox.width() + .5;
-  int h = m_bbox.height() + .5;
+  int w = std::ceil(m_bbox.width());
+  int h = std::ceil(m_bbox.height());
   m_pix = QPixmap(w, h);
   m_pix.fill(QColor("transparent"));
 
+  QTransform tr;
+  tr.translate(-m_bbox.left(), -m_bbox.top());
+  paint(tr);
+}
+
+HPGL::PixmapParser::PixmapParser(const QString& src, const QString& colors,
+                                 const QPointF& pivot, bool isLine)
+  : Parser(colors)
+  , m_pivot(pivot)
+  , m_started(false)
+  , m_penDown(false)
+{
+
+  parse(src);
+
+  if (!m_ok) {
+    return;
+  }
+
+  while (m_sketches.size() > 0) {
+    edgeSketch();
+  }
+  edgeSketch();
+
+  QRectF bbox;
+  for (const PainterItem& item: m_items) {
+    for (const QPolygonF& p: item.path) {
+      bbox |= p.boundingRect();
+    }
+  }
+
+  const auto s0 = isLine ? .45 : .9;
+  auto s = 1.;
+  if (bbox.width() / PickIconSize > s0) s = s0;
+  const auto hmax = 7.;
+  if (!isLine && bbox.height() > hmax) {
+    s = std::min(s, hmax / bbox.height());
+  }
+
+
+  m_bbox = QRectF(0, 0, PickIconSize, PickIconSize);
+  m_pix = QPixmap(PickIconSize, PickIconSize);
+  m_pix.fill(QColor("transparent"));
+
+  if (isLine) {
+    const auto nmax = static_cast<int>(std::ceil(PickIconSize * 1.4 / s / bbox.width()));
+
+    QTransform op;
+    op.rotate(45);
+    op.scale(s, s);
+
+    const auto p0 = - op.map(bbox.topLeft() + QPointF(0, .5 * bbox.height()));
+    op = op * QTransform(1, 0, 0, 1, p0.x(), p0.y());
+
+    const auto T = (s * bbox.width() + 1) / sqrt(2) * QPointF(1., 1.);
+    for (int n = 0; n < nmax; n++) {
+      paint(op);
+      op = op * QTransform(1, 0, 0, 1, T.x(), T.y());
+    }
+  } else {
+
+    const auto nmax = static_cast<int>(std::ceil(PickIconSize / s / bbox.width()));
+
+    QTransform op;
+    op.scale(s, s);
+
+    auto p0 = - op.map(bbox.topLeft());
+    op = op * QTransform(1, 0, 0, 1, p0.x(), p0.y());
+
+    auto T = (s * bbox.width() + 1) * QPointF(1., 0.);
+    for (int n = 0; n < nmax; n++) {
+      paint(op);
+      op = op * QTransform(1, 0, 0, 1, T.x(), T.y());
+    }
+
+    op.reset();
+    op.rotate(180);
+    op.scale(s, s);
+
+    p0 = QPointF(PickIconSize, PickIconSize) - op.map(bbox.topLeft());
+    op = op * QTransform(1, 0, 0, 1, p0.x(), p0.y());
+
+    T = (s * bbox.width() + 1) * QPointF(-1., 0.);
+    for (int n = 0; n < nmax; n++) {
+      paint(op);
+      op = op * QTransform(1, 0, 0, 1, T.x(), T.y());
+    }
+
+    if (!m_items.isEmpty()) {
+      QPainter painter(&m_pix);
+      painter.setPen(m_items.first().pen);
+      const auto dy = s * bbox.height() / 2;
+      const auto dx = painter.pen().widthF();
+      painter.drawLine(dx, dy, dx, PickIconSize - dy);
+      painter.drawLine(PickIconSize - dx, dy, PickIconSize - dx, PickIconSize - dy);
+    }
+  }
+}
+
+void HPGL::PixmapParser::paint(const QTransform& tr) {
   QPainter painter(&m_pix);
   for (const PainterItem& item: m_items) {
     painter.setPen(item.pen);
     painter.setBrush(item.brush);
     for (const QPolygonF& p: item.path) {
-      painter.drawPolygon(p.translated(- m_bbox.topLeft()));
+      if (p.isClosed()) {
+        painter.drawPolygon(tr.map(p));
+      } else {
+        painter.drawPolyline(tr.map(p));
+      }
     }
   }
 }
+
 
 
 void HPGL::PixmapParser::setColor(char c) {
@@ -112,8 +220,13 @@ void HPGL::PixmapParser::setAlpha(int a) {
   }
 }
 
+static qreal makeLW(int w) {
+  return S52::LineWidthMM(w) * dots_per_mm_x() * Settings::instance()->displayLineWidthScaling();
+}
+
+
 void HPGL::PixmapParser::setWidth(int w) {
-  const qreal lw = S52::LineWidthMM(w) * dots_per_mm_x();
+  const qreal lw = makeLW(w);
   if (m_currentSketch.lineWidth == 0.) {
     m_currentSketch.lineWidth = lw;
   } else if (m_currentSketch.lineWidth != lw) {
@@ -169,8 +282,7 @@ void HPGL::PixmapParser::drawLineString(const RawPoints &ps) {
 }
 
 void HPGL::PixmapParser::drawPoint() {
-  const qreal lw = m_currentSketch.lineWidth == 0. ?
-        S52::LineWidthMM(1) * dots_per_mm_x() : m_currentSketch.lineWidth;
+  const qreal lw = m_currentSketch.lineWidth == 0. ? makeLW(1) : m_currentSketch.lineWidth;
   const auto q = QPointF(lw / 2, lw / 2);
   const auto p = QPointF(lw / 2, -lw / 2);
   QPolygonF poly;
@@ -178,6 +290,7 @@ void HPGL::PixmapParser::drawPoint() {
   poly.append(m_penPos + p);
   poly.append(m_penPos + q);
   poly.append(m_penPos - p);
+  poly.append(m_penPos - q);
 
   m_items.append(PainterItem(poly, QBrush(S52::GetColor(m_currentSketch.color.index))));
 }
@@ -186,10 +299,9 @@ void HPGL::PixmapParser::drawPoint() {
 void HPGL::PixmapParser::drawCircle(int r0) {
   LineString ls;
   ls.closed = true;
-  const qreal lw = m_currentSketch.lineWidth == 0 ?
-        S52::LineWidthMM(1) * dots_per_mm_x() : m_currentSketch.lineWidth;
+  const qreal lw = m_currentSketch.lineWidth == 0 ? makeLW(1) : m_currentSketch.lineWidth;
 
-  const qreal r = mmUnit * r0 * dots_per_mm_x();
+  const qreal r = mmUnit * r0 * dots_per_mm_x() / Settings::instance()->displayLengthScaling();
 
   auto n = qMin(90, 3 + 4 * static_cast<int>(r / lw));
   for (int i = 0; i <= n; i++) {
@@ -209,8 +321,7 @@ void HPGL::PixmapParser::drawCircle(int r0) {
 void HPGL::PixmapParser::drawArc(int x0, int y0, int a0) {
   LineString ls;
   ls.closed = false;
-  const qreal lw = m_currentSketch.lineWidth == 0 ?
-        S52::LineWidthMM(1) * dots_per_mm_x() : m_currentSketch.lineWidth;
+  const qreal lw = m_currentSketch.lineWidth == 0 ? makeLW(1) : m_currentSketch.lineWidth;
 
   const QPointF c = makePoint(x0, y0);
   const QPointF d = m_penPos - c;
@@ -271,11 +382,10 @@ void HPGL::PixmapParser::edgeSketch() {
   if (m_currentSketch.color.alpha != S52::Alpha::Unset) {
     c.setAlpha(255 - as_numeric(m_currentSketch.color.alpha) * 255 / 4);
   }
-  const qreal lw = m_currentSketch.lineWidth == 0. ?
-        S52::LineWidthMM(1) * dots_per_mm_x() : m_currentSketch.lineWidth;
+  const qreal lw = m_currentSketch.lineWidth == 0. ? makeLW(1) : m_currentSketch.lineWidth;
 
   PainterItem item;
-  item.pen = QPen(c, lw + .5);
+  item.pen = QPen(c, std::max(1, static_cast<int>(lw)));
 
   for (const LineString& part: m_currentSketch.parts) {
     if (part.points.size() < 2) continue;

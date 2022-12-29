@@ -76,6 +76,7 @@ S57Chart::S57Chart(quint32 id, int prio, const QString& path)
                       {S52::FindCIndex("RESARE"), 0},
                       {S52::FindCIndex("SWPARE"), 0},
                       {S52::FindCIndex("EXEZNE"), 0},
+                      {S52::FindCIndex("FAIRWY"), 2},
                       {S52::FindCIndex("RTPBCN"), 3},
                       {S52::FindCIndex("PILPNT"), 3},
                       }
@@ -1251,8 +1252,7 @@ S57::InfoType S57Chart::objectInfo(const WGS84Point& wp, quint32 scale) {
   qCDebug(CS57) << "-------- Pick Results --------";
   for (const Prio& pr: priorities) {
     auto code = pr.object->classCode();
-    qCDebug(CS57) << pr.priority << ":"
-                    << S52::GetClassInfo(code);
+    qCDebug(CS57) << pr.priority << ":" << S52::GetClassInfo(code);
     const auto catA = S52::GetCategoryA(code);
     for (quint32 aid: catA) {
       if (pr.object->attributeValue(aid).isValid()) {

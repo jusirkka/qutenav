@@ -250,33 +250,61 @@ void RasterSymbolManager::parseSymbolData(QXmlStreamReader &reader,
 
 }
 
-bool RasterSymbolManager::paintIcon(PickIconData& icon, quint32 index, S52::SymbolType type, bool centered) {
-  const SymbolKey key(index, type);
+QPixmap RasterSymbolManager::getPixmap(const SymbolKey& key) {
   if (!m_pixmapCache.contains(key)) {
-    if (!m_painterData.contains(key)) return false;
+    if (!m_painterData.contains(key)) return QPixmap();
     auto pix = new QPixmap;
     *pix = QPixmap(m_symbolAtlas).copy(m_painterData[key].graphicsLocation);
     m_pixmapCache.insert(key, pix);
   }
+  return *m_pixmapCache[key];
+}
+
+bool RasterSymbolManager::paintIcon(PickIconData& icon, quint32 index, S52::SymbolType type, bool centered) {
+  const SymbolKey key(index, type);
+  auto pix = getPixmap(key);
+  if (pix.isNull()) return false;
+
   QPainter painter(&icon.canvas);
-  auto pix = *m_pixmapCache[key];
-  // TODO: area patterns: type = S52::SymbolType::Pattern
-  if (centered) {
-    if (pix.width() > PickIconMax * PickIconSize || pix.height() > PickIconMax * PickIconSize) {
-      if (pix.width() > pix.height()) {
-        pix = pix.scaledToWidth(PickIconMax * PickIconSize);
-      } else {
-        pix = pix.scaledToHeight(PickIconMax * PickIconSize);
-      }
-    } else if (pix.width() < PickIconMin * PickIconSize || pix.height() < PickIconMin * PickIconSize) {
-      if (pix.width() > pix.height()) {
-        pix = pix.scaledToWidth(PickIconMin * PickIconSize);
-      } else {
-        pix = pix.scaledToHeight(PickIconMin * PickIconSize);
+
+  if (type == S52::SymbolType::Pattern) {
+    const QSizeF s(PickIconSize, PickIconSize);
+    const QPointF c = .5 * QPointF(icon.canvas.width() - s.width(), icon.canvas.height() - s.height());
+    const QRectF box(c, s);
+    icon.bbox |= box;
+
+    const auto adv = m_symbolMap[key].advance();
+    const qreal X = adv.x * dots_per_mm_x();
+    const qreal Y = adv.xy.y() * dots_per_mm_y();
+    const qreal xs = adv.xy.x() * dots_per_mm_x();
+
+    const int ny = std::floor(box.top() / Y);
+    const int my = std::ceil(box.bottom() / Y) + 1;
+    for (int ky = ny; ky < my; ky++) {
+      const qreal x1 = ky % 2 == 0 ? 0. : xs;
+      const int nx = std::floor((box.left() - x1) / X);
+      const int mx = std::ceil((box.right() - x1) / X) + 1;
+      for (int kx = nx; kx < mx; kx++) {
+        painter.drawPixmap(kx * X + x1, ky * Y, pix);
       }
     }
 
-    QPointF c = .5 * QPointF(PickIconSize - pix.width(), PickIconSize - pix.height());
+    return true;
+  }
+
+  // type == S52::SymbolType::Single
+  if (centered) {
+    if (pix.width() < PickIconMin && pix.width() >= pix.height()) {
+      pix = pix.scaledToWidth(PickIconMin);
+    } else if (pix.height() < PickIconMin && pix.height() >= pix.width()) {
+      pix = pix.scaledToHeight(PickIconMin);
+    } else if (pix.width() > PickIconMax && pix.width() >= pix.height()) {
+      pix = pix.scaledToWidth(PickIconMax);
+    } else if (pix.height() > PickIconMax && pix.height() >= pix.width()) {
+      pix = pix.scaledToHeight(PickIconMax);
+    }
+
+    QPointF c = .5 * QPointF(icon.canvas.width() - pix.width(), icon.canvas.height() - pix.height());
     painter.drawPixmap(c, pix);
     icon.bbox |= QRectF(c, pix.size());
 

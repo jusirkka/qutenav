@@ -401,8 +401,10 @@ Q_DECLARE_METATYPE(S57::InfoType)
 
 // Data types for painting Pick Icons
 static const inline int PickIconSize = 48;
-static const inline double PickIconMin = .50;
-static const inline double PickIconMax = .90;
+static const inline double PickIconMin = .50 * PickIconSize;
+static const inline double PickIconMax = .75 * PickIconSize;
+static const inline double PickIconRelMin = .60;
+static const inline double PickIconRelMax = .90;
 
 struct PickIconData {
   QRectF bbox {};

@@ -56,19 +56,6 @@ QPixmap S57::ImageProvider::requestPixmap(const QString& id,
   target.fill();
 
   QPainter painter(&target);
-  const QPen pen(QColor("black"), 2, Qt::DotLine);
-  painter.setPen(pen);
-  const int w = target.width();
-  const int h = target.height();
-  const int x0 = 1;
-  const int y0 = 1;
-  const int x1 = w - 1;
-  const int y1 = h - 1;
-  painter.drawLine(x0, y0, x1, y0);
-  painter.drawLine(x1, y0, x1, y1);
-  painter.drawLine(x1, y1, x0, y1);
-  painter.drawLine(x0, y1, x0, y0);
-
   auto pix = data.canvas.copy(data.bbox.toRect());
 
   if (pix.size() == target.size()) {
@@ -76,21 +63,22 @@ QPixmap S57::ImageProvider::requestPixmap(const QString& id,
     painter.drawPixmap(0, 0, pix);
   } else {
 
-    if (pix.width() > PickIconMax * target.width() || pix.height() > PickIconMax * target.height()) {
-      if (pix.width() > pix.height()) {
-        pix = pix.scaledToWidth(PickIconMax * target.width());
-      } else {
-        pix = pix.scaledToHeight(PickIconMax * target.height());
-      }
-    } else if (pix.width() < PickIconMin * target.width() || pix.height() < PickIconMin * target.height()) {
-      if (pix.width() > pix.height()) {
-        pix = pix.scaledToWidth(PickIconMin * target.width());
-      } else {
-        pix = pix.scaledToHeight(PickIconMin * target.height());
-      }
+    const auto mxw = PickIconRelMax * target.width();
+    const auto mnw = PickIconRelMin * target.width();
+    const auto mxh = PickIconRelMax * target.height();
+    const auto mnh = PickIconRelMin * target.height();
+
+    if (pix.width() < mnw && pix.width() >= pix.height()) {
+      pix = pix.scaledToWidth(mnw);
+    } else if (pix.height() < mnh && pix.height() >= pix.width()) {
+      pix = pix.scaledToHeight(mnh);
+    } else if (pix.width() > mxw && pix.width() >= pix.height()) {
+      pix = pix.scaledToWidth(mxw);
+    } else if (pix.height() > mxh && pix.height() >= pix.width()) {
+      pix = pix.scaledToHeight(mxh);
     }
 
-    QPointF c = .5 * QPointF(target.width() - pix.width(), target.height() - pix.height());
+    const QPointF c = .5 * QPointF(target.width() - pix.width(), target.height() - pix.height());
     painter.drawPixmap(c, pix);
   }
 

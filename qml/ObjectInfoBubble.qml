@@ -41,6 +41,7 @@ Bubble {
 
     Image {
       id: fig
+      cache: false
       source: objectInfo.imgSource
     }
 

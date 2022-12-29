@@ -436,6 +436,11 @@ public:
   CSShorelineQualOfPos03(quint32 index);
 
   S57::PaintDataMap execute(const QVector<QVariant>&, const S57::Object* obj) override;
+  void paintIcon(PickIconData& icon, const QVector<QVariant>& vals, const S57::Object* obj) const override;
+
+private:
+
+  void runner(const S57::Object* obj, Accumulator accum) const;
 
 private:
 

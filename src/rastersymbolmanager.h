@@ -46,7 +46,7 @@ public:
 
   SymbolData symbolData(quint32 index, S52::SymbolType type) const;
   SymbolData symbolData(const SymbolKey& key) const;
-  bool paintIcon(PickIconData& icon, quint32 index, S52::SymbolType type, bool centerd = false);
+  bool paintIcon(PickIconData& icon, quint32 index, S52::SymbolType type, bool centered = false);
   void changeSymbolAtlas();
 
   void initializeGL();
@@ -60,6 +60,7 @@ public:
 private:
 
   void createSymbols();
+  QPixmap getPixmap(const SymbolKey& key);
 
 
   struct ParseData {

@@ -73,7 +73,7 @@ public:
   SymbolData symbolData(quint32 index, S52::SymbolType type) const;
   SymbolData symbolData(const SymbolKey& key) const;
   bool paintIcon(PickIconData& icon, quint32 index, S52::SymbolType type, qint16 angle,
-                 bool centered = false);
+                 bool opt = false);
 
   void initializeGL();
   void finalizeGL();
@@ -86,9 +86,13 @@ public:
 private:
 
   void createSymbols();
+  QPixmap getPixmap(const CacheKey& key);
 
   // length units in millimeters
   static const inline qreal mmUnit = .01;
+  // special angles for caching area and line complex line pixmaps
+  static const inline qint16 lcAreaAngle = 4 * 360;
+  static const inline qint16 lcLineAngle = 5 * 360;
 
   struct PainterData {
     PainterData(const QString& s, const QString& c, const QPointF& p)

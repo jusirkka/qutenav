@@ -612,12 +612,19 @@ static QString desc_depare(const S57::Object* obj) {
   static auto base = S52::GetClassDescription(obj->classCode());
 
   const auto d1 = obj->attributeValue(drval1);
-  const auto d2 = obj->attributeValue(drval2);
-  if (!d1.isValid() || !d2.isValid()) {
-    return base;
-  }
+
+  if (!d1.isValid()) return base;
 
   const auto v1 = d1.toDouble();
+
+  const auto d2 = obj->attributeValue(drval2);
+  if (!d2.isValid()) {
+    if (v1 == 0) {
+      return QString("%1 (0 %2)").arg(base).arg(Units::Manager::instance()->depth()->symbol());
+    }
+    const auto s1 = Units::Manager::instance()->depth()->displaySI(v1, 2);
+    return QString("%1 (%2)").arg(base).arg(s1);
+  }
 
   const auto v2 = d2.toDouble();
   const auto s2 = Units::Manager::instance()->depth()->displaySI(v2, 2);

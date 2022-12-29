@@ -33,6 +33,8 @@ class PixmapParser: public Parser {
 public:
 
   PixmapParser(const QString& src, const QString& colors, const QPointF& pivot, qint16 angle);
+  // for area/line styled drawing
+  PixmapParser(const QString& src, const QString& colors, const QPointF& pivot, bool isLine);
 
   QPixmap pixmap() const {return m_pix;}
   QRectF bbox() const {return m_bbox;}
@@ -43,6 +45,8 @@ private:
   QPixmap m_pix {};
   QPointF m_pivot {};
   QRectF m_bbox {};
+
+  void paint(const QTransform& tr);
 
 private: // bison interface
 
