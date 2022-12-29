@@ -11,6 +11,4 @@
 - bug: non-dangerous wrecks shown as dangerous
 - bug: artifacts in route editing: when projection of a point is before/after previous/next point
 
-- ObjectInfo images: sector lights
-- ObjectInfo images: directional lights
 - Full ObjectInfo

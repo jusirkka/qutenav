@@ -262,9 +262,15 @@ static void attributeDesc(QStringList& parts, quint32 aid, const S57::Object* ob
   static const QSet<quint32> depths {
     S52::FindCIndex("VALDCO"),
     S52::FindCIndex("DRVAL1"),
+    S52::FindCIndex("DRVAL2"),
     S52::FindCIndex("VALSOU")
   };
-  static const QSet<quint32> lengths {S52::FindCIndex("HEIGHT")};
+  static const QSet<quint32> lengths {
+    S52::FindCIndex("HEIGHT"),
+    S52::FindCIndex("HORCLR"),
+    S52::FindCIndex("VERCLR"),
+    S52::FindCIndex("VERCCL")
+  };
 
   const QVariant v = obj->attributeValue(aid);
   if (!v.isValid()) return;
@@ -277,6 +283,7 @@ static void attributeDesc(QStringList& parts, quint32 aid, const S57::Object* ob
     } else if (lengths.contains(aid)) {
       parts << Units::Manager::instance()->shortDistance()->displaySI(v, 1);
     } else {
+      qCWarning(CS52) << "Unhandled real attribute" << S52::GetAttributeInfo(aid, obj);
       Q_ASSERT(false);
     }
     break;
@@ -597,6 +604,7 @@ static QString desc_bridge(const S57::Object* obj) {
   static const QVector<quint32> attrs = {
     S52::FindCIndex("CATBRG"),
     S52::FindCIndex("VERCLR"),
+    S52::FindCIndex("VERCCL"),
   };
 
   QStringList parts;

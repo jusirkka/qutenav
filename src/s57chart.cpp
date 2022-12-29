@@ -73,6 +73,7 @@ S57Chart::S57Chart(quint32 id, int prio, const QString& path)
                       {S52::FindCIndex("MIPARE"), 0},
                       {S52::FindCIndex("SEAARE"), 0},
                       {S52::FindCIndex("TESARE"), 0},
+                      {S52::FindCIndex("LNDARE"), 3},
                       {S52::FindCIndex("RESARE"), 0},
                       {S52::FindCIndex("SWPARE"), 0},
                       {S52::FindCIndex("EXEZNE"), 0},

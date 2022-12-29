@@ -1184,16 +1184,46 @@ void S52::CSLights05::paintIcon(PickIconData& icon,
     func->paintIcon(icon, vs, o);
   };
 
-  auto dir_accum = [] (const S57::Object*, const QVariant&) {
-    // TODO
+  auto dir_accum = [&icon, this] (const S57::Object* o, const QVariant&) {
+    if (!o->attributeValue(m_orient).isValid()) return;
+
+    const qreal orient = o->attributeValue(m_orient).toDouble() * M_PI / 180.;
+    const qreal d = .995 * PickIconSize;
+
+    const QPointF p0(.5 * icon.canvas.width(), .5 * icon.canvas.height());
+    const QPointF p1 = p0 + .5 * d * QPointF(- sin(orient), cos(orient));
+
+    const qreal lw = 2.;
+    QPointF c = .5 * QPointF(icon.canvas.width() - d, icon.canvas.height() - d);
+
+    const QRectF box = QRectF(c, QSizeF(d, d));
+    icon.bbox |= box;
+
+    QPainter painter(&icon.canvas);
+    painter.setPen(QPen(S52::GetColor(m_chblk), lw, Qt::DashLine));
+    painter.drawLine(p0, p1);
   };
 
   auto txt_accum = [] (const S57::Object*, bool) {
     // noop
   };
 
-  auto sec_accum = [] (const S57::Object*, bool, quint32) {
-    // TODO
+  auto sec_accum = [&icon, this] (const S57::Object* o, bool extr, quint32 ci) {
+    int s1 = std::round(o->attributeValue(m_sectr1).toDouble() * 16);
+    int s2 = std::round(o->attributeValue(m_sectr2).toDouble() * 16);
+    while (s2 < s1) s2 += 360 * 16;
+
+    const qreal lw = 2.;
+    const qreal dy = 10.;
+    const qreal d = .995 * PickIconSize;
+    QPointF c = .5 * QPointF(icon.canvas.width() - d, icon.canvas.height() - d - dy);
+
+    const QRectF box = QRectF(c, QSizeF(d, d));
+    icon.bbox |= box;
+    QPainter painter(&icon.canvas);
+    painter.setPen(QPen(S52::GetColor(ci), lw));
+    const qreal ds = extr ? lw : 2 * lw;
+    painter.drawArc(box.x() + ds, box.y() + ds, box.width() - 2 * ds, box.height() - 2 * ds, - 90 * 16 - s1, s1 - s2);
   };
 
   runner(obj, accum, dir_accum, txt_accum, sec_accum);
