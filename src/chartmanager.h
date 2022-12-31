@@ -85,6 +85,7 @@ signals:
   void chartsUpdated(const QRectF& viewArea);
   void updatingCharts();
   void infoResponse(const QString& objectId, const QString& info);
+  void infoResponseFull(const S57::InfoType& info);
   void chartSetsUpdated();
   void proxyChanged();
   void chartIndicatorsChanged(const WGS84Polygon& indicators);
@@ -92,7 +93,7 @@ signals:
 public slots:
 
   void updateCharts(const Camera* cam, quint32 flags = 0);
-  void requestInfo(const WGS84Point& p);
+  void requestInfo(const WGS84Point& p, bool full);
 
 private slots:
 

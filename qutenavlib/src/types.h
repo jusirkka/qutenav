@@ -130,6 +130,8 @@ public:
   WGS84Point& operator=(const WGS84Point& a) {m_Longitude = a.m_Longitude; m_Latitude = a.m_Latitude; m_Valid = a.m_Valid; return *this;}
   WGS84Point(): m_Longitude(0), m_Latitude(0), m_Valid(false) {}
 
+  bool operator()() {return m_Valid;}
+
   QString print(Units units = Units::DegMin, quint8 prec = 4) const;
   QString toISO6709() const;
   double lng() const {return m_Longitude;}
@@ -359,16 +361,7 @@ enum class AttributeType: uint8_t {
   Deleted,
 };
 
-// Data type for object info requests
-struct InfoType {
-  quint32 priority = 0;
-  QString objectId {};
-  QString info {};
-};
-
-
-
-// Data types for full object info requests
+// Data types for object info requests
 struct Pair {
   Pair(const QString& k, const QString& v)
     : key(k)
@@ -392,11 +385,18 @@ struct Description {
   PairVector attributes;
 };
 
-using InfoTypeFull = QVector<Description>;
+using DescriptionVector = QVector<Description>;
+
+struct InfoType {
+  quint32 priority = 0;
+  QString objectId {};
+  QString info {};
+  DescriptionVector descriptions {}; // for full object info
+};
+
 
 }
 
-Q_DECLARE_METATYPE(S57::InfoTypeFull)
 Q_DECLARE_METATYPE(S57::InfoType)
 
 // Data types for painting Pick Icons

@@ -6,9 +6,8 @@
 - check that S52Functions are compatible with S52 PresLib 4.0.0
 - quick settings
 - POI (including Guest harbours) support
+
 - display less details in smaller chart scales
 - object class filter & config
 - bug: non-dangerous wrecks shown as dangerous
 - bug: artifacts in route editing: when projection of a point is before/after previous/next point
-
-- Full ObjectInfo

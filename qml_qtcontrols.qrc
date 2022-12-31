@@ -12,6 +12,7 @@
         <file alias="EditButton.qml">qml/EditButton.qml</file>
         <file alias="InfoPage.qml">qml/InfoPage.qml</file>
         <file alias="MenuButton.qml">qml/MenuButton.qml</file>
+        <file alias="InfoQueryButton.qml">qml/InfoQueryButton.qml</file>
         <file alias="MenuPage.qml">qml/MenuPage.qml</file>
         <file alias="MapLabel.qml">qml/MapLabel.qml</file>
         <file alias="Pinpoint.qml">qml/Pinpoint.qml</file>
@@ -76,6 +77,11 @@
         <file alias="icons/compass-150.png">qml/icons/compass-150.png</file>
         <file alias="icons/compass-175.png">qml/icons/compass-175.png</file>
         <file alias="icons/compass-200.png">qml/icons/compass-200.png</file>
+        <file alias="icons/query-100.png">qml/icons/query-100.png</file>
+        <file alias="icons/query-125.png">qml/icons/query-125.png</file>
+        <file alias="icons/query-150.png">qml/icons/query-150.png</file>
+        <file alias="icons/query-175.png">qml/icons/query-175.png</file>
+        <file alias="icons/query-200.png">qml/icons/query-200.png</file>
         <file alias="icons/finish.png">qml/icons/finish.png</file>
         <file alias="icons/menu-100.png">qml/icons/menu-100.png</file>
         <file alias="icons/menu-125.png">qml/icons/menu-125.png</file>

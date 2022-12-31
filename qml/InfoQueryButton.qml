@@ -1,6 +1,6 @@
 /* -*- coding: utf-8-unix -*-
  *
- * File: LinkAreaPL.qml
+ * File: mobile/qml/MenuButton.qml
  *
  * Copyright (C) 2021 Jukka Sirkka
  *
@@ -17,29 +17,31 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import org.qutenav 1.0
 import QtQuick 2.6
-import QtQuick.Controls 2.12
 
-AbstractButton {
-  id: item
-  width: link.width + theme.paddingSmall
-  height: link.height
+import "./platform"
 
-  property alias linkText: link.text
-  signal linkActivated()
+MapButtonPL {
+  id: button
+
+  relativeMargin: 1.1
+  iconSize: 48
+
+  anchors {
+    bottom: parent.bottom
+    bottomMargin: theme.paddingMedium
+    leftMargin: theme.paddingMedium
+  }
+
+  iconColor: "transparent"
+  iconSource: app.getIcon("query")
+
 
   onClicked: {
-    linkActivated()
+    if (!infoQueryPending) {
+      infoQueryPending = true
+      infoPendingTimer.restart()
+      encdis.infoQuery(infoPoint.peepHole, true)
+    }
   }
-
-  Text {
-    id: link
-    color: item.highlighted ? theme.highlightColor : theme.primaryColor
-    font.underline: true
-    font.pixelSize: theme.fontSizeSmall
-    textFormat: Text.PlainText
-    elide: Text.ElideLeft
-  }
-
 }

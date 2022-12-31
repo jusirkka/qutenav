@@ -284,7 +284,7 @@ static void attributeDesc(QStringList& parts, quint32 aid, const S57::Object* ob
       parts << Units::Manager::instance()->shortDistance()->displaySI(v, 1);
     } else {
       qCWarning(CS52) << "Unhandled real attribute" << S52::GetAttributeInfo(aid, obj);
-      Q_ASSERT(false);
+      return;
     }
     break;
   }

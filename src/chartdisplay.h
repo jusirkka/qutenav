@@ -109,7 +109,7 @@ public:
   Q_INVOKABLE void pan(qreal x, qreal y);
   Q_INVOKABLE void northUp();
   Q_INVOKABLE void rotate(qreal degrees);
-  Q_INVOKABLE void infoQuery(const QPointF& p);
+  Q_INVOKABLE void infoQuery(const QPointF& p, bool full = false);
   Q_INVOKABLE void setEye(const QGeoCoordinate& q);
   Q_INVOKABLE QPointF position(const QGeoCoordinate& q) const;
   Q_INVOKABLE QGeoCoordinate tocoord(const QPointF& p) const;
@@ -195,7 +195,7 @@ private slots:
   void resize(int l = 0); // dummy argument
   void orient(Qt::ScreenOrientation orientation);
 
-  void handleFullInfoResponse(const S57::InfoTypeFull& info);
+  void handleFullInfoResponse(const S57::InfoType& info);
   void updateChartSet();
   void requestChartDBUpdate();
   void requestChartDBFullUpdate();
@@ -209,7 +209,7 @@ signals:
   void scaleBarLengthChanged(qreal len);
   void infoQueryReady(const QString& objectId, const QString& info);
   void infoQueryFullReady(const QList<QObject*>& info);
-  void infoRequest(const WGS84Point& p);
+  void infoRequest(const WGS84Point& p, bool full);
   void chartDBStatus(const QString& msg);
   void scaleBarTextsChanged();
   void processingChartsChanged();

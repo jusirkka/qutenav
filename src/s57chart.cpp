@@ -1060,92 +1060,7 @@ void S57Chart::drawVectorPatterns(const Camera *cam) {
   f->glEnable(GL_DEPTH_TEST);
 }
 
-S57::InfoTypeFull S57Chart::objectInfoFull(const WGS84Point& p, quint32 scale) {
-  const auto q = m_nativeProj->fromWGS84(p);
-
-  // Resolution in pixels mapped to meters
-  const float res = 0.001 / dots_per_mm_y() * KV::PeepHoleSize * scale;
-  const QRectF box(q - .5 * QPointF(res, res), QSizeF(res, res));
-
-  QSet<quint32> handled;
-  const quint32 c_lights = S52::FindIndex("LIGHTS");
-
-  auto vertices = reinterpret_cast<const glm::vec2*>(m_proxy->m_staticVertices.constData());
-  auto indices = reinterpret_cast<const GLuint*>(m_proxy->m_staticIndices.constData());
-
-  struct WrappedDesc {
-    int geom;
-    int prio;
-    S57::Description desc;
-  };
-
-  const QMap<S57::Geometry::Type, int> prioMap {{S57::Geometry::Type::Point, 4},
-                                             {S57::Geometry::Type::Line, 3},
-                                             {S57::Geometry::Type::Area, 3},
-                                             {S57::Geometry::Type::Meta, 1}};
-  QVector<WrappedDesc> wrapper;
-
-  for (const ObjectLookup& p: m_lookups) {
-
-    if (handled.contains(p.object->classCode())) continue;
-    if (S52::IsMetaClass(p.object->classCode())) continue;
-    if (!p.object->boundingBox().intersects(box)) continue;
-
-    auto geom = p.object->geometry();
-
-    WrappedDesc desc;
-    desc.geom = prioMap[geom->type()];
-    desc.prio = p.lookup->priority();
-    desc.desc.name = "";
-
-    if (geom->type() == S57::Geometry::Type::Point) {
-      auto ps = dynamic_cast<const S57::Geometry::Point*>(geom);
-      int soundingIndex = -1;
-      if (ps->containedBy(box, soundingIndex)) {
-        if (soundingIndex >= 0) {
-          auto s = m_nativeProj->toWGS84(QPointF(ps->points()[soundingIndex],
-                                                 ps->points()[soundingIndex + 1]));
-          desc.desc = p.object->description(s, ps->points()[soundingIndex + 2]);
-        } else {
-          desc.desc = p.object->description();
-        }
-      }
-    } else if (geom->type() == S57::Geometry::Type::Line) {
-      auto ls = dynamic_cast<const S57::Geometry::Line*>(geom);
-      if (ls->crosses(vertices, indices, box)) {
-        desc.desc = p.object->description();
-      }
-    } else if (geom->type() == S57::Geometry::Type::Area) {
-      auto as = dynamic_cast<const S57::Geometry::Area*>(geom);
-      if (as->includes(vertices, indices, q)) {
-        desc.desc = p.object->description();
-      }
-    }
-    if (!desc.desc.name.isEmpty()) {
-      if (p.object->classCode() != c_lights) {
-        handled << p.object->classCode();
-      }
-      wrapper.append(desc);
-    }
-  }
-
-  std::sort(wrapper.begin(), wrapper.end(), [] (const WrappedDesc& w1, const WrappedDesc& w2) {
-    if (w1.geom != w2.geom) {
-      return w1.geom > w2.geom;
-    }
-    return w1.prio > w2.prio;
-  });
-
-  S57::InfoTypeFull info;
-  for (const WrappedDesc& desc: wrapper) {
-    info.append(desc.desc);
-  }
-
-  return info;
-}
-
-
-S57::InfoType S57Chart::objectInfo(const WGS84Point& wp, quint32 scale) {
+S57Chart::PickDataVector S57Chart::pickObjects(const WGS84Point& wp, quint32 scale) {
   const auto q = m_nativeProj->fromWGS84(wp);
 
   // Resolution in pixels mapped to meters
@@ -1155,20 +1070,12 @@ S57::InfoType S57Chart::objectInfo(const WGS84Point& wp, quint32 scale) {
   auto vertices = reinterpret_cast<const glm::vec2*>(m_proxy->m_staticVertices.constData());
   auto indices = reinterpret_cast<const GLuint*>(m_proxy->m_staticIndices.constData());
 
-
   const QMap<S57::Geometry::Type, int> prioMap {{S57::Geometry::Type::Point, 40},
                                                 {S57::Geometry::Type::Line, 30},
                                                 {S57::Geometry::Type::Area, 20},
                                                 {S57::Geometry::Type::Meta, 10}};
 
-
-  struct Prio {
-    const S57::Object* object;
-    quint32 priority;
-    quint32 index;
-  };
-
-  QVector<Prio> priorities;
+  PickDataVector objects;
 
   const KV::Region cover(box);
   const qreal sf = scaleFactor(cover.boundingRect(), scale);
@@ -1216,7 +1123,7 @@ S57::InfoType S57Chart::objectInfo(const WGS84Point& wp, quint32 scale) {
       }
     }
 
-    Prio pr;
+    PickData pr;
     if (userPicked) {
       // give it the highest priority
       pr.priority = 10000 * m_priority + prioMap[S57::Geometry::Type::Point] + 9;
@@ -1228,50 +1135,105 @@ S57::InfoType S57Chart::objectInfo(const WGS84Point& wp, quint32 scale) {
     }
     pr.object = it->object;
     pr.index = it - m_lookups.cbegin();
-    priorities.append(pr);
+    objects.append(pr);
   }
 
 
-  std::sort(priorities.begin(), priorities.end(), [] (const Prio& t1, const Prio& t2) {
+  std::sort(objects.begin(), objects.end(), [] (const PickData& t1, const PickData& t2) {
     return t1.priority > t2.priority;
   });
 
+  return objects;
+}
+
+S57::InfoType S57Chart::objectInfoFull(const WGS84Point& p, quint32 scale) {
+  auto objects = pickObjects(p, scale);
+
+  S57::InfoType info;
+  info.priority = 10000 * m_priority;
+
+  for (const PickData& d: objects) {
+    const auto code = d.object->classCode();
+    S57::Description desc(S52::GetClassDescription(code));
+
+    S52::AttributeIndexVector categories;
+    categories.append(S52::GetCategoryA(code));
+    categories.append(S52::GetCategoryB(code));
+
+    for (quint32 aid: categories) {
+      const auto v = d.object->attributeValue(aid);
+      if (v.isValid()) {
+        S57::Pair pair(S52::GetAttributeDescription(aid),
+                       S52::GetAttributeValueDescription(aid, v));
+        desc.attributes.append(pair);
+      }
+    }
+
+    info.descriptions.append(desc);
+  }
+
+  return info;
+}
+
+
+S57::InfoType S57Chart::objectInfo(const WGS84Point& wp, quint32 scale) {
+  auto objects = pickObjects(wp, scale);
+
   // Handle lights and topmarks
-  auto ptr = priorities.begin();
+  auto ptr = objects.begin();
   QString extraIds;
-  while (ptr != priorities.end() && ptr->object->geometry()->type() == S57::Geometry::Type::Point) {
+  WGS84Point extraPos;
+  while (ptr != objects.end() && ptr->object->geometry()->type() == S57::Geometry::Type::Point) {
     if (m_pickImageList.contains(ptr->object->classCode())) {
       extraIds += QString("-%1").arg(ptr->index);
-      ptr = priorities.erase(ptr);
+      extraPos = ptr->object->geometry()->centerLL();
+      ptr = objects.erase(ptr);
     } else {
       ++ptr;
     }
   }
 
-  if (priorities.isEmpty()) return S57::InfoType();
+  if (objects.isEmpty()) return S57::InfoType();
 
-  qCDebug(CS57) << "-------- Pick Results --------";
-  for (const Prio& pr: priorities) {
-    auto code = pr.object->classCode();
-    qCDebug(CS57) << pr.priority << ":" << S52::GetClassInfo(code);
-    const auto catA = S52::GetCategoryA(code);
-    for (quint32 aid: catA) {
-      if (pr.object->attributeValue(aid).isValid()) {
-        qCDebug(CS57) << "     A:    " << S52::GetAttributeInfo(aid, pr.object);
+
+  //  qCDebug(CS57) << "-------- Pick Results --------";
+  //  for (const PickData& pr: objects) {
+  //    auto code = pr.object->classCode();
+  //    qCDebug(CS57) << pr.priority << ":" << S52::GetClassInfo(code);
+  //    const auto catA = S52::GetCategoryA(code);
+  //    for (quint32 aid: catA) {
+  //      if (pr.object->attributeValue(aid).isValid()) {
+  //        qCDebug(CS57) << "     A:    " << S52::GetAttributeInfo(aid, pr.object);
+  //      }
+  //    }
+  //    const auto catB = S52::GetCategoryB(code);
+  //    for (quint32 aid: catB) {
+  //      if (pr.object->attributeValue(aid).isValid()) {
+  //        qCDebug(CS57) << "     B:    " << S52::GetAttributeInfo(aid, pr.object);
+  //      }
+  //    }
+  //  }
+
+  auto selected = objects.begin();
+
+  // if there are lights and/or topmarks, select the closest instead of the highest priority object
+  if (extraPos()) {
+    ptr = objects.begin();
+    double mindist = 1.e15;
+    while (ptr != objects.end() && ptr->object->geometry()->type() == S57::Geometry::Type::Point) {
+      auto dist = (extraPos - ptr->object->geometry()->centerLL()).meters();
+      if (dist < mindist) {
+        mindist = dist;
+        selected = ptr;
       }
-    }
-    const auto catB = S52::GetCategoryB(code);
-    for (quint32 aid: catB) {
-      if (pr.object->attributeValue(aid).isValid()) {
-        qCDebug(CS57) << "     B:    " << S52::GetAttributeInfo(aid, pr.object);
-      }
+      ++ptr;
     }
   }
 
   S57::InfoType info;
-  info.objectId = QString("%1/%2%3").arg(id()).arg(priorities.first().index).arg(extraIds);
-  info.priority = priorities.first().priority;
-  info.info = S52::ObjectDescription(priorities.first().object);
+  info.objectId = QString("%1/%2%3").arg(id()).arg(selected->index).arg(extraIds);
+  info.priority = selected->priority;
+  info.info = S52::ObjectDescription(selected->object);
   return info;
 }
 

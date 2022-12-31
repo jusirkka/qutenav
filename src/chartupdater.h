@@ -65,7 +65,7 @@ public slots:
   void updateChart(const ChartData& d);
   void createChart(const ChartData& d);
   void cacheChart(S57Chart* chart);
-  void requestInfo(S57Chart* chart, const WGS84Point& p, quint32 scale, quint32 tid);
+  void requestInfo(S57Chart* chart, const WGS84Point& p, quint32 scale, bool full, quint32 tid);
 
 signals:
 

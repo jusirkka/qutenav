@@ -1,6 +1,6 @@
 /* -*- coding: utf-8-unix -*-
  *
- * Copyright (C) 2021 Jukka Sirkka
+ * Copyright (C) 2022 Jukka Sirkka
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,66 +17,44 @@
  */
 
 import QtQuick 2.6
-import Sailfish.Silica 1.0
+import org.qutenav 1.0
+import "./platform"
 
-Page {
+PagePL {
 
   id: page
-  property var content
+  property var infolist
 
-  SilicaFlickable {
-    id: flickable
-    anchors.fill: parent
-    contentHeight: header.height + 2 * theme.paddingLarge + col.height
+  //% "Object Pick Results"
+  title: qsTrId("qtnav-object-info-page-title")
+  pageHeight: parent.height
 
-
-    PageHeader {
-      id: header
-      title: "Objectinfo"
-    }
+  Repeater {
+    id: objects
+    model: page.infolist
 
     Column {
-      id: col
 
-      x: theme.horizontalPageMargin
-      width: parent.width - 2*x
+      width: parent.width
       anchors {
         left: parent.left
         right: parent.right
-        top: header.bottom
         leftMargin: theme.horizontalPageMargin
       }
       spacing: theme.paddingMedium
 
+      SectionHeaderPL {
+        text: objects.model[index].name
+      }
+
       Repeater {
-        id: objects
-        model: page.content
-
-        Column {
-
-          width: parent.width
-          anchors {
-            left: parent.left
-            right: parent.right
-            leftMargin: theme.horizontalPageMargin
-          }
-          spacing: theme.paddingMedium
-
-          SectionHeader {
-            text: objects.model[index].name
-          }
-
-          Repeater {
-            id: attributes
-            model: objects.model[index].attributes
-            DetailItem {
-              label: attributes.model[index].name
-              value: attributes.model[index].value
-            }
-          }
+        id: attributes
+        model: objects.model[index].attributes
+        DetailItemPL {
+          label: attributes.model[index].name
+          value: attributes.model[index].value
         }
       }
     }
-    VerticalScrollDecorator {flickable: flickable}
   }
 }

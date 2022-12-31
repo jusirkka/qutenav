@@ -26,18 +26,22 @@ Button {
 
   property string iconSource
   property string iconColor: "transparent"
+  property real relativeMargin: 1.45
+  property int iconSize: 24
 
-  height: icon.height * 1.45
+  height: icon.height * relativeMargin
   width: height
 
   icon.color: iconColor
   icon.source: iconSource
+  icon.height: iconSize
+  icon.width: icon.height
   padding: 0
 
   display: AbstractButton.IconOnly
 
   background: Rectangle {
-    height: item.icon.height * 1.45
+    height: icon.height * relativeMargin
     width: height
     radius: height / 2
     opacity: enabled ? 1 : 0.3

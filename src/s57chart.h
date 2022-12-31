@@ -69,7 +69,7 @@ public:
   void updatePaintData(const WGS84PointVector& cover, quint32 scale);
   void updateLookups();
 
-  S57::InfoTypeFull objectInfoFull(const WGS84Point& p, quint32 scale);
+  S57::InfoType objectInfoFull(const WGS84Point& p, quint32 scale);
   S57::InfoType objectInfo(const WGS84Point& p, quint32 scale);
 
   void paintIcon(PickIconData& icon, quint32 objectIndex) const;
@@ -144,8 +144,19 @@ private:
 
   GL::ChartProxy* m_proxy;
 
+  // Object picker interface
+  struct PickData {
+    const S57::Object* object;
+    quint32 priority;
+    quint32 index;
+  };
+  using PickDataVector = QVector<PickData>;
+
+  PickDataVector pickObjects(const WGS84Point& wp, quint32 scale);
+
   const QMap<quint32, quint32> m_pickPriorityMap;
   const QVector<quint32> m_pickImageList;
+
 
 };
 

@@ -767,7 +767,7 @@ void ChartManager::createBackground(KV::RegionMap& regions,
   }
 }
 
-void ChartManager::requestInfo(const WGS84Point &p) {
+void ChartManager::requestInfo(const WGS84Point &p, bool full) {
 
   if (m_charts.empty()) return;
 
@@ -806,12 +806,14 @@ void ChartManager::requestInfo(const WGS84Point &p) {
                               Q_ARG(S57Chart*, chart),
                               Q_ARG(const WGS84Point&, p),
                               Q_ARG(quint32, m_scale),
+                              Q_ARG(bool, full),
                               Q_ARG(quint32, tid));
     counter = (counter + 1) % m_workers.size();
   }
 }
 
 void ChartManager::manageInfoResponse(const S57::InfoType& info, quint32 tid) {
+
   m_transactions[tid] = m_transactions[tid] + 1;
 
   m_info[tid] << info;
@@ -819,11 +821,16 @@ void ChartManager::manageInfoResponse(const S57::InfoType& info, quint32 tid) {
   if (m_transactions[tid] == m_charts.size()) {
     // All responses received
     auto it = std::max_element(m_info[tid].cbegin(), m_info[tid].cend(), [] (const S57::InfoType& t1, const S57::InfoType& t2) {
-      return t1.priority < t2.priority;
+      if (t1.priority != t2.priority) return t1.priority < t2.priority;
+      if (t1.objectId.size() != t2.objectId.size()) return t1.objectId.size() < t2.objectId.size();
+      return t1.descriptions.size() < t2.descriptions.size();
     });
     if (it != m_info[tid].cend()) {
-      // qCDebug(CMGR) << "ChartManager::manageInfoResponse" << resp->objectId << resp->info;
-      emit infoResponse(it->objectId, it->info);
+      if (!it->descriptions.isEmpty()) {
+        emit infoResponseFull(*it);
+      } else {
+        emit infoResponse(it->objectId, it->info);
+      }
     }
     m_info.remove(tid);
     m_transactions.remove(tid);

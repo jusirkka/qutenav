@@ -11,6 +11,7 @@ Item {
 
   property alias label: key.text
   property alias value: val.linkText
+  property real relativeKeyWidth: .5
 
   signal valueLinkActivated()
 
@@ -18,19 +19,19 @@ Item {
 
   Text {
     id: key
-    width: parent.width / 2 - theme.paddingSmall
+    width: relativeKeyWidth * parent.width - theme.paddingSmall
     horizontalAlignment:  Text.AlignRight
     color: theme.secondaryHighlightColor
     font.pixelSize: theme.fontSizeMedium
     textFormat: Text.PlainText
-    wrapMode: Text.Wrap
+    elide: Text.ElideLeft
   }
 
   LinkAreaPL {
     id: val
-    width: parent.width / 2 - theme.paddingSmall
+    width: (1 - relativeKeyWidth) * parent.width - theme.paddingSmall
     anchors {
-      left: parent.horizontalCenter
+      // left: parent.horizontalCenter
       leftMargin: theme.paddingSmall
       right: parent.right
       rightMargin: theme.paddingSmall

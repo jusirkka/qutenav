@@ -74,8 +74,8 @@ void ChartUpdater::updateChart(const ChartData& d) {
 }
 
 void ChartUpdater::requestInfo(S57Chart *chart, const WGS84Point &p,
-                               quint32 scale, quint32 tid) {
-  auto info = chart->objectInfo(p, scale);
+                               quint32 scale, bool full, quint32 tid) {
+  auto info = full ? chart->objectInfoFull(p, scale) : chart->objectInfo(p, scale);
   emit infoResponse(info, tid);
 }
 

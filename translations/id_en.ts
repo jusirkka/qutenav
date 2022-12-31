@@ -380,7 +380,7 @@
       <translation type="vanished">Delete</translation>
     </message>
     <message id="qutenav-route-display-title">
-      <location filename="../qml/RouteDisplayDialog.qml" line="+31" />
+      <location filename="../qml/RouteDisplayDialog.qml" line="+32" />
       <source>Select route</source>
       <translation>Select route</translation>
     </message>
@@ -390,7 +390,7 @@
       <translation>Top</translation>
     </message>
     <message id="qutenav-context-menu-top">
-      <location line="+26" />
+      <location line="+27" />
       <location filename="../qml/TrackDisplayDialog.qml" line="+20" />
       <source>Move to top</source>
       <translation>Move to top</translation>
@@ -518,14 +518,14 @@
       <translation>Maximum speed</translation>
     </message>
     <message id="qutenav-not-applicable">
-      <location filename="../qutenavlib/src/types.cpp" line="+117" />
+      <location filename="../qutenavlib/src/types.cpp" line="+147" />
       <location line="+42" />
       <location line="+7" />
       <source>N/A</source>
       <translation>N/A</translation>
     </message>
     <message id="qutenav-edit-remove-selected">
-      <location filename="../qml/ChartPage.qml" line="+292" />
+      <location filename="../qml/ChartPage.qml" line="+332" />
       <source>Remove selected</source>
       <translation>Remove selected</translation>
     </message>
@@ -626,7 +626,7 @@
       <translation>Routes</translation>
     </message>
     <message id="qutenav-page-chart-folders">
-      <location line="+12" />
+      <location line="+16" />
       <source>Chart folders</source>
       <translation>Chart folders</translation>
     </message>
@@ -815,7 +815,7 @@
       <translation>National language text</translation>
     </message>
     <message id="qutenav-status-full-sync-ready">
-      <location filename="../src/chartdisplay.h" line="+217" />
+      <location filename="../src/chartdisplay.h" line="+225" />
       <source>Full sync ready</source>
       <translation>Full sync ready</translation>
     </message>
@@ -855,6 +855,11 @@
         <numerusform>/%n charts</numerusform>
         <numerusform>/%n charts</numerusform>
       </translation>
+    </message>
+    <message id="qtnav-object-info-page-title">
+      <location filename="../qml/InfoPage.qml" line="+29" />
+      <source>Object Pick Results</source>
+      <translation>Object Pick Results</translation>
     </message>
     <message id="qutenav-ADMARE">
       <location filename="../data/s57objectclasses.csv" line="+2" />

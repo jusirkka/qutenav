@@ -132,6 +132,7 @@ void ChartDisplay::initializeSG() {
 
   connect(this, &ChartDisplay::infoRequest, chartMgr, &ChartManager::requestInfo);
   connect(chartMgr, &ChartManager::infoResponse, this, &ChartDisplay::infoQueryReady);
+  connect(chartMgr, &ChartManager::infoResponseFull, this, &ChartDisplay::handleFullInfoResponse);
 
   connect(chartMgr, &ChartManager::chartSetsUpdated, this, &ChartDisplay::updateChartSet);
 
@@ -460,22 +461,23 @@ QGeoCoordinate ChartDisplay::tocoord(const QPointF& p) const {
   return QGeoCoordinate(q.lat(), q.lng());
 }
 
-void ChartDisplay::infoQuery(const QPointF& q) {
-  emit infoRequest(location(q));
+void ChartDisplay::infoQuery(const QPointF& q, bool full) {
+  emit infoRequest(location(q), full);
 }
 
-void ChartDisplay::handleFullInfoResponse(const S57::InfoTypeFull &info) {
+void ChartDisplay::handleFullInfoResponse(const S57::InfoType& rsp) {
   qDeleteAll(m_info);
   m_info.clear();
-  for (const S57::Description& d: info) {
+  for (const S57::Description& d: rsp.descriptions) {
     auto obj = new ObjectObject(d.name);
     for (const S57::Pair& p: d.attributes) {
       obj->attributes.append(new AttributeObject(p.key, p.value, obj));
     }
     m_info.append(obj);
   }
-  emit infoQueryFullReady(m_info);
-  update();
+  if (!m_info.isEmpty()) {
+    emit infoQueryFullReady(m_info);
+  }
 }
 
 void ChartDisplay::setCamera(Camera *cam) {

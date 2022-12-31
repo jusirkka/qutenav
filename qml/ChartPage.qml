@@ -192,6 +192,12 @@ ChartPagePL {
                       infoPoint.peepHole.y > page.height / 2 ? "top" : "bottom")
     }
 
+    onInfoQueryFullReady: {
+      page.infoQueryPending = false
+      infoPendingTimer.stop()
+      app.show(Qt.resolvedUrl("InfoPage.qml"), {infolist: info})
+    }
+
     onChartDBStatus: {
       bubble.show(msg);
     }
@@ -281,6 +287,14 @@ ChartPagePL {
     anchors.left: parent.left
     z: 300
     visible: !page.infoMode
+  }
+
+  InfoQueryButton {
+    id: infoQueryButton
+    anchors.left: parent.left
+    z: 300
+    visible: page.infoMode
+    // enabled: !page.infoQueryPending
   }
 
   Ruler {

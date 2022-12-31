@@ -5,12 +5,12 @@ Item {
 
   id: main
   width: parent.width
-  // height: label.height
 
-  implicitHeight: key.implicitHeight
+  implicitHeight: val.implicitHeight
 
   property alias label: key.text
   property alias value: val.text
+  property real relativeKeyWidth: .5
 
   signal valueLinkActivated(string link)
 
@@ -18,18 +18,19 @@ Item {
 
   Label {
     id: key
-    width: parent.width / 2 - theme.paddingSmall
+    width: relativeKeyWidth * parent.width - theme.paddingSmall
     horizontalAlignment:  Text.AlignRight
     elide: Text.ElideLeft
   }
 
   Label {
     id: val
-    width: parent.width / 2 - theme.paddingSmall
+    width: (1 - relativeKeyWidth) * parent.width - theme.paddingSmall
     anchors {
       right: parent.right
-      verticalCenter: key.verticalCenter
+      // verticalCenter: key.verticalCenter
     }
+    wrapMode: Text.Wrap
     onLinkActivated: main.valueLinkActivated(link)
   }
 }

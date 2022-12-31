@@ -330,20 +330,20 @@ QString S52::GetAttributeValueDescription(quint32 index, const QVariant& v) {
     }
     break;
   }
-  case S57::AttributeType::IntegerList:
-  {
+  case S57::AttributeType::IntegerList: {
+    QStringList vs;
     auto items = v.toList();
     for (auto a: items) {
       auto descr = GetAttributeEnumDescription(index, a.toInt());
       if (!descr.isEmpty()) {
-        info += descr + ", ";
+        vs << descr;
       } else {
-        info += QString::number(a.toInt()) + ", ";
+        vs << QString::number(a.toInt());
       }
     }
-    if (!items.isEmpty()) info.remove(info.length() - 2, 2);
-  }
+    if (!vs.isEmpty()) info = vs.join(", ");
     break;
+  }
   default:
     ; // do nothing
   }

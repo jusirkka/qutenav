@@ -48,8 +48,10 @@ QPixmap S57::ImageProvider::requestPixmap(const QString& id,
     ChartManager::instance()->paintIcon(data, chart_id, index);
   }
   if (!data.bbox.isValid()) {
-    if (size != nullptr) *size = QSize();
-    return QPixmap();
+    if (size != nullptr) *size = QSize(1, 1);
+    QPixmap dummy(*size);
+    dummy.fill();
+    return dummy;
   }
 
   QPixmap target(requestedSize.isValid() ? requestedSize : s);

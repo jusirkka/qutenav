@@ -50,6 +50,11 @@ ICONS = data/$(BASE)-48x48.png \
         qml/icons/compass-150.png \
         qml/icons/compass-175.png \
         qml/icons/compass-200.png \
+        qml/icons/query-100.png \
+        qml/icons/query-125.png \
+        qml/icons/query-150.png \
+        qml/icons/query-175.png \
+        qml/icons/query-200.png \
         qml/icons/arrow.png \
         qml/icons/finish.png \
 
