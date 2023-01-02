@@ -53,7 +53,7 @@ Bubble {
         verticalCenter: content.verticalCenter
       }
       color: "black"
-      font.pixelSize: theme.fontSizeMedium
+      font.pixelSize: theme.bubbleTextFontSize
       horizontalAlignment: Text.AlignLeft
     }
   }

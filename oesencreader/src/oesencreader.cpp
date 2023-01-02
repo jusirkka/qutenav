@@ -22,6 +22,7 @@
 #include "ocdevice.h"
 #include <QFileInfo>
 #include <QDir>
+#include <QTextStream>
 
 class OesencHelper: public OCHelper {
 public:

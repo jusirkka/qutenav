@@ -28,4 +28,7 @@ Item {
 
   readonly property real pixelRatio: Theme.pixelRatio
 
+  readonly property real mapButtonIconSize: Theme.iconSizeExtraSmall
+  readonly property real bubbleTextFontSize: Theme.fontSizeExtraSmall
+
 }

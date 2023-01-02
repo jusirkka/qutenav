@@ -101,21 +101,23 @@ HPGL::PixmapParser::PixmapParser(const QString& src, const QString& colors,
     }
   }
 
+  const auto boxWidth = Platform::pick_icon_size();
+
   const auto s0 = isLine ? .45 : .9;
   auto s = 1.;
-  if (bbox.width() / PickIconSize > s0) s = s0;
+  if (bbox.width() / boxWidth > s0) s = s0;
   const auto hmax = 7.;
   if (!isLine && bbox.height() > hmax) {
     s = std::min(s, hmax / bbox.height());
   }
 
 
-  m_bbox = QRectF(0, 0, PickIconSize, PickIconSize);
-  m_pix = QPixmap(PickIconSize, PickIconSize);
+  m_bbox = QRectF(0, 0, boxWidth, boxWidth);
+  m_pix = QPixmap(boxWidth, boxWidth);
   m_pix.fill(QColor("transparent"));
 
   if (isLine) {
-    const auto nmax = static_cast<int>(std::ceil(PickIconSize * 1.4 / s / bbox.width()));
+    const auto nmax = static_cast<int>(std::ceil(boxWidth * 1.4 / s / bbox.width()));
 
     QTransform op;
     op.rotate(45);
@@ -131,7 +133,7 @@ HPGL::PixmapParser::PixmapParser(const QString& src, const QString& colors,
     }
   } else {
 
-    const auto nmax = static_cast<int>(std::ceil(PickIconSize / s / bbox.width()));
+    const auto nmax = static_cast<int>(std::ceil(boxWidth / s / bbox.width()));
 
     QTransform op;
     op.scale(s, s);
@@ -149,7 +151,7 @@ HPGL::PixmapParser::PixmapParser(const QString& src, const QString& colors,
     op.rotate(180);
     op.scale(s, s);
 
-    p0 = QPointF(PickIconSize, PickIconSize) - op.map(bbox.topLeft());
+    p0 = QPointF(boxWidth, boxWidth) - op.map(bbox.topLeft());
     op = op * QTransform(1, 0, 0, 1, p0.x(), p0.y());
 
     T = (s * bbox.width() + 1) * QPointF(-1., 0.);
@@ -163,8 +165,8 @@ HPGL::PixmapParser::PixmapParser(const QString& src, const QString& colors,
       painter.setPen(m_items.first().pen);
       const auto dy = s * bbox.height() / 2;
       const auto dx = painter.pen().widthF();
-      painter.drawLine(dx, dy, dx, PickIconSize - dy);
-      painter.drawLine(PickIconSize - dx, dy, PickIconSize - dx, PickIconSize - dy);
+      painter.drawLine(dx, dy, dx, boxWidth - dy);
+      painter.drawLine(boxWidth - dx, dy, boxWidth - dx, boxWidth - dy);
     }
   }
 }
@@ -221,7 +223,7 @@ void HPGL::PixmapParser::setAlpha(int a) {
 }
 
 static qreal makeLW(int w) {
-  return S52::LineWidthMM(w) * dots_per_mm_x() * Settings::instance()->displayLineWidthScaling();
+  return S52::LineWidthMM(w) * Platform::dots_per_mm_x() * Platform::display_line_width_scaling();
 }
 
 
@@ -301,7 +303,7 @@ void HPGL::PixmapParser::drawCircle(int r0) {
   ls.closed = true;
   const qreal lw = m_currentSketch.lineWidth == 0 ? makeLW(1) : m_currentSketch.lineWidth;
 
-  const qreal r = mmUnit * r0 * dots_per_mm_x() / Settings::instance()->displayLengthScaling();
+  const qreal r = mmUnit * r0 * Platform::dots_per_mm_x() / Platform::display_length_scaling();
 
   auto n = qMin(90, 3 + 4 * static_cast<int>(r / lw));
   for (int i = 0; i <= n; i++) {
@@ -401,8 +403,8 @@ void HPGL::PixmapParser::edgeSketch() {
 }
 
 QPointF HPGL::PixmapParser::makePoint(int x, int y) {
-  const QPointF p(x * mmUnit * dots_per_mm_x(), y * mmUnit * dots_per_mm_y());
-  return (p - m_pivot) / Settings::instance()->displayLengthScaling();
+  const QPointF p(x * mmUnit * Platform::dots_per_mm_x(), y * mmUnit * Platform::dots_per_mm_y());
+  return (p - m_pivot) / Platform::display_length_scaling();
 }
 
 

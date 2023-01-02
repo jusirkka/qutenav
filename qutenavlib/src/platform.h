@@ -19,16 +19,29 @@
  */
 #pragma once
 
-class QTranslator;
 class QString;
 
-extern float dots_per_mm_x();
-extern float dots_per_mm_y();
-extern float dots_per_inch_x();
-extern float dots_per_inch_y();
+namespace Platform {
 
-extern const QString& baseAppName();
+float dots_per_mm_x();
+float dots_per_mm_y();
+float dots_per_inch_x();
+float dots_per_inch_y();
 
-static const float nominal_dpmm = 3.125;
+float pick_icon_size();
+float pick_icon_min_size();
+float pick_icon_max_size();
 
-extern int numberOfChartThreads();
+float peep_hole_size();
+
+const QString& base_app_name();
+
+int number_of_chart_threads();
+
+float display_length_scaling();
+float display_text_size_scaling();
+float display_line_width_scaling();
+float display_raster_symbol_scaling();
+
+}
+

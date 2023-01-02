@@ -21,7 +21,7 @@
 #include "shader.h"
 #include <QOpenGLExtraFunctions>
 #include "linecalculator.h"
-#include "settings.h"
+#include "platform.h"
 #include "region.h"
 #include "textmanager.h"
 #include "gnuplot.h"
@@ -142,7 +142,7 @@ S57::LineElemData::LineElemData(const ElementDataVector& elem,
 void S57::LineElemData::setUniforms() const {
   auto prog = GL::LineElemShader::instance();
   prog->prog()->setUniformValue(prog->m_locations.base_color, m_color);
-  const float dw = Settings::instance()->displayLineWidthScaling();
+  const float dw = Platform::display_line_width_scaling();
   prog->prog()->setUniformValue(prog->m_locations.lineWidth, m_lineWidth * dw);
   auto f = QOpenGLContext::currentContext()->extraFunctions();
   f->glUniform1ui(prog->m_locations.pattern, m_pattern);
@@ -173,7 +173,7 @@ S57::LineArrayData::LineArrayData(const ElementDataVector& elem,
 void S57::LineArrayData::setUniforms() const {
   auto prog = GL::LineArrayShader::instance();
   prog->prog()->setUniformValue(prog->m_locations.base_color, m_color);
-  const float dw = Settings::instance()->displayLineWidthScaling();
+  const float dw = Platform::display_line_width_scaling();
   prog->prog()->setUniformValue(prog->m_locations.lineWidth, m_lineWidth * dw);
 
   auto f = QOpenGLContext::currentContext()->extraFunctions();
@@ -198,7 +198,7 @@ S57::SegmentArrayData::SegmentArrayData(int count,
 void S57::SegmentArrayData::setUniforms() const {
   auto prog = GL::SegmentArrayShader::instance();
   prog->prog()->setUniformValue(prog->m_locations.base_color, m_color);
-  const float dw = Settings::instance()->displayLineWidthScaling();
+  const float dw = Platform::display_line_width_scaling();
   prog->prog()->setUniformValue(prog->m_locations.lineWidth, m_lineWidth * dw);
 
   auto f = QOpenGLContext::currentContext()->extraFunctions();
@@ -239,7 +239,7 @@ S57::PaintData* S57::LineLocalData::globalize(GLsizei offset, qreal scale) const
   if (m_displayUnits) {
     // transform millimeters (display) to meters (chart) in bounding boxes
     // first scale nominal millimeters to actual millimeters
-    scale *= Settings::instance()->displayLengthScaling();
+    scale *= Platform::display_length_scaling();
     ElementDataVector elems;
     for (const ElementData& elem: m_elements) {
       ElementData e;
@@ -260,7 +260,7 @@ GL::VertexVector S57::LineLocalData::vertices(qreal scale) {
   if (m_displayUnits) {
     // transform millimeters (display) to meters (chart)
     // first scale nominal millimeters to actual millimeters
-    scale *= Settings::instance()->displayLengthScaling();
+    scale *= Platform::display_length_scaling();
     GL::VertexVector vs;
     for (int i = 0; i < m_vertices.size() / 2; i++) {
       const QPointF p1(m_vertices[2 * i], m_vertices[2 * i + 1]);
@@ -581,7 +581,7 @@ void S57::VectorPatternPaintData::createPivots(const QRectF& bbox, qreal scale) 
 
   // transform millimeters (display) to meters (chart)
   // first scale nominal millimeters to actual millimeters
-  scale *= Settings::instance()->displayLengthScaling();
+  scale *= Platform::display_length_scaling();
   const qreal X = m_advance.x / scale;
   const qreal Y = m_advance.xy.y() / scale;
   const qreal xs = m_advance.xy.x() / scale;
@@ -631,7 +631,7 @@ void S57::LineStylePaintData::merge(const SymbolPaintDataBase* other, qreal scal
   if (other == nullptr) {
     // transform millimeters (display) to meters (chart)
     // first scale nominal millimeters to actual millimeters
-    scale *= Settings::instance()->displayLengthScaling();
+    scale *= Platform::display_length_scaling();
     m_advance /= scale;
     m_cover = cover;
     Q_ASSERT(m_lineElements.size() == 1);

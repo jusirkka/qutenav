@@ -23,7 +23,7 @@
 #include <QPainter>
 #include "chartmanager.h"
 #include "logging.h"
-
+#include "platform.h"
 
 S57::ImageProvider::ImageProvider()
   : QQuickImageProvider(QQuickImageProvider::Pixmap)
@@ -32,7 +32,7 @@ S57::ImageProvider::ImageProvider()
 QPixmap S57::ImageProvider::requestPixmap(const QString& id,
                                           QSize* size, const QSize& requestedSize) {
 
-  const QSize s(PickIconSize, PickIconSize);
+  const QSize s(Platform::pick_icon_size(), Platform::pick_icon_size());
 
   if (size != nullptr) *size = s;
 

@@ -30,7 +30,7 @@
 
 QString SQLiteDatabase::databaseName(const QString& bname) {
   QString loc = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
-  loc = QString("%1/%2/userdata").arg(loc).arg(baseAppName());
+  loc = QString("%1/%2/userdata").arg(loc).arg(Platform::base_app_name());
   if (!QDir().mkpath(loc)) {
     throw ChartFileError(QString("cannot create userdata directory %1").arg(loc));
   }

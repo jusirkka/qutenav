@@ -31,6 +31,10 @@ public:
   ImageProvider();
   QPixmap requestPixmap(const QString& id, QSize* size, const QSize& requestedSize) override;
 
+private:
+
+  static const inline double PickIconRelMin = .60;
+  static const inline double PickIconRelMax = .90;
 
 };
 

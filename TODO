@@ -1,6 +1,7 @@
 - tides
 - bug: assert failure in KV::Region when browsing high latitudes
 - bug: s57 charts: sporadic index out of range error
+- bug: mobile: rendering is too slow, esp. s57, cm93
 - check that chart db fetches work across dateline
 - firejail compatibility
 - check that S52Functions are compatible with S52 PresLib 4.0.0
@@ -11,3 +12,4 @@
 - object class filter & config
 - bug: non-dangerous wrecks shown as dangerous
 - bug: artifacts in route editing: when projection of a point is before/after previous/next point
+

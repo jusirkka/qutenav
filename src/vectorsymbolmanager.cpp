@@ -203,7 +203,7 @@ void VectorSymbolManager::parseSymbolData(QXmlStreamReader &reader, ParseData &d
   QPointF o;
 
   auto scalePoint = [] (const QPointF& p) {
-    return QPointF(p.x() * dots_per_mm_x(), p.y() * dots_per_mm_y());
+    return QPointF(p.x() * Platform::dots_per_mm_x(), p.y() * Platform::dots_per_mm_y());
   };
 
   while (reader.readNextStartElement()) {
@@ -274,15 +274,15 @@ bool VectorSymbolManager::paintIcon(PickIconData& icon,
   if (pix.isNull()) return false;
 
   if (type == S52::SymbolType::Pattern) {
-    const QSizeF s(PickIconSize, PickIconSize);
+    const QSizeF s(Platform::pick_icon_size(), Platform::pick_icon_size());
     const QPointF c = .5 * QPointF(icon.canvas.width() - s.width(), icon.canvas.height() - s.height());
     const QRectF box(c, s);
     icon.bbox |= box;
 
     const auto adv = m_symbolMap[key.key()].advance();
-    const qreal X = adv.x * dots_per_mm_x() / Settings::instance()->displayLengthScaling();
-    const qreal Y = adv.xy.y() * dots_per_mm_y() / Settings::instance()->displayLengthScaling();
-    const qreal xs = adv.xy.x() * dots_per_mm_x() / Settings::instance()->displayLengthScaling();
+    const qreal X = adv.x * Platform::dots_per_mm_x() / Platform::display_length_scaling();
+    const qreal Y = adv.xy.y() * Platform::dots_per_mm_y() / Platform::display_length_scaling();
+    const qreal xs = adv.xy.x() * Platform::dots_per_mm_x() / Platform::display_length_scaling();
 
     const int ny = std::floor(box.top() / Y);
     const int my = std::ceil(box.bottom() / Y) + 1;
@@ -300,14 +300,14 @@ bool VectorSymbolManager::paintIcon(PickIconData& icon,
   // type == S52::SymbolType::Single
   if (opt) { // opt = centered for type = Single
 
-    if (pix.width() < PickIconMin && pix.width() >= pix.height()) {
-      pix = pix.scaledToWidth(PickIconMin);
-    } else if (pix.height() < PickIconMin && pix.height() >= pix.width()) {
-      pix = pix.scaledToHeight(PickIconMin);
-    } else if (pix.width() > PickIconMax && pix.width() >= pix.height()) {
-      pix = pix.scaledToWidth(PickIconMax);
-    } else if (pix.height() > PickIconMax && pix.height() >= pix.width()) {
-      pix = pix.scaledToHeight(PickIconMax);
+    if (pix.width() < Platform::pick_icon_min_size() && pix.width() >= pix.height()) {
+      pix = pix.scaledToWidth(Platform::pick_icon_min_size());
+    } else if (pix.height() < Platform::pick_icon_min_size() && pix.height() >= pix.width()) {
+      pix = pix.scaledToHeight(Platform::pick_icon_min_size());
+    } else if (pix.width() > Platform::pick_icon_max_size() && pix.width() >= pix.height()) {
+      pix = pix.scaledToWidth(Platform::pick_icon_max_size());
+    } else if (pix.height() > Platform::pick_icon_max_size() && pix.height() >= pix.width()) {
+      pix = pix.scaledToHeight(Platform::pick_icon_max_size());
     }
 
     QPointF c = .5 * QPointF(icon.canvas.width() - pix.width(), icon.canvas.height() - pix.height());

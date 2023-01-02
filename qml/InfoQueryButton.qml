@@ -25,7 +25,7 @@ MapButtonPL {
   id: button
 
   relativeMargin: 1.1
-  iconSize: 48
+  iconSize: 2 * theme.mapButtonIconSize
 
   anchors {
     bottom: parent.bottom

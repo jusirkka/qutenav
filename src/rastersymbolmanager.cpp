@@ -194,7 +194,7 @@ void RasterSymbolManager::parseSymbolData(QXmlStreamReader &reader,
 
   int w = reader.attributes().value("width").toInt();
   int h = reader.attributes().value("height").toInt();
-  d.size = QSizeF(w / dots_per_mm_x(), h  / dots_per_mm_y());
+  d.size = QSizeF(w / Platform::dots_per_mm_x(), h  / Platform::dots_per_mm_y());
 
   QPoint p;
   QPoint o;
@@ -205,8 +205,8 @@ void RasterSymbolManager::parseSymbolData(QXmlStreamReader &reader,
 
   while (reader.readNextStartElement()) {
     if (reader.name() == "distance") {
-      d.minDist = reader.attributes().value("min").toInt() / dots_per_mm_x();
-      d.maxDist = reader.attributes().value("max").toInt() / dots_per_mm_x();
+      d.minDist = reader.attributes().value("min").toInt() / Platform::dots_per_mm_x();
+      d.maxDist = reader.attributes().value("max").toInt() / Platform::dots_per_mm_x();
       reader.skipCurrentElement();
     } else if (reader.name() == "pivot") {
       p = QPoint(reader.attributes().value("x").toInt(),
@@ -229,8 +229,8 @@ void RasterSymbolManager::parseSymbolData(QXmlStreamReader &reader,
   }
 
   // offset of the upper left corner
-  d.offset = QPointF((o.x() - p.x()) / dots_per_mm_x(),
-                     (p.y() - o.y()) / dots_per_mm_y());
+  d.offset = QPointF((o.x() - p.x()) / Platform::dots_per_mm_x(),
+                     (p.y() - o.y()) / Platform::dots_per_mm_y());
   d.elements = S57::ElementData(GL_TRIANGLES, m_indexBackup.size() * sizeof(GLuint), 6);
 
 
@@ -240,7 +240,7 @@ void RasterSymbolManager::parseSymbolData(QXmlStreamReader &reader,
   // upper left
   const QPointF p0(0., 0.);
   // lower right
-  const QPointF p1 = p0 + QPointF(w / dots_per_mm_x(), - h / dots_per_mm_y());
+  const QPointF p1 = p0 + QPointF(w / Platform::dots_per_mm_x(), - h / Platform::dots_per_mm_y());
   const QPointF t1 = t0 + QPointF(w / W, h / H);
 
   m_vertexBackup << p0.x() << p0.y() << t0.x() << t0.y();
@@ -268,15 +268,15 @@ bool RasterSymbolManager::paintIcon(PickIconData& icon, quint32 index, S52::Symb
   QPainter painter(&icon.canvas);
 
   if (type == S52::SymbolType::Pattern) {
-    const QSizeF s(PickIconSize, PickIconSize);
+    const QSizeF s(Platform::pick_icon_size(), Platform::pick_icon_size());
     const QPointF c = .5 * QPointF(icon.canvas.width() - s.width(), icon.canvas.height() - s.height());
     const QRectF box(c, s);
     icon.bbox |= box;
 
     const auto adv = m_symbolMap[key].advance();
-    const qreal X = adv.x * dots_per_mm_x();
-    const qreal Y = adv.xy.y() * dots_per_mm_y();
-    const qreal xs = adv.xy.x() * dots_per_mm_x();
+    const qreal X = adv.x * Platform::dots_per_mm_x();
+    const qreal Y = adv.xy.y() * Platform::dots_per_mm_y();
+    const qreal xs = adv.xy.x() * Platform::dots_per_mm_x();
 
     const int ny = std::floor(box.top() / Y);
     const int my = std::ceil(box.bottom() / Y) + 1;
@@ -294,14 +294,14 @@ bool RasterSymbolManager::paintIcon(PickIconData& icon, quint32 index, S52::Symb
 
   // type == S52::SymbolType::Single
   if (centered) {
-    if (pix.width() < PickIconMin && pix.width() >= pix.height()) {
-      pix = pix.scaledToWidth(PickIconMin);
-    } else if (pix.height() < PickIconMin && pix.height() >= pix.width()) {
-      pix = pix.scaledToHeight(PickIconMin);
-    } else if (pix.width() > PickIconMax && pix.width() >= pix.height()) {
-      pix = pix.scaledToWidth(PickIconMax);
-    } else if (pix.height() > PickIconMax && pix.height() >= pix.width()) {
-      pix = pix.scaledToHeight(PickIconMax);
+    if (pix.width() < Platform::pick_icon_min_size() && pix.width() >= pix.height()) {
+      pix = pix.scaledToWidth(Platform::pick_icon_min_size());
+    } else if (pix.height() < Platform::pick_icon_min_size() && pix.height() >= pix.width()) {
+      pix = pix.scaledToHeight(Platform::pick_icon_min_size());
+    } else if (pix.width() > Platform::pick_icon_max_size() && pix.width() >= pix.height()) {
+      pix = pix.scaledToWidth(Platform::pick_icon_max_size());
+    } else if (pix.height() > Platform::pick_icon_max_size() && pix.height() >= pix.width()) {
+      pix = pix.scaledToHeight(Platform::pick_icon_max_size());
     }
 
     QPointF c = .5 * QPointF(icon.canvas.width() - pix.width(), icon.canvas.height() - pix.height());
@@ -309,7 +309,8 @@ bool RasterSymbolManager::paintIcon(PickIconData& icon, quint32 index, S52::Symb
     icon.bbox |= QRectF(c, pix.size());
 
   } else {
-    const auto p = m_painterData[key].offset;
+    pix = pix.scaledToHeight(pix.height() / Platform::display_raster_symbol_scaling());
+    const auto p = m_painterData[key].offset / Platform::display_raster_symbol_scaling();
     const auto ox = painter.device()->width() / 2 - p.x();
     const auto oy = painter.device()->height() / 2 - p.y();
     painter.drawPixmap(ox, oy, pix);

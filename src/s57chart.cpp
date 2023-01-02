@@ -329,7 +329,7 @@ public:
 
     using SymbolGetter = std::function<SymbolData (S57::PaintMutIterator)>;
 
-    auto checkSymbols = [this, &pd, &centers, &area] (S57::PaintData::Type t, SymbolGetter getter) {
+    auto checkSymbols = [this, &pd, &centers, &area] (S57::PaintData::Type t, SymbolGetter getter, float sf) {
 
       auto vertices = reinterpret_cast<const glm::vec2*>(m_proxy->m_staticVertices.constData());
       auto indices = reinterpret_cast<const GLuint*>(m_proxy->m_staticIndices.constData());
@@ -340,7 +340,8 @@ public:
         // coordinate of the symbol center in chart units.
         QPointF center =
             area->center() + (data.offset() +
-                              .5 * QPointF(data.size().width(), - data.size().height())) / m_scaleFactor;
+                              .5 * QPointF(data.size().width(), - data.size().height())) /
+            (m_scaleFactor * sf);
         if (area->includes(vertices, indices, center)) {
           ++ptr;
           if (centers != nullptr) {
@@ -358,14 +359,15 @@ public:
       return RasterSymbolManager::instance()->symbolData(p->key());
     };
 
-    checkSymbols(S57::PaintData::Type::RasterSymbols, rasterGetter);
+    checkSymbols(S57::PaintData::Type::RasterSymbols, rasterGetter, Platform::display_raster_symbol_scaling());
 
     auto vectorGetter = [] (S57::PaintMutIterator it) {
       auto p = dynamic_cast<const S57::VectorSymbolPaintData*>(it.value());
       return VectorSymbolManager::instance()->symbolData(p->key());
     };
 
-    checkSymbols(S57::PaintData::Type::VectorSymbols, vectorGetter);
+    checkSymbols(S57::PaintData::Type::VectorSymbols, vectorGetter, 1.);
+    checkSymbols(S57::PaintData::Type::LucentVectorSymbols, vectorGetter, 1.);
 
     return true;
   }
@@ -1064,7 +1066,7 @@ S57Chart::PickDataVector S57Chart::pickObjects(const WGS84Point& wp, quint32 sca
   const auto q = m_nativeProj->fromWGS84(wp);
 
   // Resolution in pixels mapped to meters
-  const float res = 0.001 / dots_per_mm_y() * KV::PeepHoleSize * scale;
+  const float res = 0.001 / Platform::dots_per_mm_y() * Platform::peep_hole_size() * scale;
   const QRectF box(q - .5 * QPointF(res, res), QSizeF(res, res));
 
   auto vertices = reinterpret_cast<const glm::vec2*>(m_proxy->m_staticVertices.constData());

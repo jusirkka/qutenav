@@ -57,8 +57,9 @@ void S52::AreaColor::paintIcon(PickIconData& icon,
   color.setAlpha(vals[1].toUInt());
   QPainter painter(&icon.canvas);
 
-  const QPointF c = .5 * QPointF(icon.canvas.width() - PickIconSize, icon.canvas.height() - PickIconSize);
-  const QRectF r(c, QSizeF(PickIconSize, PickIconSize));
+  const auto boxWidth = Platform::pick_icon_size();
+  const QPointF c = .5 * QPointF(icon.canvas.width() - boxWidth, icon.canvas.height() - boxWidth);
+  const QRectF r(c, QSizeF(boxWidth, boxWidth));
 
   painter.fillRect(r, color);
   icon.bbox |= r;
@@ -171,10 +172,54 @@ S57::PaintDataMap S52::LineSimple::execute(const QVector<QVariant>& vals,
   return S57::PaintDataMap{{p->type(), p}};
 }
 
+static QVector<QPointF> areaPath(const QSize& cs, qreal lw) {
+  const QPointF ul(lw / 2, lw / 2);
+  const double x0 = Platform::pick_icon_size() - lw / 2;
+  const QPointF lr(x0, x0);
+  const QRectF r(ul, lr);
+
+  QVector<QPointF> vs {
+    r.topLeft(), r.topRight(),
+    r.topRight(), r.bottomRight(),
+    r.bottomRight(), r.bottomLeft(),
+    r.bottomLeft(), r.topLeft()
+  };
+
+  const QPointF dp = .5 * QPointF(cs.width() - r.width(), cs.height() - r.height()) - r.topLeft();
+
+  std::for_each(vs.begin(), vs.end(), [&dp] (QPointF& v) {
+    v += dp;
+  });
+
+  return vs;
+}
+
+static QVector<QPointF> linePath(const QSize& cs, qreal lw) {
+  const QPointF ul(lw / 2, lw / 2);
+  const double x0 = Platform::pick_icon_size() - lw / 2;
+  const QPointF lr(x0, x0);
+  const QRectF r(ul, lr);
+
+  //  const QPointF p1(r.left() + .5 * r.width(), r.top() + .15 * r.height());
+  //  const QPointF p2(r.left() + .5 * r.width(), r.top() + .85 * r.height());
+
+  QVector<QPointF> vs {
+    r.topLeft(), r.bottomRight()
+  };
+
+  const QPointF dp = .5 * QPointF(cs.width() - r.width(), cs.height() - r.height()) - r.topLeft();
+
+  std::for_each(vs.begin(), vs.end(), [&dp] (QPointF& v) {
+    v += dp;
+  });
+
+  return vs;
+}
+
 void S52::LineSimple::paintIcon(PickIconData& icon,
                                 const QVector<QVariant>& vals, const S57::Object* obj) const {
   auto pattern = as_enum<S52::LineType>(vals[0].toUInt(), S52::AllLineTypes);
-  auto lw = S52::LineWidthMM(vals[1].toUInt()) * dots_per_mm_x();
+  auto lw = S52::LineWidthMM(vals[1].toUInt()) * Platform::dots_per_mm_x();
   auto color = S52::GetColor(vals[2].toUInt());
 
   QPainter painter(&icon.canvas);
@@ -189,8 +234,9 @@ void S52::LineSimple::paintIcon(PickIconData& icon,
     painter.drawLines(areaPath(icon.canvas.size(), lw));
   }
 
-  const QPointF c = .5 * QPointF(icon.canvas.width() - PickIconSize, icon.canvas.height() - PickIconSize);
-  const QRectF r(c, QSizeF(PickIconSize, PickIconSize));
+  const auto s0 = Platform::pick_icon_size();
+  const QPointF c = .5 * QPointF(icon.canvas.width() - s0, icon.canvas.height() - s0);
+  const QRectF r(c, QSizeF(s0, s0));
   icon.bbox |= r;
 }
 
@@ -1188,7 +1234,7 @@ void S52::CSLights05::paintIcon(PickIconData& icon,
     if (!o->attributeValue(m_orient).isValid()) return;
 
     const qreal orient = o->attributeValue(m_orient).toDouble() * M_PI / 180.;
-    const qreal d = .995 * PickIconSize;
+    const qreal d = .995 * Platform::pick_icon_size();
 
     const QPointF p0(.5 * icon.canvas.width(), .5 * icon.canvas.height());
     const QPointF p1 = p0 + .5 * d * QPointF(- sin(orient), cos(orient));
@@ -1213,9 +1259,9 @@ void S52::CSLights05::paintIcon(PickIconData& icon,
     int s2 = std::round(o->attributeValue(m_sectr2).toDouble() * 16);
     while (s2 < s1) s2 += 360 * 16;
 
-    const qreal lw = 2.;
-    const qreal dy = 10.;
-    const qreal d = .995 * PickIconSize;
+    const qreal lw = 2. / Platform::display_line_width_scaling();
+    const qreal dy = 5. * Platform::display_length_scaling();
+    const qreal d = .995 * Platform::pick_icon_size();
     QPointF c = .5 * QPointF(icon.canvas.width() - d, icon.canvas.height() - d - dy);
 
     const QRectF box = QRectF(c, QSizeF(d, d));

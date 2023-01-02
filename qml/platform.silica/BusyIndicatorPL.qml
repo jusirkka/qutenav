@@ -22,4 +22,5 @@ import Sailfish.Silica 1.0
 
 BusyIndicator {
   size: BusyIndicatorSize.Large
+  color: "black"
 }

@@ -25,6 +25,7 @@
 #include <QSGFlatColorMaterial>
 #include <QQuickWindow>
 #include <QDebug>
+#include "platform.h"
 
 CrossHairs::CrossHairs(QQuickItem *parent)
   : QQuickItem(parent)
@@ -75,7 +76,7 @@ QSGNode *CrossHairs::updatePaintNode(QSGNode* oldNode, UpdatePaintNodeData*) {
 
   const float x0 = static_cast<float>(m_peepHole.x());
   const float y0 = static_cast<float>(m_peepHole.y());
-  const float d = .5 * KV::PeepHoleSize;
+  const float d = .5 * Platform::peep_hole_size();
   QSGGeometry::Point2D* vertices = geometry->vertexDataAsPoint2D();
 
   vertices[0].set(0, y0 + lineWidth / 2);

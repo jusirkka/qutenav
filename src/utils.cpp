@@ -29,7 +29,7 @@
 
 void checkCache(bool clearCache) {
   const auto base = QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation);
-  const auto path = QString("%1/%2").arg(base).arg(baseAppName());
+  const auto path = QString("%1/%2").arg(base).arg(Platform::base_app_name());
   quint32 mx = Settings::instance()->cacheSize() * 1000000; // megabytes -> bytes
   if (clearCache) {
     mx = 0;

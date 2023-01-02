@@ -23,7 +23,7 @@
 #include <QOpenGLTexture>
 #include <QTimer>
 #include "logging.h"
-#include "settings.h"
+#include "platform.h"
 
 TextManager::TextManager()
   : QObject()
@@ -166,7 +166,7 @@ void TextShaper::shape(const TextKey &key) {
 
   // apply transformations
 
-  const float bodySizeMM = key.bodySize * .351 * Settings::instance()->displayTextSizeScaling();
+  const float bodySizeMM = key.bodySize * .351 * Platform::display_text_size_scaling();
   const auto dPivot = QPointF(m_pivotHMap[key.hjust] * mesh->bbox.width(),
                               m_pivotVMap[key.vjust] * mesh->bbox.height());
 

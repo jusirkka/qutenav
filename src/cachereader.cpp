@@ -42,7 +42,7 @@ GeoProjection* CacheReader::configuredProjection(const QString &path) const {
   auto id = CacheId(path);
   const auto base = QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation);
 
-  const auto cachePath = QString("%1/%2/%3").arg(base).arg(baseAppName()).arg(QString(id));
+  const auto cachePath = QString("%1/%2/%3").arg(base).arg(Platform::base_app_name()).arg(QString(id));
 
   QFile file(cachePath);
   if (!file.open(QFile::ReadOnly)) {
@@ -80,7 +80,7 @@ S57ChartOutline CacheReader::readOutline(const QString &path, const GeoProjectio
   auto id = CacheId(path);
   const auto base = QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation);
 
-  const auto cachePath = QString("%1/%2/%3").arg(base).arg(baseAppName()).arg(QString(id));
+  const auto cachePath = QString("%1/%2/%3").arg(base).arg(Platform::base_app_name()).arg(QString(id));
 
   QFile file(cachePath);
   if (!file.open(QFile::ReadOnly)) {
@@ -154,7 +154,7 @@ void CacheReader::readChart(GL::VertexVector& vertices,
   auto id = CacheId(path);
   const auto base = QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation);
 
-  const auto cachePath = QString("%1/%2/%3").arg(base).arg(baseAppName()).arg(QString(id));
+  const auto cachePath = QString("%1/%2/%3").arg(base).arg(Platform::base_app_name()).arg(QString(id));
 
   QFile file(cachePath);
   if (!file.open(QFile::ReadOnly)) {

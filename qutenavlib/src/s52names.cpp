@@ -231,7 +231,7 @@ QString S52::FindPath(const QString& s) {
 
   // qutenav or harbour-qutenav
   for (const QString& loc: QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation)) {
-    locs << QString("%1/%2/s57data").arg(loc).arg(baseAppName());
+    locs << QString("%1/%2/s57data").arg(loc).arg(Platform::base_app_name());
   }
 
   for (const QString& loc: locs) {

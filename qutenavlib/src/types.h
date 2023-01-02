@@ -399,26 +399,15 @@ struct InfoType {
 
 Q_DECLARE_METATYPE(S57::InfoType)
 
-// Data types for painting Pick Icons
-static const inline int PickIconSize = 48;
-static const inline double PickIconMin = .50 * PickIconSize;
-static const inline double PickIconMax = .75 * PickIconSize;
-static const inline double PickIconRelMin = .60;
-static const inline double PickIconRelMax = .90;
-
+// Data type for painting Pick Icons
 struct PickIconData {
   QRectF bbox {};
   QPixmap canvas {};
 };
 
-QVector<QPointF> areaPath(const QSize& cs, qreal lw);
-QVector<QPointF> linePath(const QSize& cs, qreal lw);
-
 
 namespace KV {
 using ColorVector = QVector<QColor>;
-// For Crosshair / Object info queries
-static const int PeepHoleSize = 20;
 }
 
 namespace GL {

@@ -7,14 +7,15 @@ Rectangle {
 
   property string iconSource
   property string iconColor
+  property real relativeMargin: 1.45
+  property int iconSize: theme.mapButtonIconSize
 
-  height: image.height * 1.45
+  height: image.height * relativeMargin
   width: height
   radius: height
   color: "white"
   border.color: "black"
   opacity: 1
-
 
   signal clicked
 
@@ -22,6 +23,8 @@ Rectangle {
     id: image
     anchors.centerIn: parent
     source: rect.iconSource
+    height: rect.iconSize * theme.pixelRatio
+    width: height
   }
 
   ColorOverlay {

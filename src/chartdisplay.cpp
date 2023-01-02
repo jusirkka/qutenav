@@ -306,8 +306,8 @@ void ChartDisplay::orient(Qt::ScreenOrientation orientation) {
 
   if (m_orientedSize.isEmpty()) return;
 
-  const float wmm = m_orientedSize.width() / dots_per_mm_x();
-  const float hmm = m_orientedSize.height() / dots_per_mm_y();
+  const float wmm = m_orientedSize.width() / Platform::dots_per_mm_x();
+  const float hmm = m_orientedSize.height() / Platform::dots_per_mm_y();
 
   try {
     m_camera->resize(wmm, hmm);
@@ -525,7 +525,7 @@ void ChartDisplay::computeScaleBar() {
     if (ds.size() > 1 && ds[ds.size() - 2] >= 5) {
       x += 5 * exp10(ds.size() - 2);
     }
-    m_scaleBarLength = dots_per_mm_x() * conv->toSI(x) / sc * 1000;
+    m_scaleBarLength = Platform::dots_per_mm_x() * conv->toSI(x) / sc * 1000;
     m_scaleBarText[0] = conv->display(x);
     m_scaleBarText[1] = QString("1:%1").arg(static_cast<quint32>(1000 * std::round(sc / 1000.)));
     m_scaleBarText[2] = "";

@@ -241,8 +241,8 @@ Font::Font(const QString &family,
 
   FT_Select_Charmap(m_face, FT_ENCODING_UNICODE);
   FT_Set_Char_Size(m_face, 0, pixelSize * 64,
-                   dots_per_inch_x(),
-                   dots_per_inch_y());
+                   Platform::dots_per_inch_x(),
+                   Platform::dots_per_inch_y());
 
   m_font = hb_ft_font_create(m_face, nullptr);
 }

@@ -130,7 +130,7 @@ void ChartManager::loadPlugins() {
     m_factories[factory->name()] = factory;
   }
 
-  const QString loc = baseAppName();
+  const QString loc = Platform::base_app_name();
   const QString base = QLibraryInfo::location(QLibraryInfo::PluginsPath);
   QDir pluginsDir(QString("%1/%2").arg(base).arg(loc));
   qCDebug(CMGR) << "Searching reader plugins in" << pluginsDir.dirName();
@@ -264,7 +264,7 @@ void ChartManager::setChartSet(const QString &name, const GeoProjection* vproj, 
 }
 
 void ChartManager::createThreads() {
-  const int numThreads = numberOfChartThreads();
+  const int numThreads = Platform::number_of_chart_threads();
   qCDebug(CMGR) << "number of chart updaters =" << numThreads;
   for (int i = 0; i < numThreads; ++i) {
     qCDebug(CMGR) << "creating thread" << i;

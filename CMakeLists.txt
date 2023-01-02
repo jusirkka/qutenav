@@ -63,6 +63,7 @@ elseif (PLATFORM STREQUAL silica)
     qml/DistanceButton.qml
     qml/EditButton.qml
     qml/InfoPage.qml
+    qml/InfoQueryButton.qml
     qml/LinkDetailItem.qml
     qml/MapLabel.qml
     qml/MenuButton.qml

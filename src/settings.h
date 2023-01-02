@@ -465,12 +465,6 @@ public:
     }
   }
 
-
-  float displayLengthScaling() const;
-  float displayTextSizeScaling() const;
-  float displayLineWidthScaling() const;
-  float displayRasterSymbolScaling() const;
-
 signals:
 
   void colorTableChanged(quint8 t);
@@ -494,8 +488,6 @@ private:
 
   QObjectList m_textGroups;
 
-  static inline const float dpmm0 = 6.2;
-  static inline const float delta_dpmm1 = 9.7;
 
   static inline const QMap<int, const char*> texts = {
     //% "Important text"
