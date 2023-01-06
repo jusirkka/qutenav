@@ -182,9 +182,6 @@ void ChartPainter::updateCharts(const Camera* cam, const QRectF& viewArea) {
   // draw translucent objects farthest first
   for (int i = 0; i < S52::Lookup::PriorityCount; i++) {
     for (S57Chart* chart: m_manager->charts()) {
-      chart->drawText(bufCam, i);
-    }
-    for (S57Chart* chart: m_manager->charts()) {
       chart->drawRasterSymbols(bufCam, i);
     }
     for (S57Chart* chart: m_manager->charts()) {
@@ -199,6 +196,10 @@ void ChartPainter::updateCharts(const Camera* cam, const QRectF& viewArea) {
     for (S57Chart* chart: m_manager->charts()) {
       chart->drawAreas(bufCam, i, true);
     }
+  }
+  // Text is always at prio 8. prio 9 is mostly empty
+  for (S57Chart* chart: m_manager->charts()) {
+    chart->drawText(bufCam);
   }
 
   // draw stencilled objects

@@ -284,8 +284,7 @@ void HPGL::OpenGLParser::mergeData(Data &tgt, const Data &d) {
 
 
 QPointF HPGL::OpenGLParser::makePoint(int x, int y) const {
-  return QPointF(x * mmUnit - m_pivot.x(),
-                 m_pivot.y() - y * mmUnit);
+  return QPointF(x * mmUnit - m_pivot.x(), m_pivot.y() - y * mmUnit);
 }
 
 void HPGL::OpenGLParser::triangulate(const PointList& points, Data& out) {

@@ -389,17 +389,6 @@ private:
   void run_line(const S57::Object* obj, Accumulator accum) const;
   void run_point(const S57::Object* obj, Accumulator accum) const;
   void runner(const S57::Object* obj, Accumulator accum) const;
-
-  const quint32 m_quapos;
-  const quint32 m_lowacc21;
-  const quint32 m_coalne;
-  const quint32 m_conrad;
-  const quint32 m_cstln;
-  const quint32 m_chmgf;
-  const quint32 m_quapos01;
-  const quint32 m_quapos02;
-  const quint32 m_quapos03;
-  const quint32 m_lowacc03;
 };
 
 class CSRestrEntry01: public Function {
@@ -525,6 +514,7 @@ private:
 
   void run_danger(double depth, const S57::Object* obj, Accumulator accum, Overrider ovr, bool* danger = nullptr) const;
   void runner(const S57::Object* obj, Accumulator accum, Overrider ovr) const;
+  double leastDepth(const S57::Object* obj) const;
 
   const quint32 m_valsou;
   const quint32 m_watlev;

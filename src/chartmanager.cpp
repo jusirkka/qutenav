@@ -821,6 +821,8 @@ void ChartManager::manageInfoResponse(const S57::InfoType& info, quint32 tid) {
   if (m_transactions[tid] == m_charts.size()) {
     // All responses received
     auto it = std::max_element(m_info[tid].cbegin(), m_info[tid].cend(), [] (const S57::InfoType& t1, const S57::InfoType& t2) {
+      if (t1.descriptions.isEmpty() && !t2.descriptions.isEmpty()) return true;
+      if (!t1.descriptions.isEmpty() && t2.descriptions.isEmpty()) return false;
       if (t1.priority != t2.priority) return t1.priority < t2.priority;
       if (t1.objectId.size() != t2.objectId.size()) return t1.objectId.size() < t2.objectId.size();
       return t1.descriptions.size() < t2.descriptions.size();

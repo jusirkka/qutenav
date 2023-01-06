@@ -113,28 +113,44 @@ bool insidePolygon(uint count, uint offset, const glm::vec2* q,
   return c;
 }
 
+
+static QVector<QPointF> remove_duplicates(const QVector<QPointF>& points) {
+  QVector<QPointF> ps {points.first()};
+  auto it = points.cbegin();
+  auto itn = std::next(it);
+  while (itn != points.cend()) {
+    if (*itn != *it) {
+      ps << *itn;
+    }
+    it++;
+    itn++;
+  }
+  return ps;
+}
+
 //
 // Original source:
 // https://github.com/paulhoux/Cinder-Samples/blob/master/GeometryShader/assets/shaders/lines1.geom
 //
 
-void thickerLines(const QVector<QPointF> &points, bool closed, qreal lw,
+void thickerLines(const QVector<QPointF>& points, bool closed, qreal lw,
                   GL::VertexVector& vertices, GL::IndexVector& indices) {
 
-  const GLfloat MITER_LIMIT = .75;
+  if (points.size() < 2) return;
+  const auto ps = remove_duplicates(points);
+  if (ps.size() < 2) return;
 
+  const GLfloat MITER_LIMIT = .75;
   const float HW = .5 * lw;
 
   GLuint offset = vertices.size() / 2;
-  const int n = points.size() - 1;
+  const int n = ps.size() - 1;
   for (int i = 0; i < n; i++) {
 
-    const glm::vec2 p0 = GL::Vec2(i == 0 ? (closed ? points[n - 1] : 2 * points[0] - points[1]) :
-        points[i - 1]);
-    const glm::vec2 p1 = GL::Vec2(points[i]);
-    const glm::vec2 p2 = GL::Vec2(points[i + 1]);
-    const glm::vec2 p3 = GL::Vec2(i == n - 1 ? (closed ? points[1] : points[n - 1] -  2 * points[n]) :
-        points[i + 2]);
+    const glm::vec2 p0 = GL::Vec2(i == 0 ? (closed ? ps[n - 1] : 2 * ps[0] - ps[1]) : ps[i - 1]);
+    const glm::vec2 p1 = GL::Vec2(ps[i]);
+    const glm::vec2 p2 = GL::Vec2(ps[i + 1]);
+    const glm::vec2 p3 = GL::Vec2(i == n - 1 ? (closed ? ps[1] : 2 * ps[n] - ps[n - 1]) : ps[i + 2]);
 
     // determine the direction of each of the 3 segments (previous, current, next)
     const glm::vec2 v0 = glm::normalize(p1 - p0);
@@ -185,7 +201,7 @@ void thickerLines(const QVector<QPointF> &points, bool closed, qreal lw,
       len_b = HW;
     }
 
-    // generate the triangle strip
+    // generate the triangles
     r = p1 + len_a * miter_a;
     vertices << r.x << r.y;
     r = p1 - len_a * miter_a;

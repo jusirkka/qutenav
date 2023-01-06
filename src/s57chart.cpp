@@ -451,16 +451,16 @@ void S57Chart::updatePaintData(const WGS84PointVector& cs, quint32 scale) {
     mergeSymbols(rastersymbols, it, prio);
   };
 
-  TextColorPriorityVector textInstances(S52::Lookup::PriorityCount);
+  TextColorMap textInstances;
 
-  auto mergeText = [&textInstances] (S57::PaintMutIterator it, int prio) {
+  auto mergeText = [&textInstances] (S57::PaintMutIterator it, int) {
     auto t = dynamic_cast<S57::TextElemData*>(it.value());
-    if (textInstances[prio].contains(t->color())) {
-      auto t0 = dynamic_cast<S57::TextElemData*>(textInstances[prio][t->color()]);
+    if (textInstances.contains(t->color())) {
+      auto t0 = dynamic_cast<S57::TextElemData*>(textInstances[t->color()]);
       t0->merge(t);
       delete t;
     } else {
-      textInstances[prio][t->color()] = it.value();
+      textInstances[t->color()] = it.value();
     }
   };
 
@@ -535,13 +535,10 @@ void S57Chart::updatePaintData(const WGS84PointVector& cs, quint32 scale) {
   filterElements(S57::PaintData::Type::LucentLineElements);
 
   // move merged text to paintdatamap
-  for (int i = 0; i < S52::Lookup::PriorityCount; i++) {
-    TextColorMap merged = textInstances[i];
-    for (TextColorMutIterator it = merged.begin(); it != merged.end(); ++it) {
-      auto t = dynamic_cast<S57::TextElemData*>(it.value());
-      t->getInstances(textTransforms);
-      m_paintData[i].insert(it.value()->type(), it.value());
-    }
+  for (TextColorMutIterator it = textInstances.begin(); it != textInstances.end(); ++it) {
+    auto t = dynamic_cast<S57::TextElemData*>(it.value());
+    t->getInstances(textTransforms);
+    m_paintData[textPrio].insert(it.value()->type(), it.value());
   }
 
   // Symbolized line updates to the transform buffer. Store remaining segments.
@@ -789,11 +786,11 @@ void S57Chart::drawLineElems(const Camera* cam, int prio, bool blend) {
   }
 }
 
-void S57Chart::drawText(const Camera* cam, int prio) {
+void S57Chart::drawText(const Camera* cam) {
 
-  const S57::PaintIterator end = m_paintData[prio].constEnd();
+  const S57::PaintIterator end = m_paintData[textPrio].constEnd();
 
-  S57::PaintIterator elem = m_paintData[prio].constFind(S57::PaintData::Type::TextElements);
+  S57::PaintIterator elem = m_paintData[textPrio].constFind(S57::PaintData::Type::TextElements);
 
   if (elem == end) return;
 
@@ -803,7 +800,7 @@ void S57Chart::drawText(const Camera* cam, int prio) {
   TextManager::instance()->bind();
 
   prog->setGlobals(cam, m_modelMatrix);
-  prog->setDepth(m_priority, prio);
+  prog->setDepth(m_priority, textPrio);
 
   auto f = QOpenGLContext::currentContext()->extraFunctions();
 

@@ -28,6 +28,9 @@ Item {
 
   readonly property real pixelRatio: Screen.devicePixelRatio
 
+  readonly property real mapButtonIconSize: 24 * pixelRatio
+  readonly property real bubbleTextFontSize: fontSizeMedium
+
 
   function highlightText(base, part, hicolor) {
     if (part === "") return base

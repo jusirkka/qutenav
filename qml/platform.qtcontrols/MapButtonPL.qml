@@ -27,7 +27,7 @@ Button {
   property string iconSource
   property string iconColor: "transparent"
   property real relativeMargin: 1.45
-  property int iconSize: 24
+  property int iconSize: theme.mapButtonIconSize
 
   height: icon.height * relativeMargin
   width: height

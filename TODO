@@ -1,15 +1,21 @@
+After 1.0:
+
 - tides
-- bug: assert failure in KV::Region when browsing high latitudes
-- bug: s57 charts: sporadic index out of range error
-- bug: mobile: rendering is too slow, esp. s57, cm93
-- check that chart db fetches work across dateline
 - firejail compatibility
 - check that S52Functions are compatible with S52 PresLib 4.0.0
+- split geometry to spatial components and support spatial attributes
 - quick settings
 - POI (including Guest harbours) support
 
-- display less details in smaller chart scales
+Before 1.0:
+
+- mobile: oesu support
+- mobile: rendering is too slow, esp. s57, cm93
+- oexserverd on-demand restart
+- bug: assert failure in KV::Region when browsing high latitudes
+- bug: s57 charts: sporadic index out of range error
+- check that chart db fetches work across dateline
+
 - object class filter & config
-- bug: non-dangerous wrecks shown as dangerous
-- bug: artifacts in route editing: when projection of a point is before/after previous/next point
+- display less details in smaller chart scales
 

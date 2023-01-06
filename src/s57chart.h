@@ -54,7 +54,7 @@ public:
   void drawLineArrays(const Camera* cam, int prio, bool blend = false);
   void drawSegmentArrays(const Camera* cam, int prio);
   void drawLineElems(const Camera* cam, int prio, bool blend = false);
-  void drawText(const Camera* cam, int prio);
+  void drawText(const Camera* cam);
   void drawRasterSymbols(const Camera* cam, int prio);
   void drawVectorSymbols(const Camera* cam, int prio, bool blend = false);
   void drawVectorPatterns(const Camera* cam);
@@ -91,6 +91,9 @@ public slots:
 
 private:
 
+  // Text is always at priority 8
+  static const inline int textPrio = 8;
+
   struct ObjectLookup {
     ObjectLookup(const S57::Object* obj, S52::Lookup* lup)
       : object(obj)
@@ -120,7 +123,6 @@ private:
   using TextColorMap = QHash<QColor, S57::PaintData*>;
   using TextColorIterator = TextColorMap::const_iterator;
   using TextColorMutIterator = TextColorMap::iterator;
-  using TextColorPriorityVector = QVector<TextColorMap>;
 
   qreal scaleFactor(const QRectF& va, quint32 scale) const;
 

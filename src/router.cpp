@@ -426,6 +426,7 @@ QSGNode* Router::updatePaintNode(QSGNode* oldNode, UpdatePaintNodeData*) {
     geometry = node->geometry();
     if (geometry->vertexCount() != vertices.size() / 2 || geometry->indexCount() != indices.size()) {
       geometry->allocate(vertices.size() / 2, indices.size());
+      m_modified = true;
     }
   }
 

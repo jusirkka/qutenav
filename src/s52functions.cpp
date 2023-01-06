@@ -1491,24 +1491,36 @@ void S52::CSObstruction04::runner(const S57::Object* obj, Accumulator accumulate
     catobs = obj->attributeValue(m_catobs).toInt();
   }
 
+  auto wrecks = dynamic_cast<S52::CSWrecks02*>(S52::FindFunction("WRECKS02"));
+
   if (obj->attributeValue(m_valsou).isValid()) {
     depth = obj->attributeValue(m_valsou).toDouble();
-  } else if (catobs == 6 || watlev == 3) {
-    depth = .01;
-  } else if (watlev == 5) {
-    depth = 0.;
+  } else {
+    if (obj->geometry()->type() == S57::Geometry::Type::Area) {
+      depth = wrecks->leastDepth(obj);
+    }
+    if (depth == S52::DefaultDepth) {
+      if (catobs == 6 || watlev == 3) {
+        depth = .01;
+      } else if (watlev == 5) {
+        depth = 0.;
+      }
+    }
   }
 
   bool danger = false;
-  auto wrecks = dynamic_cast<S52::CSWrecks02*>(S52::FindFunction("WRECKS02"));
   wrecks->run_danger(depth, obj, accumulate, ovr, &danger);
 
   const auto t = obj->geometry()->type();
   if (t == S57::Geometry::Type::Point) {
-    // continuation A
+
     auto fqua = dynamic_cast<S52::CSQualOfPos01*>(S52::FindFunction("QUAPOS01"));
     fqua->run_point(obj, accumulate);
-    if (danger) return;
+
+    // continuation A
+    if (danger) {
+      return;
+    }
 
     quint32 sym;
     bool doSnd = false;
@@ -1571,16 +1583,16 @@ void S52::CSObstruction04::runner(const S57::Object* obj, Accumulator accumulate
 
   if (t == S57::Geometry::Type::Line) {
     // continuation B
-    const int quapos = obj->attributeValue(m_quapos).isValid() ? obj->attributeValue(m_quapos).toInt() : 0;
-    if (quapos > 1 && quapos < 10) {
-      if (danger) {
-        const QVector<QVariant> v0 {m_lowacc41, 0.};
-        accumulate(S52::FindFunction("SY"), v0, obj);
-      } else {
-        const QVector<QVariant> v0 {m_lowacc31, 0.};
-        accumulate(S52::FindFunction("SY"), v0, obj);
-      }
-    } else if (obj->attributeValue(m_valsou).isValid() && depth > 20.) {
+
+    // TODO split geometry to spatial components and support spatial attributes
+    // if (spatial attribute quapos valid and quapos in [2-9])
+    //   if (danger)
+    //     LC(LOWACC41)
+    //   else
+    //     LC(LOWACC31)
+    //   continue
+    // if (danger) ...
+    if (obj->attributeValue(m_valsou).isValid() && depth > 20.) {
       const QVector<QVariant> v0 {as_numeric(S52::LineType::Dashed), 2, m_chblk};
       accumulate(S52::FindFunction("LS"), v0, obj);
     } else {
@@ -1717,16 +1729,6 @@ S57::PaintDataMap S52::CSObstruction04::modifiers(const QVector<QVariant>&,
 
 S52::CSQualOfPos01::CSQualOfPos01(quint32 index)
   : S52::Function("QUAPOS01", index)
-  , m_quapos(S52::FindIndex("QUAPOS"))
-  , m_lowacc21(S52::FindIndex("LOWACC21"))
-  , m_coalne(S52::FindIndex("COALNE"))
-  , m_conrad(S52::FindIndex("CONRAD"))
-  , m_cstln(S52::FindIndex("CSTLN"))
-  , m_chmgf(S52::FindIndex("CHMGF"))
-  , m_quapos01(S52::FindIndex("QUAPOS01"))
-  , m_quapos02(S52::FindIndex("QUAPOS02"))
-  , m_quapos03(S52::FindIndex("QUAPOS03"))
-  , m_lowacc03(S52::FindIndex("LOWACC01")) // was LOWACC03, but missing in chart symbols
 {}
 
 void S52::CSQualOfPos01::runner(const S57::Object* obj, Accumulator accum) const {
@@ -1763,62 +1765,18 @@ void S52::CSQualOfPos01::paintIcon(PickIconData& icon, const QVector<QVariant>&,
   runner(obj, accum);
 }
 
-void S52::CSQualOfPos01::run_line(const S57::Object* obj, Accumulator accumulate) const {
-
-  QVector<QVariant> vals;
-
-  const QVariant quapos = obj->attributeValue(m_quapos);
-  const int v = quapos.toInt();
-
-  if (quapos.isValid() && v >= 2 && v < 10) {
-    vals.append(QVariant::fromValue(m_lowacc21));
-    accumulate(S52::FindFunction("LC"), vals, obj);
-    return;
-  }
-
-  if (!quapos.isValid()) {
-    vals.append(QVariant::fromValue(int(S52::LineType::Solid)));
-
-    if (obj->classCode() == m_coalne) {
-      QVariant conrad = obj->attributeValue(m_conrad);
-      if (conrad.isValid()) {
-        if (conrad.toInt() == 1) {
-          vals.append(QVariant::fromValue(3));
-          vals.append(QVariant::fromValue(m_chmgf));
-        }
-      }
-    }
-
-    if (vals.size() == 1) {
-      vals.append(QVariant::fromValue(1));
-      vals.append(QVariant::fromValue(m_cstln));
-    }
-
-    accumulate(S52::FindFunction("LS"), vals, obj);
-  }
+void S52::CSQualOfPos01::run_line(const S57::Object* /*obj*/, Accumulator /*accumulate*/) const {
+  // TODO split geometry to spatial components and support spatial attributes
+  // loop ever spatial components
+  //   if (spatial attribute quapos valid)
+  //     ..
 }
 
-void S52::CSQualOfPos01::run_point(const S57::Object* obj, Accumulator accumulate) const {
-
-  const QVariant quapos = obj->attributeValue(m_quapos);
-  const int v = quapos.toInt();
-
-  if (quapos.isValid() && v >= 2 && v < 10) {
-    quint32 sym;
-    switch (v) {
-    case 4:
-      sym = m_quapos01; break; // "PA"
-    case 5:
-      sym = m_quapos02; break; // "PD"
-    case 7:
-    case 8:
-      sym = m_quapos03; break; // "REP"
-    default:
-      sym = m_lowacc03; // "?"
-    }
-    QVector<QVariant> vals {sym, 0.};
-    accumulate(S52::FindFunction("SY"), vals, obj);
-  }
+void S52::CSQualOfPos01::run_point(const S57::Object* /*obj*/, Accumulator /*accumulate*/) const {
+  // TODO split geometry to spatial components and support spatial attributes
+  // loop ever spatial components
+  //   if (spatial attribute quapos valid)
+  //     ..
 }
 
 S52::CSRestrEntry01::CSRestrEntry01(quint32 index)
@@ -2271,6 +2229,28 @@ S52::CSWrecks02::CSWrecks02(quint32 index)
 {}
 
 
+double S52::CSWrecks02::leastDepth(const S57::Object* obj) const {
+
+  double d = S52::DefaultDepth;
+  bool found = false;
+
+  for (const S57::Object* underling: obj->underlings()) {
+    //    qCDebug(CS57) << "[Underling:Class]" << S52::GetClassInfo(underling->classCode());
+    //    qCDebug(CS57) << "[Overling:Location]" << obj->geometry()->centerLL().print();
+    //    qCDebug(CS57) << "[Limit]" << limit;
+    //    for (auto k: underling->attributes().keys()) {
+    //      qCDebug(CS57) << GetAttributeInfo(k, underling);
+    //    }
+    if (!underling->attributeValue(m_drval1).isValid()) continue;
+    const auto drval1 = underling->attributeValue(m_drval1).toDouble();
+    if (drval1 < d || !found) {
+      d = drval1;
+      found = true;
+    }
+  }
+  return d;
+}
+
 void S52::CSWrecks02::run_danger(double depth, const S57::Object* obj,
                                  Accumulator accumulate, Overrider ovr, bool* dangerPtr) const {
 
@@ -2330,24 +2310,29 @@ void S52::CSWrecks02::runner(const S57::Object* obj, Accumulator accumulate, Ove
 
   if (obj->attributeValue(m_valsou).isValid()) {
     depth = obj->attributeValue(m_valsou).toDouble();
-  } else if (watlev == 3) {
-    depth = .01;
-  } else if (watlev == 5) {
-    depth = 0.;
-  } else if (catwrk == 1) {
-    depth = 20.;
-  } else if (catwrk == 2) {
-    depth = 0.;
+  } else {
+    if (obj->geometry()->type() == S57::Geometry::Type::Area) {
+      depth = leastDepth(obj);
+    }
+    if (depth == S52::DefaultDepth) {
+      if (catwrk == 1) { // non-dangerous wreck
+        depth = 20.1;
+      } else if (watlev == 3 || watlev == 5) {
+        depth = 0;
+      }
+    }
   }
+  qCDebug(CS52) << "depth =" << depth;
 
   bool danger = false;
   run_danger(depth, obj, accumulate, ovr, &danger);
 
-  auto quapos = dynamic_cast<S52::CSQualOfPos01*>(S52::FindFunction("QUAPOS01"));
-  quapos->run_point(obj, accumulate);
-
   if (obj->geometry()->type() == S57::Geometry::Type::Point) {
-    if (danger) return;
+    if (danger) {
+      auto quapos = dynamic_cast<S52::CSQualOfPos01*>(S52::FindFunction("QUAPOS01"));
+      quapos->run_point(obj, accumulate);
+      return;
+    }
 
     // continuation A
     if (obj->attributeValue(m_valsou).isValid()) {
@@ -2377,6 +2362,12 @@ void S52::CSWrecks02::runner(const S57::Object* obj, Accumulator accumulate, Ove
   }
 
   // continuation B
+  //
+  // TODO split geometry to spatial components and support spatial attributes
+  // if (spatial attribute quapos valid and quapos in [2-9])
+  //   LC(LOWACC41)
+  //   continue
+  // if (danger) ...
 
   // line style
   if (danger) {
@@ -2414,6 +2405,9 @@ void S52::CSWrecks02::runner(const S57::Object* obj, Accumulator accumulate, Ove
     QVector<QVariant> vals {m_depvs, 255};
     accumulate(S52::FindFunction("AC"), vals, obj);
   }
+
+  auto quapos = dynamic_cast<S52::CSQualOfPos01*>(S52::FindFunction("QUAPOS01"));
+  quapos->run_point(obj, accumulate);
 }
 
 S57::PaintDataMap S52::CSWrecks02::execute(const QVector<QVariant>&,
