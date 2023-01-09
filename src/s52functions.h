@@ -178,6 +178,7 @@ private:
   const quint32 m_drgare;
   const quint32 m_drgare01;
   const quint32 m_chgrf;
+  const quint32 m_diamond1;
 };
 
 class CSResArea02: public Function {
@@ -389,9 +390,15 @@ private:
   void run_line(const S57::Object* obj, Accumulator accum) const;
   void run_point(const S57::Object* obj, Accumulator accum) const;
   void runner(const S57::Object* obj, Accumulator accum) const;
+
+  const quint32 m_coalne;
+  const quint32 m_conrad;
+  const quint32 m_cstln;
+  const quint32 m_chmgf;
 };
 
 class CSRestrEntry01: public Function {
+  friend class CSDepthArea01;
 public:
   CSRestrEntry01(quint32 index);
 

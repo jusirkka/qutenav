@@ -154,7 +154,7 @@ private:
   };
   using PickDataVector = QVector<PickData>;
 
-  PickDataVector pickObjects(const WGS84Point& wp, quint32 scale);
+  PickDataVector pickObjects(const WGS84Point& wp, quint32 scale, double* depthPtr = nullptr);
 
   const QMap<quint32, quint32> m_pickPriorityMap;
   const QVector<quint32> m_pickImageList;

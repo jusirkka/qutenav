@@ -38,17 +38,26 @@ Conf::MarinerParams::MarinerParams()
   m_defaults["plain_boundaries"] = false;
   m_defaults["simplified_symbols"] = false;
   m_defaults["max_category"] = static_cast<uint>(EnumMaxCategory::type::Mariners);
-  m_defaults["show_meta"] = true;
   m_defaults["full_length_sectors"] = false;
 
   QVariantList items;
+
   items << 10 << 11 << 12 << 20 << 21 << 23 << 24 << 25 << 26 << 27 << 28 << 29 << 31;
   m_defaults["text_grouping"] = items;
+
+  items.clear();
+
+  items << 300 << 301 << 302 << 303 << 304 << 305 << 306 << 307 << 308 << 309 << 310
+        << 311 << 312 << 17018 << 666666;
+  m_defaults["disabled_classes"] = items;
 
   load();
 
   QVariantList vitems = m_values["text_grouping"].toList();
   for (auto v: vitems) m_textGrouping.append(v.toInt());
+
+  vitems = m_values["disabled_classes"].toList();
+  for (auto v: vitems) m_disabledClasses.append(v.toInt());
 }
 
 Conf::MarinerParams::~MarinerParams() {}

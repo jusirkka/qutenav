@@ -81,18 +81,13 @@
       <source>Select maximal category to display objects. Selected category includes the previous ones in the list.</source>
       <translation>Select maximal category to display objects. Selected category includes the previous ones in the list.</translation>
     </message>
-    <message id="qtnav-meta-objects">
-      <location line="+17" />
-      <source>Meta objects</source>
-      <translation>Meta objects</translation>
-    </message>
-    <message id="qtnav-meta-objects-description">
-      <location line="+2" />
-      <source>Show meta objects.</source>
-      <translation>Show meta objects.</translation>
+    <message id="qtnav-optional-object-classes">
+      <location line="+16" />
+      <source>Optional object classes</source>
+      <translation>Optional object classes</translation>
     </message>
     <message id="qtnav-depths-contours">
-      <location line="+11" />
+      <location line="+20" />
       <source>Depths &amp; Contours</source>
       <translation>Depths &amp; Contours</translation>
     </message>
@@ -146,7 +141,17 @@
       <source>Use just two shades for depth area coloring.</source>
       <translation>Use just two shades for depth area coloring.</translation>
     </message>
-    <message id="qtnav-olors">
+    <message id="qtnav-shallow-pattern">
+      <location line="+12" />
+      <source>Shallow Pattern</source>
+      <translation>Shallow Pattern</translation>
+    </message>
+    <message id="qtnav-shallow-pattern-description">
+      <location line="+2" />
+      <source>Fill depth areas shallower than the safety contour with a pattern.</source>
+      <translation>Fill depth areas shallower than the safety contour with a pattern.</translation>
+    </message>
+    <message id="qtnav-colors">
       <location line="+11" />
       <source>Colors</source>
       <translation>Colors</translation>
@@ -725,7 +730,7 @@
       <translation>Delete</translation>
     </message>
     <message id="qtnav-txt-10">
-      <location filename="../src/settings.h" line="+502" />
+      <location filename="../src/settings.h" line="+462" />
       <source>Important text</source>
       <translation>Important text</translation>
     </message>

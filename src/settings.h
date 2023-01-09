@@ -27,44 +27,6 @@
 #include "logging.h"
 #include <QMap>
 
-class TextGroup: public QObject {
-  Q_OBJECT
-public:
-  TextGroup(int group, bool defval, const QString& text, const QString& desc = QString())
-    : m_group(group)
-    , m_text(text)
-    , m_description(desc)
-    , m_default(defval)
-  {}
-
-  Q_PROPERTY(bool enabled
-             READ enabled
-             WRITE setEnabled)
-
-  bool enabled() const;
-  void setEnabled(bool v);
-
-  Q_PROPERTY(QString text
-             READ text)
-
-  const QString& text() const {return m_text;}
-
-  Q_PROPERTY(QString description
-             READ description)
-
-  const QString& description() const {return m_description;}
-
-signals:
-
-  void enabledChanged();
-
-private:
-
-  int m_group;
-  QString m_text;
-  QString m_description;
-  bool m_default;
-};
 
 class Settings: public QObject {
   Q_OBJECT
@@ -116,21 +78,6 @@ public:
   void setFullLengthSectors(bool v) {
     if (v != fullLengthSectors()) {
       Conf::MarinerParams::setFullLengthSectors(v);
-      emit settingsChanged();
-    }
-  }
-
-  Q_PROPERTY(bool showMeta
-             READ showMeta
-             WRITE setShowMeta)
-
-  bool showMeta() const {
-    return Conf::MarinerParams::ShowMeta();
-  }
-
-  void setShowMeta(bool v) {
-    if (v != showMeta()) {
-      Conf::MarinerParams::setShowMeta(v);
       emit settingsChanged();
     }
   }
@@ -193,6 +140,21 @@ public:
     if (v != colorTable()) {
       Conf::MarinerParams::setColorTable(static_cast<Conf::MarinerParams::EnumColorTable::type>(v));
       emit colorTableChanged(v);
+      emit settingsChanged();
+    }
+  }
+
+  Q_PROPERTY(bool shallowPattern
+             READ shallowPattern
+             WRITE setShallowPattern)
+
+  bool shallowPattern() const {
+    return Conf::MarinerParams::ShallowPattern();
+  }
+
+  void setShallowPattern(bool v) {
+    if (v != shallowPattern()) {
+      Conf::MarinerParams::setShallowPattern(v);
       emit settingsChanged();
     }
   }
@@ -263,6 +225,12 @@ public:
 
   QList<QObject*> textGroups() const {return m_textGroups;}
 
+  Q_PROPERTY(QList<QObject*> disabledClasses
+             READ disabledClasses
+             NOTIFY disabledClassesChanged)
+
+  QList<QObject*> disabledClasses() const {return m_disabledClasses;}
+
   Q_PROPERTY(QSizeF windowGeom
              READ windowGeom
              WRITE setWindowGeom)
@@ -322,8 +290,6 @@ public:
   void setCacheSize(quint32 v) {
     Conf::MainWindow::setCacheSize(v);
   }
-
-
 
   Q_PROPERTY(QStringList locationUnitNames
              READ locationUnitNames
@@ -476,6 +442,7 @@ signals:
   void maxCategoryNamesChanged(const QStringList&);
   void colorTableNamesChanged(const QStringList&);
   void textGroupsChanged(const QObjectList&);
+  void disabledClassesChanged(const QObjectList&);
   void locationUnitNamesChanged(const QStringList&);
   void depthUnitNamesChanged(const QStringList&);
   void distanceUnitNamesChanged(const QStringList&);
@@ -487,6 +454,7 @@ private:
   Settings(QObject* parent = nullptr);
 
   QObjectList m_textGroups;
+  QObjectList m_disabledClasses;
 
 
   static inline const QMap<int, const char*> texts = {
@@ -531,4 +499,84 @@ private:
     {28, QT_TRID_NOOP("qtnav-txt-28-desc")},
   };
 };
+
+
+class SettingsGroup: public QObject {
+  Q_OBJECT
+public:
+  SettingsGroup(int group, const QString& text, const QString& desc)
+    : m_group(group)
+    , m_text(text)
+    , m_description(desc)
+  {}
+
+  virtual ~SettingsGroup() = default;
+
+  Q_PROPERTY(bool enabled
+             READ enabled
+             WRITE setEnabled)
+
+  Q_PROPERTY(QString text
+             READ text)
+
+  Q_PROPERTY(QString description
+             READ description)
+
+  virtual QList<int> getter() const = 0;
+  virtual void setter(const QList<int>& values) const = 0;
+
+  bool enabled() const {
+    return getter().contains(m_group);
+  }
+
+  void setEnabled(bool v) {
+    auto values = getter();
+    if (values.contains(m_group) && v) return;
+    if (!values.contains(m_group) && !v) return;
+
+    if (values.contains(m_group)) {
+      values.removeOne(m_group);
+    } else {
+      values.append(m_group);
+    }
+    setter(values);
+    emit enabledChanged();
+  }
+
+  const QString& text() const {return m_text;}
+  const QString& description() const {return m_description;}
+
+signals:
+
+  void enabledChanged();
+
+private:
+
+  int m_group;
+  QString m_text;
+  QString m_description;
+};
+
+class TextGroup: public SettingsGroup {
+  Q_OBJECT
+public:
+  TextGroup(int group, const QString& text, const QString& desc = QString())
+    : SettingsGroup(group, text, desc)
+  {}
+
+  QList<int> getter() const override {return Conf::MarinerParams::TextGrouping();}
+  void setter(const QList<int>& values) const override {Conf::MarinerParams::setTextGrouping(values);}
+};
+
+class DisabledClass: public SettingsGroup {
+  Q_OBJECT
+public:
+  DisabledClass(int code, const QString& text, const QString& desc = QString())
+    : SettingsGroup(code, text, desc)
+  {}
+
+  QList<int> getter() const override {return Conf::MarinerParams::DisabledClasses();}
+  void setter(const QList<int>& values) const override {Conf::MarinerParams::setDisabledClasses(values);}
+};
+
 

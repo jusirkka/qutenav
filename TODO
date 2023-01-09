@@ -15,7 +15,5 @@ Before 1.0:
 - bug: assert failure in KV::Region when browsing high latitudes
 - bug: s57 charts: sporadic index out of range error
 - check that chart db fetches work across dateline
-
-- object class filter & config
 - display less details in smaller chart scales
 

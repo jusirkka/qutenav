@@ -253,6 +253,10 @@ void S57::Geometry::Area::doDecode(QDataStream& stream) {
   stream >> m_indexed;
 }
 
+bool S57::Geometry::Area::crosses(const glm::vec2* vertices, const GLuint* indices, const QRectF& box) const {
+  return m_lines->crosses(vertices, indices, box);
+}
+
 bool S57::Geometry::Area::includes(const glm::vec2* vs, const GLuint* is, const QPointF& p) const {
 
   auto inbox = [] (const S57::ElementData& elem, const QPointF& p) {

@@ -97,19 +97,25 @@ PagePL {
     }
   }
 
-  TextSwitchPL {
-    id: swm
-    //% "Meta objects"
-    text: qsTrId("qtnav-meta-objects")
-    //% "Show meta objects."
-    description: qsTrId("qtnav-meta-objects-description")
-    Component.onCompleted: {
-      swm.checked = settings.showMeta;
-    }
-    onCheckedChanged: {
-      settings.showMeta = checked;
+  SectionHeaderPL {
+    //% "Optional object classes"
+    text: qsTrId("qtnav-optional-object-classes")
+  }
+
+  Repeater {
+    model: settings.disabledClasses
+    TextSwitchPL {
+      Component.onCompleted: {
+        checked = !modelData.enabled;
+        text = modelData.text
+        description = modelData.description
+      }
+      onCheckedChanged: {
+        modelData.enabled = !checked;
+      }
     }
   }
+
 
   SectionHeaderPL {
     //% "Depths & Contours"
@@ -190,9 +196,23 @@ PagePL {
     }
   }
 
+  TextSwitchPL {
+    id: sw3
+    //% "Shallow Pattern"
+    text: qsTrId("qtnav-shallow-pattern")
+    //% "Fill depth areas shallower than the safety contour with a pattern."
+    description: qsTrId("qtnav-shallow-pattern-description")
+    Component.onCompleted: {
+      sw3.checked = settings.shallowPattern;
+    }
+    onCheckedChanged: {
+      settings.shallowPattern = checked;
+    }
+  }
+
   SectionHeaderPL {
     //% "Colors"
-    text: qsTrId("qtnav-olors")
+    text: qsTrId("qtnav-colors")
   }
 
   ComboBoxPL {

@@ -526,61 +526,65 @@ S52::CSDepthArea01::CSDepthArea01(quint32 index)
   , m_depit(S52::FindIndex("DEPIT"))
   , m_drgare(S52::FindIndex("DRGARE"))
   , m_drgare01(S52::FindIndex("DRGARE01"))
-  , m_chgrf(S52::FindIndex("CHGRF")) {}
+  , m_chgrf(S52::FindIndex("CHGRF"))
+  , m_diamond1(S52::FindIndex("DIAMOND1"))
+{}
 
 
 void S52::CSDepthArea01::runner(const S57::Object* obj, Accumulator accumulator) const {
-  // Determine the color based on mariner selections
 
   quint32 sym = m_depit;
   double depth = -1.;
 
   if (obj->attributeValue(m_drval1).isValid()) {
-    sym = m_depvs;
     depth = obj->attributeValue(m_drval1).toDouble();
     if (obj->attributeValue(m_drval2).isValid()) {
       depth = qMin(depth, obj->attributeValue(m_drval2).toDouble());
     }
   }
 
+  if (depth >= 0) {
+    sym = m_depvs;
+  }
+
   const qreal safetyC = Conf::MarinerParams::SafetyContour();
   const qreal shallowC = Conf::MarinerParams::ShallowContour();
   const qreal deepC = Conf::MarinerParams::DeepContour();
-  const bool twoShades = Conf::MarinerParams::TwoShades();
 
-  if (twoShades && depth >= safetyC) {
-    sym = m_depdw;
+  bool shallow = true;
+  if (Conf::MarinerParams::TwoShades()) {
+    if (depth >= safetyC) {
+      shallow = false;
+      sym = m_depdw;
+    }
   } else {
     if (depth >= shallowC) {
       sym = m_depms;
     }
     if (depth >= safetyC) {
+      shallow = false;
       sym = m_depmd;
     }
     if (depth >= deepC) {
+      shallow = false;
       sym = m_depdw;
     }
   }
 
-  if (obj->classCode() != m_drgare) {
-    const QVector<QVariant> v0 {sym, 255};
-    accumulator(S52::FindFunction("AC"), v0, obj);
-    return;
+  accumulator(S52::FindFunction("AC"), {sym, 255}, obj);
+
+  if (shallow && Conf::MarinerParams::ShallowPattern()) {
+    accumulator(S52::FindFunction("AP"), {m_diamond1, 0.}, obj);
   }
 
-  if (!obj->attributeValue(m_drval1).isValid()) {
-    sym = m_depmd;
-  }
-
-  const QVector<QVariant> v0 {sym, 255};
-  accumulator(S52::FindFunction("AC"), v0, obj);
+  if (obj->classCode() != m_drgare) return;
 
   // run AP(DRGARE01);LS(DASH,1,CHGRF)
-  const QVector<QVariant> v1 {m_drgare01, 0.};
-  accumulator(S52::FindFunction("AP"), v1, obj);
+  accumulator(S52::FindFunction("AP"), {m_drgare01, 0.}, obj);
+  accumulator(S52::FindFunction("LS"), {as_numeric(S52::LineType::Dashed), 1, m_chgrf}, obj);
 
-  const QVector<QVariant> v2 {as_numeric(S52::LineType::Dashed), 1, m_chgrf};
-  accumulator(S52::FindFunction("LC"), v2, obj);
+  auto restrn = dynamic_cast<S52::CSRestrEntry01*>(S52::FindFunction("RESTRN01"));
+  restrn->runner(obj, accumulator);
 }
 
 S57::PaintDataMap S52::CSDepthArea01::execute(const QVector<QVariant>&,
@@ -626,7 +630,7 @@ S52::CSResArea02::CSResArea02(quint32 index)
   , m_ctyare51(FindIndex("CTYARE51"))
   , m_ctyare71(FindIndex("CTYARE71"))
   , m_anchor_set {1, 2}
-  , m_entry_set {7, 6, 14}
+  , m_entry_set {7, 8, 14}
   , m_fish_set {3, 4, 5, 6}
   , m_sport_set {9, 10, 11, 12, 13}
   , m_mil_set {1, 8, 9, 12, 14, 19, 21, 25}
@@ -648,19 +652,17 @@ void S52::CSResArea02::runner(const S57::Object* obj, Accumulator accumulate, Pr
         sym = m_entres61;
       } else if (restrn.intersects(m_sport_set) ||
                  catrea.intersects(m_nat_set)) {
+        qCDebug(CS52) << "entres71";
         sym = m_entres71;
       } else {
         sym = m_entres51;
       }
 
-      const QVector<QVariant> v0 {sym, 0.};
-      accumulate(S52::FindFunction("SY"), v0, obj);
+      accumulate(S52::FindFunction("SY"), {sym, 0.}, obj);
       if (Conf::MarinerParams::PlainBoundaries()) {
-        const QVector<QVariant> vals {as_numeric(S52::LineType::Dashed), 2, m_chmgd};
-        accumulate(S52::FindFunction("LS"), vals, obj);
+        accumulate(S52::FindFunction("LS"), {as_numeric(S52::LineType::Dashed), 2, m_chmgd}, obj);
       } else {
-        const QVector<QVariant> vals {m_ctyare51};
-        accumulate(S52::FindFunction("LC"), vals, obj);
+        accumulate(S52::FindFunction("LC"), {m_entres51}, obj);
       }
 
       setPrio();
@@ -1702,12 +1704,21 @@ S57::PaintDataMap S52::CSObstruction04::modifiers(const QVector<QVariant>&,
     catobs = obj->attributeValue(m_catobs).toInt();
   }
 
+  auto wrecks = dynamic_cast<S52::CSWrecks02*>(S52::FindFunction("WRECKS02"));
+
   if (obj->attributeValue(m_valsou).isValid()) {
     depth = obj->attributeValue(m_valsou).toDouble();
-  } else if (catobs == 6 || watlev == 3) {
-    depth = .01;
-  } else if (watlev == 5) {
-    depth = 0.;
+  } else {
+    if (obj->geometry()->type() == S57::Geometry::Type::Area) {
+      depth = wrecks->leastDepth(obj);
+    }
+    if (depth == S52::DefaultDepth) {
+      if (catobs == 6 || watlev == 3) {
+        depth = .01;
+      } else if (watlev == 5) {
+        depth = 0.;
+      }
+    }
   }
 
   S57::PaintDataMap ps;
@@ -1721,7 +1732,6 @@ S57::PaintDataMap S52::CSObstruction04::modifiers(const QVector<QVariant>&,
     ps.insert(p->type(), p);
   };
 
-  auto wrecks = dynamic_cast<S52::CSWrecks02*>(S52::FindFunction("WRECKS02"));
   wrecks->run_danger(depth, obj, accum, overRide);
 
   return ps;
@@ -1729,6 +1739,10 @@ S57::PaintDataMap S52::CSObstruction04::modifiers(const QVector<QVariant>&,
 
 S52::CSQualOfPos01::CSQualOfPos01(quint32 index)
   : S52::Function("QUAPOS01", index)
+  , m_coalne(S52::FindIndex("COALNE"))
+  , m_conrad(S52::FindIndex("CONRAD"))
+  , m_cstln(S52::FindIndex("CSTLN"))
+  , m_chmgf(S52::FindIndex("CHMGF"))
 {}
 
 void S52::CSQualOfPos01::runner(const S57::Object* obj, Accumulator accum) const {
@@ -1765,16 +1779,35 @@ void S52::CSQualOfPos01::paintIcon(PickIconData& icon, const QVector<QVariant>&,
   runner(obj, accum);
 }
 
-void S52::CSQualOfPos01::run_line(const S57::Object* /*obj*/, Accumulator /*accumulate*/) const {
+void S52::CSQualOfPos01::run_line(const S57::Object* obj, Accumulator accumulate) const {
   // TODO split geometry to spatial components and support spatial attributes
-  // loop ever spatial components
+  // loop over spatial components
   //   if (spatial attribute quapos valid)
   //     ..
+
+  QVector<QVariant> vals {as_numeric(S52::LineType::Solid)};
+
+  if (obj->classCode() == m_coalne) {
+    QVariant conrad = obj->attributeValue(m_conrad);
+    if (conrad.isValid()) {
+      if (conrad.toInt() == 1) {
+        vals.append(QVariant::fromValue(3));
+        vals.append(QVariant::fromValue(m_chmgf));
+      }
+    }
+  }
+
+  if (vals.size() == 1) {
+    vals.append(QVariant::fromValue(1));
+    vals.append(QVariant::fromValue(m_cstln));
+  }
+
+  accumulate(S52::FindFunction("LS"), vals, obj);
 }
 
 void S52::CSQualOfPos01::run_point(const S57::Object* /*obj*/, Accumulator /*accumulate*/) const {
   // TODO split geometry to spatial components and support spatial attributes
-  // loop ever spatial components
+  // loop over spatial components
   //   if (spatial attribute quapos valid)
   //     ..
 }
@@ -1960,8 +1993,6 @@ void S52::CSShorelineQualOfPos03::paintIcon(PickIconData& icon, const QVector<QV
 
   runner(obj, accum);
 }
-
-
 
 
 S52::CSSoundings02::CSSoundings02(quint32 index)
@@ -2237,7 +2268,6 @@ double S52::CSWrecks02::leastDepth(const S57::Object* obj) const {
   for (const S57::Object* underling: obj->underlings()) {
     //    qCDebug(CS57) << "[Underling:Class]" << S52::GetClassInfo(underling->classCode());
     //    qCDebug(CS57) << "[Overling:Location]" << obj->geometry()->centerLL().print();
-    //    qCDebug(CS57) << "[Limit]" << limit;
     //    for (auto k: underling->attributes().keys()) {
     //      qCDebug(CS57) << GetAttributeInfo(k, underling);
     //    }
@@ -2322,7 +2352,7 @@ void S52::CSWrecks02::runner(const S57::Object* obj, Accumulator accumulate, Ove
       }
     }
   }
-  qCDebug(CS52) << "depth =" << depth;
+  // qCDebug(CS52) << "depth =" << depth;
 
   bool danger = false;
   run_danger(depth, obj, accumulate, ovr, &danger);
@@ -2461,14 +2491,17 @@ S57::PaintDataMap S52::CSWrecks02::modifiers(const QVector<QVariant>&,
 
   if (obj->attributeValue(m_valsou).isValid()) {
     depth = obj->attributeValue(m_valsou).toDouble();
-  } else if (watlev == 3) {
-    depth = .01;
-  } else if (watlev == 5) {
-    depth = 0.;
-  } else if (catwrk == 1) {
-    depth = 20.;
-  } else if (catwrk == 2) {
-    depth = 0.;
+  } else {
+    if (obj->geometry()->type() == S57::Geometry::Type::Area) {
+      depth = leastDepth(obj);
+    }
+    if (depth == S52::DefaultDepth) {
+      if (catwrk == 1) { // non-dangerous wreck
+        depth = 20.1;
+      } else if (watlev == 3 || watlev == 5) {
+        depth = 0;
+      }
+    }
   }
 
   S57::PaintDataMap ps;

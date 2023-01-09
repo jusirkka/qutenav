@@ -21,24 +21,8 @@
 #include <QDebug>
 #include "platform.h"
 #include <QMapIterator>
+#include "s52names.h"
 
-bool TextGroup::enabled() const {
-  return Conf::MarinerParams::TextGrouping().contains(m_group);
-}
-
-void TextGroup::setEnabled(bool v) {
-  auto values = Conf::MarinerParams::TextGrouping();
-  if (values.contains(m_group) && v) return;
-  if (!values.contains(m_group) && !v) return;
-
-  if (values.contains(m_group)) {
-    values.removeOne(m_group);
-  } else {
-    values.append(m_group);
-  }
-  Conf::MarinerParams::setTextGrouping(values);
-  emit enabledChanged();
-}
 
 Settings* Settings::instance() {
   static Settings* s = new Settings();
@@ -49,19 +33,28 @@ Settings::Settings(QObject *parent)
   : QObject(parent)
 {
   for (auto it = texts.cbegin(); it != texts.cend(); ++it) {
+    TextGroup* group;
     if (descriptions.contains(it.key())) {
-      m_textGroups << new TextGroup(it.key(), true, qtTrId(it.value()), qtTrId(descriptions[it.key()]));
+      group = new TextGroup(it.key(), qtTrId(it.value()), qtTrId(descriptions[it.key()]));
     } else {
-      m_textGroups << new TextGroup(it.key(), true, qtTrId(it.value()));
+      group = new TextGroup(it.key(), qtTrId(it.value()));
     }
+    connect(group, &TextGroup::enabledChanged, this, &Settings::settingsChanged);
+    m_textGroups << group;
   }
 
-  for (auto obj: m_textGroups) {
-    auto group = qobject_cast<TextGroup*>(obj);
-    connect(group, &TextGroup::enabledChanged, this, &Settings::settingsChanged);
+  const QStringList classNames {"M_QUAL", "M_NSYS", "ADMARE", "CONZNE", "COSARE", "EXEZNE", "FSHZNE",
+                                "MIPARE", "NAVLNE", "RADLNE", "RADRNG", "RDOCAL", "SEAARE", "SBDARE",
+                                "STSLNE", "TESARE", "CBLSUB"};
+  for (const QString& name: classNames) {
+    const auto index = S52::FindCIndex(name);
+    auto dc = new DisabledClass(index, name, S52::GetClassDescription(index));
+    connect(dc, &DisabledClass::enabledChanged, this, &Settings::settingsChanged);
+    m_disabledClasses << dc;
   }
 }
 
 Settings::~Settings() {
   qDeleteAll(m_textGroups);
+  qDeleteAll(m_disabledClasses);
 }

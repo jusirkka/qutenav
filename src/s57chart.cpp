@@ -36,6 +36,7 @@
 #include "chartmanager.h"
 #include "geomutils.h"
 #include "logging.h"
+#include "units.h"
 
 //
 // S57Chart
@@ -81,7 +82,7 @@ S57Chart::S57Chart(quint32 id, int prio, const QString& path)
                       {S52::FindCIndex("RTPBCN"), 3},
                       {S52::FindCIndex("PILPNT"), 3},
                       }
-  , m_pickImageList{S52::FindCIndex("LIGHTS"), S52::FindCIndex("TOPMAR")}
+  , m_pickImageList{S52::FindCIndex("LIGHTS"), S52::FindCIndex("TOPMAR"), S52::FindCIndex("DAYMAR")}
 {
 
   ChartFileReader* reader = nullptr;
@@ -258,6 +259,11 @@ public:
   {}
 
   bool staticPass(const S57Chart::ObjectLookup& d) const {
+    // Disabled class filter
+    if (m_disabledClasses.contains(d.object->classCode())) {
+      return false;
+    }
+
     // check bbox & scale
     if (!d.object->canPaint(m_cover, m_scale, m_today, d.lookup->canOverride())) {
       return false;
@@ -266,18 +272,6 @@ public:
     if (!d.lookup->canOverride() && as_numeric(d.lookup->category()) > m_maxcat) {
       // qCDebug(CS57) << "Skipping by category" << S52::GetClassInfo(d.object->classCode());
       return false;
-    }
-
-    // Meta-object filter
-    if (S52::IsMetaClass(d.object->classCode()) || d.object->geometry()->type() == S57::Geometry::Type::Meta) {
-      // Filter out unknown meta classes
-      if (d.lookup->classCode() == m_unknownClass) {
-        // qCDebug(CS57) << "Filtering out" << S52::GetClassInfo(d.object->classCode());
-        return false;
-      }
-      if (!m_showMeta) {
-        return false;
-      }
     }
 
     return true;
@@ -380,8 +374,7 @@ private:
 
   const quint8 m_maxcat = static_cast<quint8>(Conf::MarinerParams::MaxCategory());
   const QDate m_today = QDate::currentDate();
-  const bool m_showMeta = Conf::MarinerParams::ShowMeta();
-  const quint32 m_unknownClass = S52::FindIndex("######");
+  const QList<int> m_disabledClasses = Conf::MarinerParams::DisabledClasses();
 
   const KV::Region m_cover;
   const quint32 m_scale;
@@ -1059,7 +1052,7 @@ void S57Chart::drawVectorPatterns(const Camera *cam) {
   f->glEnable(GL_DEPTH_TEST);
 }
 
-S57Chart::PickDataVector S57Chart::pickObjects(const WGS84Point& wp, quint32 scale) {
+S57Chart::PickDataVector S57Chart::pickObjects(const WGS84Point& wp, quint32 scale, double* depthPtr) {
   const auto q = m_nativeProj->fromWGS84(wp);
 
   // Resolution in pixels mapped to meters
@@ -1089,29 +1082,30 @@ S57Chart::PickDataVector S57Chart::pickObjects(const WGS84Point& wp, quint32 sca
 
     if (!filter.dynamicPass(pd, prio, *it)) continue;
 
-    PointVector symbolCenters;
     auto geom = it->object->geometry();
+
+    bool userPicked = false;
 
     if (geom->type() == S57::Geometry::Type::Point) {
       auto points = dynamic_cast<const S57::Geometry::Point*>(geom);
       int soundingIndex = -1;
       if (!points->containedBy(box, soundingIndex)) continue;
+      if (soundingIndex != -1 && depthPtr != nullptr) {
+        *depthPtr = points->points()[soundingIndex + 2];
+      }
     } else if (geom->type() == S57::Geometry::Type::Line) {
       auto line = dynamic_cast<const S57::Geometry::Line*>(geom);
       if (!line->crosses(vertices, indices, box)) continue;
     } else if (geom->type() == S57::Geometry::Type::Area) {
       auto area = dynamic_cast<const S57::Geometry::Area*>(geom);
       if (!area->includes(vertices, indices, q)) continue;
+      PointVector symbolCenters;
       // Find symbol centers
       S57::PaintDataMap apd = it->lookup->execute(it->object);
       filter.dynamicPass(apd, prio, *it, &symbolCenters);
       for (auto ait = apd.begin(); ait != apd.end(); ++ait) {
         delete ait.value();
       }
-    }
-
-    bool userPicked = false;
-    if (geom->type() == S57::Geometry::Type::Area) {
       for (const QPointF& center: symbolCenters) {
         if (box.contains(center)) {
           // user requests info on this particular area object by hovering over a center symbol
@@ -1176,7 +1170,9 @@ S57::InfoType S57Chart::objectInfoFull(const WGS84Point& p, quint32 scale) {
 
 
 S57::InfoType S57Chart::objectInfo(const WGS84Point& wp, quint32 scale) {
-  auto objects = pickObjects(wp, scale);
+
+  double depth = S52::DefaultDepth; // if object is sounding
+  auto objects = pickObjects(wp, scale, &depth);
 
   // Handle lights and topmarks
   auto ptr = objects.begin();
@@ -1232,7 +1228,15 @@ S57::InfoType S57Chart::objectInfo(const WGS84Point& wp, quint32 scale) {
   S57::InfoType info;
   info.objectId = QString("%1/%2%3").arg(id()).arg(selected->index).arg(extraIds);
   info.priority = selected->priority;
-  info.info = S52::ObjectDescription(selected->object);
+
+  const auto code = selected->object->classCode();
+  if (code == S52::FindCIndex("SOUNDG") && depth != S52::DefaultDepth) {
+    const auto s = Units::Manager::instance()->depth()->displaySI(depth, 2);
+    info.info = QString("%1 (%2)").arg(S52::GetClassDescription(code)).arg(s);
+  } else {
+    info.info = S52::ObjectDescription(selected->object);
+  }
+
   return info;
 }
 

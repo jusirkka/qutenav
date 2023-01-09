@@ -72,7 +72,6 @@ public:
   CONF_DECL(ShallowPattern, shallow_pattern, bool, toBool)
   CONF_DECL(PlainBoundaries, plain_boundaries, bool, toBool)
   CONF_DECL(SimplifiedSymbols, simplified_symbols, bool, toBool)
-  CONF_DECL(ShowMeta, show_meta, bool, toBool)
   CONF_DECL(FullLengthSectors, full_length_sectors, bool, toBool)
 
   static void setColorTable(EnumColorTable::type v) {
@@ -102,11 +101,25 @@ public:
     return self()->m_textGrouping;
   }
 
+  static void setDisabledClasses(const QList<int>& v) {
+    self()->m_disabledClasses = v;
+
+    QVariantList items;
+    for (auto i: v) items.append(i);
+
+    self()->m_values["disabled_classes"] = items;
+  }
+
+  static QList<int> DisabledClasses() {
+    return self()->m_disabledClasses;
+  }
+
 private:
 
   MarinerParams();
 
   QList<int> m_textGrouping;
+  QList<int> m_disabledClasses;
 
 };
 

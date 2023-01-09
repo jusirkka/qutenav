@@ -264,6 +264,7 @@ public:
   bool indexed() const {return m_indexed;}
 
   bool includes(const glm::vec2* vs, const GLuint* is, const QPointF& p) const;
+  bool crosses(const glm::vec2* vertices, const GLuint* indices, const QRectF& box) const;
 
   ~Area() {
     if (m_lines != m_border) {

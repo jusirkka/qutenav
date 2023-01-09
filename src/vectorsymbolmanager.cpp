@@ -275,13 +275,30 @@ bool VectorSymbolManager::paintIcon(PickIconData& icon,
 
   if (type == S52::SymbolType::Pattern) {
     const QSizeF s(Platform::pick_icon_size(), Platform::pick_icon_size());
-    const QPointF c = .5 * QPointF(icon.canvas.width() - s.width(), icon.canvas.height() - s.height());
-    const QRectF box(c, s);
-    icon.bbox |= box;
 
     const auto adv = m_symbolMap[key.key()].advance();
     const qreal X = adv.x * Platform::dots_per_mm_x() / Platform::display_length_scaling();
     const qreal Y = adv.xy.y() * Platform::dots_per_mm_y() / Platform::display_length_scaling();
+
+    if (X > .5 * s.width() || Y > .5 * s.height()) {
+      // Too large pattern, just draw it once centered
+      if (pix.width() > .9 * s.width() && pix.width() >= pix.height()) {
+        pix = pix.scaledToWidth(.9 * s.width());
+      } else if (pix.height() > .9 * s.height() && pix.height() >= pix.width()) {
+        pix = pix.scaledToHeight(.9 * s.height());
+      }
+
+      const QPointF c = .5 * QPointF(icon.canvas.width() - pix.width(), icon.canvas.height() - pix.height());
+      const QRectF box(c, pix.size());
+      icon.bbox |= box;
+      painter.drawPixmap(c, pix);
+      return true;
+    }
+
+    const QPointF c = .5 * QPointF(icon.canvas.width() - s.width(), icon.canvas.height() - s.height());
+    const QRectF box(c, s);
+    icon.bbox |= box;
+
     const qreal xs = adv.xy.x() * Platform::dots_per_mm_x() / Platform::display_length_scaling();
 
     const int ny = std::floor(box.top() / Y);
