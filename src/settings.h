@@ -225,11 +225,17 @@ public:
 
   QList<QObject*> textGroups() const {return m_textGroups;}
 
-  Q_PROPERTY(QList<QObject*> disabledClasses
-             READ disabledClasses
-             NOTIFY disabledClassesChanged)
+  Q_PROPERTY(QList<QObject*> optionalClasses
+             READ optionalClasses
+             NOTIFY optionalClassesChanged)
 
-  QList<QObject*> disabledClasses() const {return m_disabledClasses;}
+  QList<QObject*> optionalClasses() const {return m_optionalClasses;}
+
+  Q_PROPERTY(QList<QObject*> scaminClasses
+             READ scaminClasses
+             NOTIFY scaminClassesChanged)
+
+  QList<QObject*> scaminClasses() const {return m_scaminClasses;}
 
   Q_PROPERTY(QSizeF windowGeom
              READ windowGeom
@@ -442,7 +448,8 @@ signals:
   void maxCategoryNamesChanged(const QStringList&);
   void colorTableNamesChanged(const QStringList&);
   void textGroupsChanged(const QObjectList&);
-  void disabledClassesChanged(const QObjectList&);
+  void optionalClassesChanged(const QObjectList&);
+  void scaminClassesChanged(const QObjectList&);
   void locationUnitNamesChanged(const QStringList&);
   void depthUnitNamesChanged(const QStringList&);
   void distanceUnitNamesChanged(const QStringList&);
@@ -454,7 +461,8 @@ private:
   Settings(QObject* parent = nullptr);
 
   QObjectList m_textGroups;
-  QObjectList m_disabledClasses;
+  QObjectList m_optionalClasses;
+  QObjectList m_scaminClasses;
 
 
   static inline const QMap<int, const char*> texts = {
@@ -501,16 +509,16 @@ private:
 };
 
 
-class SettingsGroup: public QObject {
+class SwitchItem: public QObject {
   Q_OBJECT
 public:
-  SettingsGroup(int group, const QString& text, const QString& desc)
-    : m_group(group)
+  SwitchItem(int index, const QString& text, const QString& desc)
+    : m_index(index)
     , m_text(text)
     , m_description(desc)
   {}
 
-  virtual ~SettingsGroup() = default;
+  virtual ~SwitchItem() = default;
 
   Q_PROPERTY(bool enabled
              READ enabled
@@ -526,18 +534,18 @@ public:
   virtual void setter(const QList<int>& values) const = 0;
 
   bool enabled() const {
-    return getter().contains(m_group);
+    return getter().contains(m_index);
   }
 
   void setEnabled(bool v) {
     auto values = getter();
-    if (values.contains(m_group) && v) return;
-    if (!values.contains(m_group) && !v) return;
+    if (values.contains(m_index) && v) return;
+    if (!values.contains(m_index) && !v) return;
 
-    if (values.contains(m_group)) {
-      values.removeOne(m_group);
+    if (values.contains(m_index)) {
+      values.removeOne(m_index);
     } else {
-      values.append(m_group);
+      values.append(m_index);
     }
     setter(values);
     emit enabledChanged();
@@ -552,31 +560,77 @@ signals:
 
 private:
 
-  int m_group;
+  int m_index;
   QString m_text;
   QString m_description;
 };
 
-class TextGroup: public SettingsGroup {
+class TextGroup: public SwitchItem {
   Q_OBJECT
 public:
   TextGroup(int group, const QString& text, const QString& desc = QString())
-    : SettingsGroup(group, text, desc)
+    : SwitchItem(group, text, desc)
   {}
 
   QList<int> getter() const override {return Conf::MarinerParams::TextGrouping();}
   void setter(const QList<int>& values) const override {Conf::MarinerParams::setTextGrouping(values);}
 };
 
-class DisabledClass: public SettingsGroup {
+class OptionalClass: public SwitchItem {
   Q_OBJECT
 public:
-  DisabledClass(int code, const QString& text, const QString& desc = QString())
-    : SettingsGroup(code, text, desc)
+  OptionalClass(int code, const QString& text, const QString& desc = QString())
+    : SwitchItem(code, text, desc)
   {}
 
   QList<int> getter() const override {return Conf::MarinerParams::DisabledClasses();}
   void setter(const QList<int>& values) const override {Conf::MarinerParams::setDisabledClasses(values);}
+};
+
+class ScaminItem: public QObject {
+  Q_OBJECT
+public:
+  ScaminItem(int index, const QString& text, const QString& desc)
+    : m_index(index)
+    , m_text(text)
+    , m_description(desc)
+  {}
+
+  ~ScaminItem() = default;
+
+  Q_PROPERTY(qint32 value
+             READ value
+             WRITE setValue)
+
+  Q_PROPERTY(QString text
+             READ text)
+
+  Q_PROPERTY(QString description
+             READ description)
+
+  qint32 value() const {
+    return Conf::MarinerParams::Scamin(m_index);
+  }
+
+  void setValue(qint32 v) {
+    if (v != value()) {
+      Conf::MarinerParams::setScamin(m_index, v);
+      emit valueChanged();
+    }
+  }
+
+  const QString& text() const {return m_text;}
+  const QString& description() const {return m_description;}
+
+signals:
+
+  void valueChanged();
+
+private:
+
+  int m_index;
+  QString m_text;
+  QString m_description;
 };
 
 

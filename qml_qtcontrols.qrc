@@ -63,6 +63,7 @@
         <file alias="utils.js">qml/utils.js</file>
         <file alias="TrackStatisticsPage.qml">qml/TrackStatisticsPage.qml</file>
         <file alias="ValuePref.qml">qml/ValuePref.qml</file>
+        <file alias="IntPref.qml">qml/IntPref.qml</file>
         <file alias="ChartDialog.qml">qml/ChartDialog.qml</file>
         <file alias="ChartFolderSelector.qml">qml/ChartFolderSelector.qml</file>
         <file alias="platform/ButtonPL.qml">qml/platform.qtcontrols/ButtonPL.qml</file>

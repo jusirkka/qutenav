@@ -114,6 +114,18 @@ public:
     return self()->m_disabledClasses;
   }
 
+  static qint32 Scamin(quint32 code) {
+    const auto key = QString("scamin_%1").arg(code);
+    if (!self()->m_values.contains(key)) {
+      return -1;
+    }
+    return self()->m_values[key].toInt();
+  }
+
+  static void setScamin(quint32 code, qint32 scale) {
+    self()->m_values[QString("scamin_%1").arg(code)] = scale;
+  }
+
 private:
 
   MarinerParams();

@@ -273,7 +273,13 @@ public:
       // qCDebug(CS57) << "Skipping by category" << S52::GetClassInfo(d.object->classCode());
       return false;
     }
-
+    // Check default min scale
+    if (!d.object->attributes().contains(m_scamin)) {
+      const qint32 mx = Conf::MarinerParams::Scamin(d.object->classCode());
+      if (mx > 0 && m_scale > static_cast<quint32>(mx)) {
+        return false;
+      }
+    }
     return true;
   }
 
@@ -375,6 +381,7 @@ private:
   const quint8 m_maxcat = static_cast<quint8>(Conf::MarinerParams::MaxCategory());
   const QDate m_today = QDate::currentDate();
   const QList<int> m_disabledClasses = Conf::MarinerParams::DisabledClasses();
+  const quint32 m_scamin = S52::FindCIndex("SCAMIN");
 
   const KV::Region m_cover;
   const quint32 m_scale;

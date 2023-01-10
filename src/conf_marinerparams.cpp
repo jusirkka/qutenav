@@ -51,6 +51,9 @@ Conf::MarinerParams::MarinerParams()
         << 311 << 312 << 17018 << 666666;
   m_defaults["disabled_classes"] = items;
 
+  m_defaults["scamin_43"] = 749999; // depth contour
+  m_defaults["scamin_109"] = 179999; // recommended track
+
   load();
 
   QVariantList vitems = m_values["text_grouping"].toList();

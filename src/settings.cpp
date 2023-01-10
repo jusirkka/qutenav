@@ -43,18 +43,35 @@ Settings::Settings(QObject *parent)
     m_textGroups << group;
   }
 
-  const QStringList classNames {"M_QUAL", "M_NSYS", "ADMARE", "CONZNE", "COSARE", "EXEZNE", "FSHZNE",
-                                "MIPARE", "NAVLNE", "RADLNE", "RADRNG", "RDOCAL", "SEAARE", "SBDARE",
-                                "STSLNE", "TESARE", "CBLSUB"};
-  for (const QString& name: classNames) {
+  const QStringList optionalClassNames {"M_QUAL", "M_NSYS", "ADMARE", "CONZNE", "COSARE",
+                                        "EXEZNE", "FSHZNE", "MIPARE", "NAVLNE", "RADLNE",
+                                        "RADRNG", "RDOCAL", "SEAARE", "SBDARE", "STSLNE",
+                                        "TESARE", "CBLSUB"};
+  for (const QString& name: optionalClassNames) {
     const auto index = S52::FindCIndex(name);
-    auto dc = new DisabledClass(index, name, S52::GetClassDescription(index));
-    connect(dc, &DisabledClass::enabledChanged, this, &Settings::settingsChanged);
-    m_disabledClasses << dc;
+    auto dc = new OptionalClass(index, name, S52::GetClassDescription(index));
+    connect(dc, &OptionalClass::enabledChanged, this, &Settings::settingsChanged);
+    m_optionalClasses << dc;
   }
+  std::sort(m_optionalClasses.begin(), m_optionalClasses.end(), [] (const QObject* o1, const QObject*  o2) {
+    return qobject_cast<const OptionalClass*>(o1)->text() < qobject_cast<const OptionalClass*>(o2)->text();
+  });
+
+  const QStringList scaminClassNames {"DEPCNT", "RECTRC"};
+  for (const QString& name: scaminClassNames) {
+    const auto index = S52::FindCIndex(name);
+    auto sc = new ScaminItem(index, name, S52::GetClassDescription(index));
+    connect(sc, &ScaminItem::valueChanged, this, &Settings::settingsChanged);
+    m_scaminClasses << sc;
+  }
+  std::sort(m_scaminClasses.begin(), m_scaminClasses.end(), [] (const QObject* o1, const QObject*  o2) {
+    return qobject_cast<const ScaminItem*>(o1)->text() < qobject_cast<const ScaminItem*>(o2)->text();
+  });
+
 }
 
 Settings::~Settings() {
   qDeleteAll(m_textGroups);
-  qDeleteAll(m_disabledClasses);
+  qDeleteAll(m_optionalClasses);
+  qDeleteAll(m_scaminClasses);
 }

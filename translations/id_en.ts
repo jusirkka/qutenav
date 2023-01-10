@@ -86,8 +86,13 @@
       <source>Optional object classes</source>
       <translation>Optional object classes</translation>
     </message>
+    <message id="qtnav-scamin-defaults">
+      <location line="+19" />
+      <source>Minimum scale defaults</source>
+      <translation>Minimum scale defaults</translation>
+    </message>
     <message id="qtnav-depths-contours">
-      <location line="+20" />
+      <location line="+19" />
       <source>Depths &amp; Contours</source>
       <translation>Depths &amp; Contours</translation>
     </message>
@@ -730,7 +735,7 @@
       <translation>Delete</translation>
     </message>
     <message id="qtnav-txt-10">
-      <location filename="../src/settings.h" line="+462" />
+      <location filename="../src/settings.h" line="+470" />
       <source>Important text</source>
       <translation>Important text</translation>
     </message>

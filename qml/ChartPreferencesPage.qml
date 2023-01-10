@@ -103,7 +103,7 @@ PagePL {
   }
 
   Repeater {
-    model: settings.disabledClasses
+    model: settings.optionalClasses
     TextSwitchPL {
       Component.onCompleted: {
         checked = !modelData.enabled;
@@ -116,6 +116,24 @@ PagePL {
     }
   }
 
+  SectionHeaderPL {
+    //% "Minimum scale defaults"
+    text: qsTrId("qtnav-scamin-defaults")
+  }
+
+  Repeater {
+    model: settings.scaminClasses
+    IntPref {
+      Component.onCompleted: {
+        value = modelData.value
+        label = modelData.text
+        description = modelData.description
+      }
+      onValueChanged: {
+        modelData.value = value
+      }
+    }
+  }
 
   SectionHeaderPL {
     //% "Depths & Contours"
