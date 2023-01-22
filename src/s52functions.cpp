@@ -390,7 +390,7 @@ S57::PaintDataMap S52::Text::execute(const QVector<QVariant>& vals,
   const QMetaType::Type t = static_cast<QMetaType::Type>(vals[0].type());
   if (t == QMetaType::UInt) {
     const quint32 index = vals[0].toUInt();
-    txt = GetAttributeValueDescription(index, obj->attributeValue(index));
+    txt = GetAttributeValueDescription(index, UnitConvertedAttribute(index, obj->attributeValue(index)));
   } else if (t == QMetaType::QString) {
     txt = vals[0].toString();
   } else {
@@ -484,6 +484,7 @@ S57::PaintDataMap S52::TextExtended::execute(const QVector<QVariant>& vals,
       sprintf(buf, format, vals[2 + i].toString().toUtf8().constData());
       break;
     case QMetaType::Double:
+    case QMetaType::Float:
       sprintf(buf, format, vals[2 + i].toDouble());
       break;
     case QMetaType::Int:

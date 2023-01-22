@@ -22,6 +22,7 @@
 #include <QRectF>
 #include "types.h"
 #include "s57object.h"
+#include <QScopedPointer>
 
 class GeoProjection;
 
@@ -80,7 +81,8 @@ private:
   bool boxContains(const QPointF& p) const;
   quint8 locationCode(const QPointF& p) const;
   bool boundaryPoint(const QPointF& p) const;
-  bool extentIntersects(const QRectF& r) const;
+  bool initializeProjection(const QRectF& r);
+  QRectF originalBox() const;
 
   void removeTail(GL::VertexVector& vertices, quint32 index, const QPointF& p) const;
 
@@ -108,7 +110,8 @@ private:
 
   const WGS84Point m_sw;
   const WGS84Point m_ne;
-  const QRectF m_box;
-  const GeoProjection* m_proj;
+  QRectF m_box;
+  QScopedPointer<GeoProjection> m_proj;
+  double m_xShift;
 };
 

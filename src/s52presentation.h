@@ -128,6 +128,7 @@ Function* FindFunction(const QString& name);
 QColor GetColor(quint32 index);
 QColor GetColor(const QString& name);
 QVariant GetAttribute(const QString& name, const S57::Object* obj);
+QVariant UnitConvertedAttribute(quint32 index, const QVariant& v);
 void InitPresentation();
 QString GetRasterFileName();
 QString GetSymbolInfo(quint32 index, S52::SymbolType t);

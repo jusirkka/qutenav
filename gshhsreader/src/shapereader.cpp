@@ -31,8 +31,12 @@ ShapeReader::ShapeReader(const WGS84Point& sw, const WGS84Point& ne, const GeoPr
   : m_sw(sw)
   , m_ne(ne)
   , m_box(gp->fromWGS84(sw), gp->fromWGS84(ne))
-  , m_proj(gp)
-{}
+  , m_proj(GeoProjection::CreateProjection(gp->className()))
+  , m_xShift(0.)
+{
+  m_proj->setReference(gp->reference());
+  m_proj->setScaling(gp->scaling());
+}
 
 
 template<typename T> T read_value(QDataStream& stream) {
@@ -62,7 +66,7 @@ QPointF read_vertex(QDataStream& stream, const GeoProjection* gp) {
   return gp->fromWGS84(WGS84Point::fromLL(x, y));
 }
 
-bool ShapeReader::extentIntersects(const QRectF& r) const {
+bool ShapeReader::initializeProjection(const QRectF& r) {
   if (r.height() <= 0) return false;
   if (m_sw.lat() >= m_ne.lat()) return false;
 
@@ -71,19 +75,47 @@ bool ShapeReader::extentIntersects(const QRectF& r) const {
 
   if (m_sw.lat() >= ne.y() || m_ne.lat() <= sw.y()) return false;
 
-  double d0 = m_ne.lng() - m_sw.lng();
-  while (d0 < 0.) d0 += 360;
-  while (d0 >= 360.) d0 -= 360.;
+  auto diff = [] (double x1, double x2) {
+    auto d = x2 - x1;
+    while (d < 0.) d += 360;
+    while (d >= 360.) d -= 360.;
+    return d;
+  };
 
-  double x1 = sw.x() - m_sw.lng();
-  while (x1 < 0.) x1 += 360;
-  while (x1 >= 360.) x1 -= 360.;
-
-  double x2 = ne.x() - m_sw.lng();
-  while (x2 < 0.) x2 += 360;
-  while (x2 >= 360.) x2 -= 360.;
+  const double d0 = diff(m_sw.lng(), m_ne.lng());
+  const double x1 = diff(m_sw.lng(), sw.x()) ;
+  const double x2 = diff(m_sw.lng(), ne.x());
 
   if (x1 >= d0 && x2 >= x1) return false;
+
+  const auto z0 = m_proj->fromWGS84(WGS84Point::fromLLRadians(m_proj->reference().radiansLng() + 1, 0)).x();
+
+  if (m_xShift != 0.) {
+    const auto ref = m_proj->reference();
+    m_proj->setReference(WGS84Point::fromLLRadians(ref.radiansLng() - m_xShift / z0, ref.radiansLat()));
+    m_box.setLeft(m_box.left() - m_xShift);
+    m_box.setRight(m_box.right() - m_xShift);
+    m_xShift = 0.;
+  }
+
+  double w = 0.;
+  if (x2 > x1) {
+    w = x2;
+  } else if (x1 > d0) {
+    w = std::max(d0, x2) - x1 + 360;
+  } else {
+    // w = 360.
+    Q_ASSERT(false);
+  }
+
+  if (w > 180.) {
+    qCDebug(CENC) << "Large extent" << w << ", shifting reference longitude";
+    const auto ref = m_proj->reference();
+    m_proj->setReference(WGS84Point::fromLL(m_sw.lng() + .5 * w, ref.lat()));
+    m_xShift = (m_proj->reference().radiansLng() - ref.radiansLng()) * z0;
+    m_box.setLeft(m_box.left() + m_xShift);
+    m_box.setRight(m_box.right() + m_xShift);
+  }
 
   return true;
 }
@@ -132,7 +164,7 @@ void ShapeReader::read(GL::VertexVector& vertices,
     }
     auto bbox = read_extent(stream);
     contentLen2 -= 16;
-    if (!extentIntersects(bbox)) {
+    if (!initializeProjection(bbox)) {
       // qDebug() << "skipping" << recNum;
       stream.skipRawData(contentLen2 * 2);
       continue;
@@ -152,9 +184,9 @@ void ShapeReader::read(GL::VertexVector& vertices,
     QPointF prev;
     PointVector tail;
     // corner case: border point as first point causes issues
-    for (prev = read_vertex(stream, m_proj);
+    for (prev = read_vertex(stream, m_proj.data());
          boundaryPoint(prev);
-         prev = read_vertex(stream, m_proj)) {
+         prev = read_vertex(stream, m_proj.data())) {
       tail.append(prev);
     }
     if (!tail.isEmpty()) {
@@ -188,7 +220,7 @@ void ShapeReader::read(GL::VertexVector& vertices,
     for (int i = startIndex; (i < numPoints) || !tail.isEmpty(); i++) {
       QPointF p;
       if (i < numPoints) {
-        p = read_vertex(stream, m_proj);
+        p = read_vertex(stream, m_proj.data());
       } else {
         p = tail.takeFirst();
       }
@@ -204,9 +236,9 @@ void ShapeReader::read(GL::VertexVector& vertices,
           const XP i0(XP::Type::GoingIn, fromVertex(p0), vertices.size() / 2);
           xps.append(i0);
           is.append(vertices.size() / 2);
-          vertices << p0.x() << p0.y();
+          vertices << p0.x() - m_xShift << p0.y();
         }
-        vertices << p.x() << p.y();
+        vertices << p.x() - m_xShift << p.y();
       } else {
         if (in) {
           in = false;
@@ -222,7 +254,7 @@ void ShapeReader::read(GL::VertexVector& vertices,
             const XP i0(XP::Type::GoingOut, s0, vertices.size() / 2);
             xps.append(i0);
             is.append(vertices.size() / 2);
-            vertices << p0.x() << p0.y();
+            vertices << p0.x() - m_xShift << p0.y();
           }
         } else {
           auto qs = intersections(prev, p);
@@ -233,12 +265,12 @@ void ShapeReader::read(GL::VertexVector& vertices,
             const XP i0(XP::Type::GoingIn, fromVertex(qs.first()), vertices.size() / 2);
             xps.append(i0);
             is.append(vertices.size() / 2);
-            vertices << qs.first().x() << qs.first().y();
+            vertices << qs.first().x() - m_xShift << qs.first().y();
             // add ref in -> out
             const XP i1(XP::Type::GoingOut, fromVertex(qs.last()), vertices.size() / 2);
             xps.append(i1);
             is.append(vertices.size() / 2);
-            vertices << qs.last().x() << qs.last().y();
+            vertices << qs.last().x() - m_xShift << qs.last().y();
           }
         }
       }
@@ -256,7 +288,7 @@ void ShapeReader::read(GL::VertexVector& vertices,
     if (is.isEmpty() && vertices.size() == prevSize && cornerIn) {
       qDebug() << recNum << ": Polygon covers whole box";
       auto area = createBoxGeometry(vertices, indices);
-      GeomArea geom {area, m_box};
+      GeomArea geom {area, originalBox()};
       geoms.append(geom);
       continue;
     }
@@ -272,8 +304,9 @@ using EdgeVector = ChartFileReader::EdgeVector;
 
 
 S57::Geometry::Area* ShapeReader::createBoxGeometry(GL::VertexVector& vertices, GL::IndexVector& indices) const {
+  const auto box = originalBox();
   const PointVector corners {
-    m_box.topLeft(), m_box.bottomLeft(), m_box.bottomRight(), m_box.topRight()
+    box.topLeft(), box.bottomLeft(), box.bottomRight(), box.topRight()
   };
   for (const QPointF& c: corners) {
     vertices << c.x() << c.y();
@@ -612,4 +645,10 @@ void ShapeReader::removeTail(GL::VertexVector& vertices, quint32 index, const QP
   }
 }
 
+QRectF ShapeReader::originalBox() const {
+  auto box = m_box;
+  box.setLeft(box.left() - m_xShift);
+  box.setRight(box.right() - m_xShift);
+  return box;
+}
 

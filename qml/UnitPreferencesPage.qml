@@ -106,6 +106,27 @@ PagePL {
   }
 
   SectionHeaderPL {
+    //% "Height"
+    text: qsTrId("qtnav-units-height")
+  }
+
+  ComboBoxPL {
+    id: heightBox
+    Component.onCompleted: {
+      currentIndex = settings.heightUnits;
+      var names = [];
+      for (var i = 0; i < settings.heightUnitNames.length; i++) {
+        names.push(qsTrId(settings.heightUnitNames[i]));
+      }
+      model = names;
+    }
+    onCurrentIndexChanged: {
+      settings.heightUnits = currentIndex;
+    }
+  }
+
+
+  SectionHeaderPL {
     //% "Boat Speed"
     text: qsTrId("qtnav-units-bspeed")
   }

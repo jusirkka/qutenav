@@ -35,10 +35,14 @@ static quint8 numdigits(quint32 v) {
 
 
 QString Converter::display(float v, int prec, bool wsym) const {
-  Q_ASSERT(v >= 0.f);
 
-  quint32 a = static_cast<int>(v);
-  const float b = v - a;
+  // TODO: localized neg sign
+  const QString sgn = v < 0. ? "-" : "";
+  const QString sym = wsym ? m_symbol : "";
+  const float v0 = std::abs(v);
+
+  quint32 a = static_cast<int>(v0);
+  const float b = v0 - a;
 
   if (a > 0) {
     const quint8 d = numdigits(a);
@@ -51,22 +55,22 @@ QString Converter::display(float v, int prec, bool wsym) const {
         a += 1;
       }
       // print a + b'
-      const QString r = QString::number(a) + ".%1 " + (wsym ? m_symbol : "");
+      const QString r = sgn + QString::number(a) + ".%1 " + sym;
       return r.arg(b1, prec - d, 10, QChar('0'));
     }
     // print a
-    return QString::number(static_cast<int>(std::round(v))) + " " + (wsym ? m_symbol : "");
+    return sgn + QString::number(static_cast<int>(std::round(v0))) + " " + sym;
   }
   // manipulate b -> b' (int)
   const quint32 m = std::pow(10, prec);
   quint32 b1 = std::round(m * b);
-  QString r = ".%1 " + (wsym ? m_symbol : "");
+  QString r = ".%1 " + sym;
   if (b1 == m) {
     b1 = 0;
     r = "1" + r;
   }
   // print b'
-  return r.arg(b1, prec, 10, QChar('0'));
+  return sgn + r.arg(b1, prec, 10, QChar('0'));
 }
 
 Manager* Manager::instance() {
@@ -80,6 +84,7 @@ Manager::Manager(QObject *parent)
   , m_shortDistance(nullptr)
   , m_speed(nullptr)
   , m_depth(nullptr)
+  , m_height(nullptr)
 {
   handleUnitChange();
   connect(Settings::instance(), &Settings::unitsChanged, this, &Manager::handleUnitChange);
@@ -88,6 +93,9 @@ Manager::Manager(QObject *parent)
 Manager::~Manager() {
   delete m_distance;
   delete m_shortDistance;
+  delete m_speed;
+  delete m_depth;
+  delete m_height;
 }
 
 class KMConverter: public Converter {
@@ -225,5 +233,15 @@ void Manager::handleUnitChange() {
   }
 
   emit depthSymbolChanged();
+
+  delete m_height;
+  using EHeight = Conf::Units::EnumHeight::type;
+
+  switch (Conf::Units::Height()) {
+  case EHeight::Feet: m_height = new FootConverter; break;
+  case EHeight::Meters: m_height = new MConverter; break;
+  default: m_height = nullptr;
+  }
+
 }
 

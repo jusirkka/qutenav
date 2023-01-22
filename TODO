@@ -6,14 +6,12 @@ After 1.0:
 - split geometry to spatial components and support spatial attributes
 - quick settings
 - POI (including Guest harbours) support
+- change glyphmanager lang & font when displaying NINFORM etc.?
 
 Before 1.0:
 
 - mobile: rendering is too slow, esp. s57, cm93
-- check that chart db fetches work across dateline
 - mobile: oesu support
 - oexserverd on-demand restart
+- check that chart db fetches work across dateline
 - bug: assert failure in KV::Region when browsing high latitudes
-- bug: s57 charts: sporadic index out of range error
-- bug: wrong first zoom level when entering chart mode
-

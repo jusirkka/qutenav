@@ -364,7 +364,6 @@ const ChartCover* ChartManager::getCover(quint32 chart_id,
 void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
 
   // qCDebug(CMGR) << "updateCharts" << m_idleStack.size() << "/" << m_workers.size();
-
   if (m_idleStack.size() != m_workers.size()) return;
 
   m_viewport = m_viewport.translated(cam->geoprojection()->fromWGS84(m_ref));
@@ -422,9 +421,7 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
     }
   }
 
-  qCDebug(CMGR) << "target" << m_scale << ", candidates" << scaleCandidates;
-
-
+  // qCDebug(CMGR) << "target" << m_scale << ", candidates" << scaleCandidates;
 
   KV::Region remainingArea(m_viewArea);
   qreal cov = 0.;
@@ -432,7 +429,7 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
 
   if (regions.isEmpty()) {
     std::reverse(smallScales.begin(), smallScales.end());
-    qCDebug(CMGR) << "target" << m_scale << ", candidates" << smallScales;
+    // qCDebug(CMGR) << "target" << m_scale << ", candidates" << smallScales;
     while (!smallScales.isEmpty()) {
       regions = findCharts(remainingArea, cov, ScaleVector {smallScales.takeFirst()}, cam);
       if (!regions.isEmpty()) break;
@@ -566,7 +563,7 @@ KV::RegionMap ChartManager::findCharts(KV::Region& remainingArea, qreal& cov, co
       auto ne = WGS84Point::fromLL(r.value(3).toDouble(), r.value(4).toDouble());
       auto c = getCover(id, sw, ne, cam->geoprojection(), scale);
 
-      qCDebug(CMGR) << "Candidate" << id << scale;
+      // qCDebug(CMGR) << "Candidate" << id << scale;
       const auto region = c->region(cam->geoprojection()).intersected(m_viewArea);
       if (region.isEmpty()) continue;
 
@@ -577,9 +574,9 @@ KV::RegionMap ChartManager::findCharts(KV::Region& remainingArea, qreal& cov, co
 
       remainingArea -= delta;
       cov = 1 - remainingArea.area() / totarea;
-      qCDebug(CMGR) << "covers" << region.area() / totarea * 100
-                    << ", subtracts" << delta.area() / totarea * 100
-                    << ", remaining" << (1 - cov) * 100;
+      //      qCDebug(CMGR) << "covers" << region.area() / totarea * 100
+      //                    << ", subtracts" << delta.area() / totarea * 100
+      //                    << ", remaining" << (1 - cov) * 100;
     }
     if (cov >= minCoverage) break;
   }
@@ -759,9 +756,9 @@ void ChartManager::createBackground(KV::RegionMap& regions,
 
     remainingArea -= delta;
     cov = 1 - remainingArea.area() / totarea;
-    qCDebug(CMGR) << it.value().print(WGS84Point::Units::Deg, 0)
-                  << ": subtracts" << delta.area() / totarea * 100
-                  << ", remaining" << (1 - cov) * 100;
+    //    qCDebug(CMGR) << it.value().print(WGS84Point::Units::Deg, 0)
+    //                  << ": subtracts" << delta.area() / totarea * 100
+    //                  << ", remaining" << (1 - cov) * 100;
 
     if (cov >= minCoverage) break;
   }

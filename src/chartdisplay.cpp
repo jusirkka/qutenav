@@ -145,7 +145,7 @@ void ChartDisplay::initializeSG() {
 
   connect(chartMgr, &ChartManager::active, this, [this] (const QRectF& viewArea) {
     // qCDebug(CDPY) << "timer stop";
-    m_flags |= EnteringChartMode | ChartsUpdated;
+    m_flags |= EnteringChartMode;
     m_viewArea = viewArea;
     m_busyTimer->stop();
     update();
@@ -483,6 +483,9 @@ void ChartDisplay::handleFullInfoResponse(const S57::InfoType& rsp) {
 void ChartDisplay::setCamera(Camera *cam) {
   delete m_camera;
   m_camera = cam;
+  const float wmm = m_orientedSize.width() / Platform::dots_per_mm_x();
+  const float hmm = m_orientedSize.height() / Platform::dots_per_mm_y();
+  m_camera->resize(wmm, hmm);
   emit updateViewport(m_camera, ChartManager::Force);
   computeScaleBar();
 }

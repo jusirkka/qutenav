@@ -49,13 +49,16 @@ void S52::Lookup::run_bytecode(const S57::Object *obj, Accumulator accumulate) c
       break;
     }
 
-    case Code::Var:
-      stack[stackPos++] = obj->attributeValue(m_references[refPos++]);
+    case Code::Var: {
+      const quint32 aid = m_references[refPos++];
+      stack[stackPos++] = UnitConvertedAttribute(aid, obj->attributeValue(aid));
       break;
+    }
 
     case Code::DefVar: {
-      QVariant v = obj->attributeValue(m_references[refPos++]);
-      QVariant d = m_immed[immedPos++];
+      const quint32 aid = m_references[refPos++];
+      const QVariant v = UnitConvertedAttribute(aid, obj->attributeValue(aid));
+      const QVariant d = UnitConvertedAttribute(aid, m_immed[immedPos++]);
       if (v.isValid()) {
         stack[stackPos++] = v;
       } else {
@@ -255,7 +258,28 @@ void S52::ParseInstruction(Lookup* lup, bool* ok) {
   if (ok != nullptr) *ok = err == 0;
 }
 
+QVariant S52::UnitConvertedAttribute(quint32 aid, const QVariant& v) {
+  static const QSet<quint32> depths {
+    S52::FindCIndex("DRVAL1")
+  };
+  static const QSet<quint32> heights {
+    S52::FindCIndex("ELEVAT"),
+    S52::FindCIndex("VERCLR"),
+    S52::FindCIndex("VERCOP"),
+    S52::FindCIndex("VERCSA")
+  };
 
+  if (v.isValid() && S52::GetAttributeType(aid) == S57::Attribute::Type::Real) {
+    const auto v0 = v.toDouble();
+    if (depths.contains(aid)) {
+      return Units::Manager::instance()->depth()->fromSI(v0);
+    }
+    if (heights.contains(aid)) {
+      return Units::Manager::instance()->height()->fromSI(v0);
+    }
+  }
+  return v;
+}
 
 static void attributeDesc(QStringList& parts, quint32 aid, const S57::Object* obj, const int skipVal = -1) {
 
@@ -265,7 +289,7 @@ static void attributeDesc(QStringList& parts, quint32 aid, const S57::Object* ob
     S52::FindCIndex("DRVAL2"),
     S52::FindCIndex("VALSOU")
   };
-  static const QSet<quint32> lengths {
+  static const QSet<quint32> heights {
     S52::FindCIndex("HEIGHT"),
     S52::FindCIndex("HORCLR"),
     S52::FindCIndex("VERCLR"),
@@ -280,8 +304,8 @@ static void attributeDesc(QStringList& parts, quint32 aid, const S57::Object* ob
     const auto v = obj->attributeValue(aid).toDouble();
     if (depths.contains(aid)) {
       parts << Units::Manager::instance()->depth()->displaySI(v, 2);
-    } else if (lengths.contains(aid)) {
-      parts << Units::Manager::instance()->shortDistance()->displaySI(v, 1);
+    } else if (heights.contains(aid)) {
+      parts << Units::Manager::instance()->height()->displaySI(v, 1);
     } else {
       qCWarning(CS52) << "Unhandled real attribute" << S52::GetAttributeInfo(aid, obj);
       return;
@@ -332,9 +356,12 @@ static QString desc_depcnt(const S57::Object* obj) {
   static auto valdco = S52::FindCIndex("VALDCO");
   static auto base = S52::GetClassDescription(obj->classCode());
   const auto v = obj->attributeValue(valdco).toDouble();
-  return QString("%1 (%2)")
-      .arg(base)
-      .arg(Units::Manager::instance()->depth()->displaySI(v, 2));
+
+  if (v == 0) {
+    return QString("%1 (0 %2)").arg(base).arg(Units::Manager::instance()->depth()->symbol());
+  }
+
+  return QString("%1 (%2)").arg(base).arg(Units::Manager::instance()->depth()->displaySI(v, 2));
 }
 
 static QString desc_bcnspp(const S57::Object* obj) {
@@ -642,6 +669,11 @@ static QString desc_depare(const S57::Object* obj) {
   }
 
   const auto s1 = Units::Manager::instance()->depth()->displaySI(v1, 2, false);
+
+  if (v2 == 0) {
+    return QString("%1 (%2 - 0 %3)").arg(base).arg(s1).arg(Units::Manager::instance()->depth()->symbol());
+  }
+
   return QString("%1 (%2 - %3)").arg(base).arg(s1).arg(s2);
 }
 

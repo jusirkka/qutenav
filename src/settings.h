@@ -397,6 +397,32 @@ public:
     }
   }
 
+  Q_PROPERTY(QStringList heightUnitNames
+             READ heightUnitNames
+             NOTIFY heightUnitNamesChanged)
+
+  QStringList heightUnitNames() const {
+    return Conf::Units::EnumHeight::names;
+  }
+
+  Q_PROPERTY(quint8 heightUnits
+             READ heightUnits
+             WRITE setHeightUnits)
+
+  quint8 heightUnits() const {
+    return static_cast<quint8>(Conf::Units::Height());
+  }
+
+  void setHeightUnits(quint8 v) {
+    if (v != heightUnits()) {
+      Conf::Units::setHeight(static_cast<Conf::Units::EnumHeight::type>(v));
+      // Note: order is important
+      emit unitsChanged();
+      emit settingsChanged();
+    }
+  }
+
+
   Q_PROPERTY(QStringList boatSpeedUnitNames
              READ boatSpeedUnitNames
              NOTIFY boatSpeedUnitNamesChanged)
@@ -454,6 +480,7 @@ signals:
   void depthUnitNamesChanged(const QStringList&);
   void distanceUnitNamesChanged(const QStringList&);
   void shortDistanceUnitNamesChanged(const QStringList&);
+  void heightUnitNamesChanged(const QStringList&);
   void boatSpeedUnitNamesChanged(const QStringList&);
 
 private:

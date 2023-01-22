@@ -190,7 +190,7 @@ private:
   Font(const Font&) = delete;
   Font& operator= (const Font&) = delete;
 
-  const Glyph* getGlyph(quint32 codepoint, bool* newGlyph);
+  const Glyph* getGlyph(quint32 glyphIndex, bool* newGlyph);
   GL::Mesh* shapeText(const HB::Text& txt, hb_buffer_t* buf, bool* newGlyphs);
   void setFeatures(const HB::FeatureVector& features);
 

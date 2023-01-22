@@ -1057,8 +1057,13 @@ void S57Reader::readChart(GL::VertexVector& vertices,
           auto ps = getSnd(feature.pointRef);
           auto bbox = computeSoundingsBBox(ps);
           helper.s57SetGeometry(obj, new S57::Geometry::Point(ps, gp), bbox);
+        } else if (connected.contains(feature.pointRef)) {
+          auto p = getConn(feature.pointRef);
+          QRectF bbox(p - QPointF(10, 10), QSizeF(20, 20));
+          helper.s57SetGeometry(obj, new S57::Geometry::Point(p, gp->toWGS84(p)), bbox);
         } else {
-          Q_ASSERT(false);
+          qCWarning(CENC) << "Unhandled VI point, code =" << feature.code;
+          delete objects.takeLast();
         }
       } else if (t == RT::VC) {
         Q_ASSERT(connected.contains(feature.pointRef));
@@ -1078,7 +1083,8 @@ void S57Reader::readChart(GL::VertexVector& vertices,
         Edge e = pedges[ref.id];
         e.reversed = ref.reversed;
         e.inner = ref.inner;
-        if (!ref.masked) {
+        if (!ref.masked || geom == Geom::Line) {
+           // FIXME: check the spec if this is correct: lines are never masked
           lineEdges.append(e);
         } else {
           hasMaskedEdge = true;

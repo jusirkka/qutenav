@@ -185,7 +185,7 @@ void GlyphBin::fillBlock(const QPoint &p, const QSize &s, const uchar *src) {
 }
 
 
-Font::Font(const QString &family,
+Font::Font(const QString& family,
            quint16 pixelSize,
            TXT::Weight weight,
            bool italic,
@@ -253,15 +253,13 @@ Font::~Font() {
   hb_font_destroy(m_font);
 }
 
-const Glyph* Font::getGlyph(quint32 codepoint, bool* newGlyph) {
-  if (m_glyphs.contains(codepoint)) {
+const Glyph* Font::getGlyph(quint32 glyphIndex, bool* newGlyph) {
+  if (m_glyphs.contains(glyphIndex)) {
     *newGlyph = false;
-    return m_glyphs[codepoint];
+    return m_glyphs[glyphIndex];
   }
 
-
-  FT_UInt index = FT_Get_Char_Index(m_face, codepoint);
-  auto err = FT_Load_Glyph(m_face, index, FT_LOAD_RENDER);
+  auto err = FT_Load_Glyph(m_face, glyphIndex, FT_LOAD_RENDER);
   if (err) {
     qFatal("FT_Load_Glyph failed: %d", err);
   }
@@ -285,12 +283,12 @@ const Glyph* Font::getGlyph(quint32 codepoint, bool* newGlyph) {
   glyph->m_texLR = glyph->m_texUL + QPointF(r.width(),
                                             r.height());
 
-  m_glyphs[codepoint] = glyph;
+  m_glyphs[glyphIndex] = glyph;
   *newGlyph = true;
   return glyph;
 }
 
-GL::Mesh* Font::shapeText(const HB::Text &txt, hb_buffer_t *buf, bool* newGlyphs) {
+GL::Mesh* Font::shapeText(const HB::Text& txt, hb_buffer_t* buf, bool* newGlyphs) {
   hb_buffer_reset(buf);
 
   hb_buffer_set_direction(buf, txt.direction);
@@ -301,32 +299,15 @@ GL::Mesh* Font::shapeText(const HB::Text &txt, hb_buffer_t *buf, bool* newGlyphs
 
   // qDebug() << "Language:" << QString::fromUtf8(hb_language_to_string(hb_buffer_get_language(buf)));
 
-  QByteArray data;
-
-  // a hack for sounding subscripts = fractional part
-  bool hasFrac = false;
-  const quint16 frac = txt.string[txt.string.length() - 1].unicode();
-  if (frac >= 0x2080 && frac <= 0x2089) {
-    QString depth = txt.string.left(txt.string.length() - 1) + QChar('0' + frac - 0x2080);
-    data = depth.toUtf8();
-    // qDebug() << "Depth" << depth << txt.string;
-    hasFrac = true;
-  } else {
-    data = txt.string.toUtf8();
-  }
-
+  const QByteArray data = txt.string.toUtf8();
   hb_buffer_add_utf8(buf, data.constData(), data.length(), 0, data.length());
-
-  uint glyphCount;
-  const hb_glyph_info_t *glyphInfo = hb_buffer_get_glyph_infos(buf, &glyphCount);
-  // save codepoints: hb_shape modifies them to glyph indices
-  QVector<quint32> codepoints;
-  for (uint i = 0; i < glyphCount; i++) codepoints << glyphInfo[i].codepoint;
 
   // harfbuzz shaping
   hb_shape(m_font, buf, m_features.constData(), m_features.size());
 
-  const hb_glyph_position_t *glyphPos = hb_buffer_get_glyph_positions(buf, &glyphCount);
+  uint glyphCount;
+  const hb_glyph_info_t* glyphInfo = hb_buffer_get_glyph_infos(buf, &glyphCount);
+  const hb_glyph_position_t* glyphPos = hb_buffer_get_glyph_positions(buf, &glyphCount);
 
   QPointF pen(0, 0);
   auto mesh = new GL::Mesh;
@@ -335,11 +316,9 @@ GL::Mesh* Font::shapeText(const HB::Text &txt, hb_buffer_t *buf, bool* newGlyphs
   float ymin = 1.e15;
   float ymax = -1.e15;
 
-  const uint count = hasFrac ? glyphCount - 1 : glyphCount;
-
-  for(uint i = 0; i < count; ++i) {
+  for (uint i = 0; i < glyphCount; ++i) {
     bool newGlyph;
-    auto glyph = getGlyph(codepoints[i], &newGlyph);
+    auto glyph = getGlyph(glyphInfo[i].codepoint, &newGlyph);
     *newGlyphs = *newGlyphs || newGlyph;
 
     // upper left
@@ -356,29 +335,6 @@ GL::Mesh* Font::shapeText(const HB::Text &txt, hb_buffer_t *buf, bool* newGlyphs
     mesh->vertices << 0. << 0.;
 
     pen += HB::advance(glyphPos[i]);
-
-    if (p0.y() > ymax) ymax = p0.y();
-    if (p1.y() < ymin) ymin = p1.y();
-  }
-
-  if (hasFrac) {
-    bool newGlyph;
-    auto glyph = getGlyph(codepoints[count], &newGlyph);
-    *newGlyphs = *newGlyphs || newGlyph;
-
-    const QPointF shift(0., -.3 * glyph->size().height());
-    // upper left
-    const QPointF p0 = pen + HB::offset(glyphPos[count]) + glyph->offset() + shift;
-    // lower right
-    const QPointF p1 = p0 + QPointF(glyph->size().width(), - glyph->size().height());
-
-    const QPointF t0 = glyph->texUL();
-    const QPointF t1 = glyph->texLR();
-
-    mesh->vertices << p0.x() << p0.y() << p1.x() << p1.y();
-    mesh->vertices << t0.x() << t0.y() << t1.x() << t1.y();
-    // reserve space for pivot
-    mesh->vertices << 0. << 0.;
 
     if (p0.y() > ymax) ymax = p0.y();
     if (p1.y() < ymin) ymin = p1.y();
@@ -424,7 +380,7 @@ void GlyphManager::setFont(TXT::Weight weight) {
   };
 }
 
-GL::Mesh* GlyphManager::shapeText(const HB::Text &txt, bool *newGlyphs) {
+GL::Mesh* GlyphManager::shapeText(const HB::Text& txt, bool* newGlyphs) {
   if (m_currentFont < 0) return nullptr;
   return m_fonts[m_currentFont]->shapeText(txt, m_buffer, newGlyphs);
 }

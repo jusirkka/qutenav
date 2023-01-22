@@ -98,6 +98,7 @@ public:
   const Converter* distance() const {return m_distance;}
   const Converter* shortDistance() const {return m_shortDistance;}
   const Converter* depth() const {return m_depth;}
+  const Converter* height() const {return m_height;}
 
   Q_INVOKABLE QString location(const QGeoCoordinate& q, quint8 prec = 4) const {
     WGS84Point p = WGS84Point();
@@ -125,6 +126,7 @@ private:
   Converter* m_shortDistance;
   Converter* m_speed;
   Converter* m_depth;
+  Converter* m_height;
 
   static const inline QMap<Conf::Units::EnumLocation::type, WGS84Point::Units> locMap = {
     {Conf::Units::EnumLocation::type::Deg, WGS84Point::Units::Deg},

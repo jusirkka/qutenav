@@ -21,8 +21,13 @@
       <source>Short Distance</source>
       <translation>Short Distance</translation>
     </message>
-    <message id="qtnav-units-bspeed">
+    <message id="qtnav-units-height">
       <location line="+20" />
+      <source>Height</source>
+      <translation>Height</translation>
+    </message>
+    <message id="qtnav-units-bspeed">
+      <location line="+21" />
       <source>Boat Speed</source>
       <translation>Boat Speed</translation>
     </message>
@@ -237,7 +242,7 @@
       <translation>Degrees/Minutes/Seconds</translation>
     </message>
     <message id="qtnav-units-depth">
-      <location filename="../qml/UnitPreferencesPage.qml" line="-60" />
+      <location filename="../qml/UnitPreferencesPage.qml" line="-81" />
       <source>Depth</source>
       <translation>Depth</translation>
     </message>
@@ -286,6 +291,16 @@
       <source>Yards</source>
       <translation>Yards</translation>
     </message>
+    <message id="qtnav-height-units-meters">
+      <location line="+16" />
+      <source>Meters</source>
+      <translation>Meters</translation>
+    </message>
+    <message id="qtnav-height-units-feet">
+      <location line="+2" />
+      <source>Feet</source>
+      <translation>Feet</translation>
+    </message>
     <message id="qtnav-bspeed-units-kn">
       <location line="+16" />
       <source>Knots</source>
@@ -302,7 +317,7 @@
       <translation>Km/h</translation>
     </message>
     <message id="qtnav-symbol-km">
-      <location filename="../src/units.cpp" line="+95" />
+      <location filename="../src/units.cpp" line="+103" />
       <source>km</source>
       <oldsource> km</oldsource>
       <translation>km</translation>
@@ -735,7 +750,7 @@
       <translation>Delete</translation>
     </message>
     <message id="qtnav-txt-10">
-      <location filename="../src/settings.h" line="+470" />
+      <location filename="../src/settings.h" line="+497" />
       <source>Important text</source>
       <translation>Important text</translation>
     </message>

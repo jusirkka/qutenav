@@ -110,6 +110,24 @@ public:
     return static_cast<EnumShortDistance::type>(self()->m_values["short_distance"].toUInt());
   }
 
+  class EnumHeight {
+  public:
+    enum type {Meters, Feet};
+    static const inline QStringList names {
+      //% "Meters"
+      QT_TRID_NOOP("qtnav-height-units-meters"),
+      //% "Feet"
+      QT_TRID_NOOP("qtnav-height-units-feet"),
+    };
+  };
+
+  static void setHeight(EnumHeight::type v) {
+    self()->m_values["height"] = static_cast<uint>(v);
+  }
+  static EnumHeight::type Height() {
+    return static_cast<EnumHeight::type>(self()->m_values["height"].toUInt());
+  }
+
   class EnumBoatSpeed {
   public:
     enum type {Kn, Mph, Kmph};

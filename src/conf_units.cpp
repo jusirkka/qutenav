@@ -27,16 +27,14 @@ Conf::Units* Conf::Units::self() {
 Conf::Units::Units()
   : ConfigGroup("Units", "qutenavrc")
 {
-
   m_defaults["location"] = static_cast<uint>(EnumLocation::type::DegMin);
   m_defaults["depth"] = static_cast<uint>(EnumDepth::type::Meters);
   m_defaults["distance"] = static_cast<uint>(EnumDistance::type::KM);
   m_defaults["short_distance"] = static_cast<uint>(EnumShortDistance::type::M);
+  m_defaults["height"] = static_cast<uint>(EnumHeight::type::Meters);
   m_defaults["boat_speed"] = static_cast<uint>(EnumBoatSpeed::type::Kn);
 
-
   load();
-
 }
 
 Conf::Units::~Units() {}
