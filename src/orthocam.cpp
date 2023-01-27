@@ -62,7 +62,7 @@ void OrthoCam::setScale(quint32 scale) {
 }
 
 void OrthoCam::updateProjection() {
-  // distance in meters from center to the top edge of the display
+  // distance in meters from center to the (unrotated) top edge of the display
   const float d = m_scale * m_mmHeight / 2000.;
   auto b = WGS84Bearing::fromMeters(d, Angle::fromDegrees(0.));
   const QPointF p1 = m_geoprojection->fromWGS84(m_geoprojection->reference() + b);
@@ -124,9 +124,14 @@ Angle OrthoCam::northAngle() const {return m_northAngle;}
 
 
 void OrthoCam::pan(const QPointF& /*dragStart*/, const QPointF& dragAmount) {
-  auto c = m_geoprojection->toWGS84(QPointF(-dragAmount.x() / m_projection(0, 0),
-                                            -dragAmount.y() / m_projection(1, 1)));
+  const QPointF p0(-dragAmount.x() / m_projection(0, 0),
+                   -dragAmount.y() / m_projection(1, 1));
+  QTransform tr;
+  tr.rotate(- m_northAngle.degrees());
+
+  auto c = m_geoprojection->toWGS84(tr.map(p0));
   m_geoprojection->setReference(c);
+  updateProjection();
 }
 
 WGS84Point OrthoCam::location(const QPointF &cp) const {
@@ -147,6 +152,8 @@ QPointF OrthoCam::position(const WGS84Point& wp) const {
 QRectF OrthoCam::boundingBox() const {
   const float dx = 1. / projection()(0, 0);
   const float dy = 1. / projection()(1, 1);
+
+  if (dx > maxViewportDimension || dy > maxViewportDimension) return QRectF();
 
   if (northAngle().isZero()) {
     return QRectF(QPointF(- dx, - dy), QSizeF(2 * dx, 2 * dy)); // inverted y-axis

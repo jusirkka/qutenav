@@ -371,7 +371,12 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
 
   const QRectF vp = cam->boundingBox();
   // qCDebug(CMGR) << "ChartManager::updateCharts" << vp;
-  if (!vp.isValid()) return;
+
+  if (!vp.isValid()) {
+    resetCharts();
+    emit idle();
+    return;
+  }
 
   if (m_viewport.contains(vp) && cam->scale() == m_scale && flags == 0) return;
 
@@ -395,8 +400,10 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
   }
   m_viewArea.moveCenter(QPointF(0., 0.));
 
-  // sort available scales
+  const quint32 prevScale = m_scale;
   m_scale = cam->scale();
+
+  // sort available scales
   ScaleVector scaleCandidates;
   ScaleVector smallScales;
   if (!m_scales.isEmpty() && m_scale * maxScaleRatio <= m_scales.first()) {
@@ -437,12 +444,24 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
     std::reverse(smallScales.begin(), smallScales.end());
   }
 
-  if (cov < minCoverage && !regions.isEmpty() && !remainingArea.isEmpty()) {
-    createBackground(regions, cam->geoprojection(), remainingArea);
+  m_hadCharts = !m_charts.isEmpty();
+
+  if (regions.isEmpty()) {
+    if (m_scale < prevScale) {
+      m_scale = prevScale;
+      qCDebug(CMGR) << "bottom zoom";
+      emit zoomBottomHit(prevScale);
+    } else {
+      resetCharts();
+      // qCDebug(CMGR) << "idle";
+      emit idle();
+    }
+    return;
   }
 
-  // Signal indicators of small scale charts
-  handleSmallScales(smallScales, cam->geoprojection());
+  if (cov < minCoverage && !remainingArea.isEmpty()) {
+    createBackground(regions, cam->geoprojection(), remainingArea);
+  }
 
   IDVector newCharts;
   IDVector bgCharts;
@@ -457,8 +476,6 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
       m_chartIds.remove(id);
     }
   }
-
-  m_hadCharts = !m_charts.isEmpty();
 
   // queue old charts for caching
   for (auto it = m_chartIds.constBegin(); it != m_chartIds.constEnd(); ++it) {
@@ -476,7 +493,6 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
   }
   m_charts = charts;
 
-  const bool noCharts = m_charts.isEmpty() && newCharts.isEmpty();
   // create pending chart update data
   for (S57Chart* c: m_charts) {
     m_pendingStack.push(ChartData(c, m_scale, regions[c->id()].toWGS84(cam->geoprojection()),
@@ -522,10 +538,19 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
     }
   }
 
-  if (noCharts) {
-    // qCDebug(CMGR) << "ChartManager::updateCharts: idle";
-    emit idle();
-  }
+  // Signal indicators of small scale charts
+  handleSmallScales(smallScales, cam->geoprojection());
+}
+
+void ChartManager::resetCharts() {
+  m_cacheQueue.append(m_charts);
+
+  m_charts.clear();
+  m_chartIds.clear();
+
+  handleSmallScales({}, nullptr, true);
+
+  m_scale = 0;
 }
 
 KV::RegionMap ChartManager::findCharts(KV::Region& remainingArea, qreal& cov, const ScaleVector& scales, const Camera *cam) {
@@ -643,81 +668,114 @@ void ChartManager::manageThreads(S57Chart* chart) {
 }
 
 void ChartManager::handleSmallScales(const ScaleVector& scales,
-                                     const GeoProjection* proj) {
+                                     const GeoProjection* proj,
+                                     bool noCharts) {
 
   WGS84Polygon indicators;
   m_nextScale = 0;
 
-  if (!Conf::Quick::IndicateScales() || scales.isEmpty()) {
+  if (!Conf::Quick::IndicateScales() || noCharts) {
     emit chartIndicatorsChanged(indicators);
     return;
   }
+
+  ScaleVector smallScales;
+  for (quint32 sc: m_scales) {
+    if (m_scale <= maxScaleRatio * sc) break;
+    smallScales << sc;
+  }
+  smallScales.append(scales);
+
+  // qCDebug(CMGR) << "scales to indicate" << smallScales;
+
+  if (smallScales.isEmpty()) {
+    emit chartIndicatorsChanged(indicators);
+    return;
+  }
+  std::reverse(smallScales.begin(), smallScales.end());
 
   const WGS84Point sw0 = proj->toWGS84(m_viewArea.topLeft()); // inverted y-axis
   const WGS84Point ne0 = proj->toWGS84(m_viewArea.bottomRight()); // inverted y-axis
 
-  // find m_nextScale
-  const auto sql0 = QString("select max(scale) "
-                            "from m.charts "
-                            "where scale in (?%1) and "
-                            "swx < ? and swy < ? and nex > ? and ney > ?")
-      .arg(QString(",?").repeated(scales.size() - 1));
+  int depth = 2;
+  while (depth > 0 && !smallScales.isEmpty()) {
 
-  QSqlQuery r0 = m_db.prepare(sql0);
-
-  int cnt = 0;
-  for (auto s: scales) r0.bindValue(cnt++, s);
-  r0.bindValue(cnt++, ne0.lng(sw0));
-  r0.bindValue(cnt++, ne0.lat());
-  r0.bindValue(cnt++, sw0.lng());
-  r0.bindValue(cnt++, sw0.lat());
-
-  m_db.exec(r0);
-
-  if (r0.first()) {
-    m_nextScale = r0.value(0).toUInt();
-  } else {
-    emit chartIndicatorsChanged(indicators);
-    return;
-  }
-
-  const auto sql1 = QString("select cv.id, p.x, p.y from "
-                            "m.polygons p "
-                            "join m.coverage cv on p.cov_id = cv.id "
-                            "join m.charts c on c.chart_id = cv.chart_id "
-                            "where cv.type_id=1 and c.scale in (?%1) and "
-                            "c.swx < ? and c.swy < ? and c.nex > ? and c.ney > ? "
-                            "order by cv.id, p.id")
-      .arg(QString(",?").repeated(scales.size() - 1));
-
-  QSqlQuery r1 = m_db.prepare(sql1);
-
-  cnt = 0;
-  for (auto s: scales) r1.bindValue(cnt++, s);
-  r1.bindValue(cnt++, ne0.lng(sw0));
-  r1.bindValue(cnt++, ne0.lat());
-  r1.bindValue(cnt++, sw0.lng());
-  r1.bindValue(cnt++, sw0.lat());
-
-  m_db.exec(r1);
-
-  int prev = -1;
-  WGS84PointVector ps;
-  while (r1.next()) {
-    const int cid = r1.value(0).toInt();
-    if (cid != prev) {
-      if (!ps.isEmpty()) {
-        indicators << ps;
-      }
-      ps.clear();
+    const int chunk = 3;
+    ScaleVector candidates;
+    while (!smallScales.isEmpty() && candidates.size() < chunk) {
+      candidates.append(smallScales.takeFirst());
     }
-    ps << WGS84Point::fromLL(r1.value(1).toDouble(), r1.value(2).toDouble());
-    prev = cid;
-  }
-  if (!ps.isEmpty()) {
-    indicators << ps;
-  }
+    // qCDebug(CMGR) << "chunk" << candidates;
 
+    // find available scales
+    const auto sql0 = QString("select distinct scale "
+                              "from m.charts "
+                              "where scale in (?%1) and "
+                              "swx < ? and swy < ? and nex > ? and ney > ? "
+                              "order by scale desc")
+                      .arg(QString(",?").repeated(candidates.size() - 1));
+
+    QSqlQuery r0 = m_db.prepare(sql0);
+
+    int cnt = 0;
+    for (auto s: candidates) r0.bindValue(cnt++, s);
+    r0.bindValue(cnt++, ne0.lng(sw0));
+    r0.bindValue(cnt++, ne0.lat());
+    r0.bindValue(cnt++, sw0.lng());
+    r0.bindValue(cnt++, sw0.lat());
+
+    m_db.exec(r0);
+
+    candidates.clear();
+    while (r0.next() && candidates.size() < depth) {
+      const quint32 sc = r0.value(0).toUInt();
+      candidates.append(sc);
+      // qCDebug(CMGR) << "found" << sc << ", remaining depth" << depth - candidates.size();
+    }
+    if (candidates.isEmpty()) continue;
+
+    if (m_nextScale == 0) {
+      m_nextScale = candidates.first();
+    }
+    depth -= candidates.size();
+
+    const auto sql1 = QString("select cv.id, p.x, p.y from "
+                              "m.polygons p "
+                              "join m.coverage cv on p.cov_id = cv.id "
+                              "join m.charts c on c.chart_id = cv.chart_id "
+                              "where cv.type_id=1 and c.scale in (?%1) and "
+                              "c.swx < ? and c.swy < ? and c.nex > ? and c.ney > ? "
+                              "order by cv.id, p.id")
+                      .arg(QString(",?").repeated(candidates.size() - 1));
+
+    QSqlQuery r1 = m_db.prepare(sql1);
+
+    cnt = 0;
+    for (auto s: candidates) r1.bindValue(cnt++, s);
+    r1.bindValue(cnt++, ne0.lng(sw0));
+    r1.bindValue(cnt++, ne0.lat());
+    r1.bindValue(cnt++, sw0.lng());
+    r1.bindValue(cnt++, sw0.lat());
+
+    m_db.exec(r1);
+
+    int prev = -1;
+    WGS84PointVector ps;
+    while (r1.next()) {
+      const int cid = r1.value(0).toInt();
+      if (cid != prev) {
+        if (!ps.isEmpty()) {
+          indicators << ps;
+        }
+        ps.clear();
+      }
+      ps << WGS84Point::fromLL(r1.value(1).toDouble(), r1.value(2).toDouble());
+      prev = cid;
+    }
+    if (!ps.isEmpty()) {
+      indicators << ps;
+    }
+  }
   emit chartIndicatorsChanged(indicators);
 }
 

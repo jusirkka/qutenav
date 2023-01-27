@@ -14,4 +14,3 @@ Before 1.0:
 - mobile: oesu support
 - oexserverd on-demand restart
 - check that chart db fetches work across dateline
-- bug: assert failure in KV::Region when browsing high latitudes

@@ -39,7 +39,7 @@ needed to decrypt oesu files are closed source, but re-distribution is allowed (
 - flex >= 2.6.1
 - inkscape to convert svg files to png images
 
-Minimum supported Qt version is 5.6
+Minimum supported Qt version is 5.6.
 
 ## Runtime dependencies
 
@@ -52,6 +52,7 @@ Minimum supported Qt version is 5.6
 - freetype
 - fontconfig
 - dbus
+- a device that supports OpenGL ES 3.2 or later; or OpenGL 4.5 (core profile) or later
 
 ## Building and installing SailfishOS app
 

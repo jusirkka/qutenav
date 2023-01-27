@@ -172,7 +172,7 @@ void TextShaper::shape(const TextKey &key) {
 
   const auto boxOffsetMM = QPointF(key.offsetX, - key.offsetY) * bodySizeMM;
   const auto boxScale = bodySizeMM / mesh->bbox.height();
-  const auto shift = boxOffsetMM + boxScale * (dPivot - mesh->bbox.bottomLeft()); // invertex y-axis
+  const auto shift = boxOffsetMM + boxScale * (dPivot - mesh->bbox.bottomLeft()); // inverted y-axis
 
   const int numShapes = mesh->vertices.size() / 10;
   for (int i = 0; i < numShapes; i++) {

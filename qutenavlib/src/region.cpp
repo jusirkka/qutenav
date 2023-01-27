@@ -126,7 +126,7 @@ WGS84PointVector Region::toWGS84(const GeoProjection* gp) const {
   const auto rs = rects();
   for (const QRectF& r: rs) {
     if (r.width() * r.height() < 1.) {
-      qCWarning(CREG) << "Bad rectangle in region" << r;
+      // qCWarning(CREG) << "Bad rectangle in region" << r;
       continue;
     }
     ps << gp->toWGS84(r.topLeft()) << gp->toWGS84(r.bottomRight());

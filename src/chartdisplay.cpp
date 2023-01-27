@@ -170,6 +170,14 @@ void ChartDisplay::initializeSG() {
     update();
   });
 
+  connect(chartMgr, &ChartManager::zoomBottomHit, this, [this] (quint32 scale) {
+    m_busyTimer->stop();
+    indicateBusy(false);
+    m_camera->setScale(scale);
+    computeScaleBar();
+    update();
+  });
+
   if (chartMgr->outlines().isEmpty()) {
     chartMgr->setChartSet(defaultChartSet(), m_camera->geoprojection());
   }

@@ -89,6 +89,7 @@ signals:
   void chartSetsUpdated();
   void proxyChanged();
   void chartIndicatorsChanged(const WGS84Polygon& indicators);
+  void zoomBottomHit(quint32 scale);
 
 public slots:
 
@@ -119,17 +120,18 @@ private:
                              const GeoProjection* p,
                              quint32 scale);
   void handleSmallScales(const ScaleVector& scales,
-                         const GeoProjection* proj);
+                         const GeoProjection* proj,
+                         bool noCharts = false);
 
   KV::RegionMap findCharts(KV::Region& remainingArea, qreal& cov, const ScaleVector& scales, const Camera* cam);
-
   void createBackground(KV::RegionMap& regions, const GeoProjection* gp, const KV::Region& remaining) const;
+  void resetCharts();
 
 
-  static const inline float viewportFactor = 1.65;
+  static const inline float viewportFactor = 1.6;
   static const inline float marginFactor = 1.08;
   static const inline float maxScaleRatio = 25;
-  static const inline float maxScale = 25000000;
+  static const inline float maxScale = 8000001;
   static const inline float minCoverage = .995;
   static const inline quint32 bgChartLimit = 15;
 

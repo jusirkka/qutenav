@@ -77,7 +77,7 @@ bool ShapeReader::initializeProjection(const QRectF& r) {
 
   auto diff = [] (double x1, double x2) {
     auto d = x2 - x1;
-    while (d < 0.) d += 360;
+    while (d < 0.) d += 360.;
     while (d >= 360.) d -= 360.;
     return d;
   };
@@ -92,15 +92,15 @@ bool ShapeReader::initializeProjection(const QRectF& r) {
 
   if (m_xShift != 0.) {
     const auto ref = m_proj->reference();
-    m_proj->setReference(WGS84Point::fromLLRadians(ref.radiansLng() - m_xShift / z0, ref.radiansLat()));
+    m_proj->setReference(WGS84Point::fromLLRadians(ref.radiansLng() + m_xShift / z0, ref.radiansLat()));
     m_box.setLeft(m_box.left() - m_xShift);
     m_box.setRight(m_box.right() - m_xShift);
     m_xShift = 0.;
   }
 
-  double w = 0.;
+  double w = 360.;
   if (x2 > x1) {
-    w = x2;
+    w = std::max(d0, x2);
   } else if (x1 > d0) {
     w = std::max(d0, x2) - x1 + 360;
   } else {
@@ -108,13 +108,13 @@ bool ShapeReader::initializeProjection(const QRectF& r) {
     Q_ASSERT(false);
   }
 
-  if (w > 180.) {
-    qCDebug(CENC) << "Large extent" << w << ", shifting reference longitude";
+  if (w > 175.) {
     const auto ref = m_proj->reference();
     m_proj->setReference(WGS84Point::fromLL(m_sw.lng() + .5 * w, ref.lat()));
-    m_xShift = (m_proj->reference().radiansLng() - ref.radiansLng()) * z0;
+    m_xShift = (ref.radiansLng() - m_proj->reference().radiansLng()) * z0;
     m_box.setLeft(m_box.left() + m_xShift);
     m_box.setRight(m_box.right() + m_xShift);
+    qCDebug(CENC) << "Large extent" << w << ", shifting reference longitude" << m_proj->reference().lng();
   }
 
   return true;
@@ -286,7 +286,7 @@ void ShapeReader::read(GL::VertexVector& vertices,
     Q_ASSERT(contentLen2 == 0);
 
     if (is.isEmpty() && vertices.size() == prevSize && cornerIn) {
-      qDebug() << recNum << ": Polygon covers whole box";
+      // qCDebug(CENC) << recNum << ": Polygon covers whole box";
       auto area = createBoxGeometry(vertices, indices);
       GeomArea geom {area, originalBox()};
       geoms.append(geom);
@@ -456,7 +456,7 @@ void ShapeReader::createAreaGeometries(GeomAreaVector& geoms,
     const auto lastSize = vertices.size();
     while (xps[j].type == XP::Type::Corner) {
       const auto p = toVertex(xps[j].s);
-      vertices << p.x() << p.y();
+      vertices << p.x() - m_xShift << p.y();
       j = (j + M + 1) % M;
     }
     Edge cornerEdge(i2, xps[j].index, lastSize / 2, (vertices.size() - lastSize) / 2);
