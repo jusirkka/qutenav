@@ -500,15 +500,13 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
   }
   // create pending chart creation data
   if (!newCharts.isEmpty()) {
-    QString sql = "select chart_id, priority, path "
-                  "from m.charts "
-                  "where chart_id in (";
-    sql += QString("?,").repeated(newCharts.size());
-    sql = sql.replace(sql.length() - 1, 1, ")");
+    auto sql = QString("select chart_id, priority, path "
+                       "from m.charts "
+                       "where chart_id in (?%1)")
+               .arg(QString(",?").repeated(newCharts.size() - 1));
     QSqlQuery r = m_db.prepare(sql);
-    for (int i = 0; i < newCharts.size(); i++) {
-      r.bindValue(i, QVariant::fromValue(newCharts[i]));
-    }
+    int cnt = 0;
+    for (auto nc: newCharts) r.bindValue(cnt++, nc);
     m_db.exec(r);
     while (r.next()) {
       const quint32 id = r.value(0).toUInt();
@@ -561,26 +559,17 @@ KV::RegionMap ChartManager::findCharts(KV::Region& remainingArea, qreal& cov, co
 
   const auto totarea = remainingArea.area();
 
-
   for (quint32 scale: scales) {
 
     const auto box = remainingArea.boundingRect();
     const WGS84Point sw0 = cam->geoprojection()->toWGS84(box.topLeft()); // inverted y-axis
     const WGS84Point ne0 = cam->geoprojection()->toWGS84(box.bottomRight()); // inverted y-axis
 
-    // select charts
-    QSqlQuery r = m_db.prepare("select chart_id, swx, swy, nex, ney, path "
-                               "from m.charts "
-                               "where scale = ? and "
-                               "      swx < ? and swy < ? and "
-                               "      nex > ? and ney > ?");
-    r.bindValue(0, scale);
-    r.bindValue(1, ne0.lng(sw0));
-    r.bindValue(2, ne0.lat());
-    r.bindValue(3, sw0.lng());
-    r.bindValue(4, sw0.lat());
+    // qCDebug(CMGR) << "Extent" << scale << sw0.lng() << ne0.lng(sw0);
 
-    m_db.exec(r);
+    // select charts
+    QSqlQuery r = m_db.charts(scale, sw0, ne0);
+
     while (r.next() && cov < minCoverage) {
       quint32 id = r.value(0).toUInt();
 
@@ -647,7 +636,6 @@ void ChartManager::manageThreads(S57Chart* chart) {
     }
   }
 
-
   // qCDebug(CMGR) << "chartmanager" << m_idleStack.size() << "/" << m_workers.size();
   if (m_idleStack.size() == m_workers.size()) {
     // Sort charts in priority order
@@ -708,23 +696,7 @@ void ChartManager::handleSmallScales(const ScaleVector& scales,
     // qCDebug(CMGR) << "chunk" << candidates;
 
     // find available scales
-    const auto sql0 = QString("select distinct scale "
-                              "from m.charts "
-                              "where scale in (?%1) and "
-                              "swx < ? and swy < ? and nex > ? and ney > ? "
-                              "order by scale desc")
-                      .arg(QString(",?").repeated(candidates.size() - 1));
-
-    QSqlQuery r0 = m_db.prepare(sql0);
-
-    int cnt = 0;
-    for (auto s: candidates) r0.bindValue(cnt++, s);
-    r0.bindValue(cnt++, ne0.lng(sw0));
-    r0.bindValue(cnt++, ne0.lat());
-    r0.bindValue(cnt++, sw0.lng());
-    r0.bindValue(cnt++, sw0.lat());
-
-    m_db.exec(r0);
+    auto r0 = m_db.scales(candidates, sw0, ne0);
 
     candidates.clear();
     while (r0.next() && candidates.size() < depth) {
@@ -739,25 +711,7 @@ void ChartManager::handleSmallScales(const ScaleVector& scales,
     }
     depth -= candidates.size();
 
-    const auto sql1 = QString("select cv.id, p.x, p.y from "
-                              "m.polygons p "
-                              "join m.coverage cv on p.cov_id = cv.id "
-                              "join m.charts c on c.chart_id = cv.chart_id "
-                              "where cv.type_id=1 and c.scale in (?%1) and "
-                              "c.swx < ? and c.swy < ? and c.nex > ? and c.ney > ? "
-                              "order by cv.id, p.id")
-                      .arg(QString(",?").repeated(candidates.size() - 1));
-
-    QSqlQuery r1 = m_db.prepare(sql1);
-
-    cnt = 0;
-    for (auto s: candidates) r1.bindValue(cnt++, s);
-    r1.bindValue(cnt++, ne0.lng(sw0));
-    r1.bindValue(cnt++, ne0.lat());
-    r1.bindValue(cnt++, sw0.lng());
-    r1.bindValue(cnt++, sw0.lat());
-
-    m_db.exec(r1);
+    auto r1 = m_db.coverage(candidates, sw0, ne0);
 
     int prev = -1;
     WGS84PointVector ps;

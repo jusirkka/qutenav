@@ -13,4 +13,3 @@ Before 1.0:
 - mobile: rendering is too slow, esp. s57, cm93
 - mobile: oesu support
 - oexserverd on-demand restart
-- check that chart db fetches work across dateline

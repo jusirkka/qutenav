@@ -1110,11 +1110,7 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
           bool ok;
           acode = S52::FindCIndex(a->name(), &ok);
           if (!ok) {
-            qCWarning(CENC) << "Unknown attribute"
-                       << S52::GetClassInfo(featureCode)
-                       << a->name()
-                       << a->type()
-                       << a->value();
+            // qCWarning(CENC) << "Unknown attribute" << S52::GetClassInfo(featureCode) << a->name() << a->type() << a->value();
             continue;
           }
         }

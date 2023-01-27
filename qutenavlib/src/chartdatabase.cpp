@@ -113,6 +113,94 @@ void ChartDatabase::createTables() {
   QSqlDatabase::removeDatabase("ChartDatabase::createTables");
 }
 
+QSqlQuery& ChartDatabase::scales(const ScaleVector& candidates,
+                                 const WGS84Point& sw0,
+                                 const WGS84Point& ne0) {
+  m_Query = QSqlQuery(m_DB);
+
+  QStringList holders;
+  for (int i = 0; i < candidates.size(); ++i) {
+    holders << QString(":x%1").arg(i);
+  }
+
+  m_Query.prepare(QString("select distinct scale "
+                          "from m.charts "
+                          "where scale in (%1) and %2 "
+                          "order by scale desc")
+                  .arg(holders.join(","))
+                  .arg(boxConstraint));
+
+  for (int i = 0; i < candidates.size(); ++i) {
+    m_Query.bindValue(holders[i], candidates[i]);
+  }
+  bindBox(sw0, ne0);
+
+  m_Query.exec();
+
+  return m_Query;
+}
+
+QSqlQuery& ChartDatabase::coverage(const ScaleVector& candidates,
+                                   const WGS84Point& sw0,
+                                   const WGS84Point& ne0) {
+
+  QStringList holders;
+  for (int i = 0; i < candidates.size(); ++i) {
+    holders << QString(":x%1").arg(i);
+  }
+
+  m_Query.prepare(QString("select cv.id, p.x, p.y from "
+                          "m.polygons p "
+                          "join m.coverage cv on p.cov_id = cv.id "
+                          "join m.charts c on c.chart_id = cv.chart_id "
+                          "where cv.type_id=1 and c.scale in (%1) and %2 "
+                          "order by cv.id, p.id")
+                  .arg(holders.join(","))
+                  .arg(boxConstraint));
+
+  for (int i = 0; i < candidates.size(); ++i) {
+    m_Query.bindValue(holders[i], candidates[i]);
+  }
+  bindBox(sw0, ne0);
+
+  m_Query.exec();
+
+  return m_Query;
+}
+
+QSqlQuery& ChartDatabase::charts(quint32 scale,
+                                 const WGS84Point& sw0,
+                                 const WGS84Point& ne0) {
+
+  m_Query = QSqlQuery(m_DB);
+  m_Query.prepare(QString("select chart_id, swx, swy, nex, ney, path "
+                          "from m.charts "
+                          "where scale = :scale and %1")
+                  .arg(boxConstraint));
+
+  m_Query.bindValue(":scale", scale);
+  bindBox(sw0, ne0);
+
+  m_Query.exec();
+
+  return m_Query;
+}
+
+static double diff(double x1, double x2) {
+  auto d = x2 - x1;
+  while (d < 0.) d += 360.;
+  while (d >= 360.) d -= 360.;
+  return d;
+}
+
+void ChartDatabase::bindBox(const WGS84Point& sw0, const WGS84Point& ne0) {
+  m_Query.bindValue(":d0", diff(sw0.lng(), ne0.lng()));
+  m_Query.bindValue(":swx", sw0.lng());
+  m_Query.bindValue(":swy", sw0.lat());
+  m_Query.bindValue(":ney", ne0.lat());
+}
+
+
 
 void ChartDatabase::loadCharts(int chartset_id) {
   m_Query = QSqlQuery(m_DB);
