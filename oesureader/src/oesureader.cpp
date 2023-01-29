@@ -192,10 +192,20 @@ QStringList OesuReaderFactory::filters() const {
   return QStringList {"*.oesu"};
 }
 
-void OesuReaderFactory::initialize(const QStringList&) const {
-  OCDevice::Kickoff(OesuDevice::serverPath, OesuDevice::serverEPName);
-}
-
 ChartFileReader* OesuReaderFactory::create() const {
   return new OesuReader(name());
+}
+
+class OesuServerManager: public OCServerManager {
+public:
+  static OesuServerManager* instance() {
+    static auto manager = new OesuServerManager();
+    return manager;
+  }
+private:
+  OesuServerManager(): OCServerManager(OesuDevice::serverPath, OesuDevice::serverEPName) {}
+};
+
+void OesuReaderFactory::initialize(const QStringList&) const {
+  OesuServerManager::instance()->init();
 }

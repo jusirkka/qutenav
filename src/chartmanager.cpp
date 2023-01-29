@@ -437,9 +437,8 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
   if (regions.isEmpty()) {
     std::reverse(smallScales.begin(), smallScales.end());
     // qCDebug(CMGR) << "target" << m_scale << ", candidates" << smallScales;
-    while (!smallScales.isEmpty()) {
+    while (!smallScales.isEmpty() && regions.isEmpty()) {
       regions = findCharts(remainingArea, cov, ScaleVector {smallScales.takeFirst()}, cam);
-      if (!regions.isEmpty()) break;
     }
     std::reverse(smallScales.begin(), smallScales.end());
   }

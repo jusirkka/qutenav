@@ -28,6 +28,7 @@
 #include "types.h"
 #include <QApplication>
 #include <QCryptographicHash>
+#include <QFileSystemWatcher>
 #include <QProcess>
 
 extern "C" {
@@ -182,35 +183,83 @@ QByteArray OCDevice::CacheId(const QString& path) {
   return QByteArray::number(*reinterpret_cast<const quint64*>(hash.result().constData()), 36).left(8);
 }
 
-void OCDevice::Kickoff(const char* serverPath, const char* serverEPName) {
-  int cnt = 10;
-  auto serverEP = ::open(serverEPName, O_WRONLY | O_NDELAY);
-  while ((serverEP < 0) && (cnt > 0)) {
-    qCDebug(CENC) << strerror(errno);
+int OCServerManager::checkServer() const {
+
+  QProcess pidof;
+  pidof.setProgram("pidof");
+  pidof.setArguments(QStringList() << m_serverPath);
+
+  pidof.start(QIODevice::ReadOnly);
+  pidof.waitForFinished();
+  bool up;
+  int pid = pidof.readAll().toInt(&up);
+  if (up) {
+    qCDebug(CENC) << m_serverPath << "is running";
+  }
+
+  const auto ep = QFileInfo(m_serverEP);
+  if (up && ep.exists()) {
+    qCDebug(CENC) << m_serverEP << "exists";
+    return pid;
+  }
+
+  for (const QString& dir: m_watcher->directories()) {
+    qCDebug(CENC) << "unwatching" << dir;
+    m_watcher->removePath(dir);
+  }
+  for (const QString& file: m_watcher->files()) {
+    qCDebug(CENC) << "unwatching" << file;
+    m_watcher->removePath(file);
+  }
+
+  QDir(ep.absolutePath()).remove(ep.fileName());
+
+  QProcess kill;
+  kill.start("killall", QStringList() << m_serverPath);
+  kill.waitForFinished();
+
+  qCDebug(CENC) << "starting" << m_serverPath;
+  QProcess server;
+  server.start(m_serverPath);
+  server.waitForFinished();
+
+  pidof.start(QIODevice::ReadOnly);
+  pidof.waitForFinished();
+  pid = pidof.readAll().toInt(&up);
+  if (!up) {
+    throw ChartFileError(QString("Cannot start %1").arg(m_serverPath));
+  }
+
+  int cnt = 100;
+  while (!ep.exists() && cnt > 0) {
+    qCDebug(CENC) << "Waiting for" << m_serverEP << "...";
     usleep(20000);
-    serverEP = ::open(serverEPName, O_WRONLY | O_NDELAY);
     cnt--;
   }
-  if (serverEP > 0) {
-    qCDebug(CENC) << serverPath << "already running";
-    ::close(serverEP);
-    return;
+  if (cnt <= 0) {
+    throw ChartFileError(QString("%1 didn't create %2").arg(m_serverPath).arg(m_serverEP));
   }
 
-  bool ok = QProcess::startDetached(QString(serverPath), QStringList());
-  qCDebug(CENC) << "launched" << serverPath << ", status =" << ok;
+  return pid;
+}
 
-  serverEP = ::open(serverEPName, O_WRONLY | O_NDELAY);
-  cnt = 20;
-  while ((serverEP < 0) && (cnt > 0)) {
-    qCDebug(CENC) << strerror(errno);
-    usleep(10000);
-    serverEP = ::open(serverEPName, O_WRONLY | O_NDELAY);
-    cnt--;
-  }
-  if (serverEP < 0) {
-    throw ChartFileError(QString("%1 launched with status %2: cannot open %3")
-                         .arg(QString(serverPath)).arg(ok).arg(QString(serverEPName)));
-  }
-  ::close(serverEP);
+OCServerManager::OCServerManager(const QString& serverPath, const QString& serverEP)
+  : QObject()
+  , m_watcher(new QFileSystemWatcher(this))
+  , m_serverPath(serverPath)
+  , m_serverEP(serverEP)
+{
+  serverRestart("initial");
+  connect(m_watcher, &QFileSystemWatcher::fileChanged, this, &OCServerManager::serverRestart);
+  connect(m_watcher, &QFileSystemWatcher::directoryChanged, this, &OCServerManager::serverRestart);
+}
+
+void OCServerManager::serverRestart(const QString& path) {
+  qCDebug(CENC) << "changed:" << path;
+  int pid = checkServer();
+  const QString procdir = QString("/proc/%1").arg(pid);
+  m_watcher->addPath(procdir);
+  m_watcher->addPath(m_serverEP);
+
+  qCDebug(CENC) << m_watcher->files() << m_watcher->directories();
 }

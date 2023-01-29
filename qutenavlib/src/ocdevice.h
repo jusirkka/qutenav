@@ -26,6 +26,8 @@
 
 using ReadMode = OCHelper::ReadMode;
 
+class QFileSystemWatcher;
+
 class OCDevice: public QIODevice {
 
   Q_OBJECT
@@ -61,6 +63,28 @@ private:
 
   QString m_clientEPName;
   int m_clientEP = -1;
+};
+
+class OCServerManager: public QObject {
+  Q_OBJECT
+
+public:
+
+  OCServerManager(const QString& serverPath, const QString& serverEP);
+
+  void init() {/* dummy */}
+
+private slots:
+
+  void serverRestart(const QString& path);
+
+private:
+
+  int checkServer() const;
+
+  QFileSystemWatcher* m_watcher;
+  const QString m_serverPath;
+  const QString m_serverEP;
 };
 
 

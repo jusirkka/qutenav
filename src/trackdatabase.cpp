@@ -183,16 +183,14 @@ void TrackDatabase::remove(quint32 id) {
     while (r0.next()) {
       eids << r0.value(0).toUInt();
     }
-    auto sql = QString("delete from events where id in (");
-    sql += QString("?,").repeated(eids.size());
-    sql = sql.replace(sql.length() - 1, 1, ")");
-    r0 = prepare(sql);
-    int index = 0;
-    for (auto eid: eids) {
-      r0.bindValue(index, eid);
-      index++;
+
+    if (!eids.isEmpty()) {
+      r0 = prepare(QString("delete from events where id in (?%1)")
+                   .arg(QString(",?").repeated(eids.size() - 1)));
+      int index = 0;
+      for (auto eid: eids) r0.bindValue(index++, eid);
+      exec(r0);
     }
-    exec(r0);
 
     r0 = prepare("delete from strings where track_id = ?");
     r0.bindValue(0, id);

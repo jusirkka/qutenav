@@ -157,8 +157,18 @@ QStringList OesencReaderFactory::filters() const {
   return QStringList {"*.oesenc"};
 }
 
+class OesencServerManager: public OCServerManager {
+public:
+  static OesencServerManager* instance() {
+    static auto manager = new OesencServerManager();
+    return manager;
+  }
+private:
+  OesencServerManager(): OCServerManager(OesencDevice::serverPath, OesencDevice::serverEPName) {}
+};
+
 void OesencReaderFactory::initialize(const QStringList&) const {
-  OCDevice::Kickoff(OesencDevice::serverPath, OesencDevice::serverEPName);
+  OesencServerManager::instance()->init();
 }
 
 ChartFileReader* OesencReaderFactory::create() const {

@@ -43,10 +43,10 @@ public:
 private:
 
   static const inline QString boxConstraint =
-      "not iif(swx - :swx < 0, swx - :swx + 360, iif(swx - :swx >= 360, swx - :swx - 360, swx - :swx)) "
+      "(not iif(swx - :swx < 0, swx - :swx + 360, iif(swx - :swx >= 360, swx - :swx - 360, swx - :swx)) "
       "between :d0 and "
-      "iif(nex - :swx < 0, nex - :swx + 360, iif(nex - :swx >= 360, nex - :swx - 360, nex - :swx)) "
-      "and swy < :ney and ney > :swy";
+      "iif(nex - :swx < 0, nex - :swx + 360, iif(nex - :swx >= 360, nex - :swx - 360, nex - :swx))"
+      ") and swy < :ney and ney > :swy";
 
   void bindBox(const WGS84Point& sw0, const WGS84Point& ne0);
 };
