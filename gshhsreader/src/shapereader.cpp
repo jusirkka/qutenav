@@ -114,7 +114,7 @@ bool ShapeReader::initializeProjection(const QRectF& r) {
     m_xShift = (ref.radiansLng() - m_proj->reference().radiansLng()) * z0;
     m_box.setLeft(m_box.left() + m_xShift);
     m_box.setRight(m_box.right() + m_xShift);
-    qCDebug(CENC) << "Large extent" << w << ", shifting reference longitude" << m_proj->reference().lng();
+    // qCDebug(CENC) << "Large extent" << w << ", shifting reference longitude" << m_proj->reference().lng();
   }
 
   return true;

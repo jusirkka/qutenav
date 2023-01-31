@@ -30,6 +30,7 @@
 #include <QCryptographicHash>
 #include <QFileSystemWatcher>
 #include <QProcess>
+#include "platform.h"
 
 extern "C" {
 #include <sys/types.h>
@@ -38,11 +39,11 @@ extern "C" {
 #include <unistd.h>
 }
 
-OCDevice::OCDevice(const QString &path, ReadMode mode, const OCHelper* helper, const char* serverEPName)
+OCDevice::OCDevice(const QString &path, ReadMode mode, const char* serverEPName)
   : QIODevice()
   , m_mode(mode)
   , m_path(path)
-  , m_helper(helper)
+  , m_helper(OCHelper::getHelper(path))
   , m_serverEPName(serverEPName)
 {
 
@@ -52,14 +53,14 @@ OCDevice::OCDevice(const QString &path, ReadMode mode, const OCHelper* helper, c
     throw ChartFileError(QString("Chart path %1 longer than 255 bytes").arg(m_path));
   }
 
-  m_chartKey = helper->getChartKey(m_path);
+  m_chartKey = m_helper->getChartKey(m_path);
 
   // Create client endpoint
   m_clientEPName = QString("%1/%2-%3-%4-%5")
       .arg(QDir::tempPath())
       .arg(QApplication::applicationName())
       .arg(QApplication::applicationPid())
-      .arg(static_cast<int>(helper->getCommand(m_mode)))
+      .arg(static_cast<int>(m_helper->getCommand(m_mode)))
       .arg(QString(CacheId(m_path)));
 
   if (m_clientEPName.size() > 255) {
@@ -78,13 +79,14 @@ OCDevice::OCDevice(const QString &path, ReadMode mode, const OCHelper* helper, c
 }
 
 OCDevice::~OCDevice() {
-  qCDebug(CENC) << "~OCDevice";
-  delete m_helper;
+  // qCDebug(CENC) << "~OCDevice";
   close();
 }
 
 bool OCDevice::atEnd() const {
-  // qCDebug(CENC) << "OCDevice::atEnd" << (m_clientEP < 0);
+  if  (m_clientEP < 0) {
+    qCDebug(CENC) << "OCDevice::atEnd" << m_clientEPName;
+  }
   return m_clientEP < 0;
 }
 
@@ -94,13 +96,13 @@ qint64 OCDevice::bytesAvailable() const {
 }
 
 void OCDevice::close() {
-  qCDebug(CENC) << "OCDevice::close";
+  // qCDebug(CENC) << "OCDevice::close";
   if (m_clientEP > 0) {
     ::close(m_clientEP);
   }
   QFileInfo tmp(m_clientEPName);
   if (tmp.exists()) {
-    qCDebug(CENC) << "removing" << m_clientEPName;
+    // qCDebug(CENC) << "removing" << m_clientEPName;
     QDir::temp().remove(m_clientEPName);
   }
 }
@@ -132,7 +134,7 @@ bool OCDevice::open(OpenMode mode) {
 
   ::close(serverEP);
 
-  m_clientEP = ::open(m_clientEPName.toUtf8().constData(), O_RDONLY);
+  m_clientEP = ::open(m_clientEPName.toUtf8().constData(), O_RDONLY | O_NONBLOCK);
   if (m_clientEP < 0) {
     qCWarning(CENC) << strerror(errno);
     return false;
@@ -155,13 +157,12 @@ qint64 OCDevice::readData(char* data, qint64 len) {
 
     size_t bytesToRead = qMin(remains, READ_SIZE);
     const int ret = ::read(m_clientEP, data + bytesRead, bytesToRead);
-    if (ret < 0) {
+    if (ret < 0 && errno != EAGAIN) {
       qCWarning(CENC) << strerror(errno);
       return -1;
     }
 
-    // Server may not have opened the Write end of the FIFO yet
-    if (ret == 0) {
+    if (ret <= 0) {
       usleep(1000);
       sleepCnt--;
       continue;
@@ -172,6 +173,10 @@ qint64 OCDevice::readData(char* data, qint64 len) {
     bytesRead += ret;
 
   } while (remains > 0 && sleepCnt > 0);
+
+  if (sleepCnt <= 0) {
+    return -1;
+  }
 
   return bytesRead;
 }
@@ -192,14 +197,14 @@ int OCServerManager::checkServer() const {
   pidof.start(QIODevice::ReadOnly);
   pidof.waitForFinished();
   bool up;
-  int pid = pidof.readAll().toInt(&up);
-  if (up) {
-    qCDebug(CENC) << m_serverPath << "is running";
-  }
+  int pid = pidof.readAll().trimmed().toInt(&up);
+  //  if (up) {
+  //    qCDebug(CENC) << m_serverPath << "is running";
+  //  }
 
-  const auto ep = QFileInfo(m_serverEP);
+  const QFileInfo ep(m_serverEP);
   if (up && ep.exists()) {
-    qCDebug(CENC) << m_serverEP << "exists";
+    // qCDebug(CENC) << m_serverEP << "exists";
     return pid;
   }
 
@@ -225,20 +230,21 @@ int OCServerManager::checkServer() const {
 
   pidof.start(QIODevice::ReadOnly);
   pidof.waitForFinished();
-  pid = pidof.readAll().toInt(&up);
+  pid = pidof.readAll().trimmed().toInt(&up);
   if (!up) {
     throw ChartFileError(QString("Cannot start %1").arg(m_serverPath));
   }
 
   int cnt = 100;
   while (!ep.exists() && cnt > 0) {
-    qCDebug(CENC) << "Waiting for" << m_serverEP << "...";
+    qCDebug(CENC) << "Waiting for" << m_serverPath << "to create" << m_serverEP << "...";
     usleep(20000);
     cnt--;
   }
   if (cnt <= 0) {
     throw ChartFileError(QString("%1 didn't create %2").arg(m_serverPath).arg(m_serverEP));
   }
+  qCDebug(CENC) << m_serverPath << "is in service";
 
   return pid;
 }
@@ -250,16 +256,19 @@ OCServerManager::OCServerManager(const QString& serverPath, const QString& serve
   , m_serverEP(serverEP)
 {
   serverRestart("initial");
-  connect(m_watcher, &QFileSystemWatcher::fileChanged, this, &OCServerManager::serverRestart);
-  connect(m_watcher, &QFileSystemWatcher::directoryChanged, this, &OCServerManager::serverRestart);
+  if (Platform::base_app_name() == qAppName()) { // do not watch in dbupdater
+    connect(m_watcher, &QFileSystemWatcher::fileChanged, this, &OCServerManager::serverRestart);
+    connect(m_watcher, &QFileSystemWatcher::directoryChanged, this, &OCServerManager::serverRestart);
+  }
 }
 
-void OCServerManager::serverRestart(const QString& path) {
-  qCDebug(CENC) << "changed:" << path;
+void OCServerManager::serverRestart(const QString& /*path*/) {
+  // qCDebug(CENC) << "changed:" << path;
   int pid = checkServer();
-  const QString procdir = QString("/proc/%1").arg(pid);
-  m_watcher->addPath(procdir);
-  m_watcher->addPath(m_serverEP);
-
-  qCDebug(CENC) << m_watcher->files() << m_watcher->directories();
+  if (Platform::base_app_name() == qAppName()) { // do not watch in dbupdater
+    const QString procdir = QString("/proc/%1").arg(pid);
+    m_watcher->addPath(procdir);
+    m_watcher->addPath(m_serverEP);
+    // qCDebug(CENC) << "Watching" << m_watcher->files() << m_watcher->directories();
+  }
 }

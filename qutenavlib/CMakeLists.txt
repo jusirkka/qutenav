@@ -14,6 +14,7 @@ target_sources(QuteNavLib
     src/logging.cpp
     src/osenc.cpp
     src/ocdevice.cpp
+    src/ochelper.cpp
     src/platform.cpp
     src/region.cpp
     src/s52names.cpp

@@ -156,7 +156,7 @@ void GSHHSReader::readChart(GL::VertexVector& vertices,
   for (int i = 1; i <= 4; i++) {
     GVector geoms;
     reader.read(vertices, indices, geoms, GSHHG::ShapeFiles::instance()->path(i, lvl));
-    qDebug() << "Appending" << geoms.size() << "objects of type" << i;
+    // qDebug() << "Appending" << geoms.size() << "objects of type" << i;
     quint32 index = i * 100000;
     for (const GeomArea& geom: geoms) {
       auto obj = new S57::Object(index++, newobj);

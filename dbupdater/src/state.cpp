@@ -29,6 +29,7 @@
 #include <QStateMachine>
 #include <QThread>
 #include <QDebug>
+#include "platform.h"
 
 State::Busy::Busy()
   : QState()
@@ -47,10 +48,27 @@ State::Busy::~Busy() {
   qDeleteAll(m_readers);
 }
 
+void State::Busy::createThreads() {
+  for (int i = 0; i < Platform::number_of_chart_threads(); ++i) {
+    qDebug() << "creating thread" << i;
+    auto thread = new QThread;
+    qDebug() << "creating worker" << i;
+    auto worker = new Worker(m_workers.size());
+    connect(thread, &QThread::finished, worker, &QObject::deleteLater);
+    connect(worker, &State::Worker::done, this, &State::Busy::outlineCreated);
+    qDebug() << "moving worker to thread" << i;
+    worker->moveToThread(thread);
+    qDebug() << "starting thread" << i;
+    thread->start();
+    m_threads.append(thread);
+    m_workers.append(worker);
+  }
+  qDebug() << "threads started";
+}
+
 void State::Busy::onEntry(QEvent* event) {
   if (event->type() == QEvent::StateMachineSignal) {
     auto ev = static_cast<QStateMachine::SignalEvent*>(event);
-
 
     auto paths = ev->arguments()[0].toStringList();
 
@@ -111,7 +129,7 @@ void State::Busy::manageCharts(const QStringList& dirs) {
   m_newOutlines.clear();
   m_chartReaders = candidates;
   m_currentReader = m_chartReaders.begin();
-  m_jobCount = 0;
+  m_jobEndCount = 0;
   m_updateFailCount = 0;
   m_insertFailCount = 0;
   for (Worker* worker: m_workers) {
@@ -124,30 +142,13 @@ void State::Busy::manageCharts(const QStringList& dirs) {
   }
 }
 
-void State::Busy::createThreads() {
-  for (int i = 0; i < numberOfThreads; ++i) {
-    qDebug() << "creating thread" << i;
-    auto thread = new QThread;
-    qDebug() << "creating worker" << i;
-    auto worker = new Worker(m_workers.size());
-    connect(thread, &QThread::finished, worker, &QObject::deleteLater);
-    connect(worker, &State::Worker::done, this, &State::Busy::outlineCreated);
-    qDebug() << "moving worker to thread" << i;
-    worker->moveToThread(thread);
-    qDebug() << "starting thread" << i;
-    thread->start();
-    m_threads.append(thread);
-    m_workers.append(worker);
-  }
-  qDebug() << "threads started";
-}
 
 void State::Busy::outlineCreated(const QString& path,
                                  bool ok,
                                  const S57ChartOutline& outline) {
   if (!active()) return;
 
-  m_jobCount += 1;
+  m_jobEndCount += 1;
 
   if (ok) {
     if (m_currentCharts.contains(path)) {
@@ -173,7 +174,7 @@ void State::Busy::outlineCreated(const QString& path,
     }
   }
 
-  if (m_jobCount == m_chartReaders.size()) {
+  if (m_jobEndCount == m_chartReaders.size()) {
     if (m_chartOutlines.size() % statusFrequency != 0) {
       emit status(QString("Update:%1:%1").arg(m_chartOutlines.size()));
     }

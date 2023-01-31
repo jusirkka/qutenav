@@ -145,7 +145,7 @@ private:
   WGS84Point m_ref;
   QRectF m_viewport;
   QRectF m_viewArea;
-  quint32 m_scale;
+  quint32 m_scale = 0;
   IDMap m_chartIds;
   ScaleVector m_scales;
 

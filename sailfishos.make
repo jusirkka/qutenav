@@ -86,9 +86,9 @@ install:
 	cp $(BUILDDIR)/$(BASEUPD) $(BINDIR)/$(UPD)
 	chmod 755 $(BINDIR)/$(NAME)
 	chmod 755 $(BINDIR)/$(UPD)
-	@echo "Installing oeserverd binaries..."
+	@echo "Installing oexserverd binaries..."
 	mkdir -p $(LIBDIR)
-	cp data-$(ARCH)/oeserverd $(BINDIR)
+	cp data-$(ARCH)/oexserverd $(BINDIR)
 	cp data-$(ARCH)/libsgl*.so $(LIBDIR)
 	@echo "Installing wavefront object files..."
 	mkdir -p $(DATADIR)/globe

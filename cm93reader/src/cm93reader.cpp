@@ -1224,13 +1224,13 @@ static bool cm93CheckCoverage(const PRegion& cov,
   sw = gp->toWGS84(ll);
   ne = gp->toWGS84(ur);
   if (sw == WGS84Point::fromLL(ne.lng(), sw.lat())) {
-    qCDebug(CENC) << ll << ur;
-    qCDebug(CENC) << sw.lng() << sw.lat() << ne.lng() << ne.lat();
+    // qCDebug(CENC) << ll << ur;
+    // qCDebug(CENC) << sw.lng() << sw.lat() << ne.lng() << ne.lat();
     throw ChartFileError("Too narrow coverage");
   }
   if (sw == WGS84Point::fromLL(sw.lng(), ne.lat())) {
-    qCDebug(CENC) << ll << ur;
-    qCDebug(CENC) << sw.lng() << sw.lat() << ne.lng() << ne.lat();
+    // qCDebug(CENC) << ll << ur;
+    // qCDebug(CENC) << sw.lng() << sw.lat() << ne.lng() << ne.lat();
     throw ChartFileError("Too low coverage");
   }
   return true;
@@ -1279,7 +1279,7 @@ PRegion CM93Reader::createCoverage(const GL::VertexVector &vertices,
     if (qs.size() > 5) {
       ChartFileReader::reduceRDP(qs, eps);
       for (int cnt = 0; qs.size() < 3 && cnt < 20; ++cnt) {
-        qCWarning(CENC) << "Too much RDP reduction" << ps.size() << "->" << qs.size();
+        // qCWarning(CENC) << "Too much RDP reduction" << ps.size() << "->" << qs.size();
         eps /= 2;
         qs = ps;
         ChartFileReader::reduceRDP(qs, eps);

@@ -63,7 +63,6 @@ private slots:
 private:
 
   static const int statusFrequency = 50;
-  static const int numberOfThreads = 5;
 
 
   void loadPlugins();
@@ -114,7 +113,7 @@ private:
   ReaderHash::iterator m_currentReader;
   OutlineHash m_newOutlines;
   OutlineHash m_chartOutlines;
-  int m_jobCount;
+  int m_jobEndCount;
   int m_updateFailCount;
   int m_insertFailCount;
 };

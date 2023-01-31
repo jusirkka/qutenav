@@ -34,7 +34,7 @@ class OCDevice: public QIODevice {
 
 public:
 
-  OCDevice(const QString& path, ReadMode mode, const OCHelper* helper, const char* serverEPName);
+  OCDevice(const QString& path, ReadMode mode, const char* serverEPName);
   virtual ~OCDevice();
 
   bool atEnd() const override;

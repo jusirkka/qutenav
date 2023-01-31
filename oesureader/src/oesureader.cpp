@@ -20,88 +20,14 @@
 #include "oesureader.h"
 #include "osenc.h"
 #include "ocdevice.h"
-#include <QFileInfo>
-#include <QDirIterator>
-#include <QXmlStreamReader>
 #include "logging.h"
+#include <QFileInfo>
 
-class OesuHelper: public OCHelper {
-public:
-  QString getChartKey(const QString& path) const override {
-    // 1. Find all xml files
-    QFileInfo info(path);
-    const QString base = info.baseName();
-    QDirIterator xmls(info.path(), {"*.XML", "*.xml"}, QDir::Files);
-    while (xmls.hasNext()) {
-      const QString fname = xmls.next();
-      // 3. for each xml file: check if it's a keylist file
-      QFile file(fname);
-      file.open(QFile::ReadOnly);
-      QXmlStreamReader reader(&file);
-      reader.readNextStartElement();
-      if (reader.name() != "keyList") continue;
-      // 4. Find <Chart> by <FileName> (basename of path) in <keylist>
-      while (reader.readNextStartElement()) {
-        if (reader.name() != "Chart") {
-          reader.skipCurrentElement();
-          continue;
-        }
-        bool found = false;
-        QString key;
-        while (reader.readNextStartElement()) {
-          if (reader.name() == "FileName") {
-            found = reader.readElementText() == base;
-          } else if (reader.name() == "RInstallKey") {
-            key = reader.readElementText();
-          } else {
-            reader.skipCurrentElement();
-          }
-          if (found && !key.isEmpty()) {
-            if (key.size() > 512) {
-              throw ChartFileError(QString("Chart key %1 is longer than 512 bytes").arg(key));
-            }
-            // 5. return <RInstallKey>
-            return key;
-          }
-        }
-      }
-    }
-
-    throw ChartFileError(QString("Chart key not found in Chartkey file %1").arg(info.path()));
-
-    return QString();
-  }
-
-  char getCommand(ReadMode mode) const override {
-    return readModeMap[mode];
-  }
-
-  QByteArray encodeMsg(ReadMode mode, const QString& path, const QString& endPoint, const QString& chartKey) const override {
-    return OCHelperNS::encodeMsg<FifoMessage>(this, mode, path, endPoint, chartKey);
-  }
-
-  virtual ~OesuHelper() = default;
-
-private:
-
-  static const inline QMap<ReadMode, char> readModeMap =  {
-    {ReadMode::ReadHeader, 9},
-    {ReadMode::ReadSENC, 8},
-  };
-
-  struct FifoMessage {
-    char cmd;
-    char fifo_name[256];
-    char senc_name[256];
-    char senc_key[512];
-  };
-
-};
 
 class OesuDevice: public OCDevice {
 public:
   OesuDevice(const QString& path, ReadMode mode):
-    OCDevice(path, mode, new OesuHelper, serverEPName) {}
+    OCDevice(path, mode, serverEPName) {}
 
   static inline const char serverEPName[] = "/tmp/OCPN_PIPEX";
   static inline const char serverPath[] = "/usr/bin/oexserverd";
@@ -121,7 +47,9 @@ OesuReader::~OesuReader() {
   delete m_proj;
 }
 
-static void read_server_status(const QString& /*path*/, QIODevice* device) {
+static void read_server_status(const QString& path, QIODevice* device) {
+   // a hack to skip oesenc files: server does not send status for these
+  if (QFileInfo(path).suffix() == "oesenc") return;
   QDataStream stream(device);
   Buffer buffer;
   // auto status =
@@ -189,7 +117,7 @@ QString OesuReaderFactory::displayName() const {
 }
 
 QStringList OesuReaderFactory::filters() const {
-  return QStringList {"*.oesu"};
+  return QStringList {"*.oesu", "*.oesenc"};
 }
 
 ChartFileReader* OesuReaderFactory::create() const {

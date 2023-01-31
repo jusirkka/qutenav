@@ -232,8 +232,8 @@ template<typename T> const T* read_record(Buffer& buffer, QDataStream& stream, S
   auto record = reinterpret_cast<OSENC_Record_Base*>(buffer.data());
   // Check the record
   if (record->record_type != type){
-    throw ChartFileError(QString("Not a supported senc file: expecting type %1")
-                         .arg(as_numeric(type)));
+    throw ChartFileError(QString("Not a supported senc file: expecting type %1, got %2")
+                         .arg(as_numeric(type)).arg(as_numeric(record->record_type)));
   }
   buffer.resize(record->record_length - baseSize);
   if (buffer.size() != sizeof(T)) {

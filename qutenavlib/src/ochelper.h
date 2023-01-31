@@ -25,6 +25,9 @@
 class OCHelper {
 public:
 
+
+  static const OCHelper* getHelper(const QString& path);
+
   enum class ReadMode {ReadSENC, ReadHeader};
 
   virtual QString getChartKey(const QString& path) const = 0;
