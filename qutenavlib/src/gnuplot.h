@@ -160,7 +160,7 @@ namespace paintdata {
 
 inline void tognuplot(const QVector<QRectF>& boxes, const KV::Region& cover) {
 
-  QString path = QString("elems_%1.gnuplot").arg(boxes.size(), 5, 10, QChar('0'));
+  QString path = QString("elems_%1_%2.gnuplot").arg(boxes.size()).arg(cover.rectCount());
   QFile file(path);
   // file.open(QFile::ReadWrite);
   file.open(QFile::WriteOnly);

@@ -464,7 +464,6 @@ void S57Chart::updatePaintData(const WGS84PointVector& cs, quint32 scale) {
     }
   };
 
-
   PaintPriorityVector updates(S52::Lookup::PriorityCount);
   PaintDataFilter filter(cover, scale, sf, m_proxy);
 

@@ -577,18 +577,20 @@ KV::RegionMap ChartManager::findCharts(KV::Region& remainingArea, qreal& cov, co
       auto c = getCover(id, sw, ne, cam->geoprojection(), scale);
 
       // qCDebug(CMGR) << "Candidate" << id << scale;
-      const auto region = c->region(cam->geoprojection()).intersected(m_viewArea);
-      if (region.isEmpty()) continue;
+      const auto outerRegion = c->outer(cam->geoprojection()).intersected(m_viewArea);
+      if (outerRegion.isEmpty()) continue;
+      const auto innerRegion = c->inner(cam->geoprojection()).intersected(m_viewArea);
 
-      auto delta = remainingArea.intersected(region);
+      const auto delta = remainingArea.intersected(innerRegion);
       if (delta.area() / totarea < 1.e-3) continue;
 
-      regions[id] = delta;
+      regions[id] = remainingArea.intersected(outerRegion);
 
       remainingArea -= delta;
       cov = 1 - remainingArea.area() / totarea;
-      //      qCDebug(CMGR) << "covers" << region.area() / totarea * 100
-      //                    << ", subtracts" << delta.area() / totarea * 100
+      //      qCDebug(CMGR) << "inner cover =" << innerRegion.area() / totarea * 100
+      //                    << ", outer cover =" << outerRegion.area() / totarea * 100;
+      //      qCDebug(CMGR) << "subtracts" << delta.area() / totarea * 100
       //                    << ", remaining" << (1 - cov) * 100;
     }
     if (cov >= minCoverage) break;

@@ -38,6 +38,8 @@ using PointVector = QVector<QPointF>;
 using RectVector = QVector<QRectF>;
 using IndexVector = QVector<int>;
 
+// Implementation of Gourley-Green algorithm as presented in
+// "Fast algorithm for polygon decomposition" by Nahar and Sahni
 class Decomposer {
 public:
 

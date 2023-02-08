@@ -630,6 +630,7 @@ S52::CSResArea02::CSResArea02(quint32 index)
   , m_rsrdef51(FindIndex("RSRDEF51"))
   , m_ctyare51(FindIndex("CTYARE51"))
   , m_ctyare71(FindIndex("CTYARE71"))
+  , m_resare51(FindIndex("RESARE51"))
   , m_anchor_set {1, 2}
   , m_entry_set {7, 8, 14}
   , m_fish_set {3, 4, 5, 6}
@@ -653,7 +654,6 @@ void S52::CSResArea02::runner(const S57::Object* obj, Accumulator accumulate, Pr
         sym = m_entres61;
       } else if (restrn.intersects(m_sport_set) ||
                  catrea.intersects(m_nat_set)) {
-        qCDebug(CS52) << "entres71";
         sym = m_entres71;
       } else {
         sym = m_entres51;
@@ -663,7 +663,8 @@ void S52::CSResArea02::runner(const S57::Object* obj, Accumulator accumulate, Pr
       if (Conf::MarinerParams::PlainBoundaries()) {
         accumulate(S52::FindFunction("LS"), {as_numeric(S52::LineType::Dashed), 2, m_chmgd}, obj);
       } else {
-        accumulate(S52::FindFunction("LC"), {m_entres51}, obj);
+        // was: entres51, but does not fit to short segments
+        accumulate(S52::FindFunction("LC"), {m_resare51}, obj);
       }
 
       setPrio();
@@ -2279,6 +2280,7 @@ double S52::CSWrecks02::leastDepth(const S57::Object* obj) const {
       found = true;
     }
   }
+  // qCDebug(CS57) << "depth =" << d;
   return d;
 }
 
@@ -2294,12 +2296,12 @@ void S52::CSWrecks02::run_danger(double depth, const S57::Object* obj,
   for (const S57::Object* underling: obj->underlings()) {
     //    qCDebug(CS57) << "[Underling:Class]" << S52::GetClassInfo(underling->classCode());
     //    qCDebug(CS57) << "[Overling:Location]" << obj->geometry()->centerLL().print();
-    //    qCDebug(CS57) << "[Limit]" << limit;
     //    for (auto k: underling->attributes().keys()) {
     //      qCDebug(CS57) << GetAttributeInfo(k, underling);
     //    }
     if (!underling->attributeValue(m_drval1).isValid()) continue;
     if (underling->attributeValue(m_drval1).toDouble() >= limit) {
+      // qCDebug(CS57) << "danger";
       danger = true;
       break;
     }

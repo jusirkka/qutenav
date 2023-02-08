@@ -210,6 +210,7 @@ private:
   const quint32 m_rsrdef51;
   const quint32 m_ctyare51;
   const quint32 m_ctyare71;
+  const quint32 m_resare51;
 
   const QSet<int> m_anchor_set;
   const QSet<int> m_entry_set;

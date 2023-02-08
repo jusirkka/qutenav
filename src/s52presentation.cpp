@@ -188,7 +188,11 @@ QString S52::GetSymbolInfo(quint32 index, S52::SymbolType t) {
 
 QString S52::GetSymbolInfo(const SymbolKey& key) {
   const Private::Presentation* p = Private::Presentation::instance();
-  if (!p->symbols.contains(key)) return QString();
+  if (!p->symbols.contains(key)) {
+    return QString("No such symbol: SymbolKey(%1, %2)")
+        .arg(as_numeric(key.type))
+        .arg(p->names.key(key.index, "None"));
+  }
   return p->symbols[key].code + ": " + p->symbols[key].description;
 }
 

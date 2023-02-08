@@ -132,7 +132,7 @@ private:
   static const inline float marginFactor = 1.08;
   static const inline float maxScaleRatio = 25;
   static const inline float maxScale = 8000001;
-  static const inline float minCoverage = .995;
+  static const inline float minCoverage = .98;
   static const inline quint32 bgChartLimit = 15;
 
   ChartManager(QObject *parent = nullptr);

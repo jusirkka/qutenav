@@ -38,6 +38,8 @@ public:
              const WGS84Point& sw, const WGS84Point& ne,
              const GeoProjection* gp, quint32 scale);
 
+  KV::Region inner(const GeoProjection* gp) const;
+  KV::Region outer(const GeoProjection* gp) const;
   KV::Region region(const GeoProjection* gp) const;
   const WGS84Polygon& coverage() const {return m_cov;}
   const WGS84Polygon& nocoverage() const {return m_nocov;}
@@ -47,7 +49,8 @@ private:
   KV::Region approximate(const PointVector& poly, qreal prec, bool inner = false) const;
 
   WGS84Point m_ref;
-  KV::Region m_cover;
+  KV::Region m_inner {};
+  KV::Region m_outer {};
   const WGS84Polygon m_cov;
   const WGS84Polygon m_nocov;
 };

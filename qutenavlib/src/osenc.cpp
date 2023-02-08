@@ -357,10 +357,10 @@ static void appendTriangleStrip(GL::VertexVector& ps, const VVec& verts);
 static void appendTriangleFan(GL::VertexVector& ps, const VVec& verts);
 
 void Osenc::readChart(GL::VertexVector& vertices,
-                            GL::IndexVector& indices,
-                            S57::ObjectVector& objects,
-                            QIODevice* device,
-                            const GeoProjection* gp) const {
+                      GL::IndexVector& indices,
+                      S57::ObjectVector& objects,
+                      QIODevice* device,
+                      const GeoProjection* gp) const {
 
 
   PointRefMap connected;
@@ -380,7 +380,7 @@ void Osenc::readChart(GL::VertexVector& vertices,
 
     {SencRecordType::HEADER_SENC_VERSION, new Handler([&hasReversed] (const Buffer& b) {
         quint16 version = *(reinterpret_cast<const quint16*>(b.constData()));
-        qCDebug(CENC) << "senc version" << version;
+        // qCDebug(CENC) << "senc version" << version;
         hasReversed = version > 200;
         return true;
       })
@@ -558,10 +558,10 @@ void Osenc::readChart(GL::VertexVector& vertices,
         const char* ptr = b.constData();
 
         // edge count
-        const auto cnt = read_and_advance<quint32>(&ptr);
+        const auto cnt = read_and_advance<int>(&ptr);
 
-        for (uint i = 0; i < cnt; i++) {
-          const auto index = read_and_advance<quint32>(&ptr);
+        for (int i = 0; i < cnt; i++) {
+          const auto index = read_and_advance<int>(&ptr);
           const auto pcnt = read_and_advance<quint32>(&ptr);
 
           QVector<float> points(2 * pcnt);
@@ -571,7 +571,7 @@ void Osenc::readChart(GL::VertexVector& vertices,
           RawEdge edge;
           edge.first = vertices.size() / 2;
           edge.count = pcnt;
-          edges[index] = edge;
+          edges[std::abs(index)] = edge;
           vertices.append(points);
         }
         return true;
@@ -637,7 +637,10 @@ void Osenc::readChart(GL::VertexVector& vertices,
 
     if (record->record_length <= baseSize) {
       done = true;
-      qCWarning(CENC) << "Record length is too small:" << record->record_length;
+      qCWarning(CENC) << "Record length is too small:"
+                      << record->record_length
+                      << ", type:"
+                      << as_numeric(record->record_type);
       continue;
     }
 
@@ -690,7 +693,17 @@ void Osenc::readChart(GL::VertexVector& vertices,
     } else if (w.geom == S57::Geometry::Type::Line || w.geom == S57::Geometry::Type::Area) {
       EdgeVector shape;
       for (const RawEdgeRef& ref: w.edgeRefs) {
+        Q_ASSERT(connected.contains(ref.begin));
+        Q_ASSERT(connected.contains(ref.end));
         Edge e;
+        if (!edges.contains(ref.index)) {
+          Q_ASSERT(ref.index == 0);
+          e.first = 0;
+          e.count = 0;
+        } else {
+          e.first = edges[ref.index].first;
+          e.count = edges[ref.index].count;
+        }
         if (ref.reversed) {
           // Osenc does not reverse begin and end like the other formats,
           // so do it here
@@ -700,8 +713,6 @@ void Osenc::readChart(GL::VertexVector& vertices,
           e.begin = connected[ref.begin];
           e.end = connected[ref.end];
         }
-        e.first = edges[ref.index].first;
-        e.count = edges[ref.index].count;
         e.reversed = ref.reversed;
         e.inner = false; // not used
         shape.append(e);

@@ -260,6 +260,7 @@ KV::PointVector KV::Decomposer::approximateDiagonal(const PointVector& ps, int i
   const QPointF dp = last - first;
   const qreal d = std::min(std::abs(dp.x()), std::abs(dp.y()));
   const int n = std::min(6, static_cast<int>(std::ceil(d / prec)));
+  // const int n = static_cast<int>(std::ceil(d / prec));
   // qCDebug(CREG) << "number of new points =" << 2 * n - 1;
   const bool h_in = inpolygon(ps, first + QPointF(dp.x() / n * 0.01, 0));
   const bool h_first = (h_in && !outer) || (!h_in && outer);

@@ -262,13 +262,13 @@ OCServerManager::OCServerManager(const QString& serverPath, const QString& serve
   }
 }
 
-void OCServerManager::serverRestart(const QString& /*path*/) {
-  // qCDebug(CENC) << "changed:" << path;
+void OCServerManager::serverRestart(const QString& path) {
+  qCDebug(CENC) << "changed:" << path;
   int pid = checkServer();
   if (Platform::base_app_name() == qAppName()) { // do not watch in dbupdater
     const QString procdir = QString("/proc/%1").arg(pid);
     m_watcher->addPath(procdir);
     m_watcher->addPath(m_serverEP);
-    // qCDebug(CENC) << "Watching" << m_watcher->files() << m_watcher->directories();
+    qCDebug(CENC) << "Watching" << m_watcher->files() << m_watcher->directories();
   }
 }
