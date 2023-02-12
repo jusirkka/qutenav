@@ -22,17 +22,81 @@
 #include "ocdevice.h"
 #include "logging.h"
 #include <QFileInfo>
+#include <QProcess>
+#include <QDir>
+
+extern "C" {
+#include <unistd.h>
+}
 
 
 class OesuDevice: public OCDevice {
 public:
-  OesuDevice(const QString& path, ReadMode mode):
-    OCDevice(path, mode, serverEPName) {}
+  OesuDevice(const QString& path, ReadMode mode)
+    : OCDevice(path, mode, serverEPName)
+  {}
 
   static inline const char serverEPName[] = "/tmp/OCPN_PIPEX";
   static inline const char serverPath[] = "/usr/bin/oexserverd";
 
 };
+
+bool OesuReader::initializeRead() const {
+
+  const QString serverPath(OesuDevice::serverPath);
+  const QString serverEP(OesuDevice::serverEPName);
+
+  QProcess pidof;
+  pidof.setProgram("pidof");
+  pidof.setArguments(QStringList() << serverPath);
+
+  pidof.start(QIODevice::ReadOnly);
+  pidof.waitForFinished();
+  bool up;
+  pidof.readAll().trimmed().toInt(&up);
+  //  if (up) {
+  //    qCDebug(CENC) << serverPath << "is running";
+  //  }
+
+  const QFileInfo ep(serverEP);
+  if (up && ep.exists()) {
+    // qCDebug(CENC) << serverEP << "exists";
+    return true;
+  }
+
+  QDir(ep.absolutePath()).remove(ep.fileName());
+
+  QProcess kill;
+  kill.start("killall", QStringList() << serverPath);
+  kill.waitForFinished();
+
+  qCDebug(CENC) << "starting" << serverPath;
+  QProcess server;
+  server.start(serverPath);
+  server.waitForFinished();
+
+  pidof.start(QIODevice::ReadOnly);
+  pidof.waitForFinished();
+  pidof.readAll().trimmed().toInt(&up);
+  if (!up) {
+    qCWarning(CENC) << "Cannot start" << serverPath;
+    return false;
+  }
+
+  int cnt = 100;
+  while (!ep.exists() && cnt > 0) {
+    qCDebug(CENC) << "Waiting for" << serverPath << "to create" << serverEP << "...";
+    usleep(20000);
+    cnt--;
+  }
+  if (cnt <= 0) {
+    qCWarning(CENC) << serverPath << "didn't create" << serverEP;
+    return false;
+  }
+  qCDebug(CENC) << serverPath << "is in service";
+  return true;
+}
+
 
 const GeoProjection* OesuReader::geoprojection() const {
   return m_proj;
@@ -48,7 +112,7 @@ OesuReader::~OesuReader() {
 }
 
 static void read_server_status(const QString& path, QIODevice* device) {
-   // a hack to skip oesenc files: server does not send status for these
+  // a hack to skip oesenc files: server does not send status for these
   if (QFileInfo(path).suffix() == "oesenc") return;
   QDataStream stream(device);
   Buffer buffer;
@@ -92,10 +156,10 @@ S57ChartOutline OesuReader::readOutline(const QString &path, const GeoProjection
 
 
 void OesuReader::readChart(GL::VertexVector& vertices,
-                            GL::IndexVector& indices,
-                            S57::ObjectVector& objects,
-                            const QString& path,
-                            const GeoProjection* gp) const {
+                           GL::IndexVector& indices,
+                           S57::ObjectVector& objects,
+                           const QString& path,
+                           const GeoProjection* gp) const {
   OesuDevice device(path, ReadMode::ReadSENC);
   if (!device.open(OCDevice::ReadOnly)) {
     throw ChartFileError(QString("Cannot open %1 for reading").arg(path));
@@ -124,16 +188,4 @@ ChartFileReader* OesuReaderFactory::create() const {
   return new OesuReader(name());
 }
 
-class OesuServerManager: public OCServerManager {
-public:
-  static OesuServerManager* instance() {
-    static auto manager = new OesuServerManager();
-    return manager;
-  }
-private:
-  OesuServerManager(): OCServerManager(OesuDevice::serverPath, OesuDevice::serverEPName) {}
-};
-
-void OesuReaderFactory::initialize(const QStringList&) const {
-  OesuServerManager::instance()->init();
-}
+void OesuReaderFactory::initialize(const QStringList&) const {}

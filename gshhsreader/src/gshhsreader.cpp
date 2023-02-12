@@ -214,13 +214,9 @@ GSHHG::ShapeFiles* GSHHG::ShapeFiles::instance() {
 void GSHHG::ShapeFiles::init(const QStringList& subdirs) {
   const QMap<int, QChar> levels {{3, 'f'}, {10, 'h'}, {30, 'i'}};
 
-  m_paths[3] = QStringList();
-  m_paths[10] = QStringList();
-  m_paths[30] = QStringList();
-
-  for (auto it = m_paths.begin(); it != m_paths.end(); ++it) {
-    it.value() << "" << "" << "" << "";
-  }
+  m_paths[3] = QStringList {"", "", "", ""};
+  m_paths[10] = QStringList {"", "", "", ""};
+  m_paths[30] = QStringList {"", "", "", ""};
 
   for (const QString& loc: QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation)) {
     for (auto lit = levels.cbegin(); lit != levels.cend(); ++lit) {
@@ -238,6 +234,9 @@ void GSHHG::ShapeFiles::init(const QStringList& subdirs) {
         }
       }
     }
+  }
+  if (m_paths[3].contains("") || m_paths[10].contains("") || m_paths[30].contains("")) {
+    throw ChartFileError("Error finding GSHHS_{f,h,i}_L[1-4].shp shapefiles");
   }
   // qDebug() << m_paths;
 }

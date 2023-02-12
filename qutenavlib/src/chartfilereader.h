@@ -39,6 +39,8 @@ public:
                          const QString& path,
                          const GeoProjection* gp) const = 0;
 
+  virtual bool initializeRead() const {return true;}
+
   const QString& name() const {return m_name;}
 
 

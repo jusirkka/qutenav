@@ -24,11 +24,30 @@
 #include <QDebug>
 
 SlotCounter::SlotCounter()
-  : m_lvl(10)
-  , m_slots(x0 / m_lvl * y0 / m_lvl, 99)
+  : m_nx(x0)
+  , m_x0(- m_nx)
+  , m_dx(2 * m_nx)
+  , m_ny(y0)
+  , m_y0(- m_ny)
+  , m_dy(2 * m_ny)
+  , m_slots(m_nx * m_ny, 99)
   , m_slotsLeft(m_slots.size())
   , m_updated(false)
 {}
+
+SlotCounter::SlotCounter(const WGS84Point& sw0, const WGS84Point& ne0, quint32 sc)
+  : m_nx(sc > 200000 ? 50 : sc > 50000 ? 10 : 5)
+  , m_x0(sw0.lng())
+  , m_dx(ne0.lng() - m_x0)
+  , m_ny(m_nx)
+  , m_y0(sw0.lat())
+  , m_dy(ne0.lat() - m_y0)
+  , m_slots(m_nx * m_ny, 99)
+  , m_slotsLeft(m_slots.size())
+  , m_updated(false)
+{
+  // TODO: handle dateline
+}
 
 void SlotCounter::fill(const WGS84Point& sw, const WGS84Point& ne, int prio) {
 
@@ -43,22 +62,23 @@ void SlotCounter::fill(const WGS84Point& sw, const WGS84Point& ne, int prio) {
     return;
   }
 
-  auto ix1 = static_cast<qint32>(std::floor((10. * sw.lng() + x0) / 2 / m_lvl));
-  ix1 = std::min(static_cast<qint32>(x0 / m_lvl - 1), std::max(0, ix1));
+  auto ix1 = static_cast<int>(std::floor((sw.lng() - m_x0) * m_nx / m_dx));
+  ix1 = std::min(m_nx - 1, std::max(0, ix1));
 
-  auto iy1 = static_cast<qint32>(std::floor((10 * sw.lat() + y0) / 2 / m_lvl));
-  iy1 = std::min(static_cast<qint32>(y0 / m_lvl - 1), std::max(0, iy1));
+  auto iy1 = static_cast<int>(std::floor((sw.lat() - m_y0) * m_ny / m_dy));
+  iy1 = std::min(m_ny - 1, std::max(0, iy1));
 
-  auto ix2 = static_cast<qint32>(std::floor((10. * ne.lng() + x0) / 2 / m_lvl));
-  ix2 = std::min(static_cast<qint32>(x0 / m_lvl - 1), std::max(0, ix2));
 
-  auto iy2 = static_cast<qint32>(std::floor((10 * ne.lat() + y0) / 2 / m_lvl));
-  iy2 = std::min(static_cast<qint32>(y0 / m_lvl - 1), std::max(0, iy2));
+  auto ix2 = static_cast<int>(std::floor((ne.lng() - m_x0) * m_nx / m_dx));
+  ix2 = std::min(m_nx - 1, std::max(0, ix2));
+
+  auto iy2 = static_cast<int>(std::floor((ne.lat() - m_y0) * m_ny / m_dy));
+  iy2 = std::min(m_ny - 1, std::max(0, iy2));
 
   m_updated = false;
-  for (qint32 iy = iy1; iy <= iy2; ++iy) {
-    for (qint32 ix = ix1; ix <= ix2; ++ix) {
-      const int index = iy * x0 / m_lvl + ix;
+  for (int iy = iy1; iy <= iy2; ++iy) {
+    for (int ix = ix1; ix <= ix2; ++ix) {
+      const int index = iy * m_nx + ix;
       if (m_slots[index] >= prio) {
         if (m_slots[index] > prio) {
           m_slotsLeft--;

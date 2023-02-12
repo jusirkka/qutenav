@@ -1275,18 +1275,9 @@ PRegion CM93Reader::createCoverage(const GL::VertexVector &vertices,
       // qCDebug(CENC) << "Closing polygon";
       ps << ps.first();
     }
-    auto qs = ps;
-    if (qs.size() > 5) {
-      ChartFileReader::reduceRDP(qs, eps);
-      for (int cnt = 0; qs.size() < 3 && cnt < 20; ++cnt) {
-        // qCWarning(CENC) << "Too much RDP reduction" << ps.size() << "->" << qs.size();
-        eps /= 2;
-        qs = ps;
-        ChartFileReader::reduceRDP(qs, eps);
-      }
-    }
-    if (qs.size() > 2) {
-      cov << qs;
+    ChartFileReader::reduceRDP(ps, eps);
+    if (ps.size() > 2) {
+      cov << ps;
     }
   }
 

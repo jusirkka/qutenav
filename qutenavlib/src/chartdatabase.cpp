@@ -116,51 +116,16 @@ void ChartDatabase::createTables() {
 QSqlQuery& ChartDatabase::scales(const ScaleVector& candidates,
                                  const WGS84Point& sw0,
                                  const WGS84Point& ne0) {
+
+  // assuming a) candidates non-empty and b) in ascending order
+
   m_Query = QSqlQuery(m_DB);
-
-  QStringList holders;
-  for (int i = 0; i < candidates.size(); ++i) {
-    holders << QString(":x%1").arg(i);
-  }
-
-  m_Query.prepare(QString("select distinct scale "
+  m_Query.prepare(QString("select distinct scale, priority "
                           "from m.charts "
-                          "where scale in (%1) and %2 "
+                          "where scale < :maxscale and %1 "
                           "order by scale desc")
-                  .arg(holders.join(","))
                   .arg(boxConstraint));
-
-  for (int i = 0; i < candidates.size(); ++i) {
-    m_Query.bindValue(holders[i], candidates[i]);
-  }
-  bindBox(sw0, ne0);
-
-  m_Query.exec();
-
-  return m_Query;
-}
-
-QSqlQuery& ChartDatabase::coverage(const ScaleVector& candidates,
-                                   const WGS84Point& sw0,
-                                   const WGS84Point& ne0) {
-
-  QStringList holders;
-  for (int i = 0; i < candidates.size(); ++i) {
-    holders << QString(":x%1").arg(i);
-  }
-
-  m_Query.prepare(QString("select cv.id, p.x, p.y from "
-                          "m.polygons p "
-                          "join m.coverage cv on p.cov_id = cv.id "
-                          "join m.charts c on c.chart_id = cv.chart_id "
-                          "where cv.type_id=1 and c.scale in (%1) and %2 "
-                          "order by cv.id, p.id")
-                  .arg(holders.join(","))
-                  .arg(boxConstraint));
-
-  for (int i = 0; i < candidates.size(); ++i) {
-    m_Query.bindValue(holders[i], candidates[i]);
-  }
+  m_Query.bindValue(":maxscale", candidates.last());
   bindBox(sw0, ne0);
 
   m_Query.exec();

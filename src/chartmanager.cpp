@@ -67,6 +67,7 @@ ChartManager::ChartManager(QObject *parent)
     auto reader = m_factories["gshhs"]->loadReader(QStringList {"gshhg"});
     if (reader != nullptr) {
       m_readers.append(reader);
+      hasBGReader = true;
     }
   }
 
@@ -492,6 +493,14 @@ void ChartManager::updateCharts(const Camera *cam, quint32 flags) {
   }
   m_charts = charts;
 
+  // ensure that chart reader is in service (encrypted osenc charts)
+  if (!m_reader->initializeRead()) {
+    qWarning() << "Error when initializing" << m_reader->name() << "reader";
+    resetCharts();
+    emit idle();
+    return;
+  }
+
   // create pending chart update data
   for (S57Chart* c: m_charts) {
     m_pendingStack.push(ChartData(c, m_scale, regions[c->id()].toWGS84(cam->geoprojection()),
@@ -681,62 +690,103 @@ void ChartManager::handleSmallScales(const ScaleVector& scales,
     emit chartIndicatorsChanged(indicators);
     return;
   }
-  std::reverse(smallScales.begin(), smallScales.end());
 
   const WGS84Point sw0 = proj->toWGS84(m_viewArea.topLeft()); // inverted y-axis
   const WGS84Point ne0 = proj->toWGS84(m_viewArea.bottomRight()); // inverted y-axis
 
-  int depth = 2;
-  while (depth > 0 && !smallScales.isEmpty()) {
+  // find available scales
+  auto r0 = m_db.scales(smallScales, sw0, ne0);
 
-    const int chunk = 3;
-    ScaleVector candidates;
-    while (!smallScales.isEmpty() && candidates.size() < chunk) {
-      candidates.append(smallScales.takeFirst());
-    }
-    // qCDebug(CMGR) << "chunk" << candidates;
+  ScaleVector candidates;
+  while (r0.next()) candidates.append(r0.value(0).toUInt());
 
-    // find available scales
-    auto r0 = m_db.scales(candidates, sw0, ne0);
-
-    candidates.clear();
-    while (r0.next() && candidates.size() < depth) {
-      const quint32 sc = r0.value(0).toUInt();
-      candidates.append(sc);
-      // qCDebug(CMGR) << "found" << sc << ", remaining depth" << depth - candidates.size();
-    }
-    if (candidates.isEmpty()) continue;
-
-    if (m_nextScale == 0) {
-      m_nextScale = candidates.first();
-    }
-    depth -= candidates.size();
-
-    auto r1 = m_db.coverage(candidates, sw0, ne0);
-
-    int prev = -1;
-    WGS84PointVector ps;
-    while (r1.next()) {
-      const int cid = r1.value(0).toInt();
-      if (cid != prev) {
-        if (!ps.isEmpty()) {
-          indicators << ps;
-        }
-        ps.clear();
-      }
-      ps << WGS84Point::fromLL(r1.value(1).toDouble(), r1.value(2).toDouble());
-      prev = cid;
-    }
-    if (!ps.isEmpty()) {
-      indicators << ps;
-    }
+  if (candidates.isEmpty()) {
+    emit chartIndicatorsChanged(indicators);
+    return;
   }
+
+  m_nextScale = candidates.first();
+
+  KV::Region remainingArea(m_viewArea);
+  qreal cov = 0.;
+  IDVector ids;
+  const auto totarea = remainingArea.area();
+  int depth = 0;
+
+  for (quint32 scale: candidates) {
+
+    const auto box = remainingArea.boundingRect();
+    const WGS84Point sw = proj->toWGS84(box.topLeft()); // inverted y-axis
+    const WGS84Point ne = proj->toWGS84(box.bottomRight()); // inverted y-axis
+
+    // select charts
+    QSqlQuery r = m_db.charts(scale, sw, ne);
+
+    bool chartsFound = false;
+    while (r.next() && cov < minCoverage) {
+
+      auto sw = WGS84Point::fromLL(r.value(1).toDouble(), r.value(2).toDouble());
+      auto ne = WGS84Point::fromLL(r.value(3).toDouble(), r.value(4).toDouble());
+      const auto box = QRectF(proj->fromWGS84(sw), proj->fromWGS84(ne));
+
+      const auto delta = remainingArea.intersected(box);
+      if (delta.area() / totarea < 1.e-4) {
+        // qCDebug(CMGR) << "skipping " << scale << r.value(0).toUInt();
+        continue;
+      }
+
+      // qCDebug(CMGR) << "appending" << scale << r.value(0).toUInt();
+      ids.append(r.value(0).toUInt());
+      chartsFound = true;
+
+      remainingArea -= delta;
+      cov = 1 - remainingArea.area() / totarea;
+    }
+    if (chartsFound) depth += 1;
+    if (cov >= minCoverage || depth >= 2) break;
+  }
+
+  const auto sql = QString("select cv.id, p.x, p.y from "
+                           "m.polygons p join m.coverage cv "
+                           "on p.cov_id = cv.id "
+                           "where cv.type_id=1 and cv.chart_id in (?%1) "
+                           "order by cv.id, p.id")
+                   .arg(QString(",?").repeated(ids.size() - 1));
+
+  QSqlQuery r1 = m_db.prepare(sql);
+  int cnt = 0;
+  for (const auto id: ids) {
+    r1.bindValue(cnt, id);
+    cnt++;
+  }
+  m_db.exec(r1);
+
+  int prev = -1;
+  WGS84PointVector ps;
+  while (r1.next()) {
+    const int cid = r1.value(0).toInt();
+    if (cid != prev) {
+      if (!ps.isEmpty()) {
+        indicators << ps;
+      }
+      ps.clear();
+    }
+    ps << WGS84Point::fromLL(r1.value(1).toDouble(), r1.value(2).toDouble());
+    prev = cid;
+  }
+  if (!ps.isEmpty()) {
+    indicators << ps;
+  }
+
   emit chartIndicatorsChanged(indicators);
 }
 
 void ChartManager::createBackground(KV::RegionMap& regions,
                                     const GeoProjection* gp,
                                     const KV::Region& c) const {
+
+  if (!hasBGReader) return;
+
   const auto r = c.boundingRect();
   const auto sw = gp->toWGS84(r.topLeft());
   const auto ne = gp->toWGS84(r.bottomRight());

@@ -28,9 +28,6 @@
 #include "types.h"
 #include <QApplication>
 #include <QCryptographicHash>
-#include <QFileSystemWatcher>
-#include <QProcess>
-#include "platform.h"
 
 extern "C" {
 #include <sys/types.h>
@@ -46,6 +43,10 @@ OCDevice::OCDevice(const QString &path, ReadMode mode, const char* serverEPName)
   , m_helper(OCHelper::getHelper(path))
   , m_serverEPName(serverEPName)
 {
+
+  if (m_helper == nullptr) {
+    throw ChartFileError(QString("Chart %1 is not a proper encoded osenc chart").arg(m_path));
+  }
 
   setObjectName(path);
 
@@ -186,89 +187,4 @@ QByteArray OCDevice::CacheId(const QString& path) {
   hash.addData(path.toUtf8());
   // convert sha1 to base36 form and return first 8 bytes for use as string
   return QByteArray::number(*reinterpret_cast<const quint64*>(hash.result().constData()), 36).left(8);
-}
-
-int OCServerManager::checkServer() const {
-
-  QProcess pidof;
-  pidof.setProgram("pidof");
-  pidof.setArguments(QStringList() << m_serverPath);
-
-  pidof.start(QIODevice::ReadOnly);
-  pidof.waitForFinished();
-  bool up;
-  int pid = pidof.readAll().trimmed().toInt(&up);
-  //  if (up) {
-  //    qCDebug(CENC) << m_serverPath << "is running";
-  //  }
-
-  const QFileInfo ep(m_serverEP);
-  if (up && ep.exists()) {
-    // qCDebug(CENC) << m_serverEP << "exists";
-    return pid;
-  }
-
-  for (const QString& dir: m_watcher->directories()) {
-    qCDebug(CENC) << "unwatching" << dir;
-    m_watcher->removePath(dir);
-  }
-  for (const QString& file: m_watcher->files()) {
-    qCDebug(CENC) << "unwatching" << file;
-    m_watcher->removePath(file);
-  }
-
-  QDir(ep.absolutePath()).remove(ep.fileName());
-
-  QProcess kill;
-  kill.start("killall", QStringList() << m_serverPath);
-  kill.waitForFinished();
-
-  qCDebug(CENC) << "starting" << m_serverPath;
-  QProcess server;
-  server.start(m_serverPath);
-  server.waitForFinished();
-
-  pidof.start(QIODevice::ReadOnly);
-  pidof.waitForFinished();
-  pid = pidof.readAll().trimmed().toInt(&up);
-  if (!up) {
-    throw ChartFileError(QString("Cannot start %1").arg(m_serverPath));
-  }
-
-  int cnt = 100;
-  while (!ep.exists() && cnt > 0) {
-    qCDebug(CENC) << "Waiting for" << m_serverPath << "to create" << m_serverEP << "...";
-    usleep(20000);
-    cnt--;
-  }
-  if (cnt <= 0) {
-    throw ChartFileError(QString("%1 didn't create %2").arg(m_serverPath).arg(m_serverEP));
-  }
-  qCDebug(CENC) << m_serverPath << "is in service";
-
-  return pid;
-}
-
-OCServerManager::OCServerManager(const QString& serverPath, const QString& serverEP)
-  : QObject()
-  , m_watcher(new QFileSystemWatcher(this))
-  , m_serverPath(serverPath)
-  , m_serverEP(serverEP)
-{
-  serverRestart("initial");
-  if (Platform::base_app_name() == qAppName()) { // do not watch in dbupdater
-    connect(m_watcher, &QFileSystemWatcher::fileChanged, this, &OCServerManager::serverRestart);
-    connect(m_watcher, &QFileSystemWatcher::directoryChanged, this, &OCServerManager::serverRestart);
-  }
-}
-
-void OCServerManager::serverRestart(const QString& path) {
-  qCDebug(CENC) << "changed:" << path;
-  int pid = checkServer();
-  if (Platform::base_app_name() == qAppName()) { // do not watch in dbupdater
-    const QString procdir = QString("/proc/%1").arg(pid);
-    m_watcher->addPath(procdir);
-    m_watcher->addPath(m_serverEP);
-    qCDebug(CENC) << "Watching" << m_watcher->files() << m_watcher->directories();
-  }
 }

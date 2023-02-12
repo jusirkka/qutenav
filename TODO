@@ -10,11 +10,9 @@ After 1.0:
 
 Before 1.0:
 
+- skip caching of oesu charts
 - show eula for oesenc charts
 - update readme: gshhs background charts, usage
 - mobile: rendering is too slow, esp. s57, cm93
 - optimization: skip triangulation of areas if not needed (check lookup tables)
 - mobile: orientation change does not work properly
-- make gshhsreader optional
-- better oexserverd on-demand restart check
-- better algorithm for covering chart with chart indicators

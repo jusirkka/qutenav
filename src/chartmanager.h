@@ -187,5 +187,7 @@ private:
   bool m_hadCharts;
   quint32 m_nextScale;
 
+  bool hasBGReader = false;
+
 };
 

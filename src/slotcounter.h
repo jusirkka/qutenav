@@ -29,19 +29,26 @@ class SlotCounter {
 public:
 
   SlotCounter();
+  SlotCounter(const WGS84Point& sw0, const WGS84Point& ne0, quint32 sc);
+
   bool full() const {return m_slotsLeft <= 0;}
   void fill(const WGS84Point& sw, const WGS84Point& ne, int prio);
   bool updated() const {return m_updated;}
 
 private:
 
-  static const inline quint32 x0 = 1800;
-  static const inline quint32 y0 = 800;
+  static const inline quint32 x0 = 180;
+  static const inline quint32 y0 = 80;
 
-  const quint32 m_lvl;
+  const int m_nx;
+  const qreal m_x0;
+  const qreal m_dx;
+
+  const int m_ny;
+  const qreal m_y0;
+  const qreal m_dy;
 
   QVector<int> m_slots;
-
 
   int m_slotsLeft;
   bool m_updated;

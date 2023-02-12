@@ -36,7 +36,6 @@ public:
   void loadCharts(int chartset);
   QSqlQuery& charts(quint32 scale, const WGS84Point& sw0, const WGS84Point& ne0);
   QSqlQuery& scales(const ScaleVector& candidates, const WGS84Point& sw0, const WGS84Point& ne0);
-  QSqlQuery& coverage(const ScaleVector& candidates, const WGS84Point& sw0, const WGS84Point& ne0);
 
   static void createTables();
 

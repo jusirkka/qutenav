@@ -398,11 +398,11 @@ void ChartFileReader::checkCoverage(WGS84Polygon& cov,
                                     quint32 scale,
                                     quint8* covr, quint8* nocovr) {
 
-  QPointF ll(1.e15, 1.e15);
-  QPointF ur(-1.e15, -1.e15);
 
-  auto fromwgs84 = [gp, &ll, &ur, scale] (const WGS84Polygon& poly, PPolygon& out) {
+  auto fromwgs84 = [gp, scale] (const WGS84Polygon& poly, PPolygon& out) {
     for (const WGS84PointVector& vs: poly) {
+      QPointF ll(1.e15, 1.e15);
+      QPointF ur(-1.e15, -1.e15);
       PointVector ps;
       for (auto v: vs) {
         const QPointF p = gp->fromWGS84(v);
@@ -428,6 +428,16 @@ void ChartFileReader::checkCoverage(WGS84Polygon& cov,
   PPolygon nocovp;
   fromwgs84(nocov, nocovp);
 
+  // compute bbox from coverage polygons
+  QPointF ll(1.e15, 1.e15);
+  QPointF ur(-1.e15, -1.e15);
+
+  for (const PointVector& ps: covp) {
+    for (const QPointF& p: ps) {
+      maxbox(ll, ur, p.x(), p.y());
+    }
+  }
+
   cs.clear();
   cs << gp->toWGS84(ll);
   cs << gp->toWGS84(ur);
@@ -451,9 +461,7 @@ void ChartFileReader::checkCoverage(WGS84Polygon& cov,
     if (doit) {
       for (const PointVector& ps: poly) {
         WGS84PointVector vs;
-        for (const QPointF& p: ps) {
-          vs << gp->toWGS84(p);
-        }
+        for (const QPointF& p: ps) vs << gp->toWGS84(p);
         out.append(vs);
       }
     }
@@ -489,7 +497,7 @@ static qreal squaredPointSegmentDistance(const QPointF& pt, const QPointF& seg) 
 using IndexVector = QVector<int>;
 
 // https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm
-static void rdpReduce(const PointVector& ps, int first, int last, IndexVector& is, qreal eps2) {
+static void rdpReduceInner(const PointVector& ps, int first, int last, IndexVector& is, qreal eps2) {
   // Find the point with the maximum distance
   double d2max = 0;
   int index = 0;
@@ -509,16 +517,16 @@ static void rdpReduce(const PointVector& ps, int first, int last, IndexVector& i
   // If max distance is greater than epsilon, recursively simplify
   if (d2max > eps2) {
     is << index;
-    rdpReduce(ps, first, index, is, eps2);
-    rdpReduce(ps, index, last, is, eps2);
+    rdpReduceInner(ps, first, index, is, eps2);
+    rdpReduceInner(ps, index, last, is, eps2);
   }
 }
 
-void ChartFileReader::reduceRDP(PointVector& ps, qreal eps) {
+static void rdpReduce(PointVector& ps, qreal eps) {
   if (ps.size() < 3) return;
   IndexVector indices;
   // qCDebug(CENC) << "RDP coarseness" << eps;
-  rdpReduce(ps, 0, ps.size() - 1, indices, eps * eps);
+  rdpReduceInner(ps, 0, ps.size() - 1, indices, eps * eps);
   if (indices.size() < ps.size() - 2) {
     // qCDebug(CENC) << "RDP reduction" << ps.size() << "->" << indices.size() + 2;
     PointVector out;
@@ -533,4 +541,19 @@ void ChartFileReader::reduceRDP(PointVector& ps, qreal eps) {
   }
 }
 
+void ChartFileReader::reduceRDP(PointVector& ps, qreal eps) {
 
+  if (ps.size() > 5) {
+    auto qs = ps;
+    rdpReduce(qs, eps);
+    for (int cnt = 0; qs.size() < 3 && cnt < 20; ++cnt) {
+      // qCWarning(CENC) << "Too much RDP reduction" << ps.size() << "->" << qs.size();
+      eps /= 2;
+      qs = ps;
+      rdpReduce(qs, eps);
+    }
+    if (qs.size() >= 4) {
+      ps = qs;
+    }
+  }
+}

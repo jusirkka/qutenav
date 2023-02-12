@@ -40,8 +40,9 @@ public:
                  const QString& path,
                  const GeoProjection* proj) const override;
 
-  ~OesuReader();
+  bool initializeRead() const override;
 
+  ~OesuReader();
 
 private:
 
@@ -69,5 +70,3 @@ protected:
   ChartFileReader* create() const override;
 
 };
-
-

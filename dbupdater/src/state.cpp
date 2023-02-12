@@ -95,6 +95,10 @@ void State::Busy::manageCharts(const QStringList& dirs) {
       if (!m_readers.contains(ftor->name())) {
         auto reader = ftor->loadReader(dirs);
         if (reader == nullptr) continue;
+        if (!reader->initializeRead()) {
+          qWarning() << "Error when initializing" << reader->name() << "reader, skipping";
+          continue;
+        }
         m_readers[ftor->name()] = reader;
       }
       auto reader = m_readers[ftor->name()];
