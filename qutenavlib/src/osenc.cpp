@@ -477,45 +477,54 @@ void Osenc::readChart(GL::VertexVector& vertices,
         // skip contour counts
         ptr += p->contour_count * sizeof(int);
 
-        TrianglePatchVector ts;
-        if (p->triprim_count < 5) {
-          ts.resize(p->triprim_count);
-          for (uint i = 0; i < p->triprim_count; i++) {
-            ts[i].mode = static_cast<GLenum>(*ptr);
-            ptr++;
-            const auto nvert = read_and_advance<uint32_t>(&ptr);
-            ptr += 4 * sizeof(double); // skip bbox
-            ts[i].vertices.resize(nvert * 2);
-            memcpy(ts[i].vertices.data(), ptr, nvert * 2 * sizeof(float));
-            ptr += nvert * 2 * sizeof(float);
+        if (S52::IsAreaRenderable(features.last().object->classCode())) {
+          TrianglePatchVector ts;
+          if (p->triprim_count < 5) {
+            ts.resize(p->triprim_count);
+            for (uint i = 0; i < p->triprim_count; i++) {
+              ts[i].mode = static_cast<GLenum>(*ptr);
+              ptr++;
+              const auto nvert = read_and_advance<uint32_t>(&ptr);
+              ptr += 4 * sizeof(double); // skip bbox
+              ts[i].vertices.resize(nvert * 2);
+              memcpy(ts[i].vertices.data(), ptr, nvert * 2 * sizeof(float));
+              ptr += nvert * 2 * sizeof(float);
+            }
+          } else {
+            ts << TrianglePatch();
+            for (uint i = 0; i < p->triprim_count; i++) {
+              if (ts.last().vertices.size() > blockSize) {
+                ts << TrianglePatch();
+              }
+              GLenum mode = static_cast<GLenum>(*ptr);
+              ptr++;
+              const auto nvert = read_and_advance<uint32_t>(&ptr);
+              ptr += 4 * sizeof(double); // skip bbox
+              VVec verts(nvert);
+              memcpy(verts.data(), ptr, nvert * sizeof(glm::vec2));
+              ptr += nvert * sizeof(glm::vec2);
+              if (mode == GL_TRIANGLES) {
+                appendTriangles(ts.last().vertices, verts);
+              } else if (mode == GL_TRIANGLE_STRIP) {
+                appendTriangleStrip(ts.last().vertices, verts);
+              } else if (mode == GL_TRIANGLE_FAN) {
+                appendTriangleFan(ts.last().vertices, verts);
+              } else {
+                Q_ASSERT_X(false, "feature geometry/area record", "Unknown primitive");
+              }
+            }
           }
+          features.last().triangles.append(ts);
         } else {
-          ts << TrianglePatch();
+          // skip triangle data
           for (uint i = 0; i < p->triprim_count; i++) {
-            if (ts.last().vertices.size() > blockSize) {
-              ts << TrianglePatch();
-            }
-            GLenum mode = static_cast<GLenum>(*ptr);
-            ptr++;
+            ptr++; // skip triangle mode
             const auto nvert = read_and_advance<uint32_t>(&ptr);
             ptr += 4 * sizeof(double); // skip bbox
-            VVec verts(nvert);
-            memcpy(verts.data(), ptr, nvert * sizeof(glm::vec2));
-            ptr += nvert * sizeof(glm::vec2);
-            if (mode == GL_TRIANGLES) {
-              appendTriangles(ts.last().vertices, verts);
-            } else if (mode == GL_TRIANGLE_STRIP) {
-              appendTriangleStrip(ts.last().vertices, verts);
-            } else if (mode == GL_TRIANGLE_FAN) {
-              appendTriangleFan(ts.last().vertices, verts);
-            } else {
-              Q_ASSERT_X(false, "feature geometry/area record", "Unknown primitive");
-            }
+            ptr += nvert * 2 * sizeof(float); // skip vertices
           }
-
         }
 
-        features.last().triangles.append(ts);
         features.last().geom = S57::Geometry::Type::Area;
 
         const uint stride = hasReversed ? 4 : 3;
@@ -723,9 +732,13 @@ void Osenc::readChart(GL::VertexVector& vertices,
       if (w.geom == S57::Geometry::Type::Area) {
         GLsizei offset = vertices.size() * sizeof(GLfloat);
         S57::ElementDataVector triangles;
-        triangleGeometry(w.triangles, triangles);
-
-        auto center = computeAreaCenterAndBboxes(triangles, vertices, offset);
+        QPointF center;
+        if (w.triangles.isEmpty()) {
+          center = ChartFileReader::computeLineCenter(lines, vertices, indices);
+        } else {
+          triangleGeometry(w.triangles, triangles);
+          center = computeAreaCenterAndBboxes(triangles, vertices, offset);
+        }
 
         helper.osEncSetGeometry(w.object,
                                 new S57::Geometry::Area(lines,
@@ -759,6 +772,7 @@ static void maxbox(QPointF& ll, QPointF& ur, qreal x, qreal y) {
 QPointF Osenc::computeAreaCenterAndBboxes(S57::ElementDataVector &elems,
                                           const GL::VertexVector& vertices,
                                           GLsizei offset) const {
+  Q_ASSERT(!elems.isEmpty());
   float tot = 0;
   QPointF s(0, 0);
   for (S57::ElementData& elem: elems) {

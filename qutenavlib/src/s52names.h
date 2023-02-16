@@ -45,5 +45,6 @@ quint32 FindCIndex(const QString& name);
 quint32 FindCIndex(const QString& name, bool* ok);
 QString FindPath(const QString& filename);
 bool IsMetaClass(quint32 code);
+bool IsAreaRenderable(quint32 code);
 
 }

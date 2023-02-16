@@ -24,6 +24,7 @@
 #include "logging.h"
 #include <QRegularExpression>
 #include "platform.h"
+#include <QXmlStreamReader>
 
 namespace S52 {
 
@@ -40,6 +41,7 @@ private:
 
   void readAttributes();
   void readObjectClasses();
+  void parseAreaRenderables();
 
 
 public:
@@ -64,6 +66,7 @@ public:
 
     QString code;
     bool isMeta = false;
+    bool isAreaRenderable = false;
     AttributeIndexVector categoryA;
     AttributeIndexVector categoryB;
     AttributeIndexVector categoryC;
@@ -102,6 +105,7 @@ S52::Names* S52::Names::instance() {
 S52::Names::Names() {
   readAttributes();
   readObjectClasses();
+  parseAreaRenderables();
 }
 
 void S52::Names::init() {
@@ -217,6 +221,64 @@ void S52::Names::readObjectClasses() {
   file.close();
 }
 
+void S52::Names::parseAreaRenderables() {
+  QFile file(S52::FindPath("chartsymbols.xml"));
+  file.open(QFile::ReadOnly);
+  QXmlStreamReader reader(&file);
+
+  reader.readNextStartElement();
+  Q_ASSERT(reader.name() == "chartsymbols");
+
+  const QStringList tableNames {"Plain", "Symbolized"};
+  const QRegularExpression re(QString("(AC\\(|AP\\(|CS\\(DEPARE|CS\\(OBSTRN|CS\\(SLCONS|CS\\(SYMINS)"));
+
+  while (reader.readNextStartElement()) {
+    if (reader.name() == "lookups") {
+
+      while (reader.readNextStartElement()) {
+        Q_ASSERT(reader.name() == "lookup");
+
+        const QString className = reader.attributes().value("name").toString();
+
+        if (!names.contains(className)) {
+          qCWarning(CS52) << "Unknown class name" << className << ", skipping lookup";
+          reader.skipCurrentElement();
+          continue;
+        }
+
+        const quint32 code = names[className];
+
+        if (classes[code].isAreaRenderable) {
+          reader.skipCurrentElement();
+          continue;
+        }
+
+        QString instr;
+
+        bool ok = false;
+        while (reader.readNextStartElement()) {
+          if (reader.name() == "table-name") {
+            ok = tableNames.contains(reader.readElementText());
+          } else if (reader.name() == "instruction") {
+            instr = reader.readElementText();
+          } else {
+            reader.skipCurrentElement();
+          }
+        }
+
+        if (!ok) continue;
+
+        classes[code].isAreaRenderable = re.match(instr).hasMatch();
+        //        if (classes[code].isAreaRenderable) {
+        //          qCDebug(CS52) << className << "is area renderable";
+        //        }
+      }
+    } else {
+      reader.skipCurrentElement();
+    }
+  }
+  file.close();
+}
 
 
 void S52::InitNames() {
@@ -360,12 +422,18 @@ QString S52::GetAttributeEnumDescription(quint32 aid, quint32 eid) {
   return qtTrId(id.toUtf8());
 }
 
-
 bool S52::IsMetaClass(quint32 code) {
   auto p = Names::instance();
   Q_ASSERT(p->classes.contains(code));
   return p->classes[code].isMeta;
 }
+
+bool S52::IsAreaRenderable(quint32 code) {
+  auto p = Names::instance();
+  Q_ASSERT(p->classes.contains(code));
+  return p->classes[code].isAreaRenderable;
+}
+
 
 quint32 S52::FindCIndex(const QString &name) {
   auto p = Names::instance();
@@ -382,4 +450,5 @@ quint32 S52::FindCIndex(const QString &name, bool* ok) {
   if (ok != nullptr) *ok = false;
   return 0;
 }
+
 

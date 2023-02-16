@@ -1103,8 +1103,16 @@ void S57Reader::readChart(GL::VertexVector& vertices,
         auto border = createLineElements(indices, vertices, borderEdges);
         auto bbox = computeBBox(border, vertices, indices);
         S57::ElementDataVector triangles;
-        triangulate(triangles, indices, vertices, border);
-        const auto center = computeAreaCenterAndBboxes(triangles, vertices, indices);
+        QPointF center;
+        if (S52::IsAreaRenderable(obj->classCode())) {
+          triangulate(triangles, indices, vertices, border);
+          center = computeAreaCenterAndBboxes(triangles, vertices, indices);
+        } else {
+          //          qDebug() << "skipping triangulation:"
+          //                   << std::accumulate(border.cbegin(), border.cend(), 0, [] (int c, auto e) {return e.count + c;})
+          //                   << "vertices";
+          center = computeLineCenter(border, vertices, indices);
+        }
 
         S57::ElementDataVector lines;
         S57::Geometry::Area* area;

@@ -268,17 +268,17 @@ void ChartManager::createThreads() {
   const int numThreads = Platform::number_of_chart_threads();
   qCDebug(CMGR) << "number of chart updaters =" << numThreads;
   for (int i = 0; i < numThreads; ++i) {
-    qCDebug(CMGR) << "creating thread" << i;
+    // qCDebug(CMGR) << "creating thread" << i;
     auto thread = new QThread;
-    qCDebug(CMGR) << "creating worker" << i;
+    // qCDebug(CMGR) << "creating worker" << i;
     auto worker = new ChartUpdater(m_workers.size());
     m_idleStack.push(worker->id());
     connect(thread, &QThread::finished, worker, &QObject::deleteLater);
     connect(worker, &ChartUpdater::done, this, &ChartManager::manageThreads);
     connect(worker, &ChartUpdater::infoResponse, this, &ChartManager::manageInfoResponse);
-    qCDebug(CMGR) << "moving worker to thread" << i;
+    // qCDebug(CMGR) << "moving worker to thread" << i;
     worker->moveToThread(thread);
-    qCDebug(CMGR) << "starting thread" << i;
+    // qCDebug(CMGR) << "starting thread" << i;
     thread->start();
     m_threads.append(thread);
     m_workers.append(worker);
@@ -289,7 +289,7 @@ void ChartManager::createThreads() {
   m_cacheWorker->moveToThread(m_cacheThread);
   connect(m_cacheThread, &QThread::finished, m_cacheWorker, &QObject::deleteLater);
   m_cacheThread->start();
-  qCDebug(CMGR) << "threads started";
+  // qCDebug(CMGR) << "threads started";
 }
 
 ChartManager::~ChartManager() {

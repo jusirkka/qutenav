@@ -1027,9 +1027,13 @@ void CM93Reader::readChart(GL::VertexVector& vertices,
       createLineElements(lines, indices, vertices, edges, true);
 
       S57::ElementDataVector triangles;
-      triangulate(triangles, indices, vertices, lines);
-
-      const QPointF center = computeAreaCenterAndBboxes(triangles, vertices, indices);
+      QPointF center;
+      if (S52::IsAreaRenderable(object->classCode())) {
+        triangulate(triangles, indices, vertices, lines);
+        center = computeAreaCenterAndBboxes(triangles, vertices, indices);
+      } else {
+        center = computeLineCenter(lines, vertices, indices);
+      }
       const QRectF bbox = computeBBox(lines, vertices, indices);
       helper.cm93SetGeometry(object,
                              new S57::Geometry::Area(lines,

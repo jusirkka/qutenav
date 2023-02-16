@@ -36,7 +36,7 @@
 S57::PaintDataMap S52::AreaColor::execute(const QVector<QVariant>& vals,
                                           const S57::Object* obj) {
   auto geom = dynamic_cast<const S57::Geometry::Area*>(obj->geometry());
-  Q_ASSERT(geom != nullptr);
+  Q_ASSERT(geom != nullptr && !geom->triangleElements().isEmpty());
 
   S57::PaintData* p;
 
@@ -91,7 +91,7 @@ S57::PaintDataMap S52::AreaPattern::execute(const QVector<QVariant>& vals,
   }
 
   auto geom = dynamic_cast<const S57::Geometry::Area*>(obj->geometry());
-  Q_ASSERT(geom != nullptr);
+  Q_ASSERT(geom != nullptr && !geom->triangleElements().isEmpty());
 
   S57::PaintData* p;
   if (raster) {

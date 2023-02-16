@@ -222,6 +222,7 @@ QPointF ChartFileReader::computeLineCenter(const S57::ElementDataVector &elems,
 QPointF ChartFileReader::computeAreaCenterAndBboxes(S57::ElementDataVector &elems,
                                                     const GL::VertexVector& vertices,
                                                     const GL::IndexVector& indices) {
+  Q_ASSERT(!elems.isEmpty());
   float area = 0;
   QPointF s(0, 0);
   for (S57::ElementData& elem: elems) {
