@@ -181,8 +181,10 @@ private:
 
 
   using CoverCache = QCache<quint32, ChartCover>;
+  using IndicatorCache = QCache<quint32, WGS84Polygon>;
 
   CoverCache m_coverCache;
+  IndicatorCache m_indicatorCache;
 
   bool m_hadCharts;
   quint32 m_nextScale;

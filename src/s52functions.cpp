@@ -36,7 +36,14 @@
 S57::PaintDataMap S52::AreaColor::execute(const QVector<QVariant>& vals,
                                           const S57::Object* obj) {
   auto geom = dynamic_cast<const S57::Geometry::Area*>(obj->geometry());
-  Q_ASSERT(geom != nullptr && !geom->triangleElements().isEmpty());
+  Q_ASSERT(geom != nullptr);
+
+  if (geom->triangleElements().isEmpty()) {
+    qCWarning(CS57) << "No triangle elements in"
+                    << obj->name()
+                    << S52::GetClassInfo(obj->classCode());
+    return S57::PaintDataMap();
+  }
 
   S57::PaintData* p;
 
@@ -2094,18 +2101,18 @@ void S52::CSSoundings02::run_symbols(double depth, int index,
     }
   }
 
-  QVector<QVariant> vs;
-  vs.append(QVariant::fromValue(txt));
-  vs.append(QVariant::fromValue(1)); // hcenter justified
-  vs.append(QVariant::fromValue(2)); // vcenter justified
-  vs.append(QVariant::fromValue(2)); // std spacing
-  vs.append(QVariant::fromValue(hasFrac ? QStringLiteral("15111") :
-                                          QStringLiteral("15108"))); // style, weight, slant, size
-  vs.append(QVariant::fromValue(0)); // x-offset
-  vs.append(QVariant::fromValue(0)); // y-offset
-  vs.append(QVariant::fromValue(shallow ? m_chblk : m_chgrd)); // color
-  vs.append(QVariant::fromValue(12)); // non-standard soundings text group
-  vs.append(QVariant::fromValue(index));
+  const QVector<QVariant> vs {
+    txt,
+    1, // hcenter justified
+    2, // vcenter justified
+    2, // std spacing
+    hasFrac ? QStringLiteral("15111") : QStringLiteral("15108"), // style, weight, slant, size
+    0, // x-offset
+    0, // y-offset
+    shallow ? m_chblk : m_chgrd, // color
+    12, // non-standard soundings text group
+    index
+  };
   accumulate(S52::FindFunction("TX"), vs, obj);
 }
 

@@ -55,7 +55,8 @@ ChartManager::ChartManager(QObject *parent)
   , m_transactionCounter(0)
   , m_reader(nullptr)
   , m_updater(new UpdaterInterface(this))
-  , m_coverCache(1000 * sizeof(ChartCover))
+  , m_coverCache(1000)
+  , m_indicatorCache(1000)
   , m_nextScale(0)
 {
 
@@ -746,36 +747,36 @@ void ChartManager::handleSmallScales(const ScaleVector& scales,
     if (cov >= minCoverage || depth >= 2) break;
   }
 
-  const auto sql = QString("select cv.id, p.x, p.y from "
-                           "m.polygons p join m.coverage cv "
-                           "on p.cov_id = cv.id "
-                           "where cv.type_id=1 and cv.chart_id in (?%1) "
-                           "order by cv.id, p.id")
-                   .arg(QString(",?").repeated(ids.size() - 1));
+  for (auto id: ids) {
+    if (!m_indicatorCache.contains(id)) {
+      QSqlQuery r1 = m_db.prepare("select cv.id, p.x, p.y from "
+                                  "m.polygons p join m.coverage cv "
+                                  "on p.cov_id = cv.id "
+                                  "where cv.type_id = 1 and cv.chart_id = ? "
+                                  "order by cv.id, p.id");
+      r1.bindValue(0, id);
+      m_db.exec(r1);
 
-  QSqlQuery r1 = m_db.prepare(sql);
-  int cnt = 0;
-  for (const auto id: ids) {
-    r1.bindValue(cnt, id);
-    cnt++;
-  }
-  m_db.exec(r1);
-
-  int prev = -1;
-  WGS84PointVector ps;
-  while (r1.next()) {
-    const int cid = r1.value(0).toInt();
-    if (cid != prev) {
-      if (!ps.isEmpty()) {
-        indicators << ps;
+      int prev = -1;
+      WGS84PointVector ps;
+      auto poly = new WGS84Polygon;
+      while (r1.next()) {
+        const int cid = r1.value(0).toInt();
+        if (cid != prev) {
+          if (!ps.isEmpty()) {
+            poly->append(ps);
+          }
+          ps.clear();
+        }
+        ps << WGS84Point::fromLL(r1.value(1).toDouble(), r1.value(2).toDouble());
+        prev = cid;
       }
-      ps.clear();
+      if (!ps.isEmpty()) {
+        poly->append(ps);
+      }
+      m_indicatorCache.insert(id, poly);
     }
-    ps << WGS84Point::fromLL(r1.value(1).toDouble(), r1.value(2).toDouble());
-    prev = cid;
-  }
-  if (!ps.isEmpty()) {
-    indicators << ps;
+    indicators.append(*m_indicatorCache[id]);
   }
 
   emit chartIndicatorsChanged(indicators);

@@ -261,36 +261,30 @@ QPointF ChartFileReader::computeAreaCenterAndBboxes(S57::ElementDataVector &elem
 
 
 
-void ChartFileReader::triangulate(S57::ElementDataVector &elems,
-                                  GL::IndexVector &indices,
-                                  const GL::VertexVector &vertices,
+void ChartFileReader::triangulate(S57::ElementDataVector& elems,
+                                  GL::IndexVector& indices,
+                                  const GL::VertexVector& vertices,
                                   const S57::ElementDataVector& edges) {
 
 
   if (edges.isEmpty()) return;
 
-  Triangulator tri(vertices, indices);
+  auto tri = new Triangulator(vertices, indices);
   int first = edges.first().offset / sizeof(GLuint) + 1;
   int count = edges.first().count - 3;
-  // skip open ended linestrings
-  if (indices[first] != indices[first + count]) {
-    qCWarning(CENC) << "Cannot triangulate";
-    return;
-  }
-  tri.addPolygon(first, count);
+  tri->addPolygon(first, count);
 
   for (int i = 1; i < edges.size(); i++) {
     first = edges[i].offset / sizeof(GLuint) + 1;
     count = edges[i].count - 3;
-    // skip open ended linestrings
-    if (indices[first] != indices[first + count]) {
-      qCDebug(CENC) << "TRIANGULATE: skipping";
-      continue;
-    }
-    tri.addHole(first, count);
+    tri->addHole(first, count);
   }
 
-  auto triangles = tri.triangulate();
+  auto triangles = tri->triangulate();
+  // Performance: delete triangulator
+  // -> data not shared with indices
+  // -> avoid reallocs when calling indices.append(triangles)
+  delete tri;
 
   S57::ElementData e(GL_TRIANGLES, indices.size() * sizeof(GLuint), triangles.size());
   elems.append(e);
