@@ -53,7 +53,6 @@ private:
   PPolygon m_vertices;
   WGS84Polygon m_positions;
 
-  bool m_synced;
-  bool m_reset;
+  bool m_doupdate;
 };
 

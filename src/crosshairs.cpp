@@ -26,6 +26,7 @@
 #include <QQuickWindow>
 #include <QDebug>
 #include "platform.h"
+#include "logging.h"
 
 CrossHairs::CrossHairs(QQuickItem *parent)
   : QQuickItem(parent)
@@ -76,28 +77,43 @@ QSGNode *CrossHairs::updatePaintNode(QSGNode* oldNode, UpdatePaintNodeData*) {
 
   const float x0 = static_cast<float>(m_peepHole.x());
   const float y0 = static_cast<float>(m_peepHole.y());
+  float w;
+  float h;
+
+  if (window()->contentOrientation() == Qt::PortraitOrientation) {
+    w = window()->width();
+    h = window()->height();
+  } else if (window()->contentOrientation() == Qt::LandscapeOrientation) {
+    w = window()->height();
+    h = window()->width();
+  } else {
+    qCWarning(CDPY) << "Unsupported orientation";
+    return node;
+  }
+
   const float d = .5 * Platform::peep_hole_size();
+  const float hw = lineWidth / 2;
   QSGGeometry::Point2D* vertices = geometry->vertexDataAsPoint2D();
 
-  vertices[0].set(0, y0 + lineWidth / 2);
-  vertices[1].set(0, y0 - lineWidth / 2);
-  vertices[2].set(x0 - d, y0 + lineWidth / 2);
-  vertices[3].set(x0 - d, y0 - lineWidth / 2);
+  vertices[0].set(0, y0 + hw);
+  vertices[1].set(0, y0 - hw);
+  vertices[2].set(x0 - d, y0 + hw);
+  vertices[3].set(x0 - d, y0 - hw);
 
-  vertices[4].set(x0 + d, y0 + lineWidth / 2);
-  vertices[5].set(x0 + d, y0 - lineWidth / 2);
-  vertices[6].set(window()->width(), y0 + lineWidth / 2);
-  vertices[7].set(window()->width(), y0 - lineWidth / 2);
+  vertices[4].set(x0 + d, y0 + hw);
+  vertices[5].set(x0 + d, y0 - hw);
+  vertices[6].set(w, y0 + hw);
+  vertices[7].set(w, y0 - hw);
 
-  vertices[8].set(x0 + lineWidth / 2, y0 + d);
-  vertices[9].set(x0 - lineWidth / 2, y0 + d);
-  vertices[10].set(x0 + lineWidth / 2, window()->height());
-  vertices[11].set(x0 - lineWidth / 2, window()->height());
+  vertices[8].set(x0 + hw, y0 + d);
+  vertices[9].set(x0 - hw, y0 + d);
+  vertices[10].set(x0 + hw, h);
+  vertices[11].set(x0 - hw, h);
 
-  vertices[12].set(x0 + lineWidth / 2, 0);
-  vertices[13].set(x0 - lineWidth / 2, 0);
-  vertices[14].set(x0 + lineWidth / 2, y0 - d);
-  vertices[15].set(x0 - lineWidth / 2, y0 - d);
+  vertices[12].set(x0 + hw, 0);
+  vertices[13].set(x0 - hw, 0);
+  vertices[14].set(x0 + hw, y0 - d);
+  vertices[15].set(x0 - hw, y0 - d);
 
   node->markDirty(QSGNode::DirtyGeometry);
   return node;

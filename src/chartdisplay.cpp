@@ -470,7 +470,12 @@ QGeoCoordinate ChartDisplay::tocoord(const QPointF& p) const {
 }
 
 void ChartDisplay::infoQuery(const QPointF& q, bool full) {
-  emit infoRequest(location(q), full);
+  m_lastInfoPos = location(q);
+  emit infoRequest(m_lastInfoPos, full);
+}
+
+QPointF ChartDisplay::infoPosition() const {
+  return position(m_lastInfoPos);
 }
 
 void ChartDisplay::handleFullInfoResponse(const S57::InfoType& rsp) {

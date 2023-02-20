@@ -230,7 +230,7 @@ void S52::Names::parseAreaRenderables() {
   Q_ASSERT(reader.name() == "chartsymbols");
 
   const QStringList tableNames {"Plain", "Symbolized"};
-  const QRegularExpression re(QString("(AC\\(|AP\\(|CS\\(DEPARE|CS\\(OBSTRN|CS\\(SLCONS|CS\\(SYMINS)"));
+  const QRegularExpression re(QString("(AC\\(|AP\\(|CS\\(DEPARE|CS\\(OBSTRN|CS\\(SLCONS|CS\\(SYMINS|CS\\(WRECKS)"));
 
   while (reader.readNextStartElement()) {
     if (reader.name() == "lookups") {

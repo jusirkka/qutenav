@@ -27,8 +27,7 @@
 
 ChartIndicator::ChartIndicator(QQuickItem* parent)
   : QQuickItem(parent)
-  , m_synced(false)
-  , m_reset(false)
+  , m_doupdate(false)
 {
   setFlag(ItemHasContents, true);
   connect(ChartManager::instance(), &ChartManager::chartIndicatorsChanged, this, &ChartIndicator::reset);
@@ -47,7 +46,7 @@ void ChartIndicator::sync() {
     encdis->syncPositions(m_positions[i], m_vertices[i]);
   }
 
-  m_synced = true;
+  m_doupdate = true;
 
   update();
 
@@ -67,7 +66,7 @@ void ChartIndicator::reset(const WGS84Polygon& indicators) {
     encdis->syncPositions(m_positions[i], m_vertices[i]);
   }
 
-  m_reset = true;
+  m_doupdate = true;
 
   update();
 
@@ -82,7 +81,7 @@ QSGNode* ChartIndicator::updatePaintNode(QSGNode* oldNode, UpdatePaintNodeData*)
   GL::IndexVector indices;
 
   // Triangulate
-  if (m_synced || m_reset) {
+  if (m_doupdate) {
     for (const PointVector& ps: m_vertices) {
       thickerLines(ps, true, lineWidth, vertices, indices);
     }
@@ -105,7 +104,7 @@ QSGNode* ChartIndicator::updatePaintNode(QSGNode* oldNode, UpdatePaintNodeData*)
     node->setMaterial(material);
     node->setFlag(QSGNode::OwnsMaterial);
 
-  } else if (m_synced || m_reset) {
+  } else if (m_doupdate) {
     node = static_cast<QSGGeometryNode*>(oldNode);
     geometry = node->geometry();
     if (geometry->vertexCount() != vertices.size() / 2 || geometry->indexCount() != indices.size()) {
@@ -113,19 +112,15 @@ QSGNode* ChartIndicator::updatePaintNode(QSGNode* oldNode, UpdatePaintNodeData*)
     }
   }
 
-  if (m_synced || m_reset) {
+  if (m_doupdate) {
     memcpy(geometry->vertexData(), vertices.constData(), vertices.size() * sizeof(GLfloat));
-    geometry->markVertexDataDirty();
-    node->markDirty(QSGNode::DirtyGeometry);
-  }
-
-  if (m_reset) {
     memcpy(geometry->indexData(), indices.constData(), indices.size() * sizeof(GLuint));
+
+    node->markDirty(QSGNode::DirtyGeometry);
     geometry->markIndexDataDirty();
   }
 
-  m_synced = false;
-  m_reset = false;
+  m_doupdate = false;
 
   return node;
 }

@@ -7,6 +7,7 @@ After 1.0:
 - quick settings
 - POI (including Guest harbours) support
 - change glyphmanager lang & font when displaying NINFORM etc.?
+- faster db chart lookups: hierarchical chart tables schema
 
 Before 1.0:
 

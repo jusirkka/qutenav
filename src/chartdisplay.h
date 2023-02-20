@@ -116,6 +116,7 @@ public:
   Q_INVOKABLE QPointF advance(const QGeoCoordinate& q, qreal distance, qreal heading) const;
   Q_INVOKABLE void updateChartDB(bool fullUpdate);
   Q_INVOKABLE QString displayBearing(const QGeoCoordinate& q1, const QGeoCoordinate& q2, bool swap) const;
+  Q_INVOKABLE QPointF infoPosition() const;
 
   Q_PROPERTY(QStringList chartSets
              READ chartSets
@@ -252,6 +253,7 @@ private:
   QPointF m_lastPos;
 
   QObjectList m_info;
+  WGS84Point m_lastInfoPos {};
 
   UpdaterInterface* m_updater;
 

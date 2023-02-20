@@ -109,9 +109,10 @@ ChartPagePL {
     if (boat.visible && lastPos !== undefined && centerButton.centered) {
       // console.log(width, height)
       // WTF: width & height seem to have their old values at this point
-      boat.center = Qt.point(height / 2, width / 2);
+      boat.center = Qt.point(height / 2, width / 2)
       encdis.setEye(lastPos.coordinate)
     }
+    infoPoint.peepHole = encdis.infoPosition()
     syncLayers(true);
     headingValid = false;
   }
