@@ -184,6 +184,10 @@ QStringList OesuReaderFactory::filters() const {
   return QStringList {"*.oesu", "*.oesenc"};
 }
 
+QStringList OesuReaderFactory::eulaFilters() const {
+  return {"*_eula_ChartSetsForOpenCPN.html"};
+}
+
 ChartFileReader* OesuReaderFactory::create() const {
   return new OesuReader(name());
 }

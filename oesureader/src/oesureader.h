@@ -63,6 +63,7 @@ public:
   QString name() const override;
   QString displayName() const override;
   QStringList filters() const override;
+  QStringList eulaFilters() const override;
 
 protected:
 

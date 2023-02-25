@@ -32,6 +32,7 @@ Conf::MainWindow::MainWindow()
   m_defaults["last_geom"] = QSizeF(800, 600);
   m_defaults["full_screen"] = false;
   m_defaults["chart_folders"] = QVariantList();
+  m_defaults["shown_eulas"] = QVariantList();
   m_defaults["cache_size"] = 2000; // 2GB
 
   load();
@@ -39,6 +40,8 @@ Conf::MainWindow::MainWindow()
   QVariantList vitems = m_values["chart_folders"].toList();
   for (auto v: vitems) m_chartFolders.append(v.toString());
 
+  vitems = m_values["shown_eulas"].toList();
+  for (auto v: vitems) m_shownEulas.append(v.toString());
 }
 
 Conf::MainWindow::~MainWindow() {/*noop*/}

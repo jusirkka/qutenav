@@ -80,15 +80,12 @@ QSGNode *CrossHairs::updatePaintNode(QSGNode* oldNode, UpdatePaintNodeData*) {
   float w;
   float h;
 
-  if (window()->contentOrientation() == Qt::PortraitOrientation) {
-    w = window()->width();
-    h = window()->height();
-  } else if (window()->contentOrientation() == Qt::LandscapeOrientation) {
+  if (window()->contentOrientation() == Qt::LandscapeOrientation) {
     w = window()->height();
     h = window()->width();
   } else {
-    qCWarning(CDPY) << "Unsupported orientation";
-    return node;
+    w = window()->width();
+    h = window()->height();
   }
 
   const float d = .5 * Platform::peep_hole_size();

@@ -90,6 +90,7 @@ signals:
   void proxyChanged();
   void chartIndicatorsChanged(const WGS84Polygon& indicators);
   void zoomBottomHit(quint32 scale);
+  void showEula(const QString& path);
 
 public slots:
 
@@ -126,6 +127,7 @@ private:
   KV::RegionMap findCharts(KV::Region& remainingArea, qreal& cov, const ScaleVector& scales, const Camera* cam);
   void createBackground(KV::RegionMap& regions, const GeoProjection* gp, const KV::Region& remaining) const;
   void resetCharts();
+  void checkEula(const QString& chartSetName);
 
 
   static const inline float viewportFactor = 1.6;

@@ -117,6 +117,7 @@ public:
   Q_INVOKABLE void updateChartDB(bool fullUpdate);
   Q_INVOKABLE QString displayBearing(const QGeoCoordinate& q1, const QGeoCoordinate& q2, bool swap) const;
   Q_INVOKABLE QPointF infoPosition() const;
+  Q_INVOKABLE void setEulaShown(const QString& path) const;
 
   Q_PROPERTY(QStringList chartSets
              READ chartSets
@@ -169,7 +170,7 @@ public:
   Renderer* createRenderer() const override;
 
   void setCamera(Camera* cam);
-  void checkChartSet() const;
+  void checkOutlines() const;
   const Camera* camera() const {return m_camera;}
   bool consume(quint32 flag);
   const QRectF& viewArea() const {return m_viewArea;}
@@ -214,6 +215,7 @@ signals:
   void chartDBStatus(const QString& msg);
   void scaleBarTextsChanged();
   void processingChartsChanged();
+  void showEula(const QString& path, const QString& eula);
 
 private:
 

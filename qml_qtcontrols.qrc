@@ -2,6 +2,7 @@
     <qresource prefix="/">
         <file alias="Boat.qml">qml/Boat.qml</file>
         <file alias="Bubble.qml">qml/Bubble.qml</file>
+        <file alias="EulaPage.qml">qml/EulaPage.qml</file>
         <file alias="ObjectInfoBubble.qml">qml/ObjectInfoBubble.qml</file>
         <file alias="SimpleBubble.qml">qml/SimpleBubble.qml</file>
         <file alias="CenterButton.qml">qml/CenterButton.qml</file>

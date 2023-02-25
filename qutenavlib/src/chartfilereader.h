@@ -135,6 +135,7 @@ public:
   virtual QString name() const = 0;
   virtual QString displayName() const = 0;
   virtual QStringList filters() const = 0;
+  virtual QStringList eulaFilters() const {return QStringList();}
 
 protected:
 

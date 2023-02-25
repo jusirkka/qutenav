@@ -156,7 +156,7 @@ void ChartRenderer::synchronize(QQuickFramebufferObject *parent) {
   }
 
   if (item->consume(ChartDisplay::LeavingChartMode)) {
-    item->checkChartSet();
+    item->checkOutlines();
     if (finalizeChartMode()) {
       qCDebug(CDPY) << "LeavingChartMode";
       item->setCamera(m_mode->cloneCamera());

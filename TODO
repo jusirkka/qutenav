@@ -7,10 +7,10 @@ After 1.0:
 - quick settings
 - POI (including Guest harbours) support
 - change glyphmanager lang & font when displaying NINFORM etc.?
-- faster db chart lookups: hierarchical chart tables schema
+- faster db chart lookups: hierarchical chart tables schema?
+- faster db chart lookups: custom chartsets?
 
 Before 1.0:
 
-- skip caching of oesenc/oesu charts
-- show eula for oesenc/oesu charts
 - update readme: gshhs background charts, usage
+- skip caching of oesenc/oesu charts

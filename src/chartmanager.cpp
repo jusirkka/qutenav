@@ -168,6 +168,9 @@ void ChartManager::setChartSet(const QString &name, const GeoProjection* vproj, 
     qCWarning(CMGR) << "Unknown chartset" << name;
     return;
   }
+
+  checkEula(name);
+
   if (!force && m_reader == m_readers[m_chartSets[name]]) {
     qCDebug(CMGR) << "Current chartset is already" << name;
     return;
@@ -263,6 +266,37 @@ void ChartManager::setChartSet(const QString &name, const GeoProjection* vproj, 
   if (!ps.isEmpty()) {
     m_outlines << ps;
   }
+}
+
+void ChartManager::checkEula(const QString& chartSetName) {
+  // find reader factory
+  auto fit = std::find_if(m_factories.cbegin(), m_factories.cend(), [chartSetName] (const ChartFileReaderFactory* f) {
+    return f->displayName() == chartSetName;
+  });
+  if (fit == m_factories.cend()) return;
+
+  const ChartFileReaderFactory* ftor = *fit;
+  if (ftor->eulaFilters().isEmpty()) return;
+
+  // find all eula files
+  QFileInfoList candidates;
+  for (const auto& dir: Conf::MainWindow::ChartFolders()) {
+    QDirIterator it(dir,
+                    ftor->eulaFilters(),
+                    QDir::Files | QDir::Readable,
+                    QDirIterator::FollowSymlinks | QDirIterator::Subdirectories);
+    while (it.hasNext()) candidates << QFileInfo(it.next());
+  }
+  // get the most recent eula file
+  auto iit = std::max_element(candidates.cbegin(), candidates.cend(), [] (const QFileInfo& i1, const QFileInfo& i2) {
+    return i1.created() < i2.created();
+  });
+  if (iit == candidates.cend()) return;
+
+  const QString eula = iit->filePath();
+  if (Conf::MainWindow::isEulaShown(eula)) return;
+
+  emit showEula(eula);
 }
 
 void ChartManager::createThreads() {

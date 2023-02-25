@@ -203,6 +203,12 @@ ChartPagePL {
       bubble.show(msg);
     }
 
+    onShowEula: {
+      console.log("received eula request", path)
+      app.showAsDialog(Qt.resolvedUrl("EulaPage.qml"), {contents: eula})
+      encdis.setEulaShown(path)
+    }
+
     Tracker {
       id: tracker
       z: 200

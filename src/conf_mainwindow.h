@@ -48,11 +48,27 @@ public:
     return self()->m_chartFolders;
   }
 
+  static void setEulaShown(const QString& path) {
+    if (self()->m_shownEulas.contains(path)) return;
+    self()->m_shownEulas.append(path);
+
+    QVariantList items;
+    for (auto i: self()->m_shownEulas) items.append(i);
+
+    self()->m_values["shown_eulas"] = items;
+  }
+
+  static bool isEulaShown(const QString& path) {
+    return self()->m_shownEulas.contains(path);
+  }
+
+
 private:
 
   MainWindow();
 
   QStringList m_chartFolders;
+  QStringList m_shownEulas;
 
 };
 

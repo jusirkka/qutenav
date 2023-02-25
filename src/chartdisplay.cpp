@@ -40,6 +40,8 @@
 #include "vectorsymbolmanager.h"
 #include <QFont>
 #include <QFontMetrics>
+#include <QFileInfo>
+#include <QRegularExpression>
 
 ObjectObject::ObjectObject(const QString &n, QObject *parent)
   : QObject(parent)
@@ -178,9 +180,18 @@ void ChartDisplay::initializeSG() {
     update();
   });
 
-  if (chartMgr->outlines().isEmpty()) {
-    chartMgr->setChartSet(defaultChartSet(), m_camera->geoprojection());
-  }
+  connect(chartMgr, &ChartManager::showEula, this, [this] (const QString& path) {
+    QFile f(path);
+    if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) return;
+    QString eula = f.readAll();
+    eula.remove(QRegularExpression("<style.+</style>", QRegularExpression::DotMatchesEverythingOption));
+    f.close();
+    emit showEula(path, eula);
+  });
+
+  // chartset was already set before connection setup.
+  // Redo it to possibly receive signals from setChartSet.
+  chartMgr->setChartSet(defaultChartSet(), m_camera->geoprojection());
 
   auto textMgr = TextManager::instance();
 
@@ -209,7 +220,7 @@ void ChartDisplay::initializeSG() {
     emit updateViewport(m_camera, ChartManager::UpdateLookups);
   });
 
-  connect(Settings::instance(), &Settings::colorTableChanged, this, [this] () {
+  connect(settings, &Settings::colorTableChanged, this, [this] () {
     qCDebug(CDPY) << "colortable changed";
     m_flags |= ColorTableChanged | ChartsUpdated;
     update();
@@ -236,6 +247,10 @@ void ChartDisplay::indicateBusy(bool busy) {
     m_processingCharts = busy;
     emit processingChartsChanged();
   }
+}
+
+void ChartDisplay::setEulaShown(const QString& path) const {
+  Conf::MainWindow::setEulaShown(path);
 }
 
 QString ChartDisplay::defaultChartSet() const {
@@ -493,6 +508,12 @@ void ChartDisplay::handleFullInfoResponse(const S57::InfoType& rsp) {
   }
 }
 
+void ChartDisplay::checkOutlines() const {
+  if (ChartManager::instance()->outlines().isEmpty()) {
+    ChartManager::instance()->setChartSet(defaultChartSet(), m_camera->geoprojection());
+  }
+}
+
 void ChartDisplay::setCamera(Camera *cam) {
   delete m_camera;
   m_camera = cam;
@@ -501,12 +522,6 @@ void ChartDisplay::setCamera(Camera *cam) {
   m_camera->resize(wmm, hmm);
   emit updateViewport(m_camera, ChartManager::Force);
   computeScaleBar();
-}
-
-void ChartDisplay::checkChartSet() const {
-  if (ChartManager::instance()->outlines().isEmpty()) {
-    ChartManager::instance()->setChartSet(defaultChartSet(), m_camera->geoprojection());
-  }
 }
 
 static QVector<quint32> digits(quint32 v) {
@@ -596,7 +611,10 @@ QString ChartDisplay::displayBearing(const QGeoCoordinate& q1, const QGeoCoordin
 #include <QTextStream>
 
 void ChartDisplay::advanceNMEALog(int secs) const {
-  QFile f("/tmp/nmea.log");
+  const QString nmeaFile("/tmp/nmea.log");
+  if (!QFileInfo(nmeaFile).exists()) return;
+
+  QFile f(nmeaFile);
   if (!f.open(QIODevice::ReadWrite | QIODevice::Text)) return;
 
   QString s;
