@@ -65,6 +65,7 @@ public:
   quint32 id() const {return m_id;}
   int priority() const {return m_priority;}
   const QString& path() const {return m_path;}
+  bool cachingSupported() const {return m_cachingSupported;}
 
   void updatePaintData(const WGS84PointVector& cover, quint32 scale);
   void updateLookups();
@@ -139,6 +140,7 @@ private:
   quint32 m_id;
   int m_priority;
   QString m_path;
+  bool m_cachingSupported = false;
 
   QMatrix4x4 m_modelMatrix;
 

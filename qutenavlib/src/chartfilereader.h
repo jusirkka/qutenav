@@ -40,6 +40,7 @@ public:
                          const GeoProjection* gp) const = 0;
 
   virtual bool initializeRead() const {return true;}
+  virtual bool cachingSupported() const {return true;}
 
   const QString& name() const {return m_name;}
 

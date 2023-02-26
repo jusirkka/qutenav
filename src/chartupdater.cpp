@@ -83,9 +83,10 @@ void ChartUpdater::requestInfo(S57Chart *chart, const WGS84Point &p,
 void ChartUpdater::cacheChart(S57Chart *chart) {
   auto scoped = QScopedPointer<S57Chart>(chart);
 
-  const auto id = CacheReader::CacheId(chart->path());
-  const auto base = QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation);
+  if (!scoped->cachingSupported()) return;
 
+  const auto id = CacheReader::CacheId(scoped->path());
+  const auto base = QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation);
 
   const auto cacheDir = QString("%1/%2").arg(base).arg(Platform::base_app_name());
   const auto cachePath = QString("%1/%2").arg(cacheDir).arg(QString(id));

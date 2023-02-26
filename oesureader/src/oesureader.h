@@ -41,6 +41,7 @@ public:
                  const GeoProjection* proj) const override;
 
   bool initializeRead() const override;
+  bool cachingSupported() const override {return false;}
 
   ~OesuReader();
 

@@ -103,6 +103,9 @@ S57Chart::S57Chart(quint32 id, int prio, const QString& path)
     throw ChartFileError(QString("%1 is not a supported chart file").arg(path));
   }
 
+  m_cachingSupported = reader->cachingSupported();
+
+
   S57::ObjectVector objects;
   GL::VertexVector vertices;
   GL::IndexVector indices;
@@ -297,7 +300,7 @@ public:
 
       auto p = dynamic_cast<const S57::OverrideData*>(ovr.value());
       if (p->override()) {
-        prio = 8;
+        prio = textPrio;
       } else if (!d.object->canPaint(m_scale)) {
         for (S57::PaintMutIterator it = pd.begin(); it != pd.end(); ++it) {
           delete it.value();
@@ -387,6 +390,8 @@ private:
   const quint32 m_scale;
   const qreal m_scaleFactor;
   const GL::ChartProxy* m_proxy;
+
+  const int textPrio = 8;
 };
 
 void S57Chart::updatePaintData(const WGS84PointVector& cs, quint32 scale) {
